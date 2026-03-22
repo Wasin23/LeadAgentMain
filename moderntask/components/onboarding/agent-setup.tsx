@@ -94,7 +94,7 @@ const JOB_TITLES = [
   'Sales Representative', 'Marketing Specialist', 'Software Engineer', 'Data Analyst', 'Account Manager'
 ]
 
-type Step = 'intro' | 'personality' | 'name-agent' | 'configure' | 'name-preset' | 'email-setup' | 'crm-setup' | 'plan' | 'payment' | 'review' | 'creating'
+type Step = 'intro' | 'personality' | 'name-agent' | 'plan' | 'configure' | 'name-preset' | 'email-setup' | 'crm-setup' | 'payment' | 'review' | 'creating'
 
 interface Props {
   onComplete: () => void
@@ -138,7 +138,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
   const [crmError, setCrmError] = useState<string | null>(null)
   const [showCrmDropdown, setShowCrmDropdown] = useState(false)
 
-  const steps: Step[] = ['intro', 'personality', 'name-agent', 'configure', 'name-preset', 'email-setup', 'crm-setup', 'plan', 'payment', 'review', 'creating']
+  const steps: Step[] = ['intro', 'personality', 'name-agent', 'plan', 'configure', 'name-preset', 'email-setup', 'crm-setup', 'payment', 'review', 'creating']
   const stepIdx = steps.indexOf(step)
   const totalSteps = steps.length - 2 // exclude creating
 
@@ -290,13 +290,21 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
   const addJob = (t: string) => { if (!settings.jobTitles.includes(t)) { setSettings(s => ({ ...s, jobTitles: [...s.jobTitles, t] })); setJobSearch('') } }
 
   const plans = [
-    { id: 'free-trial', name: 'Free Trial', price: 0, credits: 500, description: 'Perfect for trying out Meridian', features: ['500 free credits ($25 value)', 'All core features', 'No credit card required'] },
-    { id: 'starter', name: 'Starter', price: 500, credits: 10000, description: 'Great for solo entrepreneurs', features: ['10,000 credits (~15,000 emails)', 'All features unlocked', 'Priority support'] },
-    { id: 'growth', name: 'Growth', price: 1000, credits: 20000, description: 'Perfect for growing teams', features: ['20,000 credits (~30,000 emails)', 'Everything in Starter', 'Advanced analytics'], popular: true },
-    { id: 'scale', name: 'Scale', price: 2500, credits: 70000, description: 'For high-volume operations', features: ['70,000 credits + 20k bonus', 'Everything in Growth', 'Dedicated support'] },
+    { id: 'free-trial', name: 'Free Trial', price: 0, credits: 1000, maxAgents: 1, maxConcurrency: 5, description: 'Perfect for trying out Meridian', features: ['1,000 free credits', '1 agent included', 'Up to 5x concurrency for testing', 'No credit card required'] },
+    { id: 'starter', name: 'Starter', price: 500, credits: 10000, maxAgents: 5, maxConcurrency: 5, description: 'Great for solo entrepreneurs', features: ['10,000 credits', 'Up to 5 agents', 'Up to 5x concurrency', 'All core features unlocked'] },
+    { id: 'professional', name: 'Professional', price: 1000, credits: 25000, maxAgents: 10, maxConcurrency: 10, description: 'Perfect for growing teams', features: ['25,000 credits', 'Up to 10 agents', 'Up to 10x concurrency', 'Best fit for active outreach teams'], popular: true },
+    { id: 'enterprise', name: 'Enterprise', price: 2500, credits: 70000, maxAgents: 30, maxConcurrency: 30, description: 'For high-volume operations', features: ['70,000 credits', 'Up to 30 agents', 'Up to 30x concurrency', 'Best for multi-agent teams'] },
   ]
 
   const planDetails = plans.find(p => p.id === selectedPlan) || plans[0]
+  const highestPlanLimits = plans[plans.length - 1]
+
+  useEffect(() => {
+    setSettings(current => {
+      if (current.concurrencyLevel <= planDetails.maxConcurrency) return current
+      return { ...current, concurrencyLevel: planDetails.maxConcurrency }
+    })
+  }, [planDetails.maxConcurrency])
 
   // Shared nav bar at top  
   const progressPct = step === 'creating' ? 100 : Math.round((stepIdx / (totalSteps)) * 100)
@@ -571,7 +579,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                 <p className="text-gray-500 text-xs mb-3">Number of leads researched in parallel per cycle. Higher = faster but uses more API credits at once.</p>
                 <div className="flex items-center gap-4">
                   <input
-                    type="range" min={1} max={10} step={1}
+                    type="range" min={1} max={planDetails.maxConcurrency} step={1}
                     value={settings.concurrencyLevel}
                     onChange={e => setSettings(s => ({ ...s, concurrencyLevel: parseInt(e.target.value) }))}
                     className="flex-1 accent-blue-500"
@@ -584,6 +592,8 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                   ~<span className="text-blue-600 font-bold">{settings.concurrencyLevel}×</span> faster research
                   {settings.concurrencyLevel > 3 && <span className="ml-2 text-amber-600">⚠ High API usage</span>}
                 </div>
+                <p className="mt-2 text-xs text-gray-500">Current plan cap: {planDetails.maxConcurrency}x concurrency. Upgrade to unlock up to {highestPlanLimits.maxConcurrency}x concurrency.</p>
+                <p className="mt-1 text-xs text-gray-500">Current plan also includes up to {planDetails.maxAgents} agent{planDetails.maxAgents === 1 ? '' : 's'}. Higher tiers go up to {highestPlanLimits.maxAgents} agents.</p>
               </div>
 
               {/* Email Settings */}
@@ -865,6 +875,10 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                 </div>
               ))}
             </div>
+            <div className="bg-white/95 backdrop-blur-md border border-gray-200 rounded-2xl p-5 mb-6 shadow-sm">
+              <p className="text-sm font-semibold text-gray-900">{planDetails.name} includes up to {planDetails.maxAgents} agent{planDetails.maxAgents === 1 ? '' : 's'} and {planDetails.maxConcurrency}x research concurrency.</p>
+              <p className="text-sm text-gray-500 mt-1">Higher tiers unlock up to {highestPlanLimits.maxAgents} agents and {highestPlanLimits.maxConcurrency}x concurrency.</p>
+            </div>
             <div className="flex justify-between">
               <button onClick={back} className="px-6 py-3 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl font-semibold transition-all">← Back</button>
               <button onClick={next} className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-bold hover:shadow-xl hover:scale-105 transition-all">
@@ -885,16 +899,18 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
               {selectedPlan === 'free-trial' ? (
                 <div className="bg-green-50 border-2 border-green-200 rounded-xl p-5">
                   <h3 className="font-bold text-green-900 text-lg mb-2">✓ Free Trial Ready!</h3>
-                  <p className="text-sm text-green-800 mb-3">Start with 500 free credits ($25 value). No credit card required.</p>
+                  <p className="text-sm text-green-800 mb-3">Start with 1,000 free credits. No credit card required.</p>
                   <ul className="space-y-1 text-sm text-green-800">
-                    {['No credit card required', 'Full access to all features', 'Upgrade anytime'].map((f, i) => <li key={i}>✓ {f}</li>)}
+                    {['No credit card required', '1 agent included', 'Up to 5x concurrency for testing', 'Upgrade anytime'].map((f, i) => <li key={i}>✓ {f}</li>)}
                   </ul>
+                  <p className="mt-3 text-xs text-green-700">Paid plans unlock up to {highestPlanLimits.maxAgents} agents and {highestPlanLimits.maxConcurrency}x concurrency.</p>
                 </div>
               ) : (
                 <div className="text-center">
                   <h3 className="font-bold text-gray-900 text-xl mb-1">{planDetails.name} Plan</h3>
                   <p className="text-3xl font-bold text-blue-600 mb-1">${planDetails.price}</p>
                   <p className="text-gray-500 text-sm mb-5">{planDetails.credits.toLocaleString()} credits</p>
+                  <p className="text-sm text-gray-600 mb-5">Includes up to {planDetails.maxAgents} agent{planDetails.maxAgents === 1 ? '' : 's'} and {planDetails.maxConcurrency}x concurrency.</p>
                   {!paymentAdded && (
                     <div className="space-y-3">
                       <p className="text-sm text-gray-500">A payment method is required before purchasing. Add one in the Billing settings, then return here.</p>
@@ -912,7 +928,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                       <button
                         onClick={async () => {
                           try {
-                            const r = await api.post('/api/billing/purchase-credits', { tierId: selectedPlan, amount: planDetails.price, credits: planDetails.credits })
+                            const r = await api.post('/api/plans/upgrade', { planType: selectedPlan })
                             if (r.data.success) { setPlanPurchased(true) }
                           } catch { }
                         }}
@@ -1009,6 +1025,8 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
               <div>
                 <p className="text-sm text-gray-500 mb-1">Plan</p>
                 <p className="font-semibold text-gray-900">{planDetails.name} — {planDetails.credits.toLocaleString()} credits</p>
+                <p className="text-xs text-gray-500 mt-1">Up to {planDetails.maxAgents} agent{planDetails.maxAgents === 1 ? '' : 's'} · Up to {planDetails.maxConcurrency}x concurrency</p>
+                <p className="text-xs text-gray-500 mt-1">Higher tiers unlock up to {highestPlanLimits.maxAgents} agents and {highestPlanLimits.maxConcurrency}x concurrency.</p>
               </div>
             </div>
             <div className="flex justify-between">

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Bell, Zap, CheckCircle2, Link2Off } from "lucide-react"
+import { Bell, Zap, CheckCircle2, Link2Off, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { MobileNav } from "./mobile-nav"
@@ -101,6 +101,7 @@ export function Header({
   const [profileEmail, setProfileEmail]     = useState<string>("")
   const [profilePicture, setProfilePicture] = useState<string>("")
   const [crmName, setCrmName]               = useState<string | null | undefined>(undefined) // undefined = loading
+  const [isTrialUser, setIsTrialUser]       = useState(false)
 
   // Sync with billing tab credit calculation
   useEffect(() => {
@@ -155,6 +156,21 @@ export function Header({
       setCrmName(r.data?.connected ? (r.data?.integration || "CRM") : null)
     }).catch(() => { setCrmName(null) })
   }, [creditsProp, notifProp])
+
+  useEffect(() => {
+    ;(async () => {
+      let isTrial = false
+      try {
+        const { data } = await api.get("/api/plans/status")
+        if (data.success) isTrial = (data.plan?.id || "") === "free-trial"
+      } catch {}
+      try {
+        const { data } = await api.get("/api/billing/trial-credits")
+        if (data.success && data.credits?.paymentMethodAdded === false) isTrial = true
+      } catch {}
+      setIsTrialUser(isTrial)
+    })()
+  }, [])
 
   // Prop overrides > fresh profile > context fallback
   const userName    = userNameProp    || profileName    || user?.username || ""
@@ -215,6 +231,20 @@ export function Header({
               <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-destructive rounded-full animate-pulse" />
             )}
           </Button>
+
+          {isTrialUser && (
+            <button
+              type="button"
+              onClick={() => router.push('/settings?tab=billing&upgrade=plans')}
+              className="h-8 px-3 rounded-full border border-amber-400/40 bg-amber-500/10 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-700 hover:bg-amber-500/15 transition-colors dark:text-amber-300"
+              title="Trial account — click to upgrade"
+            >
+              <span className="flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5" />
+                Trial
+              </span>
+            </button>
+          )}
 
           <div className="flex items-center gap-2 pl-2 md:pl-3 border-l border-border">
             <Link href="/settings" className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">

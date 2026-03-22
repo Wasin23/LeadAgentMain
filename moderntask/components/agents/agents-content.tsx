@@ -118,13 +118,15 @@ function AgentCard({
   const [editingConcurrency, setEditingConcurrency] = useState(false)
   const [concurrencyDraft, setConcurrencyDraft] = useState(agent.settings?.concurrencyLevel ?? 1)
   const saveConcurrency = async (val: number) => {
-    const clamped = Math.min(10, Math.max(1, val || 1))
+    const clamped = Math.min(30, Math.max(1, val || 1))
     setConcurrencyDraft(clamped)
     setEditingConcurrency(false)
     try {
       await api.post('/api/lead-agent/settings', { ...(agent.settings ?? {}), agentId: agent.agentId, concurrencyLevel: clamped })
       onSettingsChange(agent.agentId)
-    } catch {}
+    } catch (error: any) {
+      alert(error?.response?.data?.error || 'Failed to update concurrency')
+    }
   }
 
   // Link to per-agent dashboard page

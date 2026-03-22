@@ -951,13 +951,20 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
     const user = await getUserById(userId);
     console.log('[AUTH CREATE-AGENT] User agents:', user.activeAgents?.length || 0);
     
-    // Check agent limit (max 10 agents per account)
-    const MAX_AGENTS = 10;
+    const MAX_AGENTS = user.maxAgents || 1;
     if (user.activeAgents && user.activeAgents.length >= MAX_AGENTS) {
       console.log('[AUTH CREATE-AGENT] ❌ Agent limit reached:', user.activeAgents.length);
       return res.status(400).json({ 
         error: 'Agent limit reached',
-        message: `You have reached the maximum limit of ${MAX_AGENTS} agents per account. Please delete an existing agent to create a new one.` 
+        message: `Your current plan allows up to ${MAX_AGENTS} agent${MAX_AGENTS !== 1 ? 's' : ''}. Please delete an existing agent or upgrade your plan.` 
+      });
+    }
+
+    const MAX_CONCURRENCY = user.maxConcurrency || 1;
+    if (concurrencyLevel && Number(concurrencyLevel) > MAX_CONCURRENCY) {
+      return res.status(400).json({
+        error: 'Concurrency limit reached',
+        message: `Your current plan allows up to ${MAX_CONCURRENCY} concurrent worker${MAX_CONCURRENCY !== 1 ? 's' : ''}.`,
       });
     }
     
@@ -1337,6 +1344,16 @@ router.put('/agents/:agentId/settings', authenticateToken, async (req, res) => {
     // Get current settings to check if enableRebump changed
     const awsManager = (await import('../utils/awsManager.js')).default;
     const awsManagerInstance = new awsManager();
+    const user = await awsManagerInstance.getUserById(userId);
+    const maxConcurrency = user?.maxConcurrency || 1;
+
+    if (settings?.concurrencyLevel && Number(settings.concurrencyLevel) > maxConcurrency) {
+      return res.status(400).json({
+        success: false,
+        error: `Your current plan allows up to ${maxConcurrency} concurrent worker${maxConcurrency !== 1 ? 's' : ''}.`
+      });
+    }
+
     const currentSettings = await awsManagerInstance.getLeadAgentSettings(userId, agentId);
     
     // Save the updated settings

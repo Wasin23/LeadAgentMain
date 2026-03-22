@@ -549,7 +549,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                 <Label>Research Speed (Concurrency)</Label>
                 <div className="flex items-center gap-3">
                   <input
-                    type="range" min={1} max={10} step={1}
+                    type="range" min={1} max={30} step={1}
                     value={settings.concurrencyLevel ?? 1}
                     onChange={e => setSettings(prev => ({ ...prev, concurrencyLevel: parseInt(e.target.value) }))}
                     className="flex-1 accent-primary"
@@ -559,7 +559,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Parallel research workers per cycle. Higher = faster but uses more API credits simultaneously.
+                  Parallel research workers per cycle. Higher = faster but uses more API credits simultaneously. Your plan limit still applies.
                 </p>
               </div>
               <div className="space-y-1.5">

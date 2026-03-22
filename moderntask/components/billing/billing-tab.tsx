@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import { loadStripe } from "@stripe/stripe-js"
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js"
 import { DollarSign, CheckCircle, XCircle, RefreshCw, Calendar, CreditCard, Plus, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, Zap, Mail, TrendingDown, AlertTriangle, Gift, Lock } from "lucide-react"
@@ -535,6 +536,8 @@ function PaymentHistorySection() {
 // ── Billing Tab (inner) ───────────────────────────────────────────────────────
 
 function BillingTabInner() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddCard, setShowAddCard] = useState(false)
@@ -548,6 +551,7 @@ function BillingTabInner() {
   const [apiStats, setApiStats] = useState<ApiUsageStats>({})
   const [showCostBreakdown, setShowCostBreakdown] = useState(false)
   const [showCreditPurchaseModal, setShowCreditPurchaseModal] = useState(false)
+  const [creditPurchaseMode, setCreditPurchaseMode] = useState<"upgrade" | "topup">("topup")
   const [creditLoading, setCreditLoading] = useState(true)
 
   const avgCreditsPerEmail = 1
@@ -560,6 +564,17 @@ function BillingTabInner() {
     loadTrialCredits()
     fetchCreditData()
   }, [])
+
+  useEffect(() => {
+    if (searchParams.get("upgrade") === "plans") {
+      setCreditPurchaseMode("upgrade")
+      setShowCreditPurchaseModal(true)
+      const next = new URLSearchParams(searchParams.toString())
+      next.delete("upgrade")
+      const query = next.toString()
+      router.replace(query ? `/settings?${query}` : "/settings?tab=billing")
+    }
+  }, [router, searchParams])
 
   const fetchCreditData = async () => {
     setCreditLoading(true)
@@ -708,7 +723,10 @@ function BillingTabInner() {
 
             {/* Buy more credits */}
             <button
-              onClick={() => setShowCreditPurchaseModal(true)}
+              onClick={() => {
+                setCreditPurchaseMode("topup")
+                setShowCreditPurchaseModal(true)
+              }}
               className="flex items-center gap-2 px-4 py-2 bg-primary-foreground/10 hover:bg-primary-foreground/20 border border-primary-foreground/20 rounded-lg text-sm font-semibold transition-all"
             >
               <Plus className="w-4 h-4" />
@@ -792,12 +810,13 @@ function BillingTabInner() {
       {/* ── CreditPurchaseModal ─────────────────────────────────────────── */}
       {showCreditPurchaseModal && (
         <CreditPurchaseModal
-          mode="topup"
+          mode={creditPurchaseMode}
           currentPlan={userPlan?.plan?.id}
           onClose={() => setShowCreditPurchaseModal(false)}
           onSuccess={() => {
             setShowCreditPurchaseModal(false)
             fetchCreditData()
+            loadTrialCredits()
           }}
         />
       )}
@@ -833,6 +852,27 @@ function BillingTabInner() {
                   className={`h-full transition-all ${trialCredits.limitReached ? "bg-destructive" : "bg-foreground"}`}
                   style={{ width: `${Math.min(parseFloat(trialCredits.percentageUsed || "0"), 100)}%` }}
                 />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCreditPurchaseMode("upgrade")
+                    setShowCreditPurchaseModal(true)
+                  }}
+                  className="inline-flex items-center gap-2 rounded-lg bg-foreground px-3 py-2 text-xs font-semibold text-background transition-colors hover:opacity-90"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Upgrade Plan
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAddCard(true)}
+                  className="inline-flex items-center gap-2 rounded-lg border border-input px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-accent"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  Add Payment Method
+                </button>
               </div>
             </div>
           </div>

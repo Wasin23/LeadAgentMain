@@ -17,18 +17,20 @@ const SAMPLE_EMAILS = [
     name: "Sarah Chen",
     company: "GrowthLab",
     title: "VP of Sales, GrowthLab",
-    subject: "Re: scaling outbound past 50 reps",
+    subject: "GrowthLab + outbound bottlenecks",
+    time: "9:02 AM",
     tag: "Initial Outreach",
     tagColor: "bg-violet-500/10 text-violet-400 border-violet-500/20",
     rebump: false,
-    time: "2m ago",
     body: `Hi Sarah,
 
 Saw GrowthLab just crossed 200 employees on LinkedIn. Companies at that stage usually hit a wall where the process that worked at 20 reps becomes a bottleneck at 50.
 
 Most teams I talk to are dealing with one of two things: reps spending 60%+ of their time on prospecting instead of selling, or sequences that aren't personal enough to cut through the noise.
 
-Worth a 15-min call to see if either of those resonate?
+Meridian helps teams automate the research and drafting layer so reps stay focused on live conversations instead of list work.
+
+Worth showing you what that looks like?
 
 Best,
 Alex`,
@@ -40,36 +42,38 @@ Alex`,
     company: "Elevated Media",
     title: "Founder, Elevated Media",
     subject: "Elevated Media + enterprise pipeline",
+    time: "11:24 AM",
     tag: "Follow-up · Day 4",
-    tagColor: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    tagColor: "bg-amber-500/10 text-amber-400 border-amber-500/20",
     rebump: true,
-    time: "5m ago",
-    body: `Hey Marcus,
+    body: `Hi Marcus,
 
 Circling back from last week. Noticed you posted about landing your first $50K retainer. That's a real milestone.
 
 Agencies at that turning point usually want more enterprise accounts but don't have a repeatable way to get in front of them. Most end up just hoping referrals come in.
 
-If adding 2-3 enterprise conversations per month is something you're thinking about, happy to show you exactly how.
+If adding 2-3 enterprise conversations per month is something you're thinking about, happy to show you exactly how Meridian teams are doing it.
 
 Alex`,
-    detail: "Detected a public LinkedIn post about a recent client win and referenced it naturally in the follow-up message.",
+    detail: "Used founder LinkedIn post about new retainer milestone and agency growth signals to tailor the follow-up angle.",
   },
   {
     to: "priya.k@quantumsales.io",
     name: "Priya Kapoor",
     company: "Quantum Sales",
     title: "Head of Revenue, Quantum Sales",
-    subject: "Automating your SDR research workflow",
+    subject: "Quantum Sales + mid-market expansion",
+    time: "2:41 PM",
     tag: "Initial Outreach",
     tagColor: "bg-violet-500/10 text-violet-400 border-violet-500/20",
     rebump: false,
-    time: "11m ago",
     body: `Hi Priya,
 
 Noticed Quantum Sales recently expanded into the mid-market segment, which typically means your SDRs are spending more time on research per account, not less.
 
-We help teams like yours cut that research time by about 80% while keeping the emails personal enough to actually get replies.
+That usually creates a tradeoff between personalization and volume right when the team needs both.
+
+Meridian handles the account research and first-draft writing so your reps can keep message quality high without slowing the pipeline down.
 
 Open to a quick look?
 
@@ -283,7 +287,7 @@ export default function LandingPage() {
       <div className="border-y border-border bg-muted/20 px-6 sm:px-10 py-5">
         <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-8 sm:gap-14 text-center">
           {[
-            { n: "500+", l: "Free credits to start" },
+              { n: "1,000", l: "Free credits to start" },
             { n: "< 10 min", l: "Setup time" },
             { n: "Gmail + Outlook", l: "Both supported" },
             { n: "100%", l: "Your inbox, your brand" },
@@ -424,63 +428,64 @@ export default function LandingPage() {
                 name: "Free Trial",
                 price: "Free",
                 sub: "No card required",
-                credits: "500 credits included",
+                credits: "1 agent · up to 5x concurrency",
                 highlight: false,
                 cta: "Start Free",
                 features: [
-                  "500 credits (~10 sequences)",
+                  "1,000 free credits",
                   "Gmail or Outlook",
                   "AI lead research",
                   "Personalized email writing",
                   "Open & reply tracking",
+                  "1 agent included",
                 ],
               },
               {
                 name: "Starter",
                 price: "$500",
                 sub: "10,000 credits",
-                credits: "~1,000 full sequences",
+                credits: "Up to 5 agents · 5x concurrency",
                 highlight: false,
                 cta: "Get Started",
                 features: [
                   "Everything in Free",
-                  "Top-up anytime",
+                  "Up to 5 agents",
+                  "Up to 5x concurrency",
                   "Automated follow-ups",
                   "CRM pipeline",
                   "Email scheduling by timezone",
-                  "Priority support",
                 ],
               },
               {
-                name: "Growth",
+                name: "Professional",
                 price: "$1,000",
-                sub: "20,000 credits",
-                credits: "~2,000 full sequences",
+                sub: "25,000 credits",
+                credits: "Up to 10 agents · 10x concurrency",
                 highlight: true,
                 cta: "Get Started",
                 features: [
                   "Everything in Starter",
-                  "Multiple agents",
+                  "Up to 10 agents",
+                  "Up to 10x concurrency",
                   "Calendar integration",
                   "Advanced analytics",
                   "Company intelligence",
-                  "Larger top-up packages",
                 ],
               },
               {
-                name: "Scale",
+                name: "Enterprise",
                 price: "$2,500",
                 sub: "70,000 credits",
-                credits: "~7,000 full sequences",
+                credits: "Up to 30 agents · 30x concurrency",
                 highlight: false,
                 cta: "Get Started",
                 features: [
-                  "Everything in Growth",
-                  "Unlimited agents",
+                  "Everything in Professional",
+                  "Up to 30 agents",
+                  "Up to 30x concurrency",
                   "Dedicated onboarding",
                   "Custom integrations",
                   "SLA support",
-                  "Volume discounts",
                 ],
               },
             ].map(p => (
@@ -533,7 +538,7 @@ export default function LandingPage() {
       {/* Final CTA */}
       <section className="px-6 sm:px-10 py-16 bg-muted/20 border-t border-border">
         <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4 tracking-tight">Start with 500 free credits.</h2>
+          <h2 className="text-3xl sm:text-4xl font-bold mb-4 tracking-tight">Start with 1,000 free credits.</h2>
           <p className="text-muted-foreground mb-8">
             No card required. Connect your inbox, set your ICP, and watch the first batch of outreach go out — usually within the hour.
           </p>

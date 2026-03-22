@@ -58,38 +58,58 @@ class AWSManager {
     this.plans = {
       'free-trial': {
         name: 'Free Trial',
-        initialCredits: 500, // $25 worth
-        maxCredits: 500,
+        initialCredits: 1000,
+        maxCredits: 1000,
         canPurchaseMore: false,
-        description: 'Try Meridian with 500 free credits'
+        maxAgents: 1,
+        maxConcurrency: 5,
+        description: 'Try Meridian with 1,000 free credits'
       },
       'starter': {
         name: 'Starter Plan',
-        initialCredits: 1000, // $50 worth
-        maxCredits: 10000, // $500 limit
+        initialCredits: 10000,
+        maxCredits: 25000,
         canPurchaseMore: true,
-        creditPackages: [100, 500, 1000], // Purchase options in credits
+        creditPackages: [1000, 5000, 10000],
+        maxAgents: 5,
+        maxConcurrency: 5,
         description: 'Perfect for small teams and solo entrepreneurs'
       },
       'professional': {
         name: 'Professional Plan',
-        initialCredits: 2000, // $100 worth
-        maxCredits: 50000, // $2500 limit
+        initialCredits: 25000,
+        maxCredits: 70000,
         canPurchaseMore: true,
-        creditPackages: [500, 2000, 5000], // Purchase options in credits
+        creditPackages: [5000, 10000, 20000],
+        maxAgents: 10,
+        maxConcurrency: 10,
         description: 'Ideal for growing businesses and agencies'
       },
       'enterprise': {
         name: 'Enterprise Plan',
-        initialCredits: 5000, // $250 worth
-        maxCredits: 200000, // $10,000 limit
+        initialCredits: 70000,
+        maxCredits: 200000,
         canPurchaseMore: true,
-        creditPackages: [2000, 10000, 20000], // Purchase options in credits
+        creditPackages: [10000, 25000, 50000],
+        maxAgents: 30,
+        maxConcurrency: 30,
         description: 'Unlimited scale for large organizations'
       }
     };
     
     // Removed initialization logs to reduce console noise
+  }
+
+  getPlanConfig(planId = 'free-trial') {
+    return this.plans[planId] || this.plans['free-trial'];
+  }
+
+  getPlanLimits(planId = 'free-trial') {
+    const planConfig = this.getPlanConfig(planId);
+    return {
+      maxAgents: planConfig.maxAgents || 1,
+      maxConcurrency: planConfig.maxConcurrency || 1,
+    };
   }
 
   // =====================
@@ -171,9 +191,11 @@ class AWSManager {
       
       const planConfig = this.plans[user.plan];
       if (planConfig) {
-        user.trialCreditsLimit = user.trialCreditsLimit || planConfig.initialCredits;
+        user.trialCreditsLimit = Math.max(user.trialCreditsLimit || 0, planConfig.initialCredits);
         user.maxCredits = planConfig.maxCredits;
         user.canPurchaseMore = planConfig.canPurchaseMore;
+        user.maxAgents = planConfig.maxAgents || 1;
+        user.maxConcurrency = planConfig.maxConcurrency || 1;
       }
       
       return user;
@@ -435,6 +457,14 @@ class AWSManager {
   async addAgentToUser(userId, agentData) {
     try {
       console.log('🤖 [AWS] Adding agent to user:', userId, agentData.agentId);
+
+      const user = await this.getUserById(userId);
+      const activeAgents = user?.activeAgents || [];
+      const { maxAgents } = this.getPlanLimits(user?.plan || 'free-trial');
+
+      if (activeAgents.length >= maxAgents) {
+        throw new Error(`Agent limit reached. Your current plan allows up to ${maxAgents} agent${maxAgents !== 1 ? 's' : ''}.`);
+      }
       
       const command = new UpdateCommand({
         TableName: this.tables.users,
@@ -707,6 +737,14 @@ class AWSManager {
       
       // Ensure agentId is included in the settings and convert to string for consistency
       const agentIdToUse = String(agentId || settings.agentId || 'lead-agent');
+      const user = await this.getUserById(userId).catch(() => null);
+      const { maxConcurrency } = this.getPlanLimits(user?.plan || 'free-trial');
+      const normalizedConcurrency = Number.isFinite(Number(settings.concurrencyLevel))
+        ? Math.min(maxConcurrency, Math.max(1, Math.floor(Number(settings.concurrencyLevel))))
+        : undefined;
+      const normalizedSettings = normalizedConcurrency === undefined
+        ? settings
+        : { ...settings, concurrencyLevel: normalizedConcurrency };
       
       const command = new PutCommand({
         TableName: this.tables.agentSettings,
@@ -715,9 +753,9 @@ class AWSManager {
           agentId: agentIdToUse,
           settingsType: 'lead-agent',
           settings: {
-            ...settings,
+            ...normalizedSettings,
             updatedAt: new Date().toISOString(),
-            version: settings.version || '2.0'
+            version: normalizedSettings.version || '2.0'
           }
         }
       });
@@ -3364,7 +3402,7 @@ class AWSManager {
    */
   async updateUserPlan(userId, planType) {
     try {
-      const planConfig = this.plans[planType];
+      const planConfig = this.getPlanConfig(planType);
       if (!planConfig) {
         throw new Error(`Invalid plan type: ${planType}`);
       }
@@ -3379,6 +3417,8 @@ class AWSManager {
         plan: planType,
         trialCreditsLimit: planConfig.initialCredits,
         maxCredits: planConfig.maxCredits,
+        maxAgents: planConfig.maxAgents,
+        maxConcurrency: planConfig.maxConcurrency,
         planUpdatedAt: new Date().toISOString()
       });
 
@@ -3405,14 +3445,14 @@ class AWSManager {
         throw new Error('User not found');
       }
 
-      const planConfig = this.plans[user.plan || 'free-trial'];
+      const planConfig = this.getPlanConfig(user.plan || 'free-trial');
       
       // Check if user can purchase more credits
       if (!planConfig.canPurchaseMore) {
         throw new Error(`${planConfig.name} does not allow credit purchases. Please upgrade your plan.`);
       }
 
-      const currentLimit = user.trialCreditsLimit || planConfig.initialCredits;
+      const currentLimit = Math.max(user.trialCreditsLimit || 0, planConfig.initialCredits);
       const newLimit = currentLimit + creditAmount;
 
       // Check against max credits for plan
@@ -3467,9 +3507,9 @@ class AWSManager {
         throw new Error('User not found');
       }
 
-      const planConfig = this.plans[user.plan || 'free-trial'];
+      const planConfig = this.getPlanConfig(user.plan || 'free-trial');
       const creditsUsed = user.trialCreditsUsed || 0;
-      const creditsLimit = user.trialCreditsLimit || planConfig.initialCredits;
+      const creditsLimit = Math.max(user.trialCreditsLimit || 0, planConfig.initialCredits);
       const remainingCredits = creditsLimit - creditsUsed;
 
       return {

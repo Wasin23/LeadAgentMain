@@ -7,7 +7,7 @@ import api from "@/lib/api"
 interface CreditPurchaseModalProps {
   onClose: () => void
   onSuccess: () => void
-  mode?: "onboarding" | "topup"
+  mode?: "upgrade" | "topup"
   currentPlan?: string
 }
 
@@ -33,10 +33,10 @@ interface TopupOption {
 export function CreditPurchaseModal({
   onClose,
   onSuccess,
-  mode = "onboarding",
+  mode = "upgrade",
   currentPlan,
 }: CreditPurchaseModalProps) {
-  const [selectedTier, setSelectedTier] = useState<string>(mode === "onboarding" ? "growth" : "small")
+  const [selectedTier, setSelectedTier] = useState<string>(mode === "upgrade" ? "professional" : "small")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [userPlanInfo, setUserPlanInfo] = useState<any>(null)
@@ -48,25 +48,24 @@ export function CreditPurchaseModal({
       price: 500,
       credits: 10000,
       emails: 10000,
-      features: ["10,000 credits", "~10,000 emails", "Basic AI features", "Email support"],
+      features: ["10,000 credits included", "~10,000 emails", "Up to 5 agents", "Up to 5x concurrency"],
     },
     {
-      id: "growth",
-      name: "Growth",
+      id: "professional",
+      name: "Professional",
       price: 1000,
-      credits: 20000,
-      emails: 20000,
+      credits: 25000,
+      emails: 25000,
       popular: true,
-      features: ["20,000 credits", "~20,000 emails", "Advanced AI features", "Priority support", "Custom integrations"],
+      features: ["25,000 credits included", "~25,000 emails", "Up to 10 agents", "Up to 10x concurrency"],
     },
     {
-      id: "scale",
-      name: "Scale",
+      id: "enterprise",
+      name: "Enterprise",
       price: 2500,
       credits: 70000,
-      bonus: 20000,
-      emails: 90000,
-      features: ["70,000 credits", "+20,000 bonus credits", "~90,000 emails", "All AI features", "Dedicated support", "Custom workflows"],
+      emails: 70000,
+      features: ["70,000 credits included", "~70,000 emails", "Up to 30 agents", "Up to 30x concurrency"],
     },
   ]
 
@@ -84,21 +83,21 @@ export function CreditPurchaseModal({
   }, [])
 
   const handlePurchase = async () => {
-    const isOnboarding = mode === "onboarding"
-    const options = isOnboarding ? pricingTiers : topupOptions
+    const isUpgrade = mode === "upgrade"
+    const options = isUpgrade ? pricingTiers : topupOptions
     const selectedOption = options.find((t) => t.id === selectedTier)
     if (!selectedOption) return
 
     setLoading(true)
     setError(null)
     try {
-      const endpoint = isOnboarding ? "/api/billing/purchase-credits" : "/api/billing/add-credits"
-      const { data } = await api.post(endpoint, {
-        tierId: selectedOption.id,
-        amount: selectedOption.price,
-        credits: selectedOption.credits,
-        mode,
-      })
+      const { data } = isUpgrade
+        ? await api.post("/api/plans/upgrade", {
+            planType: selectedOption.id,
+          })
+        : await api.post("/api/plans/purchase-credits", {
+            creditAmount: selectedOption.credits,
+          })
       if (data.success) {
         onSuccess()
       } else {
@@ -125,10 +124,10 @@ export function CreditPurchaseModal({
           <div>
             <h2 className="text-2xl font-bold flex items-center gap-3">
               <Sparkles className="w-7 h-7 text-muted-foreground" />
-              {mode === "onboarding" ? "Choose Your Plan" : "Buy More Credits"}
+              {mode === "upgrade" ? "Upgrade Plan" : "Buy More Credits"}
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              {mode === "onboarding" ? "1 credit = $0.05 in API costs" : "Add more credits to your existing plan"}
+              {mode === "upgrade" ? "Pick the plan that matches your expected monthly volume." : "Add more credits to your existing plan"}
             </p>
             {mode === "topup" && userPlanInfo?.plan && (
               <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-muted border border-border rounded-full">
@@ -146,10 +145,10 @@ export function CreditPurchaseModal({
 
         {/* Content */}
         <div className="p-8">
-          {/* Onboarding plans */}
-          {mode === "onboarding" && (
+          {/* Upgrade plans */}
+          {mode === "upgrade" && (
             <>
-              <h3 className="text-base font-semibold mb-4">Starter Plans</h3>
+              <h3 className="text-base font-semibold mb-4">Upgrade Options</h3>
               <div className="grid gap-5 mb-8 grid-cols-1 md:grid-cols-3">
                 {pricingTiers.map((tier, i) => {
                   const isCurrent = currentPlan === tier.id
@@ -184,7 +183,7 @@ export function CreditPurchaseModal({
                         <h3 className="text-xl font-bold mb-2">{tier.name}</h3>
                         <div className="mb-4">
                           <span className="text-4xl font-bold">${tier.price}</span>
-                          <span className="text-sm text-muted-foreground ml-1">one-time</span>
+                          <span className="text-sm text-muted-foreground ml-1">plan</span>
                         </div>
                         <div className="mb-5">
                           <div className="text-3xl font-bold">{tier.credits.toLocaleString()}</div>
@@ -203,12 +202,11 @@ export function CreditPurchaseModal({
                   )
                 })}
               </div>
-              <h3 className="text-base font-semibold mb-4">Quick Top-Ups</h3>
             </>
           )}
 
           {/* Top-up options */}
-          <div className="grid gap-4 mb-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          {mode === "topup" && <div className="grid gap-4 mb-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             {topupOptions.map((tier, i) => {
               const isSelected = selectedTier === tier.id
               return (
@@ -252,19 +250,20 @@ export function CreditPurchaseModal({
                 </div>
               )
             })}
-          </div>
+          </div>}
 
           {/* Info box */}
           <div className="bg-muted/50 border border-border rounded-lg p-4 mb-6">
             <h4 className="font-semibold mb-2 flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-muted-foreground" />
-              {mode === "onboarding" ? "How Credits Work" : "About Additional Credits"}
+              {mode === "upgrade" ? "How Credits Work" : "About Additional Credits"}
             </h4>
             <ul className="text-sm text-muted-foreground space-y-1">
               <li>• <strong>1 credit = $0.05</strong> in tracked API costs (transparent pricing)</li>
               <li>• <strong>~1 credit per email</strong> (full deep AI research, enrichment, validation, sending)</li>
               <li>• Credits never expire and roll over month-to-month</li>
               {mode === "topup" && <li>• <strong>Top-ups are added instantly</strong> to your current balance</li>}
+              {mode === "upgrade" && <li>• Plan upgrades change your included credit ceiling immediately</li>}
               <li>• Track exact usage in real-time on your dashboard</li>
             </ul>
           </div>
@@ -287,10 +286,10 @@ export function CreditPurchaseModal({
               </span>
             ) : (
               (() => {
-                const options = mode === "onboarding" ? pricingTiers : topupOptions
+                const options = mode === "upgrade" ? pricingTiers : topupOptions
                 const sel = options.find((t) => t.id === selectedTier)
-                return mode === "onboarding"
-                  ? `Choose ${sel?.name} — ${sel?.credits.toLocaleString()} Credits for $${sel?.price}`
+                return mode === "upgrade"
+                  ? `Upgrade to ${sel?.name} — ${sel?.credits.toLocaleString()} Credits Included`
                   : `Add ${sel?.credits.toLocaleString()} Credits for $${sel?.price}`
               })()
             )}

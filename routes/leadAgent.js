@@ -546,6 +546,16 @@ router.post('/settings', async (req, res) => {
     const agentId = req.body.agentId || req.query.agentId || 'lead-agent'; // Get agentId from body or query
     console.log('[AGENT SETTINGS] Saving agent settings for user:', userId, 'agentId:', agentId);
     console.log('[AGENT SETTINGS] Settings data:', req.body);
+
+    const user = await awsManager.getUserById(userId);
+    const maxConcurrency = user?.maxConcurrency || 1;
+    if (req.body?.concurrencyLevel && Number(req.body.concurrencyLevel) > maxConcurrency) {
+      return res.status(400).json({
+        success: false,
+        error: `Your current plan allows up to ${maxConcurrency} concurrent worker${maxConcurrency !== 1 ? 's' : ''}.`,
+        message: 'Failed to save agent settings'
+      });
+    }
     
     // Get agent-specific instance
     const userAgent = getUserAgent(userId, agentId);
