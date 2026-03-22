@@ -2608,9 +2608,11 @@ class AWSManager {
    */
   async getPaymentStats(userId) {
     try {
+      const user = await this.getUserById(userId);
       const payments = await this.getPaymentHistory(userId, 100);
       
       const stats = {
+        billingMode: 'prepaid',
         totalPaid: 0,
         totalFailed: 0,
         outstanding: 0,
@@ -2650,55 +2652,55 @@ class AWSManager {
       // Sum up unique failed amounts
       stats.totalFailed = Array.from(failedPeriods.values()).reduce((sum, amount) => sum + amount, 0);
 
-      // Calculate outstanding balance from usage summary
-      try {
-        const summaryCommand = new QueryCommand({
-          TableName: this.tables.apiUsageSummary,
-          KeyConditionExpression: 'userId = :userId',
-          ExpressionAttributeValues: {
-            ':userId': userId
-          }
-        });
-        
-        const { Items: summaryRecords } = await this.dynamodb.send(summaryCommand);
-        
-        // Calculate outstanding (usage minus payments) per month
-        let outstanding = 0;
-        summaryRecords?.forEach(summary => {
-          // Calculate total usage cost for this month
-          let monthUsage = 0;
-          ['apollo', 'openai', 'serper', 'zerobounce', 'mailgun', 'gmail'].forEach(service => {
-            if (summary[service]) {
-              monthUsage += summary[service].cost || 0;
+      const usesPrepaidCredits = !!user?.plan || user?.creditBalance !== undefined;
+
+      if (!usesPrepaidCredits) {
+        // Legacy fallback for old postpaid users.
+        try {
+          const summaryCommand = new QueryCommand({
+            TableName: this.tables.apiUsageSummary,
+            KeyConditionExpression: 'userId = :userId',
+            ExpressionAttributeValues: {
+              ':userId': userId
             }
           });
           
-          // Calculate total payments for this month
-          let monthPayments = 0;
-          payments
-            .filter(p => p.status === 'success' && p.billingPeriod)
-            .forEach(payment => {
-              const paymentMonth = new Date(payment.billingPeriod).toISOString().slice(0, 7);
-              if (paymentMonth === summary.month) {
-                monthPayments += payment.amount || 0;
+          const { Items: summaryRecords } = await this.dynamodb.send(summaryCommand);
+          
+          let outstanding = 0;
+          summaryRecords?.forEach(summary => {
+            let monthUsage = 0;
+            ['apollo', 'openai', 'serper', 'zerobounce', 'mailgun', 'gmail'].forEach(service => {
+              if (summary[service]) {
+                monthUsage += summary[service].cost || 0;
               }
             });
+            
+            let monthPayments = 0;
+            payments
+              .filter(p => p.status === 'success' && p.billingPeriod)
+              .forEach(payment => {
+                const paymentMonth = new Date(payment.billingPeriod).toISOString().slice(0, 7);
+                if (paymentMonth === summary.month) {
+                  monthPayments += payment.amount || 0;
+                }
+              });
+            
+            const monthOutstanding = Math.max(0, monthUsage - monthPayments);
+            outstanding += monthOutstanding;
+          });
           
-          // Outstanding = usage - payments (can't be negative)
-          const monthOutstanding = Math.max(0, monthUsage - monthPayments);
-          outstanding += monthOutstanding;
-        });
-        
-        stats.outstanding = outstanding;
-      } catch (summaryError) {
-        console.error('⚠️ [AWS] Error calculating outstanding balance:', summaryError);
-        stats.outstanding = 0;
-      }
+          stats.outstanding = outstanding;
 
-      // Calculate next billing date (first of next month)
-      const now = new Date();
-      const nextBillingDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-      stats.nextBillingDate = nextBillingDate.toISOString();
+          const now = new Date();
+          const nextBillingDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+          stats.nextBillingDate = nextBillingDate.toISOString();
+          stats.billingMode = 'postpaid';
+        } catch (summaryError) {
+          console.error('⚠️ [AWS] Error calculating outstanding balance:', summaryError);
+          stats.outstanding = 0;
+        }
+      }
 
       console.log(`✅ [AWS] Payment stats: ${stats.successCount} successful, ${stats.failedCount} failed (unique periods), $${stats.outstanding.toFixed(2)} outstanding`);
       return stats;

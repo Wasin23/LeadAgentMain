@@ -202,6 +202,17 @@ export function CreditPurchaseModal({
                   )
                 })}
               </div>
+              <div className="bg-muted/50 border border-border rounded-lg p-4 mb-8">
+                <h4 className="font-semibold mb-2">What these limits mean</h4>
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <p>
+                    <strong className="text-foreground">Agent:</strong> an agent is one AI outbound worker with its own targeting, settings, and sending behavior. More agents let you run separate outreach strategies at the same time.
+                  </p>
+                  <p>
+                    <strong className="text-foreground">Concurrency:</strong> concurrency is how many leads one agent can research in parallel during a cycle. Higher concurrency means faster research, but it also uses more credits and API activity at once.
+                  </p>
+                </div>
+              </div>
             </>
           )}
 

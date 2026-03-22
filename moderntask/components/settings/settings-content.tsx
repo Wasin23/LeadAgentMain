@@ -193,10 +193,8 @@ export function SettingsContent() {
   const [analyzeWebsiteUrl, setAnalyzeWebsiteUrl] = useState("")
 
   // ── Email settings ────────────────────────────────────────────────────────
-  const [aiAutoResponseEnabled, setAiAutoResponseEnabled] = useState(false)
-  const [defaultEmailSource, setDefaultEmailSource] = useState<"meridian" | "gmail">("meridian")
+  const [defaultEmailSource, setDefaultEmailSource] = useState<"meridian" | "gmail" | "outlook">("meridian")
   const [defaultRebumpEnabled, setDefaultRebumpEnabled] = useState(true)
-  const [savingEmailSettings, setSavingEmailSettings] = useState(false)
 
   // ── CRM ───────────────────────────────────────────────────────────────────
   const [crmStatus, setCrmStatus] = useState<{ connected: boolean; integration?: string | null; connectedAt?: string | null; autoSync?: boolean }>({ connected: false })
@@ -375,7 +373,6 @@ export function SettingsContent() {
           if (s.preferences.companySizeMax)   setTargeting(prev => ({ ...prev, companySizeMax:   s.preferences.companySizeMax }))
           if (s.preferences.defaultLeadLimit) setTargeting(prev => ({ ...prev, defaultLeadLimit: s.preferences.defaultLeadLimit }))
           if (s.preferences.notifPrefs)       setNotifPrefs(prev => ({ ...prev, ...s.preferences.notifPrefs }))
-          if (typeof s.preferences.aiAutoResponseEnabled === "boolean") setAiAutoResponseEnabled(s.preferences.aiAutoResponseEnabled)
           if (s.preferences.defaultEmailSource) setDefaultEmailSource(s.preferences.defaultEmailSource)
           if (typeof s.preferences.defaultRebumpEnabled === "boolean") setDefaultRebumpEnabled(s.preferences.defaultRebumpEnabled)
         }
@@ -555,16 +552,6 @@ export function SettingsContent() {
       }
     } catch { toast.error("Failed to analyze website") }
     finally { setAnalyzingWebsite(false) }
-  }
-
-  // Email settings helpers
-  const saveEmailSettings = async () => {
-    setSavingEmailSettings(true)
-    try {
-      await savePrefs({ aiAutoResponseEnabled, defaultEmailSource, defaultRebumpEnabled })
-      toast.success("Email settings saved!")
-    } catch { toast.error("Failed to save") }
-    finally { setSavingEmailSettings(false) }
   }
 
   // CRM helpers
@@ -1080,42 +1067,93 @@ export function SettingsContent() {
 
             {/* Default sending toggles */}
             <div className="space-y-3">
-              <p className="text-sm font-medium">Default Sending</p>
-              {gmailAccounts.length > 0 && (
-                <div className="flex items-center justify-between py-2">
-                  <div>
-                    <p className="text-sm">Default Gmail Sending</p>
-                    <p className="text-xs text-muted-foreground">Use Gmail as the default sending source for new agents</p>
-                  </div>
-                  <Switch
-                    checked={defaultUseGmail}
-                    onCheckedChange={async v => {
-                      setDefaultUseGmail(v)
-                      if (v) setDefaultUseOutlook(false)
-                      await savePrefs({ defaultUseGmail: v, defaultUseOutlook: v ? false : defaultUseOutlook })
-                    }}
-                  />
+              <div>
+                <p className="text-sm font-medium">Default Sending for New Agents</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Choose which sender new agents should use by default. Only one default sender can be active at a time.</p>
+              </div>
+
+              <div className="flex items-center justify-between py-2">
+                <div>
+                  <p className="text-sm">Meridian Sending</p>
+                  <p className="text-xs text-muted-foreground">Use Meridian-managed sending for new agents</p>
                 </div>
-              )}
-              {outlookAccounts.length > 0 && (
-                <div className="flex items-center justify-between py-2">
-                  <div>
-                    <p className="text-sm">Default Outlook Sending</p>
-                    <p className="text-xs text-muted-foreground">Use Outlook as the default sending source for new agents</p>
-                  </div>
-                  <Switch
-                    checked={defaultUseOutlook}
-                    onCheckedChange={async v => {
-                      setDefaultUseOutlook(v)
-                      if (v) setDefaultUseGmail(false)
-                      await savePrefs({ defaultUseOutlook: v, defaultUseGmail: v ? false : defaultUseGmail })
-                    }}
-                  />
+                <Switch
+                  checked={defaultEmailSource === "meridian"}
+                  onCheckedChange={async v => {
+                    if (!v) return
+                    setDefaultEmailSource("meridian")
+                    setDefaultUseGmail(false)
+                    setDefaultUseOutlook(false)
+                    await savePrefs({ defaultEmailSource: "meridian", defaultUseGmail: false, defaultUseOutlook: false })
+                  }}
+                />
+              </div>
+
+              <div className="flex items-center justify-between py-2">
+                <div>
+                  <p className="text-sm">Gmail Sending</p>
+                  <p className="text-xs text-muted-foreground">
+                    {gmailAccounts.length > 0
+                      ? "Use your connected Gmail account as the default sender for new agents"
+                      : "Connect a Gmail account above to enable this default"}
+                  </p>
                 </div>
-              )}
-              {gmailAccounts.length === 0 && outlookAccounts.length === 0 && (
-                <p className="text-xs text-muted-foreground">Connect an account above to configure default sending.</p>
-              )}
+                <Switch
+                  checked={defaultUseGmail}
+                  disabled={gmailAccounts.length === 0}
+                  onCheckedChange={async v => {
+                    const nextSource = v ? "gmail" : (defaultUseOutlook ? "outlook" : "meridian")
+                    setDefaultUseGmail(v)
+                    if (v) setDefaultUseOutlook(false)
+                    setDefaultEmailSource(nextSource)
+                    await savePrefs({ defaultUseGmail: v, defaultUseOutlook: v ? false : defaultUseOutlook, defaultEmailSource: nextSource })
+                  }}
+                />
+              </div>
+
+              <div className="flex items-center justify-between py-2">
+                <div>
+                  <p className="text-sm">Outlook Sending</p>
+                  <p className="text-xs text-muted-foreground">
+                    {outlookAccounts.length > 0
+                      ? "Use your connected Outlook account as the default sender for new agents"
+                      : "Connect an Outlook account above to enable this default"}
+                  </p>
+                </div>
+                <Switch
+                  checked={defaultUseOutlook}
+                  disabled={outlookAccounts.length === 0}
+                  onCheckedChange={async v => {
+                    const nextSource = v ? "outlook" : (defaultUseGmail ? "gmail" : "meridian")
+                    setDefaultUseOutlook(v)
+                    if (v) setDefaultUseGmail(false)
+                    setDefaultEmailSource(nextSource)
+                    await savePrefs({ defaultUseOutlook: v, defaultUseGmail: v ? false : defaultUseGmail, defaultEmailSource: nextSource })
+                  }}
+                />
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium">Follow-up Emails</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Set whether new agents should automatically send follow-up emails when a lead does not reply.</p>
+              </div>
+              <div className="flex items-center justify-between py-2">
+                <div>
+                  <p className="text-sm">Follow-up Sending</p>
+                  <p className="text-xs text-muted-foreground">This default applies to new agents only. You can still override it per agent later.</p>
+                </div>
+                <Switch
+                  checked={defaultRebumpEnabled}
+                  onCheckedChange={async v => {
+                    setDefaultRebumpEnabled(v)
+                    await savePrefs({ defaultRebumpEnabled: v })
+                  }}
+                />
+              </div>
             </div>
           </Card>
         )}
@@ -1245,95 +1283,6 @@ export function SettingsContent() {
               {savingCP && <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />}
               Save Company Profile
             </Button>
-          </Card>
-        )}
-
-        {/* ── EMAIL SETTINGS (merged into email tab) ─────────────────── */}
-        {tab === "email" && (
-          <Card className="p-6">
-            <h3 className="font-semibold text-lg mb-5">Email Settings</h3>
-            <div className="space-y-6 max-w-lg">
-
-              {/* AI Auto Response */}
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <p className="text-sm font-medium">AI Auto Response</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Enable AI-powered automatic email responses when leads reply</p>
-                </div>
-                <Switch
-                  checked={aiAutoResponseEnabled}
-                  onCheckedChange={setAiAutoResponseEnabled}
-                />
-              </div>
-
-              <Separator />
-
-              {/* Default Email Source */}
-              <div>
-                <p className="text-sm font-medium mb-3">Default Email Source</p>
-                <div className="space-y-2">
-                  {[
-                    { value: "meridian", label: "Meridian Email", desc: "Use our managed email service (mg.meridian)" },
-                    { value: "gmail",    label: "Connected Gmail", desc: gmailAccounts.length > 0 ? `Send from: ${gmailAccounts.find(a => a.isActive)?.email || gmailAccounts[0]?.email}` : "No Gmail connected — go to the Email tab first" },
-                  ].map(opt => (
-                    <button
-                      key={opt.value}
-                      onClick={() => opt.value === "gmail" && gmailAccounts.length === 0 ? undefined : setDefaultEmailSource(opt.value as "meridian" | "gmail")}
-                      className={`w-full flex items-start gap-3 p-3.5 rounded-lg border text-left transition-all ${
-                        defaultEmailSource === opt.value
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/40"
-                      } ${opt.value === "gmail" && gmailAccounts.length === 0 ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                    >
-                      <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${defaultEmailSource === opt.value ? "border-primary" : "border-muted-foreground"}`}>
-                        {defaultEmailSource === opt.value && <div className="w-2 h-2 rounded-full bg-primary" />}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{opt.label}</p>
-                        <p className="text-xs text-muted-foreground">{opt.desc}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Default Rebump */}
-              <div>
-                <p className="text-sm font-medium mb-3">Default Rebump Behavior</p>
-                <div className="space-y-2">
-                  {[
-                    { value: true,  label: "Rebump Enabled",  desc: "Send follow-up emails after no response" },
-                    { value: false, label: "Rebump Disabled", desc: "No automatic follow-up emails" },
-                  ].map(opt => (
-                    <button
-                      key={String(opt.value)}
-                      onClick={() => setDefaultRebumpEnabled(opt.value)}
-                      className={`w-full flex items-start gap-3 p-3.5 rounded-lg border text-left transition-all cursor-pointer ${
-                        defaultRebumpEnabled === opt.value
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/40"
-                      }`}
-                    >
-                      <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${defaultRebumpEnabled === opt.value ? "border-primary" : "border-muted-foreground"}`}>
-                        {defaultRebumpEnabled === opt.value && <div className="w-2 h-2 rounded-full bg-primary" />}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{opt.label}</p>
-                        <p className="text-xs text-muted-foreground">{opt.desc}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">This is the default for new agents. Override per-agent in agent settings.</p>
-              </div>
-
-              <Button onClick={saveEmailSettings} disabled={savingEmailSettings}>
-                {savingEmailSettings && <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />}
-                Save Email Settings
-              </Button>
-            </div>
           </Card>
         )}
 

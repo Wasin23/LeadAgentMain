@@ -588,6 +588,20 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                     {settings.concurrencyLevel === 1 ? '1 (default)' : `${settings.concurrencyLevel} workers`}
                   </span>
                 </div>
+                {planDetails.maxConcurrency < highestPlanLimits.maxConcurrency && (
+                  <div className="mt-3 rounded-lg border border-dashed border-blue-200 bg-white/70 px-3 py-2">
+                    <div className="flex flex-wrap gap-2 text-xs text-gray-600">
+                      {plans
+                        .filter(plan => plan.maxConcurrency > planDetails.maxConcurrency)
+                        .map(plan => (
+                          <span key={plan.id} className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 font-medium text-blue-700 border border-blue-100">
+                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 11c1.657 0 3-1.343 3-3S13.657 5 12 5 9 6.343 9 8s1.343 3 3 3zm0 0v2m-6 6h12a2 2 0 002-2v-3a6 6 0 10-12 0v3a2 2 0 002 2z" /></svg>
+                            Upgrade to {plan.name} for {plan.maxConcurrency}x
+                          </span>
+                        ))}
+                    </div>
+                  </div>
+                )}
                 <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-gray-700">
                   ~<span className="text-blue-600 font-bold">{settings.concurrencyLevel}×</span> faster research
                   {settings.concurrencyLevel > 3 && <span className="ml-2 text-amber-600">⚠ High API usage</span>}
@@ -878,6 +892,18 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
             <div className="bg-white/95 backdrop-blur-md border border-gray-200 rounded-2xl p-5 mb-6 shadow-sm">
               <p className="text-sm font-semibold text-gray-900">{planDetails.name} includes up to {planDetails.maxAgents} agent{planDetails.maxAgents === 1 ? '' : 's'} and {planDetails.maxConcurrency}x research concurrency.</p>
               <p className="text-sm text-gray-500 mt-1">Higher tiers unlock up to {highestPlanLimits.maxAgents} agents and {highestPlanLimits.maxConcurrency}x concurrency.</p>
+              {planDetails.maxAgents < highestPlanLimits.maxAgents && (
+                <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-600">
+                  {plans
+                    .filter(plan => plan.maxAgents > planDetails.maxAgents)
+                    .map(plan => (
+                      <span key={`${plan.id}-agents`} className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 font-medium text-blue-700 border border-blue-100">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5V9H2v11h5m10 0v-2a4 4 0 00-4-4H11a4 4 0 00-4 4v2m10 0H7m10 0a2 2 0 002-2v-3m-12 5a2 2 0 01-2-2v-3m12-4a2 2 0 10-4 0 2 2 0 004 0zm-8 0a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                        Upgrade to {plan.name} for {plan.maxAgents} agents
+                      </span>
+                    ))}
+                </div>
+              )}
             </div>
             <div className="flex justify-between">
               <button onClick={back} className="px-6 py-3 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl font-semibold transition-all">← Back</button>
@@ -1027,6 +1053,18 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                 <p className="font-semibold text-gray-900">{planDetails.name} — {planDetails.credits.toLocaleString()} credits</p>
                 <p className="text-xs text-gray-500 mt-1">Up to {planDetails.maxAgents} agent{planDetails.maxAgents === 1 ? '' : 's'} · Up to {planDetails.maxConcurrency}x concurrency</p>
                 <p className="text-xs text-gray-500 mt-1">Higher tiers unlock up to {highestPlanLimits.maxAgents} agents and {highestPlanLimits.maxConcurrency}x concurrency.</p>
+                {planDetails.maxAgents < highestPlanLimits.maxAgents && (
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-600">
+                    {plans
+                      .filter(plan => plan.maxAgents > planDetails.maxAgents)
+                      .map(plan => (
+                        <span key={`${plan.id}-review-agents`} className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 font-medium text-blue-700 border border-blue-100">
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5V9H2v11h5m10 0v-2a4 4 0 00-4-4H11a4 4 0 00-4 4v2m10 0H7m10 0a2 2 0 002-2v-3m-12 5a2 2 0 01-2-2v-3m12-4a2 2 0 10-4 0 2 2 0 004 0zm-8 0a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                          Upgrade to {plan.name} for {plan.maxAgents} agents
+                        </span>
+                      ))}
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex justify-between">

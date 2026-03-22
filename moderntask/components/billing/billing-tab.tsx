@@ -34,6 +34,7 @@ interface Payment {
 }
 
 interface PaymentStats {
+  billingMode?: "prepaid" | "postpaid"
   totalPaid: number
   totalFailed: number
   outstanding: number
@@ -213,7 +214,7 @@ function AddCardForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
   )
 }
 
-// ── Payment History ───────────────────────────────────────────────────────────
+// ── Purchases & Payments ─────────────────────────────────────────────────────
 
 function PaymentHistorySection() {
   const [payments, setPayments] = useState<Payment[]>([])
@@ -293,7 +294,7 @@ function PaymentHistorySection() {
 
   return (
     <div className="space-y-6 mt-8">
-      <h3 className="text-base font-semibold">Payment History</h3>
+      <h3 className="text-base font-semibold">Purchases & Payments</h3>
 
       {/* Stats grid */}
       {stats && (
@@ -301,24 +302,28 @@ function PaymentHistorySection() {
           <div className="rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-green-700 dark:text-green-400 font-medium">Total Paid</p>
+                <p className="text-xs text-green-700 dark:text-green-400 font-medium">Total Purchased</p>
                 <p className="text-xl font-bold text-green-800 dark:text-green-300">{fmt(stats.totalPaid)}</p>
               </div>
               <CheckCircle className="w-7 h-7 text-green-500" />
             </div>
-            <p className="text-xs text-green-600 dark:text-green-500 mt-1">{stats.successCount} successful</p>
+            <p className="text-xs text-green-600 dark:text-green-500 mt-1">{stats.successCount} successful purchase{stats.successCount === 1 ? '' : 's'}</p>
           </div>
 
           <div className="rounded-lg bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-orange-700 dark:text-orange-400 font-medium">Outstanding</p>
-                <p className="text-xl font-bold text-orange-800 dark:text-orange-300">{fmt(stats.outstanding || 0)}</p>
+                <p className="text-xs text-orange-700 dark:text-orange-400 font-medium">{stats.billingMode === "prepaid" ? "Billing Model" : "Outstanding"}</p>
+                <p className="text-xl font-bold text-orange-800 dark:text-orange-300">
+                  {stats.billingMode === "prepaid" ? "Prepaid" : fmt(stats.outstanding || 0)}
+                </p>
               </div>
               <DollarSign className="w-7 h-7 text-orange-500" />
             </div>
             <p className="text-xs text-orange-600 dark:text-orange-500 mt-1">
-              {stats.nextBillingDate
+              {stats.billingMode === "prepaid"
+                ? "Usage draws down your credit balance"
+                : stats.nextBillingDate
                 ? `Next: ${new Date(stats.nextBillingDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
                 : "Unpaid usage"}
             </p>
@@ -327,18 +332,18 @@ function PaymentHistorySection() {
           <div className="rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-red-700 dark:text-red-400 font-medium">Failed</p>
+                <p className="text-xs text-red-700 dark:text-red-400 font-medium">Failed Purchases</p>
                 <p className="text-xl font-bold text-red-800 dark:text-red-300">{fmt(stats.totalFailed)}</p>
               </div>
               <XCircle className="w-7 h-7 text-red-500" />
             </div>
-            <p className="text-xs text-red-600 dark:text-red-500 mt-1">{stats.failedCount} failed attempts</p>
+            <p className="text-xs text-red-600 dark:text-red-500 mt-1">{stats.failedCount} failed purchase attempt{stats.failedCount === 1 ? '' : 's'}</p>
           </div>
 
           <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-blue-700 dark:text-blue-400 font-medium">Success Rate</p>
+                <p className="text-xs text-blue-700 dark:text-blue-400 font-medium">Purchase Success Rate</p>
                 <p className="text-xl font-bold text-blue-800 dark:text-blue-300">
                   {stats.successCount + stats.failedCount > 0
                     ? Math.round((stats.successCount / (stats.successCount + stats.failedCount)) * 100)
@@ -347,13 +352,13 @@ function PaymentHistorySection() {
               </div>
               <DollarSign className="w-7 h-7 text-blue-500" />
             </div>
-            <p className="text-xs text-blue-600 dark:text-blue-500 mt-1">Payment reliability</p>
+            <p className="text-xs text-blue-600 dark:text-blue-500 mt-1">Checkout reliability</p>
           </div>
 
           <div className="rounded-lg bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-purple-700 dark:text-purple-400 font-medium">Last Payment</p>
+                <p className="text-xs text-purple-700 dark:text-purple-400 font-medium">Last Purchase</p>
                 <p className="text-lg font-bold text-purple-800 dark:text-purple-300">
                   {stats.lastSuccessfulPayment ? fmt(stats.lastSuccessfulPayment.amount) : "N/A"}
                 </p>
@@ -363,7 +368,7 @@ function PaymentHistorySection() {
             <p className="text-xs text-purple-600 dark:text-purple-500 mt-1">
               {stats.lastSuccessfulPayment
                 ? new Date(stats.lastSuccessfulPayment.timestamp).toLocaleDateString()
-                : "No payments yet"}
+                : "No purchases yet"}
             </p>
           </div>
         </div>
@@ -475,7 +480,7 @@ function PaymentHistorySection() {
       {filteredPayments.length === 0 ? (
         <div className="text-center py-12 rounded-lg border bg-muted/30">
           <DollarSign className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">No payment history found</p>
+          <p className="text-sm text-muted-foreground">No purchases or payment attempts found</p>
         </div>
       ) : (
         <div className="rounded-lg border overflow-hidden">
@@ -580,29 +585,35 @@ function BillingTabInner() {
     setCreditLoading(true)
     try {
       let balance = 0
+      let planLoaded = false
 
-      // 1. Trial credits
-      try {
-        const { data } = await api.get("/api/billing/trial-credits")
-        if (data.success) {
-          setTrialCredits(data.credits)
-          balance += Number(data.credits?.creditsRemaining ?? 0)
-        }
-      } catch {}
-
-      // 2. Plan credits
+      // 1. Plan credits are the primary source of truth for included/prepaid credits.
       try {
         const { data } = await api.get("/api/plans/status")
         if (data.success) {
           setUserPlan(data)
-          balance += Number(data.plan?.remainingCredits ?? 0)
+          balance = Number(data.credits?.remaining ?? data.plan?.remainingCredits ?? 0)
+          planLoaded = true
         }
       } catch {}
 
-      // 3. Purchased credit balance
+      // 2. Trial credits are only used as a fallback for legacy display paths.
+      try {
+        const { data } = await api.get("/api/billing/trial-credits")
+        if (data.success) {
+          setTrialCredits(data.credits)
+          if (!planLoaded) {
+            balance = Number(data.credits?.creditsRemaining ?? 0)
+          }
+        }
+      } catch {}
+
+      // 3. Legacy purchased credit balance fallback.
       try {
         const { data } = await api.get("/api/billing/credit-balance")
-        if (data.success) balance += Number(data.balance ?? 0)
+        if (data.success && !planLoaded) {
+          balance += Number(data.balance ?? 0)
+        }
       } catch {}
 
       const total = Math.round(balance)
@@ -844,8 +855,8 @@ function BillingTabInner() {
               </h3>
               <p className="text-xs text-muted-foreground">
                 {trialCredits.limitReached
-                  ? `You've used all $${trialCredits.creditsLimit} of your trial credits. Add a payment method below to continue using the platform.`
-                  : `You've used $${trialCredits.creditsUsed} of your $${trialCredits.creditsLimit} trial credits (${trialCredits.percentageUsed}%). Add a payment method to unlock unlimited API usage.`}
+                  ? `You've used all ${Math.round(Number(trialCredits.creditsLimit)).toLocaleString()} trial credits. Add a payment method to upgrade your plan or buy more credits.`
+                  : `You've used ${Math.round(Number(trialCredits.creditsUsed)).toLocaleString()} of ${Math.round(Number(trialCredits.creditsLimit)).toLocaleString()} trial credits (${trialCredits.percentageUsed}%), equal to $${(Number(trialCredits.creditsUsed) * 0.05).toFixed(2)} in API costs.`}
               </p>
               <div className="mt-2 bg-border rounded-full h-1.5 overflow-hidden">
                 <div
@@ -883,7 +894,7 @@ function BillingTabInner() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-semibold">Payment Methods</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">Manage your credit cards for API usage billing</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Manage cards used for plan upgrades and credit purchases</p>
         </div>
         {!showAddCard && (
           <button
@@ -900,11 +911,11 @@ function BillingTabInner() {
       <div className="rounded-lg border bg-muted/50 p-4">
         <h3 className="text-sm font-semibold mb-1 flex items-center gap-1.5">
           <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
-          Token-Based Billing
+          Prepaid Credit Billing
         </h3>
         <p className="text-xs text-muted-foreground">
-          You'll only be charged for actual API usage (Apollo credits, OpenAI tokens, etc.).
-          Your card is securely stored with Stripe and will be charged monthly based on consumption.
+          Meridian uses prepaid credits. Add a card to upgrade your plan or buy more credits when your balance runs low.
+          Your card is securely stored with Stripe and only used when you make a purchase.
         </p>
       </div>
 
@@ -939,7 +950,7 @@ function BillingTabInner() {
           <div className="text-center py-12 rounded-lg border bg-muted/20">
             <CreditCard className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
             <p className="text-sm font-medium">No payment methods added yet</p>
-            <p className="text-xs text-muted-foreground mt-1">Add a card to start using API services</p>
+            <p className="text-xs text-muted-foreground mt-1">Add a card to upgrade plans or buy more credits</p>
           </div>
         ) : (
           paymentMethods.map((pm) => (

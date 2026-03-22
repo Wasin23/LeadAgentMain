@@ -34,7 +34,7 @@ export async function trackApiUsage(userId, apiType, quantity = 1) {
     }
 
     const currentCreditsUsed = user.trialCreditsUsed || 0;
-    const creditsLimit = user.trialCreditsLimit || 500;
+    const creditsLimit = user.trialCreditsLimit || 1000;
     const newCreditsUsed = currentCreditsUsed + cost;
     const percentageUsed = (newCreditsUsed / creditsLimit) * 100;
 
@@ -51,7 +51,7 @@ export async function trackApiUsage(userId, apiType, quantity = 1) {
           userId,
           'billing',
           '⚠️ Trial Credits Running Low',
-          `You've used $${newCreditsUsed.toFixed(2)} of your $${creditsLimit} trial credits (${percentageUsed.toFixed(1)}%). Add a payment method to avoid service interruption.`,
+          `You've used ${Math.round(newCreditsUsed).toLocaleString()} of ${creditsLimit} trial credits (${percentageUsed.toFixed(1)}%), equal to $${(newCreditsUsed * 0.05).toFixed(2)} in API costs. Add a payment method to upgrade or buy more credits before you run out.`,
           {
             severity: 'warning',
             creditsUsed: newCreditsUsed,
@@ -67,7 +67,7 @@ export async function trackApiUsage(userId, apiType, quantity = 1) {
           userId,
           'billing',
           '🚨 Trial Credits Almost Exhausted',
-          `You've used $${newCreditsUsed.toFixed(2)} of your $${creditsLimit} trial credits (${percentageUsed.toFixed(1)}%). Service will be suspended when credits are depleted.`,
+          `You've used ${Math.round(newCreditsUsed).toLocaleString()} of ${creditsLimit} trial credits (${percentageUsed.toFixed(1)}%), equal to $${(newCreditsUsed * 0.05).toFixed(2)} in API costs. Service will pause when your credits are depleted.`,
           {
             severity: 'critical',
             creditsUsed: newCreditsUsed,
@@ -83,7 +83,7 @@ export async function trackApiUsage(userId, apiType, quantity = 1) {
           userId,
           'billing',
           '🚫 Trial Credits Exhausted',
-          `You've used all $${creditsLimit} of your trial credits. Add a payment method immediately to restore service.`,
+          `You've used all ${creditsLimit} trial credits. Add a payment method to restore service and purchase more credits.`,
           {
             severity: 'critical',
             creditsUsed: newCreditsUsed,
@@ -126,12 +126,12 @@ export async function checkTrialCredits(userId, apiType, quantity = 1) {
       return {
         allowed: true,
         unlimited: true,
-        message: 'Payment method on file - unlimited API usage'
+        message: 'Payment method on file - you can upgrade or buy more credits when needed'
       };
     }
 
     const currentCreditsUsed = user.trialCreditsUsed || 0;
-    const creditsLimit = user.trialCreditsLimit || 500;
+    const creditsLimit = user.trialCreditsLimit || 1000;
     const estimatedCost = (API_COSTS[apiType] || 0.001) * quantity;
     const wouldExceedLimit = (currentCreditsUsed + estimatedCost) > creditsLimit;
 
@@ -143,7 +143,7 @@ export async function checkTrialCredits(userId, apiType, quantity = 1) {
         creditsLimit: creditsLimit,
         creditsRemaining: creditsLimit - currentCreditsUsed,
         estimatedCost: estimatedCost,
-        message: 'Trial credit limit reached. Please add a payment method to continue.'
+        message: 'Trial credit limit reached. Please add a payment method to buy more credits or upgrade your plan.'
       };
     }
 
@@ -175,12 +175,12 @@ export async function getTrialCreditStatus(userId) {
     }
 
     // MIGRATION: If user doesn't have trial credit fields, add them
-    // Also upgrade old 25-credit trial users to 500 credits
-    if (user.trialCreditsUsed === undefined || user.trialCreditsLimit === undefined || user.paymentMethodAdded === undefined || user.trialCreditsLimit === 25) {
+    // Also upgrade old trial users to the current 1,000-credit trial.
+    if (user.trialCreditsUsed === undefined || user.trialCreditsLimit === undefined || user.paymentMethodAdded === undefined || user.trialCreditsLimit === 25 || user.trialCreditsLimit === 500) {
       console.log('⚠️ [TRIAL] User missing trial fields or has old 25-credit limit, migrating...');
       await awsManager.updateUser(userId, {
         trialCreditsUsed: user.trialCreditsUsed || 0,
-        trialCreditsLimit: 500,  // Always set to 500, even for old users
+        trialCreditsLimit: 1000,
         paymentMethodAdded: user.paymentMethodAdded || false,
         stripeCustomerId: user.stripeCustomerId || null
       });
@@ -191,7 +191,7 @@ export async function getTrialCreditStatus(userId) {
     }
 
     const creditsUsed = user.trialCreditsUsed || 0;
-    const creditsLimit = user.trialCreditsLimit || 500;
+    const creditsLimit = user.trialCreditsLimit || 1000;
     const creditsRemaining = Math.max(0, creditsLimit - creditsUsed);
     const percentageUsed = (creditsUsed / creditsLimit) * 100;
 
