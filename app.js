@@ -22,7 +22,6 @@ import billingRoutes from './routes/billing.js';
 import { startGracePeriodChecker } from './utils/gracePeriodChecker.js';
 import { startBillingCron } from './utils/billingCron.js';
 import { startMetricsCron } from './utils/agentMetricsCron.js';
-import { startSendingScheduleProcessor } from './utils/sendingScheduleProcessor.js';
 import { startEmailScheduler } from './utils/emailScheduler.js';
 
 // Load and validate configuration
@@ -726,10 +725,6 @@ const server = app.listen(PORT, async () => {
   startMetricsCron();
   console.log('✅ [METRICS] Agent metrics recording cron started');
 
-  // Start sending schedule processor (runs every 60 seconds)
-  startSendingScheduleProcessor();
-  console.log('✅ [SCHEDULE PROCESSOR] Sending schedule processor started');
-  
   // Start email scheduler (checks every minute for scheduled sends)
   startEmailScheduler();
   console.log('✅ [EMAIL SCHEDULER] Email scheduler started - checks every minute');

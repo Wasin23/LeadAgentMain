@@ -1350,6 +1350,16 @@ router.put('/agents/:agentId/settings', authenticateToken, async (req, res) => {
     
     // Save the updated settings
     await awsManagerInstance.saveLeadAgentSettings(userId, agentId, settings);
+
+    try {
+      const { syncAutoScheduleJobsForAgent } = await import('../utils/autoScheduleJobs.js');
+      await syncAutoScheduleJobsForAgent(userId, agentId, {
+        awsManager: awsManagerInstance,
+        settings,
+      });
+    } catch (scheduleSyncError) {
+      console.error('[AUTH] Failed to sync auto schedule jobs after settings update:', scheduleSyncError.message);
+    }
     
     // Check if rebump was disabled
     const wasEnabled = currentSettings?.emailBuilder?.enableRebump !== false;

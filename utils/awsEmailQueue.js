@@ -11,6 +11,7 @@ import {
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { v4 as uuidv4 } from 'uuid';
 import { getScheduledEmailJobs } from './scheduledEmailJobs.js';
+import { syncAutoScheduleJobsForAgent } from './autoScheduleJobs.js';
 
 /**
  * AWS DynamoDB Email Queue Manager
@@ -194,7 +195,15 @@ class AWSEmailQueue {
           userId,
           agentId,
           emailId,
-          scheduledAt: item.scheduledAt
+          scheduledAt: item.scheduledAt,
+          scheduleType: 'manual'
+        });
+      } else {
+        await syncAutoScheduleJobsForAgent(userId, agentId, {
+          awsQueue: this,
+          scheduledJobs: this.scheduledEmailJobs
+        }).catch(error => {
+          console.error('[AWS EMAIL QUEUE] Failed to sync auto schedule jobs after queueEmail:', error.message);
         });
       }
 
@@ -623,7 +632,7 @@ class AWSEmailQueue {
   /**
    * Update email content (subject, body, etc.) without changing status
    */
-  async updateEmail(userId, agentId, emailId, updates) {
+  async updateEmail(userId, agentId, emailId, updates, options = {}) {
     try {
       // Find the email with any status
       const statuses = ['QUEUED', 'APPROVED', 'SENT', 'REPLIED'];
@@ -673,10 +682,20 @@ class AWSEmailQueue {
             userId,
             agentId,
             emailId,
-            scheduledAt: updatedItem.scheduledAt
+            scheduledAt: updatedItem.scheduledAt,
+            scheduleType: 'manual'
           });
         } else if (Object.prototype.hasOwnProperty.call(updates, 'scheduledAt')) {
           await this.scheduledEmailJobs.deleteScheduledEmail(userId, agentId, emailId);
+        }
+
+        if (!options.skipAutoScheduleSync && (Object.prototype.hasOwnProperty.call(updates, 'scheduledAt') || Object.prototype.hasOwnProperty.call(updates, 'batchExcluded'))) {
+          await syncAutoScheduleJobsForAgent(userId, agentId, {
+            awsQueue: this,
+            scheduledJobs: this.scheduledEmailJobs
+          }).catch(syncError => {
+            console.error('[AWS EMAIL QUEUE] Failed to sync auto schedule jobs after updateEmail:', syncError.message);
+          });
         }
       }
       
@@ -798,12 +817,19 @@ class AWSEmailQueue {
 
         if (oldStatus === 'QUEUED' && newStatus !== 'QUEUED') {
           await this.scheduledEmailJobs.deleteScheduledEmail(userId, agentId, emailId);
+          await syncAutoScheduleJobsForAgent(userId, agentId, {
+            awsQueue: this,
+            scheduledJobs: this.scheduledEmailJobs
+          }).catch(syncError => {
+            console.error('[AWS EMAIL QUEUE] Failed to sync auto schedule jobs after status change:', syncError.message);
+          });
         } else if (newStatus === 'QUEUED' && newItem.scheduledAt) {
           await this.scheduledEmailJobs.upsertScheduledEmail({
             userId,
             agentId,
             emailId,
-            scheduledAt: newItem.scheduledAt
+            scheduledAt: newItem.scheduledAt,
+            scheduleType: 'manual'
           });
         }
         
@@ -1003,6 +1029,12 @@ class AWSEmailQueue {
       }));
 
       await this.scheduledEmailJobs.deleteScheduledEmail(userId, agentId, emailId);
+      await syncAutoScheduleJobsForAgent(userId, agentId, {
+        awsQueue: this,
+        scheduledJobs: this.scheduledEmailJobs
+      }).catch(syncError => {
+        console.error('[AWS EMAIL QUEUE] Failed to sync auto schedule jobs after delete:', syncError.message);
+      });
 
       // Invalidate cache for this user
       this._invalidateCache(userId);

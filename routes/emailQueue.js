@@ -1064,6 +1064,7 @@ router.post('/reset-batch-excluded', async (req, res) => {
     const { agentId } = req.body;
     const userId = req.user.userId;
     const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+    const { syncAutoScheduleJobsForAgent } = await import('../utils/autoScheduleJobs.js');
     const awsQueue = getAWSEmailQueue();
 
     const queued = agentId
@@ -1072,8 +1073,12 @@ router.post('/reset-batch-excluded', async (req, res) => {
 
     const excluded = (queued ?? []).filter(e => e.batchExcluded);
     await Promise.all(excluded.map(e =>
-      awsQueue.updateEmail(userId, e.agentId || agentId, e.id, { batchExcluded: false })
+      awsQueue.updateEmail(userId, e.agentId || agentId, e.id, { batchExcluded: false }, { skipAutoScheduleSync: true })
     ));
+
+    if (agentId) {
+      await syncAutoScheduleJobsForAgent(userId, agentId, { awsQueue });
+    }
 
     res.json({ success: true, reset: excluded.length });
   } catch (error) {
@@ -1294,61 +1299,32 @@ function computeSlotDate(index, schedule) {
 router.get('/scheduled-batches', async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+    const { getScheduledEmailJobs } = await import('../utils/scheduledEmailJobs.js');
     const AWSManagerMod = await import('../utils/awsManager.js');
-    const awsQueue = getAWSEmailQueue();
+    const scheduledJobs = getScheduledEmailJobs();
     const awsManager = new AWSManagerMod.default();
+    const jobs = await scheduledJobs.getScheduledJobsForUser(userId, { limit: 500 });
 
-    // Fetch all queued emails for user (up to 500)
-    const result = await awsQueue.getAllQueuedEmailsForUser(userId, 500, 0);
-    const emails = result.emails || result || [];
-
-    // Collect unique agent IDs present in the queue
-    const agentIds = [...new Set(emails.map(e => e.agentId).filter(Boolean))];
-
-    // Fetch each agent's sendingSchedule in parallel
-    const schedMap = {};
-    await Promise.all(agentIds.map(async (agentId) => {
+    const agentIds = [...new Set(jobs.map(job => job.agentId).filter(Boolean))];
+    const agentNames = {};
+    await Promise.all(agentIds.map(async agentId => {
       try {
-        const s = await awsManager.getAgentSettings(userId, agentId);
-        if (s?.sendingSchedule) {
-          schedMap[agentId] = {
-            activeDays: s.sendingSchedule.activeDays || [1, 2, 3, 4, 5],
-            sendTime:   s.sendingSchedule.sendTime   || '09:00',
-            dailyLimit: s.sendingSchedule.dailyLimit || 50,
-            timezone:   s.sendingSchedule.timezone   || s.geographicSettings?.timezone || 'America/New_York',
-            agentName:  s.name || '',
-          };
-        }
-      } catch (_) { /* agent has no schedule */ }
+        const settings = await awsManager.getAgentSettings(userId, agentId);
+        agentNames[agentId] = settings?.name || '';
+      } catch {
+        agentNames[agentId] = '';
+      }
     }));
 
-    // Sort by createdAt so slot indices match what the queue UI shows
-    const sorted = [...emails].sort(
-      (a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime()
-    );
-
-    const slotIdx = {};
     const batchMap = new Map();
 
-    for (const email of sorted) {
-      let t = email.scheduledSendTime || email.scheduledAt;
-      if (!t) {
-        const aid = email.agentId;
-        if (aid && schedMap[aid]) {
-          const idx = slotIdx[aid] || 0;
-          t = computeSlotDate(idx, schedMap[aid]).toISOString();
-          slotIdx[aid] = idx + 1;
-        }
-      }
-      if (!t) continue;
-
-      const key = new Date(t).toISOString().slice(0, 16); // "YYYY-MM-DDTHH:MM"
+    for (const job of jobs) {
+      const key = new Date(job.scheduledAt).toISOString().slice(0, 16); // "YYYY-MM-DDTHH:MM"
       if (!batchMap.has(key)) {
         batchMap.set(key, {
           count: 0,
-          agentName: email.agentName || schedMap[email.agentId]?.agentName || '',
-          agentId:   email.agentId || '',
+          agentName: agentNames[job.agentId] || '',
+          agentId:   job.agentId || '',
         });
       }
       batchMap.get(key).count++;

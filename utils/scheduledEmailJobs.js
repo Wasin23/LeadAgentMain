@@ -1,5 +1,5 @@
 import { DynamoDBClient, CreateTableCommand, DescribeTableCommand } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, DeleteCommand, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, DeleteCommand, PutCommand, QueryCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 
 class ScheduledEmailJobs {
@@ -130,7 +130,7 @@ class ScheduledEmailJobs {
     }
   }
 
-  async upsertScheduledEmail({ userId, agentId, emailId, scheduledAt }) {
+  async upsertScheduledEmail({ userId, agentId, emailId, scheduledAt, scheduleType = 'manual' }) {
     if (!scheduledAt) {
       return;
     }
@@ -153,6 +153,7 @@ class ScheduledEmailJobs {
           agentId,
           emailId,
           scheduledAt,
+          scheduleType,
           scheduledDay: this._getScheduledDay(scheduledAt),
           updatedAt: now,
           createdAt: now,
@@ -219,6 +220,44 @@ class ScheduledEmailJobs {
         items.push(...(response.Items || []));
         lastEvaluatedKey = response.LastEvaluatedKey;
       } while (lastEvaluatedKey);
+    }
+
+    return items;
+  }
+
+  async getScheduledJobsForUser(userId, options = {}) {
+    await this.ensureTableExists();
+
+    const items = [];
+    let lastEvaluatedKey = null;
+    const nowIso = options.nowIso || new Date().toISOString();
+
+    do {
+      const scanInput = {
+        TableName: this.tableName,
+        FilterExpression: 'userId = :userId AND scheduledAt >= :now',
+        ExpressionAttributeValues: {
+          ':userId': userId,
+          ':now': nowIso
+        },
+      };
+
+      if (lastEvaluatedKey) {
+        scanInput.ExclusiveStartKey = lastEvaluatedKey;
+      }
+
+      const response = await this._retryWithBackoff(async () => {
+        return this.dynamodb.send(new ScanCommand(scanInput));
+      });
+
+      items.push(...(response.Items || []));
+      lastEvaluatedKey = response.LastEvaluatedKey;
+    } while (lastEvaluatedKey);
+
+    items.sort((left, right) => new Date(left.scheduledAt).getTime() - new Date(right.scheduledAt).getTime());
+
+    if (options.limit) {
+      return items.slice(0, options.limit);
     }
 
     return items;
