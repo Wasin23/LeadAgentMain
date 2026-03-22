@@ -555,9 +555,9 @@ export function OperationsContent() {
         {/* Stats row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { icon: Mail,         label: 'Sent',    value: stats.sent,    prev: prevStats.sent,    color: 'text-blue-500',   tip: 'Total emails sent today vs yesterday',         onClick: undefined },
-            { icon: Clock,        label: 'Queued',  value: stats.queued,  prev: prevStats.queued,  color: 'text-violet-500', tip: 'Emails waiting in queue to be sent',            onClick: undefined },
-            { icon: CheckCircle2, label: 'Cycles',  value: stats.cycles,  prev: prevStats.cycles,  color: 'text-cyan-500',   tip: 'Agent cycles completed this session',           onClick: undefined },
+            { icon: Mail,         label: 'Sent',    value: stats.sent,    prev: prevStats.sent,    color: 'text-blue-500',   tip: 'Total emails sent today vs yesterday — click to open Contacted',         onClick: () => router.push('/outreach') },
+            { icon: Clock,        label: 'Queued',  value: stats.queued,  prev: prevStats.queued,  color: 'text-violet-500', tip: 'Emails waiting in queue to be sent — click to open Outreach Email Queue', onClick: () => router.push('/email-queue') },
+            { icon: CheckCircle2, label: 'Cycles',  value: stats.cycles,  prev: prevStats.cycles,  color: 'text-cyan-500',   tip: 'Agent cycles completed this session — click to open Analytics',           onClick: () => router.push('/analytics') },
             { icon: Bot,          label: 'Agents',  value: agents.length, prev: null,              color: 'text-green-500',  tip: 'Total agents — click to manage',               onClick: () => router.push('/agents') },
           ].map(({ icon: Icon, label, value, prev, color, tip, onClick }) => {
             const hasPrev  = prev !== null && prev !== undefined
@@ -566,7 +566,7 @@ export function OperationsContent() {
             return (
               <div key={label} className="relative group/stat">
                 <Card
-                  className={cn('p-3 cursor-default', onClick && 'cursor-pointer hover:border-primary/40')}
+                  className="p-3 cursor-pointer hover:border-primary/40 hover:shadow-sm"
                   onClick={onClick}
                 >
                   <div className="flex items-center gap-1.5 mb-1">

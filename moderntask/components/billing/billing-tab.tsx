@@ -6,6 +6,7 @@ import { loadStripe } from "@stripe/stripe-js"
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js"
 import { DollarSign, CheckCircle, XCircle, RefreshCw, Calendar, CreditCard, Plus, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, Zap, Mail, TrendingDown, AlertTriangle, Gift, Lock } from "lucide-react"
 import api from "@/lib/api"
+import { fetchDisplayedCreditData } from "@/lib/credit-balance"
 import { CreditPurchaseModal } from "./credit-purchase-modal"
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "")
@@ -584,39 +585,11 @@ function BillingTabInner() {
   const fetchCreditData = async () => {
     setCreditLoading(true)
     try {
-      let balance = 0
-      let planLoaded = false
+      const creditData = await fetchDisplayedCreditData()
+      setUserPlan(creditData.userPlan)
+      setTrialCredits(creditData.trialCredits)
 
-      // 1. Plan credits are the primary source of truth for included/prepaid credits.
-      try {
-        const { data } = await api.get("/api/plans/status")
-        if (data.success) {
-          setUserPlan(data)
-          balance = Number(data.credits?.remaining ?? data.plan?.remainingCredits ?? 0)
-          planLoaded = true
-        }
-      } catch {}
-
-      // 2. Trial credits are only used as a fallback for legacy display paths.
-      try {
-        const { data } = await api.get("/api/billing/trial-credits")
-        if (data.success) {
-          setTrialCredits(data.credits)
-          if (!planLoaded) {
-            balance = Number(data.credits?.creditsRemaining ?? 0)
-          }
-        }
-      } catch {}
-
-      // 3. Legacy purchased credit balance fallback.
-      try {
-        const { data } = await api.get("/api/billing/credit-balance")
-        if (data.success && !planLoaded) {
-          balance += Number(data.balance ?? 0)
-        }
-      } catch {}
-
-      const total = Math.round(balance)
+      const total = creditData.balance
       setCreditBalance(total)
       // Sync top-right header counter
       if (typeof window !== "undefined") {

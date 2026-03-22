@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Bell, Zap, CheckCircle2, Link2Off, Sparkles, Bot, Cpu, ArrowRight, Info } from "lucide-react"
+import { Bell, Zap, CheckCircle2, Link2Off, Bot, Cpu, ArrowRight, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -12,6 +12,7 @@ import type { ReactNode } from "react"
 import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import api from "@/lib/api"
+import { fetchDisplayedCreditData } from "@/lib/credit-balance"
 
 // ── CRM brand colours & initials ──────────────────────────────────────────────
 const CRM_BRANDS: Record<string, { bg: string; text: string; initials: string }> = {
@@ -111,7 +112,6 @@ export function Header({
   const [profileEmail, setProfileEmail]     = useState<string>("")
   const [profilePicture, setProfilePicture] = useState<string>("")
   const [crmName, setCrmName]               = useState<string | null | undefined>(undefined) // undefined = loading
-  const [isTrialUser, setIsTrialUser]       = useState(false)
   const [planStatus, setPlanStatus]         = useState<PlanStatusResponse | null>(null)
 
   // Sync with billing tab credit calculation
@@ -138,22 +138,9 @@ export function Header({
     }).catch(() => {})
 
     if (creditsProp === undefined) {
-      // Aggregate all three credit sources — same logic as billing tab
       ;(async () => {
-        let balance = 0
-        try {
-          const { data } = await api.get("/api/billing/trial-credits")
-          if (data.success) balance += Number(data.credits?.creditsRemaining ?? 0)
-        } catch {}
-        try {
-          const { data } = await api.get("/api/plans/status")
-          if (data.success) balance += Number(data.plan?.remainingCredits ?? 0)
-        } catch {}
-        try {
-          const { data } = await api.get("/api/billing/credit-balance")
-          if (data.success) balance += Number(data.balance ?? 0)
-        } catch {}
-        setCredits(Math.round(balance))
+        const creditData = await fetchDisplayedCreditData()
+        setCredits(creditData.balance)
       })()
     }
 
@@ -170,19 +157,12 @@ export function Header({
 
   useEffect(() => {
     ;(async () => {
-      let isTrial = false
       try {
         const { data } = await api.get("/api/plans/status")
         if (data.success) {
           setPlanStatus(data)
-          isTrial = (data.plan?.id || "") === "free-trial"
         }
       } catch {}
-      try {
-        const { data } = await api.get("/api/billing/trial-credits")
-        if (data.success && data.credits?.paymentMethodAdded === false) isTrial = true
-      } catch {}
-      setIsTrialUser(isTrial)
     })()
   }, [])
 
@@ -324,20 +304,6 @@ export function Header({
               <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-destructive rounded-full animate-pulse" />
             )}
           </Button>
-
-          {isTrialUser && (
-            <button
-              type="button"
-              onClick={() => router.push('/settings?tab=billing&upgrade=plans')}
-              className="h-8 px-3 rounded-full border border-amber-400/40 bg-amber-500/10 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-700 hover:bg-amber-500/15 transition-colors dark:text-amber-300"
-              title="Trial account — click to upgrade"
-            >
-              <span className="flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5" />
-                Trial
-              </span>
-            </button>
-          )}
 
           <div className="flex items-center gap-2 pl-2 md:pl-3 border-l border-border">
             <Link href="/settings" className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">

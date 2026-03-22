@@ -951,18 +951,9 @@ export function AgentsContent({ highlightAgentId, autoOpenCreate }: { highlightA
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {hasPlanLimit && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-8 text-xs gap-1.5"
-              onClick={() => router.push('/settings?tab=billing&upgrade=plans')}
-            >
-              Upgrade for More
-            </Button>
-          )}
           <Button
             size="sm"
+            variant={atAgentLimit ? 'default' : 'default'}
             className="h-8 text-xs gap-1.5"
             onClick={() => atAgentLimit ? router.push('/settings?tab=billing&upgrade=plans') : setShowCreate(true)}
           >

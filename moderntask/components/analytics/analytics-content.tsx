@@ -9,6 +9,7 @@ import {
 import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import api from '@/lib/api'
+import { fetchDisplayedCreditData } from '@/lib/credit-balance'
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -222,12 +223,12 @@ export function AnalyticsContent() {
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      const [agentsRes, countsRes, sentRes, activityRes, balanceRes] = await Promise.allSettled([
+      const [agentsRes, countsRes, sentRes, activityRes, creditRes] = await Promise.allSettled([
         api.get('/api/auth/agents'),
         api.get('/api/email-queue/counts', { params: { agentId: 'all' } }),
         api.get('/api/email-queue/sent',   { params: { agentId: 'all' } }),
         api.get('/api/monitoring/activity'),
-        api.get('/api/billing/credit-balance'),
+        fetchDisplayedCreditData(),
       ])
 
       if (agentsRes.status === 'fulfilled') {
@@ -270,8 +271,8 @@ export function AnalyticsContent() {
         setRawActivities(activityRes.value.data?.activities ?? [])
       }
 
-      if (balanceRes.status === 'fulfilled') {
-        setCreditBalance(balanceRes.value.data?.balance ?? null)
+      if (creditRes.status === 'fulfilled') {
+        setCreditBalance(creditRes.value.balance)
       }
     } catch (e) { console.error('Analytics load error', e) }
     finally { setLoading(false) }
