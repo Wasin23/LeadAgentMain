@@ -4455,7 +4455,7 @@ Write the email now. First sentence must be specific to this company.`;
       await this.awsManager.logApiUsage({
         userId: this.userId,
         agentId: this.agentId,
-        service: 'openai', // billed under same bucket for now
+        service: 'anthropic',
         operation: 'email_generation',
         usage: claudeInputTokens + claudeOutputTokens,
         metadata: {

@@ -46,6 +46,9 @@ class AWSManager {
       apollo: 0.005, // $0.005 per lead search (half a cent)
       openai: (0.005 / 1000) * 1.2,     // $0.006 per 1K tokens for GPT-4o (blended input/output)
       openaiMini: (0.0002 / 1000) * 1.2, // $0.00024 per 1K tokens for GPT-4o-mini (accurate current pricing)
+      anthropic: (0.005 / 1000) * 1.2, // fallback blended rate if token split is unavailable
+      anthropicInput: (3 / 1000000) * 1.2, // Claude Sonnet input tokens with platform margin
+      anthropicOutput: (15 / 1000000) * 1.2, // Claude Sonnet output tokens with platform margin
       mailgun: 0.0008 * 1.2, // $0.00096 per email
       zerobounce: 0.005 * 1.2, // $0.006 per validation
       serper: 0.001 * 1.2 // $0.0012 per search query ($50 for 50k credits)
@@ -1484,6 +1487,15 @@ class AWSManager {
         // Use model-specific rate for OpenAI (gpt-4o-mini is ~12x cheaper than gpt-4o)
         if (service === 'openai' && metadata?.model?.includes('mini')) {
           cost = usage * this.apiCosts.openaiMini;
+        } else if (service === 'anthropic') {
+          const promptTokens = metadata?.prompt_tokens || 0;
+          const completionTokens = metadata?.completion_tokens || 0;
+
+          if (promptTokens || completionTokens) {
+            cost = (promptTokens * this.apiCosts.anthropicInput) + (completionTokens * this.apiCosts.anthropicOutput);
+          } else {
+            cost = usage * this.apiCosts.anthropic;
+          }
         } else if (this.apiCosts[service]) {
           cost = usage * this.apiCosts[service];
         }
@@ -1498,7 +1510,7 @@ class AWSManager {
         userId,
         timestamp,
         agentId,
-        service, // 'apollo', 'openai', 'mailgun', 'zerobounce'
+        service, // 'apollo', 'openai', 'anthropic', 'mailgun', 'zerobounce'
         operation, // e.g., 'search', 'completion', 'send_email', 'email_validation'
         usage, // credits/tokens/emails used
         cost: cost || 0, // Cost in dollars
@@ -1665,6 +1677,7 @@ class AWSManager {
           stats: {
             apollo: { usage: 0, calls: 0, cost: 0 },
             openai: { usage: 0, calls: 0, cost: 0 },
+            anthropic: { usage: 0, calls: 0, cost: 0 },
             mailgun: { usage: 0, calls: 0, cost: 0 },
             zerobounce: { usage: 0, calls: 0, cost: 0 },
             serper: { usage: 0, calls: 0, cost: 0 }
@@ -1676,13 +1689,14 @@ class AWSManager {
       const stats = {
         apollo: { usage: 0, calls: 0, cost: 0 },
         openai: { usage: 0, calls: 0, cost: 0 },
+        anthropic: { usage: 0, calls: 0, cost: 0 },
         mailgun: { usage: 0, calls: 0, cost: 0 },
         zerobounce: { usage: 0, calls: 0, cost: 0 },
         serper: { usage: 0, calls: 0, cost: 0 }
       };
 
       result.Items.forEach(item => {
-        ['apollo', 'openai', 'mailgun', 'zerobounce', 'serper'].forEach(service => {
+        ['apollo', 'openai', 'anthropic', 'mailgun', 'zerobounce', 'serper'].forEach(service => {
           if (item[service]) {
             stats[service].usage += item[service].usage || 0;
             stats[service].calls += item[service].calls || 0;
@@ -1700,6 +1714,7 @@ class AWSManager {
         stats: {
           apollo: { usage: 0, calls: 0, cost: 0 },
           openai: { usage: 0, calls: 0, cost: 0 },
+          anthropic: { usage: 0, calls: 0, cost: 0 },
           mailgun: { usage: 0, calls: 0, cost: 0 },
           zerobounce: { usage: 0, calls: 0, cost: 0 },
           serper: { usage: 0, calls: 0, cost: 0 }
@@ -1741,6 +1756,7 @@ class AWSManager {
       const stats = {
         apollo: { usage: 0, calls: 0, cost: 0 },
         openai: { usage: 0, calls: 0, cost: 0 },
+        anthropic: { usage: 0, calls: 0, cost: 0 },
         mailgun: { usage: 0, calls: 0, cost: 0 },
         zerobounce: { usage: 0, calls: 0, cost: 0 },
         serper: { usage: 0, calls: 0, cost: 0 }
@@ -1772,6 +1788,7 @@ class AWSManager {
         stats: {
           apollo: { usage: 0, calls: 0, cost: 0 },
           openai: { usage: 0, calls: 0, cost: 0 },
+          anthropic: { usage: 0, calls: 0, cost: 0 },
           mailgun: { usage: 0, calls: 0, cost: 0 },
           zerobounce: { usage: 0, calls: 0, cost: 0 },
           serper: { usage: 0, calls: 0, cost: 0 }
@@ -1888,21 +1905,23 @@ class AWSManager {
             sortKey: record.month,
             apolloCalls: record.apollo?.calls || 0,
             openaiCalls: record.openai?.calls || 0,
+            anthropicCalls: record.anthropic?.calls || 0,
             mailgunCalls: record.mailgun?.calls || 0,
             zerbounceCalls: record.zerobounce?.calls || 0,
             serperCalls: record.serper?.calls || 0,
             gmailCalls: record.gmail?.calls || 0,
-            totalCalls: (record.apollo?.calls || 0) + (record.openai?.calls || 0) + 
+            totalCalls: (record.apollo?.calls || 0) + (record.openai?.calls || 0) + (record.anthropic?.calls || 0) +
                         (record.mailgun?.calls || 0) + (record.zerobounce?.calls || 0) + 
                         (record.serper?.calls || 0) + (record.gmail?.calls || 0),
             apollo: { cost: record.apollo?.cost || 0 },
             openai: { cost: record.openai?.cost || 0 },
+            anthropic: { cost: record.anthropic?.cost || 0 },
             mailgun: { cost: record.mailgun?.cost || 0 },
             zerobounce: { cost: record.zerobounce?.cost || 0 },
             serper: { cost: record.serper?.cost || 0 },
             gmail: { cost: record.gmail?.cost || 0 },
-            total: { 
-              cost: (record.apollo?.cost || 0) + (record.openai?.cost || 0) + 
+            total: {
+              cost: (record.apollo?.cost || 0) + (record.openai?.cost || 0) + (record.anthropic?.cost || 0) +
                     (record.mailgun?.cost || 0) + (record.zerobounce?.cost || 0) + 
                     (record.serper?.cost || 0) + (record.gmail?.cost || 0)
             }
@@ -1975,6 +1994,7 @@ class AWSManager {
             // Flattened structure for API calls chart
             apolloCalls: 0,
             openaiCalls: 0,
+            anthropicCalls: 0,
             mailgunCalls: 0,
             zerbounceCalls: 0,
             serperCalls: 0,
@@ -1982,6 +2002,7 @@ class AWSManager {
             // Nested structure for cost chart (you liked this format)
             apollo: { cost: 0 },
             openai: { cost: 0 },
+            anthropic: { cost: 0 },
             mailgun: { cost: 0 },
             zerobounce: { cost: 0 },
             serper: { cost: 0 },
@@ -1993,6 +2014,7 @@ class AWSManager {
         const serviceMap = {
           'apollo': 'apollo',
           'openai': 'openai',
+          'anthropic': 'anthropic',
           'mailgun': 'mailgun',
           'zerobounce': 'zerobounce',
           'serper': 'serper'
@@ -2058,12 +2080,14 @@ class AWSManager {
           sortKey: key,
           apolloCalls: 0,
           openaiCalls: 0,
+          anthropicCalls: 0,
           mailgunCalls: 0,
           zerbounceCalls: 0,
           serperCalls: 0,
           totalCalls: 0,
           apollo: { cost: 0 },
           openai: { cost: 0 },
+          anthropic: { cost: 0 },
           mailgun: { cost: 0 },
           zerobounce: { cost: 0 },
           serper: { cost: 0 },
