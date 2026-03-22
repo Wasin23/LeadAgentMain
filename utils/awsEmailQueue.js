@@ -10,6 +10,7 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { v4 as uuidv4 } from 'uuid';
+import { getScheduledEmailJobs } from './scheduledEmailJobs.js';
 
 /**
  * AWS DynamoDB Email Queue Manager
@@ -39,6 +40,7 @@ class AWSEmailQueue {
     this.dynamodb = DynamoDBDocumentClient.from(ddbClient, { marshallOptions: { removeUndefinedValues: true } });
     this.tableName = process.env.AWS_DYNAMODB_EMAIL_QUEUE_TABLE || 'meridian-email-queue';
     this.gsiName = 'UserStatusIndex';
+    this.scheduledEmailJobs = getScheduledEmailJobs();
     
     console.log(`📧 [AWS EMAIL QUEUE] Initialized with table: ${this.tableName}`);
   }
@@ -186,6 +188,15 @@ class AWSEmailQueue {
         TableName: this.tableName,
         Item: item
       }));
+
+      if (item.scheduledAt) {
+        await this.scheduledEmailJobs.upsertScheduledEmail({
+          userId,
+          agentId,
+          emailId,
+          scheduledAt: item.scheduledAt
+        });
+      }
 
       console.log('[AWS EMAIL QUEUE] ✅ DynamoDB write successful');
 
@@ -646,11 +657,28 @@ class AWSEmailQueue {
         ...updates,
         updatedAt: new Date().toISOString()
       };
+
+      if (Object.prototype.hasOwnProperty.call(updates, 'scheduledAt') && !updates.scheduledAt) {
+        delete updatedItem.scheduledAt;
+      }
       
       await this.dynamodb.send(new PutCommand({
         TableName: this.tableName,
         Item: updatedItem
       }));
+
+      if (foundItem.status === 'QUEUED') {
+        if (updatedItem.scheduledAt) {
+          await this.scheduledEmailJobs.upsertScheduledEmail({
+            userId,
+            agentId,
+            emailId,
+            scheduledAt: updatedItem.scheduledAt
+          });
+        } else if (Object.prototype.hasOwnProperty.call(updates, 'scheduledAt')) {
+          await this.scheduledEmailJobs.deleteScheduledEmail(userId, agentId, emailId);
+        }
+      }
       
       return updatedItem;
     } catch (error) {
@@ -767,6 +795,17 @@ class AWSEmailQueue {
           TableName: this.tableName,
           Item: newItem
         }));
+
+        if (oldStatus === 'QUEUED' && newStatus !== 'QUEUED') {
+          await this.scheduledEmailJobs.deleteScheduledEmail(userId, agentId, emailId);
+        } else if (newStatus === 'QUEUED' && newItem.scheduledAt) {
+          await this.scheduledEmailJobs.upsertScheduledEmail({
+            userId,
+            agentId,
+            emailId,
+            scheduledAt: newItem.scheduledAt
+          });
+        }
         
         //   httpStatusCode: putResult.$metadata?.httpStatusCode,
         //   savedFollowUpScheduled: newItem.followUpScheduled,
@@ -962,6 +1001,8 @@ class AWSEmailQueue {
           SK: item.SK
         }
       }));
+
+      await this.scheduledEmailJobs.deleteScheduledEmail(userId, agentId, emailId);
 
       // Invalidate cache for this user
       this._invalidateCache(userId);

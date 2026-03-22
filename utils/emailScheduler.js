@@ -13,10 +13,10 @@
 
 import AWSManager from './awsManager.js';
 import AWSEmailQueue from './awsEmailQueue.js';
+import { getScheduledEmailJobs } from './scheduledEmailJobs.js';
 import { leadEmail } from '../tools/leadEmail.js';
 import { sendSystemEmail } from '../tools/emailMailgun.js';
 import { sendSMS } from './smsManager.js';
-import { ScanCommand } from '@aws-sdk/lib-dynamodb';
 
 class EmailScheduler {
   constructor() {
@@ -25,6 +25,7 @@ class EmailScheduler {
     this.processingEmails = new Set();
     this.awsManager = new AWSManager();
     this.awsEmailQueue = new AWSEmailQueue();
+    this.scheduledEmailJobs = getScheduledEmailJobs();
     
     // Check every minute so scheduled sends are not delayed.
     this.CHECK_INTERVAL_MS = 60 * 1000;
@@ -74,7 +75,7 @@ class EmailScheduler {
       
       console.log(`📊 [EMAIL SCHEDULER] Found ${scheduledEmails.length} email(s) ready to send:`);
       for (const e of scheduledEmails) {
-        console.log(`   → id=${e.id} scheduledAt=${e.scheduledAt} to=${e.to || e.emailData?.finalRecipient} status-in-SK=${e.SK?.split('#')[0]}`);
+        console.log(`   → id=${e.emailId || e.id} scheduledAt=${e.scheduledAt} userId=${e.userId} agentId=${e.agentId}`);
       }
 
       for (const email of scheduledEmails) {
@@ -87,45 +88,11 @@ class EmailScheduler {
     }
   }
 
-  async scanDueScheduledEmailRefs(now) {
-    const items = [];
-    let lastEvaluatedKey = null;
-
-    do {
-      const scanInput = {
-        TableName: this.awsEmailQueue.tableName,
-        IndexName: this.awsEmailQueue.gsiName,
-        FilterExpression: '#status = :queuedStatus AND attribute_exists(scheduledAt) AND scheduledAt <= :now',
-        ExpressionAttributeNames: {
-          '#status': 'status'
-        },
-        ExpressionAttributeValues: {
-          ':queuedStatus': 'QUEUED',
-          ':now': now
-        },
-        ProjectionExpression: 'id, userId, agentId, scheduledAt',
-      };
-
-      if (lastEvaluatedKey) {
-        scanInput.ExclusiveStartKey = lastEvaluatedKey;
-      }
-
-      const response = await this.awsEmailQueue._retryWithBackoff(async () => {
-        return this.awsEmailQueue.dynamodb.send(new ScanCommand(scanInput));
-      });
-
-      items.push(...(response.Items || []));
-      lastEvaluatedKey = response.LastEvaluatedKey;
-    } while (lastEvaluatedKey);
-
-    return items;
-  }
-  
   // Get all scheduled emails that are ready to send
   async getScheduledEmailsReadyToSend() {
     try {
       const now = new Date().toISOString();
-      const scheduledEmails = await this.scanDueScheduledEmailRefs(now);
+      const scheduledEmails = await this.scheduledEmailJobs.getDueScheduledEmails(now);
 
       scheduledEmails.sort((left, right) => {
         return new Date(left.scheduledAt).getTime() - new Date(right.scheduledAt).getTime();
@@ -141,7 +108,8 @@ class EmailScheduler {
   
   // Send a scheduled email — direct in-process send (no HTTP self-call needed)
   async sendScheduledEmail(email) {
-    const { id: emailId, userId, agentId, scheduledAt } = email;
+    const emailId = email.emailId || email.id;
+    const { userId, agentId, scheduledAt } = email;
     if (this.processingEmails.has(emailId)) {
       console.log(`⚠️ [EMAIL SCHEDULER] Skipping duplicate in-flight send for ${emailId}`);
       return;
@@ -244,6 +212,14 @@ class EmailScheduler {
       }
 
     } catch (error) {
+      if (error.message?.includes('not found in QUEUED status')) {
+        try {
+          await this.scheduledEmailJobs.deleteScheduledEmail(userId, agentId, emailId);
+          console.warn(`⚠️ [EMAIL SCHEDULER] Removed stale scheduled job for ${emailId}`);
+        } catch (cleanupError) {
+          console.error(`❌ [EMAIL SCHEDULER] Failed to clean stale scheduled job for ${emailId}:`, cleanupError.message);
+        }
+      }
       console.error(`❌ [EMAIL SCHEDULER] Error sending email ${emailId}:`, error.message);
       console.error(`❌ [EMAIL SCHEDULER] Stack:`, error.stack);
     } finally {
