@@ -92,16 +92,21 @@ class EmailScheduler {
     let lastEvaluatedKey = null;
 
     do {
-      const response = await this.awsEmailQueue.dynamodb.send(new QueryCommand({
+      const queryInput = {
         TableName: this.awsEmailQueue.tableName,
         IndexName: this.awsEmailQueue.gsiName,
         KeyConditionExpression: 'GSIPK = :gsipk',
         ExpressionAttributeValues: {
           ':gsipk': `${userId}#QUEUED`
         },
-        ExclusiveStartKey: lastEvaluatedKey,
         ScanIndexForward: true,
-      }));
+      };
+
+      if (lastEvaluatedKey) {
+        queryInput.ExclusiveStartKey = lastEvaluatedKey;
+      }
+
+      const response = await this.awsEmailQueue.dynamodb.send(new QueryCommand(queryInput));
 
       items.push(...(response.Items || []));
       lastEvaluatedKey = response.LastEvaluatedKey;
@@ -121,16 +126,20 @@ class EmailScheduler {
         const userId = user.userId || user.id;
         if (!userId) continue;
 
-        const queuedEmails = await this.getQueuedEmailsForUser(userId);
-        const dueEmails = queuedEmails.filter(email =>
-          email.scheduledAt &&
-          email.scheduledAt <= now &&
-          email.status === 'QUEUED'
-        );
+        try {
+          const queuedEmails = await this.getQueuedEmailsForUser(userId);
+          const dueEmails = queuedEmails.filter(email =>
+            email.scheduledAt &&
+            email.scheduledAt <= now &&
+            email.status === 'QUEUED'
+          );
 
-        if (dueEmails.length > 0) {
-          console.log(`📊 [EMAIL SCHEDULER] userId=${userId} has ${dueEmails.length} due scheduled email(s)`);
-          scheduledEmails.push(...dueEmails);
+          if (dueEmails.length > 0) {
+            console.log(`📊 [EMAIL SCHEDULER] userId=${userId} has ${dueEmails.length} due scheduled email(s)`);
+            scheduledEmails.push(...dueEmails);
+          }
+        } catch (userError) {
+          console.error(`[EMAIL SCHEDULER] Failed to query queued emails for userId=${userId}:`, userError.message);
         }
       }
 
