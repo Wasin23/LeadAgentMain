@@ -363,6 +363,19 @@ export default function SignInPage() {
           to   { opacity: 1; transform: translateY(0); }
         }
         .signin-card-anim { animation: fadeUp 0.55s cubic-bezier(0.16,1,0.3,1) both; }
+        .signin-pressable {
+          transform: translateY(0) scale(1);
+          transition: transform 0.14s ease, box-shadow 0.18s ease, border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease;
+        }
+        .signin-pressable:active:not(:disabled) {
+          transform: translateY(1px) scale(0.985);
+        }
+        .google-auth-button:hover:not(:disabled) {
+          background: rgba(255, 255, 255, 0.98);
+          border-color: rgba(59, 130, 246, 0.95);
+          color: rgb(29, 78, 216);
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+        }
       `}</style>
 
     <div className="min-h-screen relative flex items-center justify-center overflow-hidden p-4">
@@ -374,7 +387,7 @@ export default function SignInPage() {
         size="icon"
         title="Back to home"
         onClick={() => router.push('/')}
-        className="absolute top-4 left-4 h-8 w-8 rounded-full transition-all duration-300 hover:scale-110"
+        className="signin-pressable absolute top-4 left-4 h-8 w-8 rounded-full transition-all duration-300 hover:scale-110"
         style={{ zIndex: 20, color: 'white', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.40)' }}
       >
         <ArrowLeft className="w-4 h-4" />
@@ -386,7 +399,7 @@ export default function SignInPage() {
         size="icon"
         title="Help & Support"
         onClick={() => window.location.href = '/help'}
-        className="absolute top-4 right-4 h-8 w-8 rounded-full transition-all duration-300 hover:scale-110"
+        className="signin-pressable absolute top-4 right-4 h-8 w-8 rounded-full transition-all duration-300 hover:scale-110"
         style={{ zIndex: 20, color: 'white', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.40)' }}
       >
         <HelpCircle className="w-4 h-4" />
@@ -433,8 +446,8 @@ export default function SignInPage() {
           <CardContent>
             <Tabs defaultValue="signin">
               <TabsList className="w-full mb-5">
-                <TabsTrigger value="signin" className="flex-1">Sign In</TabsTrigger>
-                <TabsTrigger value="signup" className="flex-1">Sign Up</TabsTrigger>
+                <TabsTrigger value="signin" className="signin-pressable flex-1">Sign In</TabsTrigger>
+                <TabsTrigger value="signup" className="signin-pressable flex-1">Sign Up</TabsTrigger>
               </TabsList>
 
               {/* Sign In */}
@@ -451,7 +464,7 @@ export default function SignInPage() {
                     <div className="flex items-center justify-between">
                       <Label htmlFor="si-password">Password</Label>
                       <button type="button" onClick={() => setShowForgotModal(true)}
-                        className="text-xs text-primary hover:underline">
+                        className="signin-pressable rounded-md text-xs text-primary hover:underline">
                         Forgot password?
                       </button>
                     </div>
@@ -461,12 +474,12 @@ export default function SignInPage() {
                         onChange={(e) => setSignInForm({ ...signInForm, password: e.target.value })}
                       />
                       <button type="button" onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                        className="signin-pressable absolute right-3 top-1/2 -translate-y-1/2 rounded-md text-muted-foreground hover:text-foreground">
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
+                  <Button type="submit" className="signin-pressable w-full" disabled={isLoading}>
                     {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                     {isLoading ? 'Signing in...' : 'Sign In'}
                   </Button>
@@ -476,7 +489,7 @@ export default function SignInPage() {
                       <span className="bg-white px-2 text-muted-foreground">or</span>
                     </div>
                   </div>
-                  <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+                  <Button type="button" variant="outline" className="signin-pressable google-auth-button w-full border-slate-200 bg-white hover:bg-white hover:text-blue-700 hover:border-blue-500" onClick={handleGoogleSignIn}>
                     <GoogleIcon /><span className="ml-2">Sign in with Google</span>
                   </Button>
                 </form>
@@ -531,7 +544,7 @@ export default function SignInPage() {
                       </p>
                     )}
                   </div>
-                  <Button type="submit" className="w-full" disabled={isLoading || signUpForm.password !== signUpForm.confirmPassword}>
+                  <Button type="submit" className="signin-pressable w-full" disabled={isLoading || signUpForm.password !== signUpForm.confirmPassword}>
                     {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                     {isLoading ? 'Creating account...' : 'Create Account'}
                   </Button>
@@ -541,7 +554,7 @@ export default function SignInPage() {
                       <span className="bg-white px-2 text-muted-foreground">or</span>
                     </div>
                   </div>
-                  <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignIn}>
+                  <Button type="button" variant="outline" className="signin-pressable google-auth-button w-full border-slate-200 bg-white hover:bg-white hover:text-blue-700 hover:border-blue-500" onClick={handleGoogleSignIn}>
                     <GoogleIcon /><span className="ml-2">Continue with Google</span>
                   </Button>
                 </form>
@@ -585,8 +598,8 @@ export default function SignInPage() {
               />
             </div>
             <div className="flex gap-2">
-              <Button type="button" variant="outline" className="flex-1" onClick={() => setShowForgotModal(false)}>Cancel</Button>
-              <Button type="submit" className="flex-1" disabled={isLoading}>
+              <Button type="button" variant="outline" className="signin-pressable flex-1" onClick={() => setShowForgotModal(false)}>Cancel</Button>
+              <Button type="submit" className="signin-pressable flex-1" disabled={isLoading}>
                 {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}Send Code
               </Button>
             </div>
@@ -632,7 +645,7 @@ export default function SignInPage() {
                   </p>
                 )}
               </div>
-              <Button type="submit" className="w-full"
+              <Button type="submit" className="signin-pressable w-full"
                 disabled={isLoading || !codeValidation.isValid || !resetForm.newPassword || resetForm.newPassword !== resetForm.confirmPassword}>
                 {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 {isLoading ? 'Resetting...' : 'Reset Password'}
