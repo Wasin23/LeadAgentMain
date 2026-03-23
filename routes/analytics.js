@@ -705,18 +705,6 @@ router.delete('/api/analytics/emails', authenticateToken, async (req, res) => {
       console.log(`[ANALYTICS] 📝 No email queue file found for user ${userId}, nothing to clear`);
     }
     
-    // Clear Zilliz tracking data - try to import and use zilliz functions
-    try {
-      const { ZillizEmailTracker } = await import('../utils/zillizEmailTracker.js');
-      const tracker = new ZillizEmailTracker();
-      await tracker.initialize();
-      await tracker.clearUserTrackingEvents(userId);
-      console.log(`[ANALYTICS] 🗑️ Cleared Zilliz tracking data for user ${userId}`);
-    } catch (error) {
-      console.log(`[ANALYTICS] ⚠️ Could not clear Zilliz tracking data:`, error.message);
-      // Don't fail the whole request if Zilliz clearing fails
-    }
-    
     const targetDescription = agentId ? `agent "${agentId}"` : 'user account';
     res.json({
       success: true,

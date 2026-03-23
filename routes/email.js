@@ -113,32 +113,6 @@ router.post('/clear-logs', authenticateToken, async (req, res) => {
       console.log(`[EMAIL LOGS] ℹ️ No email queue file to clear for user: ${userCode}`);
     }
     
-    // Also clear Zilliz tracking data for this user
-    try {
-      console.log(`[EMAIL LOGS] Clearing Zilliz tracking data for user: ${userCode}...`);
-      
-      // Get JWT token from request headers
-      const authHeader = req.headers.authorization;
-      const token = authHeader && authHeader.split(' ')[1];
-      const apiBaseUrl = process.env.API_BASE_URL || 'https://meridian-kdew.onrender.com';
-      
-      const response = await fetch(`${apiBaseUrl}/api/zilliz-tracking/clear`, {
-        method: 'DELETE',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      if (response.ok) {
-        console.log(`[EMAIL LOGS] ✅ Zilliz tracking data cleared successfully for user: ${userCode}`);
-      } else {
-        console.log(`[EMAIL LOGS] ⚠️ Failed to clear Zilliz tracking data for user: ${userCode}`, response.status);
-      }
-    } catch (zillizError) {
-      console.log(`[EMAIL LOGS] ⚠️ Error clearing Zilliz tracking data for user: ${userCode}:`, zillizError.message);
-    }
-
     // Clear local desktop tracking data for this user
     try {
       const { desktopEmailTracker } = await import('../utils/desktopEmailTracker.js');
@@ -152,7 +126,7 @@ router.post('/clear-logs', authenticateToken, async (req, res) => {
     
     res.json({ 
       success: true, 
-      message: `Email logs, approved emails, and tracking data cleared successfully for user ${userCode}`,
+      message: `Email logs, approved emails, and local tracking data cleared successfully for user ${userCode}`,
       userCode: userCode
     });
   } catch (err) {

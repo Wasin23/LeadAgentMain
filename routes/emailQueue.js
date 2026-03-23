@@ -926,10 +926,9 @@ router.delete('/sent/clear', async (req, res) => {
     res.json({ 
       success: true, 
       message: agentId 
-        ? `Cleared ${result.clearedCount} sent emails and ${result.zillizCleared} tracking events for agent`
-        : `Cleared ${result.clearedCount} sent emails and ${result.zillizCleared} tracking events for all agents`,
-      clearedCount: result.clearedCount,
-      zillizCleared: result.zillizCleared
+        ? `Cleared ${result.clearedCount} sent emails for agent`
+        : `Cleared ${result.clearedCount} sent emails for all agents`,
+      clearedCount: result.clearedCount
     });
   } catch (error) {
     console.error('[EMAIL QUEUE API] Error clearing sent emails:', error);

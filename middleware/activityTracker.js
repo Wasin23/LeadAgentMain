@@ -30,10 +30,10 @@ export async function trackUserActivity(req, res, next) {
   // If this is the user's first activity (or they were inactive), start polling
   if (!lastActivity || (now - lastActivity) > INACTIVITY_TIMEOUT) {
     if (!isPollingRoute) {
-      console.log(`[ACTIVITY] User ${userId} is active (Zilliz polling disabled - using AWS DynamoDB)`);
+      console.log(`[ACTIVITY] User ${userId} is active (legacy polling disabled - using AWS DynamoDB)`);
     }
     
-    // DISABLED: No longer using Zilliz polling - tracking now handled by AWS DynamoDB + SSE
+    // DISABLED: No longer using legacy polling - tracking now handled by AWS DynamoDB + SSE
     // try {
     //   const { desktopEmailTracker } = await import('../utils/desktopEmailTracker.js');
     //   desktopEmailTracker.startUserPolling(userId);
@@ -56,7 +56,7 @@ async function cleanupInactiveUsers() {
     if ((now - lastActivity) > INACTIVITY_TIMEOUT) {
       console.log(`[ACTIVITY] User ${userId} inactive for ${Math.round((now - lastActivity) / 1000)}s`);
       
-      // DISABLED: No longer using Zilliz polling - tracking now handled by AWS DynamoDB + SSE
+      // DISABLED: No longer using legacy polling - tracking now handled by AWS DynamoDB + SSE
       // try {
       //   const { desktopEmailTracker } = await import('../utils/desktopEmailTracker.js');
       //   desktopEmailTracker.stopUserPolling(userId);

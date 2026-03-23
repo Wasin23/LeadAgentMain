@@ -1114,45 +1114,7 @@ class AWSEmailQueue {
       }
       
       if (emails.length === 0) {
-        return { clearedCount: 0, zillizCleared: 0 };
-      }
-
-      // Clear Zilliz tracking events for these emails
-      let zillizCleared = 0;
-      try {
-        const { MilvusClient } = await import('@zilliz/milvus2-sdk-node');
-        const milvusClient = new MilvusClient({
-          address: process.env.ZILLIZ_ENDPOINT,
-          token: process.env.ZILLIZ_TOKEN,
-          timeout: 30000
-        });
-
-        // Check if collection exists
-        const hasCollection = await milvusClient.hasCollection({
-          collection_name: 'email_tracking_events'
-        });
-
-        if (hasCollection.value) {
-          if (agentId === null) {
-            // Clear ALL tracking events for the user (all agents)
-            const deleteResult = await milvusClient.delete({
-              collection_name: 'email_tracking_events',
-              filter: `user_id == "${userId}"`
-            });
-            zillizCleared = deleteResult.delete_cnt || 0;
-            console.log(`🗑️ [ZILLIZ] Cleared ${zillizCleared} tracking events for all agents of user ${userId}`);
-          } else {
-            // Clear tracking events for specific agent only
-            const deleteResult = await milvusClient.delete({
-              collection_name: 'email_tracking_events',
-              filter: `user_id == "${userId}" && agent_id == "${agentId}"`
-            });
-            zillizCleared = deleteResult.delete_cnt || 0;
-            console.log(`🗑️ [ZILLIZ] Cleared ${zillizCleared} tracking events for agent ${agentId}`);
-          }
-        }
-      } catch (zillizError) {
-        console.error('⚠️ [ZILLIZ] Error clearing tracking events (continuing with email deletion):', zillizError.message);
+        return { clearedCount: 0 };
       }
 
       // Batch delete (max 25 items per batch)
@@ -1179,7 +1141,7 @@ class AWSEmailQueue {
       }
 
       console.log(`✅ [AWS EMAIL QUEUE] Cleared ${emails.length} sent emails for agent ${agentId}`);
-      return { clearedCount: emails.length, zillizCleared };
+      return { clearedCount: emails.length };
     } catch (error) {
       console.error('[AWS EMAIL QUEUE] Error clearing sent emails:', error);
       throw error;

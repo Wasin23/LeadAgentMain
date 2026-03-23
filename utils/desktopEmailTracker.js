@@ -249,263 +249,25 @@ class DesktopEmailTracker {
 
   // REMOVED: Old global polling - now using user session-based polling
 
-  // Stop polling Zilliz
+  // Stop legacy polling loop
   stopZillizPolling() {
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
       this.pollingInterval = null;
-      console.log('📧 [ZILLIZ POLLING] Stopped Zilliz polling');
+      console.log('📧 [LEGACY POLLING] Stopped legacy polling loop');
     }
   }
 
   // REMOVED: Old global polling method - replaced with user-specific polling
 
-  // Sync email logs with actual Zilliz data (don't increment, just set correct counts)
-  async syncWithZillizData(zillizEvents, userId = null, agentId = null) {
-    try {
-      // Load current email logs for specific user
-      const emailLogs = await this.loadEmailLogs(userId);
-      let logsChanged = false;
-
-      // Group Zilliz events by tracking ID (deduplicated)
-      const eventsByTrackingId = {};
-      for (const event of zillizEvents) {
-        const trackingId = event.tracking_id;
-        if (!eventsByTrackingId[trackingId]) {
-          eventsByTrackingId[trackingId] = { 
-            opens: 0, 
-            clicks: 0, 
-            replies: 0,
-            aiReplies: [],
-            leadMessages: [],
-            uniqueOpens: new Set(), 
-            uniqueClicks: new Set(),
-            uniqueReplies: new Set()
-          };
-        }
-        
-        if (event.event_type === 'email_open') {
-          // Use IP + timestamp for deduplication (same email opened from same IP within timeframe)
-          const uniqueKey = `${event.ip_address}_${Math.floor(new Date(event.timestamp).getTime() / (5 * 60 * 1000))}`; // 5-minute windows
-          if (!eventsByTrackingId[trackingId].uniqueOpens.has(uniqueKey)) {
-            eventsByTrackingId[trackingId].uniqueOpens.add(uniqueKey);
-            eventsByTrackingId[trackingId].opens++;
-          }
-        } else if (event.event_type === 'email_click' || event.event_type === 'link_click') {
-          const uniqueKey = `${event.ip_address}_${event.clicked_url}_${Math.floor(new Date(event.timestamp).getTime() / (5 * 60 * 1000))}`;
-          if (!eventsByTrackingId[trackingId].uniqueClicks.has(uniqueKey)) {
-            eventsByTrackingId[trackingId].uniqueClicks.add(uniqueKey);
-            eventsByTrackingId[trackingId].clicks++;
-          }
-        } else if (event.event_type === 'ai_reply') {
-          // Track AI replies - use timestamp + content for deduplication
-          const uniqueKey = `ai_reply_${event.timestamp}_${event.recipient}`;
-          if (!eventsByTrackingId[trackingId].uniqueReplies.has(uniqueKey)) {
-            eventsByTrackingId[trackingId].uniqueReplies.add(uniqueKey);
-            eventsByTrackingId[trackingId].replies++;
-            
-
-            
-            eventsByTrackingId[trackingId].aiReplies.push({
-              timestamp: event.timestamp,
-              recipient: event.recipient || event.email_address,
-              content: event.user_agent, // AI reply content is stored in user_agent field
-              type: 'ai_reply'
-            });
-          }
-        } else if (event.event_type === 'lead_message') {
-          // Track lead messages - use timestamp + content for deduplication
-          const uniqueKey = `lead_message_${event.timestamp}_${event.email_address}`;
-          if (!eventsByTrackingId[trackingId].uniqueReplies.has(uniqueKey)) {
-            eventsByTrackingId[trackingId].uniqueReplies.add(uniqueKey);
-            eventsByTrackingId[trackingId].replies++;
-            
-
-            
-            eventsByTrackingId[trackingId].leadMessages.push({
-              timestamp: event.timestamp,
-              from: event.email_address,
-              content: event.user_agent, // Lead message content is stored in user_agent field
-              type: 'lead_message'
-            });
-          }
-        }
-      }
-
-      // Update email logs to match Zilliz data exactly
-      for (let i = 0; i < emailLogs.length; i++) {
-        const log = emailLogs[i];
-        const trackingId = log.trackingId || log.id; // Use trackingId or id
-        
-        if (eventsByTrackingId[trackingId]) {
-          const zillizData = eventsByTrackingId[trackingId];
-          
-          // Set opened status and counts to match Zilliz exactly
-          const shouldBeOpened = zillizData.opens > 0;
-          const shouldBeClicked = zillizData.clicks > 0;
-          const shouldBeReplied = zillizData.replies > 0;
-          const correctOpenCount = zillizData.opens;
-          const correctClickCount = zillizData.clicks;
-          const correctReplyCount = zillizData.replies;
-          
-          // Update the analytics object within the log
-          if (!log.analytics) {
-            log.analytics = {};
-          }
-          
-          const currentOpened = log.analytics.opened || false;
-          const currentOpenCount = log.analytics.openCount || 0;
-          const currentClickCount = log.analytics.clickCount || 0;
-          const currentClicked = log.analytics.clicked || false;
-          const currentReplied = log.analytics.replied || false;
-          const currentReplyCount = log.analytics.replyCount || 0;
-          
-          if (currentOpened !== shouldBeOpened || currentOpenCount !== correctOpenCount || 
-              currentClickCount !== correctClickCount || currentClicked !== shouldBeClicked ||
-              currentReplied !== shouldBeReplied || currentReplyCount !== correctReplyCount) {
-            
-            // Create unified replies array for frontend compatibility
-            const unifiedReplies = [];
-            
-            // Add lead messages as replies
-            if (zillizData.leadMessages && zillizData.leadMessages.length > 0) {
-              zillizData.leadMessages.forEach(msg => {
-                unifiedReplies.push({
-                  timestamp: msg.timestamp,
-                  from_email: msg.from,
-                  sender: msg.from,
-                  lead_message: msg.content,
-                  type: 'lead_message',
-                  subject: msg.content.includes('Subject:') ? 
-                    msg.content.split('\n').find(line => line.startsWith('Subject:'))?.replace('Subject: ', '') : 
-                    'Re: ' + (log.subject || 'No Subject')
-                });
-              });
-            }
-            
-            // Add AI replies as replies
-            if (zillizData.aiReplies && zillizData.aiReplies.length > 0) {
-              zillizData.aiReplies.forEach(reply => {
-                unifiedReplies.push({
-                  timestamp: reply.timestamp,
-                  ai_response: reply.content,
-                  ai_response_timestamp: reply.timestamp,
-                  ai_response_sent: true,
-                  type: 'ai_reply',
-                  to_email: reply.recipient,
-                  subject: reply.content.includes('Subject:') ? 
-                    reply.content.split('\n').find(line => line.startsWith('Subject:'))?.replace('Subject: ', '') : 
-                    'Re: ' + (log.subject || 'No Subject')
-                });
-              });
-            }
-            
-            // Sort replies by timestamp
-            unifiedReplies.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-
-            emailLogs[i].analytics = {
-              ...log.analytics,
-              opened: shouldBeOpened,
-              clicked: shouldBeClicked,
-              replied: shouldBeReplied,
-              openCount: correctOpenCount,
-              clickCount: correctClickCount,
-              replyCount: correctReplyCount,
-              aiReplies: zillizData.aiReplies || [],
-              leadMessages: zillizData.leadMessages || [],
-              lastActivity: (shouldBeOpened || shouldBeClicked || shouldBeReplied) ? new Date().toISOString() : log.analytics.lastActivity
-            };
-            
-            // Add unified replies array for frontend
-            emailLogs[i].replies = unifiedReplies;
-            
-            // Also update the legacy fields for backward compatibility
-            emailLogs[i].opened = shouldBeOpened;
-            emailLogs[i].openCount = correctOpenCount;
-            emailLogs[i].clickCount = correctClickCount;
-            
-            logsChanged = true;
-            console.log(`📧 [SYNC] Updated ${trackingId}: opens=${correctOpenCount}, clicks=${correctClickCount}, replies=${correctReplyCount}`);
-          }
-        }
-      }
-
-      // Save if changes were made - DISABLED: No longer using JSON files, all data in AWS
-      if (logsChanged) {
-        console.log(`📧 [SYNC] Email logs changes detected but not saving to JSON (using AWS instead)`);
-      }
-
-      // IMPORTANT: Sync tracking data to AWS approved emails
-      if (userId) {
-        await this.syncTrackingDataToAWSApprovedEmails(eventsByTrackingId, userId, agentId);
-      }
-
-      // Also fetch and sync reply data for emails that have tracking IDs
-      await this.syncReplyData(emailLogs);
-
-    } catch (error) {
-      console.error('📧 [SYNC] Error syncing with Zilliz data:', error);
-    }
+  // Legacy Zilliz sync path has been removed; tracking now comes from AWS DynamoDB.
+  async syncWithZillizData(_zillizEvents, _userId = null, _agentId = null) {
+    return;
   }
 
-  // Fetch and sync reply data for emails
-  async syncReplyData(emailLogs) {
-    try {
-      console.log(`📧 [REPLY SYNC] Syncing reply data for ${emailLogs.length} emails`);
-      let repliesUpdated = false;
-
-      for (let i = 0; i < emailLogs.length; i++) {
-        const log = emailLogs[i];
-        const trackingId = log.trackingId || log.id;
-        
-        if (trackingId) {
-          try {
-            const replyUrl = `${this.apiBaseUrl}/api/zilliz-tracking/replies/${trackingId}`;
-            const response = await fetch(replyUrl);
-            
-            if (response.ok) {
-              const replyData = await response.json();
-              
-              if (replyData.success && replyData.replies && replyData.replies.length > 0) {
-                // Store reply data in the email log
-                emailLogs[i].replies = replyData.replies;
-                
-                // Update analytics to show replied status
-                if (!emailLogs[i].analytics) {
-                  emailLogs[i].analytics = {};
-                }
-                
-                emailLogs[i].analytics.replied = true;
-                emailLogs[i].analytics.replyCount = replyData.replies.length;
-                emailLogs[i].analytics.lastActivity = new Date().toISOString();
-                
-                repliesUpdated = true;
-                
-                console.log(`📧 [REPLY SYNC] Found ${replyData.replies.length} replies for ${trackingId}`);
-                
-                // Log AI response summary for debugging
-                replyData.replies.forEach((reply, idx) => {
-                  if (reply.ai_response) {
-                    console.log(`📧 [AI REPLY ${idx + 1}] Sentiment: ${reply.sentiment}, AI sent: ${reply.ai_response_sent}`);
-                  }
-                });
-              }
-            }
-          } catch (replyError) {
-            console.error(`📧 [REPLY SYNC] Error fetching replies for ${trackingId}:`, replyError.message);
-          }
-        }
-      }
-
-      // Save if replies were updated
-      if (repliesUpdated) {
-        await this.saveEmailLogs(emailLogs);
-        console.log(`📧 [REPLY SYNC] Reply data synchronized`);
-      }
-
-    } catch (error) {
-      console.error('📧 [REPLY SYNC] Error syncing reply data:', error);
-    }
+  // Legacy Zilliz reply sync path has been removed; replies now come from AWS-backed routes.
+  async syncReplyData(_emailLogs) {
+    return;
   }
 
   // Sync tracking data directly to AWS approved emails (this is where the UI gets the data!)
@@ -829,18 +591,7 @@ class DesktopEmailTracker {
       return;
     }
 
-    console.log(`📧 [USER POLLING] Starting polling for user ${userId}`);
-    this.userLastPolledTimestamp.set(userId, Date.now());
-
-    // Start polling every 30 seconds for this user
-    const intervalId = setInterval(async () => {
-      await this.pollZillizEventsForUser(userId);
-    }, 30000);
-
-    this.userPollingIntervals.set(userId, intervalId);
-    
-    // Do an immediate poll
-    this.pollZillizEventsForUser(userId);
+    console.log(`📧 [USER POLLING] Legacy polling is disabled for user ${userId}`);
   }
 
   // Stop polling for a specific user session
@@ -854,83 +605,15 @@ class DesktopEmailTracker {
     }
   }
 
-  // Poll Zilliz for events specific to a user and their active agents
+  // Legacy polling entry point retained as a no-op for compatibility
   async pollZillizEventsForUser(userId) {
-    try {
-      // Get active agents for this user
-      const { getUserActiveAgents } = await import('../agent/reasoningLeadAgent.js');
-      const activeAgents = getUserActiveAgents(userId);
-      
-      // Only log if agents exist (reduce polling noise)
-      if (activeAgents.length > 0) {
-        console.log(`📧 [USER POLLING] User ${userId}: Found ${activeAgents.length} active agents`);
-      }
-      
-      // Poll for each active agent (future-proofed for multiple agents)
-      for (const agentInfo of activeAgents) {
-        await this.pollZillizEventsForUserAgent(userId, agentInfo.agentId);
-      }
-      
-    } catch (error) {
-      console.error(`📧 [USER POLLING] Error polling for user ${userId}:`, error);
-    }
+    console.log(`📧 [USER POLLING] Legacy polling is disabled for user ${userId}`);
   }
 
-  // Poll Zilliz for events specific to a user and optionally an agent
+  // Legacy per-agent polling entry point retained as a no-op for compatibility
   async pollZillizEventsForUserAgent(userId, agentId = null) {
-    try {
-      // Use the internal events endpoint with server secret for polling, filtered by userId and agentId
-      const serverSecret = process.env.SERVER_SECRET || 'internal-polling-secret-2024';
-      let zillizApiUrl = `${this.apiBaseUrl}/api/zilliz-tracking/internal/events?userId=${encodeURIComponent(userId)}`;
-      
-      if (agentId) {
-        zillizApiUrl += `&agentId=${encodeURIComponent(agentId)}`;
-        // Reduced logging for polling endpoint
-      }
-      
-      const response = await fetch(zillizApiUrl, {
-        headers: {
-          'x-server-secret': serverSecret,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        const context = agentId ? `user ${userId}, agent ${agentId}` : `user ${userId}`;
-        console.error(`📧 [AGENT POLLING] Failed to fetch events for ${context}: ${response.status}`);
-        return;
-      }
-
-      const data = await response.json();
-
-      if (data.success && data.events) {
-        // Handle the new structure with both tracking and scheduled events
-        const { trackingEvents, scheduledEvents, totalCount } = data.events;
-        
-        if (totalCount > 0) {
-          const context = agentId ? `user ${userId}, agent ${agentId}` : `user ${userId}`;
-          console.log(`📧 [AGENT POLLING] ${context}: Syncing ${trackingEvents?.length || 0} tracking events and ${scheduledEvents?.length || 0} scheduled events`);
-          
-          // Sync tracking events if they exist, including agent context
-          if (trackingEvents && trackingEvents.length > 0) {
-            await this.syncWithZillizData(trackingEvents, userId, agentId);
-          }
-          
-          // Handle scheduled events separately - we'll just log them for now
-          if (scheduledEvents && scheduledEvents.length > 0) {
-            // Reduced logging - only if events exist
-            // Store scheduled events in memory for the frontend to access
-            this.userScheduledEvents = this.userScheduledEvents || new Map();
-            const eventKey = agentId ? `${userId}_${agentId}` : userId;
-            this.userScheduledEvents.set(eventKey, scheduledEvents);
-          }
-        }
-      }
-      
-    } catch (error) {
-      const context = agentId ? `user ${userId}, agent ${agentId}` : `user ${userId}`;
-      console.error(`📧 [AGENT POLLING] Error polling for ${context}:`, error);
-    }
+    const context = agentId ? `user ${userId}, agent ${agentId}` : `user ${userId}`;
+    console.log(`📧 [AGENT POLLING] Legacy polling is disabled for ${context}`);
   }
 
   // Get list of users currently being polled

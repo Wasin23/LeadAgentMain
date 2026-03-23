@@ -686,31 +686,7 @@ router.delete('/', async (req, res) => {
         // Continue execution
       }
       
-      console.log('[COMPANY PROFILE] Step 8: Clearing Zilliz tracking data...');
-      // Clear Zilliz tracking data
-      try {
-        console.log(`[COMPANY PROFILE] Clearing Zilliz tracking data...`);
-        const authHeader = req.headers.authorization;
-        const token = authHeader && authHeader.split(' ')[1];
-        const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:8080';
-        
-        const response = await fetch(`${apiBaseUrl}/api/zilliz-tracking/clear`, {
-          method: 'DELETE',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (response.ok) {
-          console.log(`[COMPANY PROFILE] Zilliz tracking data cleared successfully`);
-        }
-      } catch (zillizError) {
-        console.error('[COMPANY PROFILE] Error clearing Zilliz tracking data:', zillizError.message);
-        // Continue execution
-      }
-      
-      console.log('[COMPANY PROFILE] Step 9: Clearing desktop tracking data...');
+      console.log('[COMPANY PROFILE] Step 8: Clearing desktop tracking data...');
       // Clear desktop tracking data
       try {
         const { desktopEmailTracker } = await import('../utils/desktopEmailTracker.js');

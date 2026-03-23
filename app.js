@@ -161,12 +161,12 @@ try {
   webhooksDesktopRoutes = (req, res, next) => next(); // No-op if not present
 }
 
-// Import AI Training routes
+// Import industry facts routes
 let trainingRoutes;
 try {
   trainingRoutes = (await import('./routes/training.js')).default;
 } catch (e) {
-  console.log('AI Training routes not available:', e.message);
+  console.log('Industry facts routes not available:', e.message);
   trainingRoutes = (req, res, next) => next(); // No-op if not present
 }
 
@@ -195,15 +195,6 @@ try {
 } catch (e) {
   console.log('Unsubscribe routes not available:', e.message);
   unsubscribeRoutes = (req, res, next) => next(); // No-op if not present
-}
-
-// Import Zilliz Email Tracking routes
-let zillizTrackingRoutes;
-try {
-  zillizTrackingRoutes = (await import('./routes/zillizTracking.js')).default;
-} catch (e) {
-  console.log('Zilliz email tracking routes not available:', e.message);
-  zillizTrackingRoutes = (req, res, next) => next(); // No-op if not present
 }
 
 // Import Desktop Email Tracking routes
@@ -410,7 +401,6 @@ app.use((req, res, next) => {
     '/api/lead-agent/api-usage/timeseries',
     '/api/lead-agent/rate-limits',
     '/api/lead-agent/api-usage',
-    '/api/zilliz-tracking/internal/events',
     '/api/issues',
     '/api/notifications/count',
     '/api/auth/profile',
@@ -550,7 +540,6 @@ app.use((req, res, next) => {
 app.use('/r', trackingRoutes); // Disguised tracking pixel route (bypasses corporate filters)
 app.use('/api/unsubscribe', unsubscribeRoutes); // Unsubscribe links in emails
 
-app.use('/api/zilliz-tracking', zillizTrackingRoutes); // Zilliz email tracking for polling - MUST BE FIRST
 app.use('/api', emailRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/auth/gmail', gmailAuthRoutes); // Gmail OAuth routes
@@ -633,7 +622,7 @@ app.use('/webhooks', webhooksDesktopRoutes); // Desktop webhook routes for domai
 app.use('/api/tracking', trackingRoutes); // Desktop email tracking (safe, no external deps)
 app.use('/r', trackingRoutes); // Disguised tracking pixel route (bypasses corporate filters)
 app.use('/c', trackingRoutes); // Disguised click tracking route (bypasses corporate filters)
-app.use('/api/training', trainingRoutes); // AI Training with Zilliz integration
+app.use('/api/training', trainingRoutes); // Industry facts management
 app.use('/api/monitoring', monitoringRoutes); // Agent monitoring and analytics
 app.use('/api/issues', issuesRoutes); // Issues and alerts tracking
 
@@ -663,15 +652,6 @@ try {
   console.log('[APP] Admin routes loaded successfully');
 } catch (error) {
   console.warn('[WARNING] Admin routes not available:', error.message);
-}
-
-// Import manual sync routes
-let manualSyncRoutes;
-try {
-  manualSyncRoutes = (await import('./routes/manualSync.js')).default;
-  app.use('/api/sync', manualSyncRoutes); // Manual sync routes for analytics
-} catch (error) {
-  console.warn('[WARNING] Manual sync routes not available:', error.message);
 }
 
 // Import reply tracking routes
