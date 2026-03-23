@@ -494,6 +494,10 @@ app.get('/ready', (req, res) => {
   res.json({ status: 'ready', timestamp: new Date().toISOString() });
 });
 
+// Mount Outlook auth/router before global JWT gating so Microsoft Graph validation
+// requests can always reach the public callback and webhook handlers.
+app.use('/api/auth/outlook', outlookAuthRoutes);
+
 // Public endpoints that don't require authentication (for emails)
 const publicEmailEndpoints = [
   '/r/',           // Tracking pixels
@@ -525,8 +529,9 @@ const publicEmailEndpoints = [
 
 // Middleware to check if endpoint should be public
 const isPublicEndpoint = (req) => {
+  const requestPath = (req.originalUrl || req.path || '').split('?')[0];
   return publicEmailEndpoints.some(endpoint => 
-    req.path.startsWith(endpoint)
+    requestPath === endpoint || requestPath.startsWith(endpoint)
   );
 };
 
@@ -549,7 +554,6 @@ app.use('/api/zilliz-tracking', zillizTrackingRoutes); // Zilliz email tracking 
 app.use('/api', emailRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/auth/gmail', gmailAuthRoutes); // Gmail OAuth routes
-app.use('/api/auth/outlook', outlookAuthRoutes); // Outlook OAuth routes
 app.use('/api/chat', chatRoutes);
 
 // Test route for deep research without authentication - with streaming

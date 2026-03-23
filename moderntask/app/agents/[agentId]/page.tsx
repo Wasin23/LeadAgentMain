@@ -697,10 +697,11 @@ export default function AgentDashboardPage({ params }: { params: Promise<{ agent
                               <ExternalLink className="h-3.5 w-3.5" />
                             </Button>
                             <div className="flex flex-col items-end gap-1">
-                            <Badge variant={conv.status === 'ai_responded' ? 'default' : conv.status === 'waiting_response' ? 'outline' : 'secondary'} className="text-[10px]">
-                              {conv.status === 'ai_responded' ? 'Replied' : conv.status === 'waiting_response' ? 'Waiting' : conv.status}
-                            </Badge>
-                            <span className="text-[10px] text-muted-foreground">{formatTimeAgo(conv.lastActivity || conv.timestamp)}</span>
+                              <Badge variant={conv.status === 'ai_responded' ? 'default' : conv.status === 'waiting_response' ? 'outline' : 'secondary'} className="text-[10px]">
+                                {conv.status === 'ai_responded' ? 'Replied' : conv.status === 'waiting_response' ? 'Waiting' : conv.status}
+                              </Badge>
+                              <span className="text-[10px] text-muted-foreground">{formatTimeAgo(conv.lastActivity || conv.timestamp)}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
