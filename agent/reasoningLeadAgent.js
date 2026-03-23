@@ -1619,7 +1619,7 @@ Call the appropriate function to continue the workflow.`;
             weaknesses: qualification.weaknesses
           };
           
-          await this.addToEmailQueue(leadData);
+          const queueResult = await this.addToEmailQueue(leadData);
           
           const reviewNote = requiresReview ? ' ⚠️ MARKED FOR REVIEW (low confidence)' : '';
           console.log(`📧 [QUEUE] Email added to queue for ${this.memory.currentCycle.currentLead?.name}${reviewNote}`);
@@ -1640,7 +1640,12 @@ Call the appropriate function to continue the workflow.`;
           // Notify CRM page this contact is done
           if (this.memory.currentCycle.currentLead?._fromCRM) {
             this._emitCRMEvent('crm_contact_complete', {
-              contactId: this.memory.currentCycle.currentLead.crmId || this.memory.currentCycle.currentLead.email
+              contactId: this.memory.currentCycle.currentLead.crmId || this.memory.currentCycle.currentLead.email,
+              contactName: this.memory.currentCycle.currentLead.name || this.memory.currentCycle.currentLead.first_name || this.memory.currentCycle.currentLead.email,
+              company: this.memory.currentCycle.currentLead.company || this.memory.currentCycle.currentLead.organization?.name || null,
+              email: this.memory.currentCycle.currentLead.email || null,
+              queueId: queueResult?.id || null,
+              crmSync: queueResult?.crmSync || null
             });
           }
           this.memory.currentCycle.currentLead = null;
@@ -2665,7 +2670,10 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
     // Notify CRM page which contact is now being worked on
     if (leadData?._fromCRM) {
       this._emitCRMEvent('crm_contact_scanning', {
-        contactId: leadData.crmId || leadData.email
+        contactId: leadData.crmId || leadData.email,
+        contactName: leadData.name || leadData.first_name || leadData.email,
+        company: leadData.company || leadData.organization?.name || null,
+        email: leadData.email || null
       });
     }
     
@@ -6726,6 +6734,14 @@ Target Positions:`;
         // Don't fail the queue addition if tracking fails
       }
 
+      let crmSyncSummary = {
+        status: 'skipped',
+        action: 'crm_skipped',
+        message: 'CRM sync skipped',
+        crmIntegration: null,
+        crmContactId: leadData.crmId || null
+      };
+
       // ==========================================
       // CRM SYNC - Automatically sync lead to CRM
       // ==========================================
@@ -6776,9 +6792,23 @@ Target Positions:`;
           
           if (syncResult.success) {
             const action = isAuditorContact ? 'report added to' : 'synced to';
+            crmSyncSummary = {
+              status: 'success',
+              action: isAuditorContact ? 'report_added' : 'contact_synced',
+              message: `${leadData.name || leadData.first_name} ${action} ${syncResult.crmIntegration}`,
+              crmIntegration: syncResult.crmIntegration || user.crmIntegration || null,
+              crmContactId: syncResult.crmContactId || leadData.crmId || null
+            };
             console.log(`[CRM SYNC] OK - ${leadData.name || leadData.first_name} ${action} ${syncResult.crmIntegration} (contactId: ${syncResult.crmContactId || 'n/a'})`);
             this.logOperation('🔗 CRM Sync', `${leadData.name || leadData.first_name} ${action} ${syncResult.crmIntegration} ✓`, 'completed', { phase: 'crm_sync_complete', crmContactId: syncResult.crmContactId, crmIntegration: syncResult.crmIntegration, contactName: leadData.name || leadData.first_name });
           } else {
+            crmSyncSummary = {
+              status: 'failed',
+              action: 'crm_failed',
+              message: syncResult.error || 'CRM sync failed',
+              crmIntegration: syncResult.crmIntegration || user.crmIntegration || null,
+              crmContactId: syncResult.crmContactId || leadData.crmId || null
+            };
             console.warn(`[CRM SYNC] Failed to sync: ${syncResult.error}`);
             this.logOperation('🔗 CRM Sync', `CRM sync failed for ${leadData.name || leadData.first_name} - ${syncResult.error}`, 'failed', { phase: 'crm_sync_failed', error: syncResult.error, contactName: leadData.name || leadData.first_name });
           }
@@ -6786,9 +6816,23 @@ Target Positions:`;
           const skipReason = !user ? 'user not found' : 
                             !user.crmConnected ? 'CRM not connected' : 
                             !user.crmAutoSync ? 'auto-sync disabled' : 'unknown';
+          crmSyncSummary = {
+            status: 'skipped',
+            action: 'crm_skipped',
+            message: `CRM sync skipped: ${skipReason}`,
+            crmIntegration: user?.crmIntegration || null,
+            crmContactId: leadData.crmId || null
+          };
           console.log(`[CRM SYNC] Skipped (${skipReason}) for ${leadData.name || leadData.first_name}`);
         }
       } catch (crmError) {
+        crmSyncSummary = {
+          status: 'failed',
+          action: 'crm_failed',
+          message: crmError.message || 'CRM sync error',
+          crmIntegration: null,
+          crmContactId: leadData.crmId || null
+        };
         console.error('❌ [CRM SYNC] Error syncing to CRM:', crmError.message);
         // Don't fail the email queue if CRM sync fails
       }
@@ -6800,7 +6844,10 @@ Target Positions:`;
         data: queueData
       });
       
-      return queueData.id;
+      return {
+        id: queueData.id,
+        crmSync: crmSyncSummary
+      };
     } catch (error) {
       console.error('❌ [EMAIL QUEUE] Error adding to queue:', error);
       console.error('❌ [EMAIL QUEUE FAILED] User:', this.userId, '| Agent:', this.agentId, '| Lead:', leadData.email, '| Error:', error.message);

@@ -30,6 +30,19 @@ interface Agent {
   personality?: { avatar?: string; type?: string }
 }
 
+interface AuditorResult {
+  contactId: string
+  contactName: string
+  company?: string | null
+  email?: string | null
+  crmStatus: "success" | "failed" | "skipped"
+  crmAction: string
+  crmMessage: string
+  crmIntegration?: string | null
+  crmContactId?: string | null
+  completedAt: string
+}
+
 export function CRMContent() {
   const { toast } = useToast()
 
@@ -48,6 +61,7 @@ export function CRMContent() {
   const [completedCount, setCompletedCount] = useState(0)
   const [totalQueued, setTotalQueued]       = useState(0)
   const [statusLine, setStatusLine]         = useState("")
+  const [auditorResults, setAuditorResults] = useState<AuditorResult[]>([])
   const [page, setPage]                     = useState(1)
   const [companyFilter, setCompanyFilter]   = useState("__all__")
   const [sourceFilter, setSourceFilter]     = useState("__all__")
@@ -59,9 +73,11 @@ export function CRMContent() {
 
   const esRef            = useRef<EventSource | null>(null)
   const contactsRef      = useRef<CRMContact[]>([])
+  const resultsRef       = useRef<AuditorResult[]>([])
   const totalRef         = useRef(0)
   const selectedAgentRef = useRef<string>("")
   useEffect(() => { contactsRef.current      = contacts      }, [contacts])
+  useEffect(() => { resultsRef.current       = auditorResults }, [auditorResults])
   useEffect(() => { totalRef.current         = totalQueued   }, [totalQueued])
   useEffect(() => { selectedAgentRef.current = selectedAgent }, [selectedAgent])
 
@@ -98,6 +114,7 @@ export function CRMContent() {
       setLaunched(true)
       setTotalQueued(state.totalQueued ?? 0)
       setCompletedCount(state.completedCount ?? 0)
+      setAuditorResults(state.results ?? [])
       if (state.agentId) setSelectedAgent(state.agentId)
       setContacts(state.pendingContacts ?? [])
       setStatusLine("Reconnected to running session…")
@@ -122,15 +139,28 @@ export function CRMContent() {
         if (data.type === "crm_contact_scanning") {
           setScanningId(data.contactId ?? null)
           const found = contactsRef.current.find(c => (c.crmId || c.email) === data.contactId)
-          if (found) {
-            const name = [found.firstName, found.lastName].filter(Boolean).join(" ") || found.email
-            setStatusLine(`Researching ${name} at ${found.company}…`)
-          }
+          const fallbackName = found ? [found.firstName, found.lastName].filter(Boolean).join(" ") || found.email : data.email || "contact"
+          const fallbackCompany = found?.company || data.company || "their company"
+          setStatusLine(`Researching ${data.contactName || fallbackName} at ${fallbackCompany}…`)
         }
         if (data.type === "crm_contact_complete") {
           const id = data.contactId
           if (!id) return
           const found = contactsRef.current.find(c => (c.crmId || c.email) === id)
+          const result: AuditorResult = {
+            contactId: id,
+            contactName: data.contactName || (found ? [found.firstName, found.lastName].filter(Boolean).join(" ") || found.email : data.email || "Contact"),
+            company: data.company || found?.company || null,
+            email: data.email || found?.email || null,
+            crmStatus: data.crmSync?.status === "failed" ? "failed" : data.crmSync?.status === "skipped" ? "skipped" : "success",
+            crmAction: data.crmSync?.action || "crm_skipped",
+            crmMessage: data.crmSync?.message || "Email queued",
+            crmIntegration: data.crmSync?.crmIntegration || null,
+            crmContactId: data.crmSync?.crmContactId || null,
+            completedAt: data.timestamp || new Date().toISOString(),
+          }
+          const nextResults = [result, ...resultsRef.current].slice(0, 12)
+          setAuditorResults(nextResults)
           setScanningId(prev => prev === id ? null : prev)
           setExitingIds(prev => new Set([...prev, id]))
           setTimeout(() => {
@@ -139,9 +169,16 @@ export function CRMContent() {
               setCompletedCount(n => {
                 const newCount = n + 1
                 const total    = totalRef.current
-                const name     = found ? [found.firstName, found.lastName].filter(Boolean).join(" ") || found.email : "contact"
-                setStatusLine(`Email built for ${name} ✓  (${newCount}/${total})`)
-                api.post("/api/crm/auditor-state", { completedCount: newCount, pendingContacts: next }).catch(() => {})
+                const name     = result.contactName || (found ? [found.firstName, found.lastName].filter(Boolean).join(" ") || found.email : "contact")
+                const resultLabel = result.crmStatus === "failed"
+                  ? "CRM update failed"
+                  : result.crmAction === "report_added"
+                    ? `report added${result.crmIntegration ? ` to ${result.crmIntegration}` : ""}`
+                    : result.crmAction === "contact_synced"
+                      ? `synced${result.crmIntegration ? ` to ${result.crmIntegration}` : " to CRM"}`
+                      : "queued"
+                setStatusLine(`${name}: ${resultLabel} ✓  (${newCount}/${total})`)
+                api.post("/api/crm/auditor-state", { completedCount: newCount, pendingContacts: next, results: nextResults }).catch(() => {})
                 if (next.length === 0) {
                   api.delete("/api/crm/auditor-state").catch(() => {})
                   // Auto-stop the agent — job is done
@@ -172,6 +209,7 @@ export function CRMContent() {
     setCompletedCount(0)
     setTotalQueued(0)
     setStatusLine("")
+    setAuditorResults([])
     setPage(1)
     setCompanyFilter("__all__")
     setSourceFilter("__all__")
@@ -259,17 +297,18 @@ export function CRMContent() {
       // 2. Persist auditor state
       await api.post("/api/crm/auditor-state", {
         launched: true, agentId: selectedAgent,
-        totalQueued: payload.length, completedCount: 0, pendingContacts: payload,
+        totalQueued: payload.length, completedCount: 0, pendingContacts: payload, results: [],
       })
       // 3. Start agent
       await api.post("/api/lead-agent/start-from-crm", { agentId: selectedAgent, contacts: payload })
       setLaunched(true)
       setTotalQueued(payload.length)
       setContacts(payload)
+      setAuditorResults([])
       setSelected(new Set())
       setStatusLine("Agent starting…")
       connectSSE()
-      toast({ title: `Auditor launched on ${payload.length} contacts`, description: "Watch them disappear as emails are built." })
+      toast({ title: `Auditor launched on ${payload.length} contacts`, description: "Live results will appear here as each CRM contact finishes." })
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? "Failed to launch agent"
       toast({ title: msg, variant: "destructive" })
@@ -304,6 +343,7 @@ export function CRMContent() {
     setCompletedCount(0)
     setTotalQueued(0)
     setStatusLine("")
+    setAuditorResults([])
     setScanningId(null)
     setExitingIds(new Set())
     esRef.current?.close()
@@ -544,6 +584,53 @@ export function CRMContent() {
       {/* one-line live status */}
       {launched && statusLine && (
         <p className="text-[11px] text-muted-foreground pl-0.5 truncate">{statusLine}</p>
+      )}
+
+      {auditorResults.length > 0 && (
+        <div className="rounded-xl border bg-card/70 p-3 space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h4 className="text-xs font-semibold">Recent Auditor Results</h4>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Each completed contact stays visible here instead of disappearing without context.</p>
+            </div>
+            <Badge variant="outline" className="text-[10px] shrink-0">{auditorResults.length} shown</Badge>
+          </div>
+          <div className="space-y-1.5">
+            {auditorResults.map(result => {
+              const badgeClass = result.crmStatus === "failed"
+                ? "border-rose-400/50 text-rose-600 dark:text-rose-400"
+                : result.crmStatus === "skipped"
+                  ? "border-amber-400/50 text-amber-600 dark:text-amber-400"
+                  : "border-emerald-400/50 text-emerald-600 dark:text-emerald-400"
+              const badgeLabel = result.crmStatus === "failed"
+                ? "CRM failed"
+                : result.crmAction === "report_added"
+                  ? "note added"
+                  : result.crmAction === "contact_synced"
+                    ? "synced"
+                    : "queued only"
+
+              return (
+                <div key={`${result.contactId}-${result.completedAt}`} className="flex items-start gap-3 rounded-lg border px-3 py-2.5 bg-background/80">
+                  <div className={`mt-0.5 w-2 h-2 rounded-full shrink-0 ${result.crmStatus === "failed" ? "bg-rose-500" : result.crmStatus === "skipped" ? "bg-amber-500" : "bg-emerald-500"}`} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-medium truncate">{result.contactName}</span>
+                      {result.company && <span className="text-[11px] text-muted-foreground truncate">{result.company}</span>}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 break-words">{result.crmMessage}</p>
+                    <div className="flex items-center gap-3 mt-1 flex-wrap text-[10px] text-muted-foreground">
+                      {result.email && <span>{result.email}</span>}
+                      {result.crmIntegration && <span>{result.crmIntegration}</span>}
+                      <span>{new Date(result.completedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className={`text-[9px] shrink-0 ${badgeClass}`}>{badgeLabel}</Badge>
+                </div>
+              )
+            })}
+          </div>
+        </div>
       )}
 
       {contacts.length === 0 && !loading && (
