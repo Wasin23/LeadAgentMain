@@ -267,13 +267,10 @@ router.post('/gmail-notification', async (req, res) => {
             continue;
           }
           
-          // Check if this is a reply to one of our tracked emails
-          const hasTrackingId = 
-            (fullMessage.inReplyTo && fullMessage.inReplyTo.includes('tracking-')) ||
-            (fullMessage.references && fullMessage.references.includes('tracking-'));
-          
-          if (hasTrackingId) {
-            console.log(`📧 [GMAIL PUBSUB] Found reply to tracked email from: ${fullMessage.from}`);
+          const trackingId = gmailManager.extractTrackingId(fullMessage);
+
+          if (trackingId) {
+            console.log(`📧 [GMAIL PUBSUB] Found reply to tracked email from: ${fullMessage.from} (${trackingId})`);
             
             // Process through webhook logic
             const { processGmailReply } = await import('./webhooks-reply.js');

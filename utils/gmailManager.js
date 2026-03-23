@@ -548,6 +548,7 @@ class GmailManager {
         messageId: headers['message-id'] || '',
         inReplyTo: headers['in-reply-to'] || '',
         references: headers['references'] || '',
+        xMeridianTrackingId: headers['x-meridian-tracking-id'] || '',
         date: headers['date'] || ''
       };
     } catch (error) {
@@ -797,6 +798,14 @@ class GmailManager {
   extractTrackingIdFromBounce(message) {
     // Updated regex to match the full tracking ID format with 4 parts
     const trackingPattern = /(tracking-[a-f0-9-]+_[^_@]+_\d+_[a-z0-9]+)/i;
+
+    if (message.xMeridianTrackingId && message.xMeridianTrackingId.includes('tracking-')) {
+      const match = message.xMeridianTrackingId.match(trackingPattern);
+      if (match) {
+        console.log(`🔍 [GMAIL] Found tracking ID in X-Meridian-Tracking-Id: ${match[1]}`);
+        return match[1];
+      }
+    }
     
     // Check In-Reply-To header
     if (message.inReplyTo && message.inReplyTo.includes('tracking-')) {
@@ -841,6 +850,10 @@ class GmailManager {
     console.log(`   Body preview: ${(message.body || '').substring(0, 200)}...`);
     
     return null;
+  }
+
+  extractTrackingId(message) {
+    return this.extractTrackingIdFromBounce(message);
   }
 
   /**

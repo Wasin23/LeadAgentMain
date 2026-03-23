@@ -1019,18 +1019,36 @@ export async function processGmailReply(userId, message) {
     
     // Extract tracking ID from message headers
     let trackingId = null;
+
+    if (message.xMeridianTrackingId && message.xMeridianTrackingId.includes('tracking-')) {
+      const match = message.xMeridianTrackingId.match(/(tracking-[a-f0-9-]+_[^_@]+_\d+_[a-z0-9]+)/i);
+      if (match) trackingId = match[1];
+      console.log(`[GMAIL REPLY] Found tracking ID in X-Meridian-Tracking-Id: ${trackingId}`);
+    }
     
     // Try to extract from In-Reply-To or References
-    if (message.inReplyTo && message.inReplyTo.includes('tracking-')) {
-      const match = message.inReplyTo.match(/tracking-([a-f0-9]{8}_[^_]+_\d+_[a-f0-9]+)/);
-      if (match) trackingId = `tracking-${match[1]}`;
+    if (!trackingId && message.inReplyTo && message.inReplyTo.includes('tracking-')) {
+      const match = message.inReplyTo.match(/(tracking-[a-f0-9-]+_[^_@]+_\d+_[a-z0-9]+)/i);
+      if (match) trackingId = match[1];
       console.log(`[GMAIL REPLY] Found tracking ID in In-Reply-To: ${trackingId}`);
     }
     
     if (!trackingId && message.references && message.references.includes('tracking-')) {
-      const match = message.references.match(/tracking-([a-f0-9]{8}_[^_]+_\d+_[a-f0-9]+)/);
-      if (match) trackingId = `tracking-${match[1]}`;
+      const match = message.references.match(/(tracking-[a-f0-9-]+_[^_@]+_\d+_[a-z0-9]+)/i);
+      if (match) trackingId = match[1];
       console.log(`[GMAIL REPLY] Found tracking ID in References: ${trackingId}`);
+    }
+
+    if (!trackingId && message.messageId && message.messageId.includes('tracking-')) {
+      const match = message.messageId.match(/(tracking-[a-f0-9-]+_[^_@]+_\d+_[a-z0-9]+)/i);
+      if (match) trackingId = match[1];
+      console.log(`[GMAIL REPLY] Found tracking ID in Message-ID: ${trackingId}`);
+    }
+
+    if (!trackingId && message.body && message.body.includes('tracking-')) {
+      const match = message.body.match(/(tracking-[a-f0-9-]+_[^_@]+_\d+_[a-z0-9]+)/i);
+      if (match) trackingId = match[1];
+      console.log(`[GMAIL REPLY] Found tracking ID in body: ${trackingId}`);
     }
     
     // If no tracking ID found, create one (new conversation)
