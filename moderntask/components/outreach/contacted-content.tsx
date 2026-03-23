@@ -73,6 +73,7 @@ interface ReplyMessage {
   subject?: string | null
   content: string
   from?: string | null
+  name?: string | null
 }
 
 interface ReplyConversation {
@@ -395,17 +396,17 @@ function ReplyDetailModal({ reply, onClose }: { reply: ReplyConversation; onClos
         </div>
 
         <div className="px-5 py-3 border-b border-border bg-muted/20 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1.5 text-xs text-muted-foreground">
-          <div><span className="font-medium text-foreground mr-1">Lead</span>{reply.leadEmail}</div>
-          <div><span className="font-medium text-foreground mr-1">Tracking</span><span className="font-mono text-[11px]">{reply.trackingId}</span></div>
-          <div><span className="font-medium text-foreground mr-1">Replies</span>{reply.replyCount}</div>
-          <div><span className="font-medium text-foreground mr-1">AI Replies</span>{reply.aiReplyCount}</div>
+          <div><span className="font-medium text-foreground mr-1">Email</span>{reply.leadEmail}</div>
+          <div><span className="font-medium text-foreground mr-1">Thread</span><span className="font-mono text-[11px]">{reply.trackingId}</span></div>
+          <div><span className="font-medium text-foreground mr-1">Lead replies</span>{reply.replyCount}</div>
+          <div><span className="font-medium text-foreground mr-1">AI responses</span>{reply.aiReplyCount}</div>
         </div>
 
         <div className="overflow-y-auto p-5 space-y-3 bg-muted/10">
           {reply.messages.map((message) => (
             <div key={message.id} className={cn('max-w-[88%] rounded-lg p-3 text-sm border', message.type === 'reply' ? 'mr-auto bg-card border-border' : 'ml-auto bg-primary/10 border-primary/20')}>
               <div className="flex items-center gap-2 mb-1 text-[11px] text-muted-foreground">
-                <span className="font-medium text-foreground">{message.type === 'reply' ? (reply.leadName || 'Lead') : message.type === 'manual' ? 'You' : message.type === 'ai_response' ? 'AI' : 'Agent'}</span>
+                <span className="font-medium text-foreground">{message.type === 'reply' ? (message.name || reply.leadName || 'Lead') : message.type === 'manual' ? 'You' : message.type === 'ai_response' ? 'AI' : 'Agent'}</span>
                 <span>· {timeAgo(message.timestamp)}</span>
               </div>
               <p className="whitespace-pre-wrap text-foreground">{message.content || message.subject || 'No content'}</p>

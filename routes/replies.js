@@ -29,23 +29,120 @@ function normalizeMessageContent(event) {
   ).trim();
 }
 
+function parseEmailContact(value) {
+  const raw = String(value || '').trim();
+  if (!raw) {
+    return { name: '', email: '' };
+  }
+
+  const angleMatch = raw.match(/^(.*?)\s*<([^>]+)>$/);
+  if (angleMatch) {
+    return {
+      name: angleMatch[1].replace(/^"|"$/g, '').trim(),
+      email: angleMatch[2].trim().toLowerCase()
+    };
+  }
+
+  if (raw.includes('@')) {
+    return { name: '', email: raw.toLowerCase() };
+  }
+
+  return { name: raw, email: '' };
+}
+
+function titleCaseWords(value) {
+  return value
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+}
+
+function normalizeLeadName(...candidates) {
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    const contact = parseEmailContact(candidate);
+    if (contact.name) return titleCaseWords(contact.name);
+    if (contact.email) {
+      const local = contact.email.split('@')[0].replace(/[._-]+/g, ' ').trim();
+      if (local) return titleCaseWords(local);
+    }
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return titleCaseWords(candidate.trim());
+    }
+  }
+
+  return 'Lead';
+}
+
+function normalizeLeadEmail(...candidates) {
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    const contact = parseEmailContact(candidate);
+    if (contact.email) return contact.email;
+    if (typeof candidate === 'string' && candidate.includes('@')) return candidate.trim().toLowerCase();
+  }
+
+  return 'Unknown';
+}
+
+function normalizeSubject(subject, trackingId = null) {
+  const value = String(subject || '').trim();
+  if (!value) return 'Email reply';
+
+  if (trackingId && value.toLowerCase() === `reply to ${trackingId}`.toLowerCase()) {
+    return 'Email reply';
+  }
+
+  return value.replace(/^(re|fwd):\s*/i, '').trim() || 'Email reply';
+}
+
 function stripQuotedText(content) {
   if (!content) return '';
 
-  return content
-    .split(/\r?\n/)
+  const lines = content.split(/\r?\n/);
+  const cleaned = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    if (
+      /^on\s.+wrote:$/i.test(trimmed) ||
+      /^from:\s/i.test(trimmed) ||
+      /^sent:\s/i.test(trimmed) ||
+      /^subject:\s/i.test(trimmed) ||
+      /^to:\s/i.test(trimmed) ||
+      /^cc:\s/i.test(trimmed) ||
+      /^stop emails$/i.test(trimmed)
+    ) {
+      break;
+    }
+
+    if (trimmed.startsWith('>')) {
+      continue;
+    }
+
+    if (/^https?:\/\//i.test(trimmed) && cleaned.length > 0) {
+      continue;
+    }
+
+    cleaned.push(line);
+  }
+
+  return cleaned
     .filter((line) => {
       const trimmed = line.trim();
       if (!trimmed) return true;
-      if (trimmed.startsWith('>')) return false;
-      if (/^on\s.+wrote:$/i.test(trimmed)) return false;
-      if (/^from:\s/i.test(trimmed)) return false;
-      if (/^sent:\s/i.test(trimmed)) return false;
-      if (/^subject:\s/i.test(trimmed)) return false;
       return true;
     })
     .join('\n')
     .trim();
+}
+
+function compactPreview(content, maxLength = 180) {
+  const text = stripQuotedText(content).replace(/\s+/g, ' ').trim();
+  if (!text) return '';
+  return text.length > maxLength ? `${text.slice(0, maxLength).trim()}...` : text;
 }
 
 function classifyReply(content) {
@@ -80,20 +177,90 @@ function buildMessage(event) {
   else if (event.eventType === 'manual') type = 'manual';
   else if (AGENT_REPLY_EVENT_TYPES.has(event.eventType)) type = 'ai_response';
 
+  const fromValue = event.from || event.recipientEmail || event.email || null;
+  const name = type === 'reply'
+    ? normalizeLeadName(event.leadName, fromValue)
+    : null;
+
   return {
     id: event.eventId,
     type,
     timestamp: event.timestamp,
-    subject: event.subject || null,
-    content: normalizeMessageContent(event),
-    from: event.recipientEmail || event.email || null,
+    subject: event.subject ? normalizeSubject(event.subject) : null,
+    content: type === 'reply' ? stripQuotedText(normalizeMessageContent(event)) : normalizeMessageContent(event),
+    from: fromValue,
+    name,
     rawEventType: event.eventType
   };
 }
 
+function areLikelySameLeadReply(primaryEvent, candidateEvent) {
+  const primaryFrom = normalizeLeadEmail(primaryEvent.recipientEmail, primaryEvent.email, primaryEvent.from);
+  const candidateFrom = normalizeLeadEmail(candidateEvent.recipientEmail, candidateEvent.email, candidateEvent.from);
+
+  if (primaryFrom !== candidateFrom) {
+    return false;
+  }
+
+  if (primaryEvent.messageId && candidateEvent.messageId && primaryEvent.messageId === candidateEvent.messageId) {
+    return true;
+  }
+
+  const primaryContent = compactPreview(normalizeMessageContent(primaryEvent), 220);
+  const candidateContent = compactPreview(normalizeMessageContent(candidateEvent), 220);
+  const timeDeltaMs = Math.abs(new Date(primaryEvent.timestamp).getTime() - new Date(candidateEvent.timestamp).getTime());
+
+  return primaryContent && candidateContent && primaryContent === candidateContent && timeDeltaMs <= 2 * 60 * 1000;
+}
+
+function collapseLeadReplyEvents(events) {
+  const collapsed = [];
+
+  for (const event of events) {
+    if (!LEAD_REPLY_EVENT_TYPES.has(event.eventType)) {
+      collapsed.push(event);
+      continue;
+    }
+
+    const existingIndex = collapsed.findIndex((existingEvent) =>
+      LEAD_REPLY_EVENT_TYPES.has(existingEvent.eventType) && areLikelySameLeadReply(existingEvent, event)
+    );
+
+    if (existingIndex === -1) {
+      collapsed.push(event);
+      continue;
+    }
+
+    const existingEvent = collapsed[existingIndex];
+    const preferredEvent = existingEvent.eventType === 'lead_message'
+      ? {
+          ...existingEvent,
+          recipientEmail: existingEvent.recipientEmail || event.recipientEmail,
+          email: existingEvent.email || event.email,
+          from: existingEvent.from || event.from,
+          messagePreview: existingEvent.messagePreview || event.messagePreview,
+          messageId: existingEvent.messageId || event.messageId
+        }
+      : {
+          ...event,
+          content: event.content || existingEvent.content,
+          messagePreview: event.messagePreview || existingEvent.messagePreview,
+          messageId: event.messageId || existingEvent.messageId,
+          recipientEmail: event.recipientEmail || existingEvent.recipientEmail,
+          email: event.email || existingEvent.email,
+          from: event.from || existingEvent.from
+        };
+
+    collapsed[existingIndex] = preferredEvent;
+  }
+
+  return collapsed.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+}
+
 function summarizeConversation(events) {
   const sorted = [...events].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-  const leadReplyEvents = sorted.filter((event) => LEAD_REPLY_EVENT_TYPES.has(event.eventType));
+  const canonicalEvents = collapseLeadReplyEvents(sorted);
+  const leadReplyEvents = canonicalEvents.filter((event) => LEAD_REPLY_EVENT_TYPES.has(event.eventType));
   const outboundEvents = sorted.filter((event) => OUTBOUND_EVENT_TYPES.has(event.eventType));
   const aiReplyEvents = sorted.filter((event) => AGENT_REPLY_EVENT_TYPES.has(event.eventType));
 
@@ -119,11 +286,11 @@ function summarizeConversation(events) {
     originalTrackingId: latestEvent?.trackingId || null,
     agentId: latestEvent?.agentId || null,
     agentName: latestEvent?.agentName || null,
-    from: latestLeadReply?.recipientEmail || latestLeadReply?.email || latestEvent?.recipientEmail || latestEvent?.email || 'Unknown',
-    leadEmail: latestLeadReply?.recipientEmail || latestLeadReply?.email || latestEvent?.recipientEmail || latestEvent?.email || 'Unknown',
-    leadName: latestLeadReply?.leadName || latestEvent?.leadName || 'Unknown',
+    from: normalizeLeadEmail(latestLeadReply?.recipientEmail, latestLeadReply?.email, latestLeadReply?.from, latestEvent?.recipientEmail, latestEvent?.email, latestEvent?.from),
+    leadEmail: normalizeLeadEmail(latestLeadReply?.recipientEmail, latestLeadReply?.email, latestLeadReply?.from, latestEvent?.recipientEmail, latestEvent?.email, latestEvent?.from),
+    leadName: normalizeLeadName(latestLeadReply?.leadName, latestLeadReply?.recipientEmail, latestLeadReply?.email, latestLeadReply?.from, latestEvent?.leadName, latestEvent?.recipientEmail, latestEvent?.email, latestEvent?.from),
     company: latestLeadReply?.company || latestEvent?.company || null,
-    subject: latestLeadReply?.subject || firstOutbound?.subject || latestEvent?.subject || `Reply to ${latestEvent?.trackingId || 'conversation'}`,
+    subject: normalizeSubject(latestLeadReply?.subject || firstOutbound?.subject || latestEvent?.subject, latestEvent?.trackingId),
     timestamp: latestLeadReply?.timestamp || latestEvent?.timestamp || null,
     firstReplyAt: firstLeadReply?.timestamp || null,
     lastReplyAt: latestLeadReply?.timestamp || null,
@@ -132,15 +299,15 @@ function summarizeConversation(events) {
     status,
     classification: classification.label,
     sentiment: classification.sentiment,
-    preview: latestLeadReply ? normalizeMessageContent(latestLeadReply).slice(0, 240) : '',
+    preview: latestLeadReply ? compactPreview(normalizeMessageContent(latestLeadReply), 140) : '',
     hasAIReply: aiReplyEvents.length > 0,
     hasLeadMessage: leadReplyEvents.length > 0,
     replyCount: leadReplyEvents.length,
     aiReplyCount: aiReplyEvents.length,
     references: latestEvent?.trackingId || null,
     inReplyTo: latestEvent?.trackingId || null,
-    events: sorted,
-    messages: sorted
+    events: canonicalEvents,
+    messages: canonicalEvents
       .filter((event) => OUTBOUND_EVENT_TYPES.has(event.eventType) || LEAD_REPLY_EVENT_TYPES.has(event.eventType) || AGENT_REPLY_EVENT_TYPES.has(event.eventType))
       .map(buildMessage)
   };
