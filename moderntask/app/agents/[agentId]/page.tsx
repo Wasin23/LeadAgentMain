@@ -6,7 +6,7 @@ import {
   ArrowLeft, Play, Square, RefreshCw, Settings2, Clock, User, Building2,
   Eye, CheckCircle2, Mail, AlertTriangle, X, Check, Search, Pencil,
   Pause, MessageSquare, Filter, Send, BarChart2, Zap, ChevronLeft,
-  ChevronRight, Trash2, Plus, RotateCcw
+  ChevronRight, Trash2, Plus, RotateCcw, ExternalLink
 } from 'lucide-react';
 import api from '@/lib/api';
 import { Sidebar } from '@/components/dashboard/sidebar';
@@ -177,6 +177,18 @@ export default function AgentDashboardPage({ params }: { params: Promise<{ agent
     setNotification({ message, type });
     setTimeout(() => setNotification(null), 3000);
   }, []);
+
+  const openConversationInReplies = useCallback((conversation: any) => {
+    const params = new URLSearchParams({
+      tab: 'replies',
+      trackingId: conversation.trackingId,
+      agentId
+    });
+
+    setSelectedConversation(null);
+    setShowOutreach(false);
+    router.push(`/outreach?${params.toString()}`);
+  }, [agentId, router]);
 
   // ─────────────────────────────────────────────────────
   // Data fetching
@@ -664,21 +676,34 @@ export default function AgentDashboardPage({ params }: { params: Promise<{ agent
                         <p className="text-sm">No conversations yet</p>
                       </div>
                     ) : filteredConversations.map(conv => (
-                      <button key={conv.trackingId} className="w-full text-left px-4 py-3 border-b border-border hover:bg-muted/50 transition-colors" onClick={() => setSelectedConversation(conv)}>
+                      <div key={conv.trackingId} className="px-4 py-3 border-b border-border hover:bg-muted/50 transition-colors">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
-                            <p className="font-medium text-sm text-foreground truncate">{conv.leadName}</p>
-                            <p className="text-xs text-muted-foreground truncate">{conv.leadEmail}</p>
-                            {conv.company && <p className="text-xs text-muted-foreground/70 truncate">{conv.company}</p>}
+                            <button className="w-full text-left" onClick={() => setSelectedConversation(conv)}>
+                              <p className="font-medium text-sm text-foreground truncate">{conv.leadName}</p>
+                              <p className="text-xs text-muted-foreground truncate">{conv.leadEmail}</p>
+                              {conv.company && <p className="text-xs text-muted-foreground/70 truncate">{conv.company}</p>}
+                            </button>
                           </div>
-                          <div className="flex flex-col items-end gap-1 shrink-0">
+                          <div className="flex items-start gap-2 shrink-0">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                              onClick={() => openConversationInReplies(conv)}
+                              title="Open in Contacted > Replies"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </Button>
+                            <div className="flex flex-col items-end gap-1">
                             <Badge variant={conv.status === 'ai_responded' ? 'default' : conv.status === 'waiting_response' ? 'outline' : 'secondary'} className="text-[10px]">
                               {conv.status === 'ai_responded' ? 'Replied' : conv.status === 'waiting_response' ? 'Waiting' : conv.status}
                             </Badge>
                             <span className="text-[10px] text-muted-foreground">{formatTimeAgo(conv.lastActivity || conv.timestamp)}</span>
                           </div>
                         </div>
-                      </button>
+                      </div>
                     ))}
                   </CardContent>
                 </Card>
@@ -801,7 +826,12 @@ export default function AgentDashboardPage({ params }: { params: Promise<{ agent
                       <h2 className="text-lg font-semibold text-foreground">{selectedConversation.leadName}</h2>
                       <p className="text-sm text-muted-foreground">{selectedConversation.leadEmail}{selectedConversation.company && ` · ${selectedConversation.company}`}</p>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => setSelectedConversation(null)}><X className="h-5 w-5" /></Button>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => openConversationInReplies(selectedConversation)}>
+                        <ExternalLink className="h-3.5 w-3.5 mr-1.5" />Open in Replies
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => setSelectedConversation(null)}><X className="h-5 w-5" /></Button>
+                    </div>
                   </div>
                   <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                     <div className={cn('w-2 h-2 rounded-full', aiResponseControl[selectedConversation.trackingId] === false ? 'bg-red-500 animate-pulse' : 'bg-green-500')} />

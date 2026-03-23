@@ -26,6 +26,7 @@ const staticItems: NavItem[] = [
     label: "Contacted",
     href: "/outreach",
     children: [
+      { icon: Circle, label: "Replies",    href: "/outreach?tab=replies" },
       { icon: Circle, label: "Follow-ups", href: "/outreach?tab=followups" },
       { icon: Circle, label: "Templates",  href: "/outreach?tab=templates" },
     ],

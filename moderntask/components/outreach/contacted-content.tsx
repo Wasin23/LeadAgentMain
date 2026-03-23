@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import api from '@/lib/api'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -66,6 +66,32 @@ interface AgentFull {
   }
 }
 
+interface ReplyMessage {
+  id: string
+  type: 'outbound' | 'reply' | 'ai_response' | 'manual' | 'system'
+  timestamp: string
+  subject?: string | null
+  content: string
+  from?: string | null
+}
+
+interface ReplyConversation {
+  trackingId: string
+  leadEmail: string
+  leadName: string
+  company?: string | null
+  subject: string
+  status: string
+  classification: string
+  sentiment: 'positive' | 'negative' | 'neutral'
+  preview: string
+  lastReplyAt?: string | null
+  lastActivityAt?: string | null
+  replyCount: number
+  aiReplyCount: number
+  messages: ReplyMessage[]
+}
+
 // ── helpers ───────────────────────────────────────────────────────────────────
 function timeAgo(ts?: string | null) {
   if (!ts) return '—'
@@ -82,6 +108,36 @@ function leadName(e: AnalyticsEmail) { return e.personInfo?.fullName || e.lead?.
 function leadCompany(e: AnalyticsEmail) { return e.personInfo?.company || e.lead?.company || e.company || '' }
 function sentDate(e: AnalyticsEmail) { return e.sentAt || e.timestamp || '' }
 function emailId(e: AnalyticsEmail) { return e.trackingId || e.id || '' }
+
+function replyClassText(value?: string | null) {
+  if (!value) return 'Neutral'
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function replyBadgeClasses(kind: 'classification' | 'status' | 'sentiment', value?: string | null) {
+  if (kind === 'sentiment') {
+    if (value === 'positive') return 'text-green-400 border-green-500/30 bg-green-500/10'
+    if (value === 'negative') return 'text-red-400 border-red-500/30 bg-red-500/10'
+    return 'text-slate-400 border-slate-500/30 bg-slate-500/10'
+  }
+
+  if (kind === 'classification') {
+    if (value === 'meeting_request') return 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10'
+    if (value === 'positive') return 'text-green-400 border-green-500/30 bg-green-500/10'
+    if (value === 'question') return 'text-blue-400 border-blue-500/30 bg-blue-500/10'
+    if (value === 'unsubscribe') return 'text-red-400 border-red-500/30 bg-red-500/10'
+    if (value === 'negative') return 'text-orange-400 border-orange-500/30 bg-orange-500/10'
+    if (value === 'out_of_office') return 'text-violet-400 border-violet-500/30 bg-violet-500/10'
+    return 'text-slate-400 border-slate-500/30 bg-slate-500/10'
+  }
+
+  if (value === 'meeting_requested') return 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10'
+  if (value === 'ai_responded') return 'text-purple-400 border-purple-500/30 bg-purple-500/10'
+  if (value === 'manual_replied') return 'text-amber-400 border-amber-500/30 bg-amber-500/10'
+  if (value === 'unsubscribed') return 'text-red-400 border-red-500/30 bg-red-500/10'
+  if (value === 'not_interested') return 'text-orange-400 border-orange-500/30 bg-orange-500/10'
+  return 'text-slate-400 border-slate-500/30 bg-slate-500/10'
+}
 
 // ── sent email row ─────────────────────────────────────────────────────────────
 function SentRow({ email, onEditFollowUp }: { email: AnalyticsEmail; onEditFollowUp: (e: AnalyticsEmail) => void }) {
@@ -281,7 +337,86 @@ function FollowUpRow({ email, onEditFollowUp, onCancelFollowUp }: { email: Analy
   )
 }
 
-// ── edit follow-up modal ──────────────────────────────────────────────────────
+function ReplyRow({ reply, highlighted, onOpen }: { reply: ReplyConversation; highlighted: boolean; onOpen: (reply: ReplyConversation) => void }) {
+  return (
+    <button
+      type="button"
+      className={cn(
+        'w-full py-3 px-1 border-l-2 pl-3 transition-colors text-left',
+        highlighted ? 'border-l-primary bg-primary/10' : 'border-l-transparent hover:bg-muted/30'
+      )}
+      onClick={() => onOpen(reply)}
+    >
+      <div className="flex items-start gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
+            <span className="font-medium text-sm text-foreground">{reply.leadName || reply.leadEmail}</span>
+            {reply.company && <span className="text-xs text-muted-foreground flex items-center gap-0.5"><Building2 className="w-2.5 h-2.5" />{reply.company}</span>}
+          </div>
+          <p className="text-sm text-foreground truncate">{reply.subject || '(no subject)'}</p>
+          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{reply.preview || 'Reply received'}</p>
+          <div className="flex flex-wrap items-center gap-1.5 mt-2 text-[11px]">
+            <span className="text-muted-foreground flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{timeAgo(reply.lastActivityAt || reply.lastReplyAt)}</span>
+            <Badge variant="outline" className={cn('text-[9px] px-1.5 h-4', replyBadgeClasses('classification', reply.classification))}>{replyClassText(reply.classification)}</Badge>
+            <Badge variant="outline" className={cn('text-[9px] px-1.5 h-4', replyBadgeClasses('status', reply.status))}>{replyClassText(reply.status)}</Badge>
+            <Badge variant="outline" className={cn('text-[9px] px-1.5 h-4', replyBadgeClasses('sentiment', reply.sentiment))}>{replyClassText(reply.sentiment)}</Badge>
+          </div>
+        </div>
+        <div className="shrink-0 flex items-center gap-2 text-muted-foreground text-[11px] pt-0.5">
+          <span className="flex items-center gap-0.5"><MessageSquare className="w-3 h-3 text-green-400" />{reply.replyCount}</span>
+          {reply.aiReplyCount > 0 && <span className="flex items-center gap-0.5"><Bot className="w-3 h-3 text-purple-400" />{reply.aiReplyCount}</span>}
+        </div>
+      </div>
+    </button>
+  )
+}
+
+function ReplyDetailModal({ reply, onClose }: { reply: ReplyConversation; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <Card className="max-w-4xl w-full max-h-[88vh] overflow-hidden p-0" onClick={e => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-4 p-5 border-b border-border bg-background">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-1.5">
+              <h3 className="text-base font-semibold text-foreground">{reply.leadName || reply.leadEmail}</h3>
+              {reply.company && <span className="text-xs text-muted-foreground flex items-center gap-1"><Building2 className="w-3 h-3" />{reply.company}</span>}
+            </div>
+            <p className="text-sm text-foreground truncate">{reply.subject || '(no subject)'}</p>
+            <div className="flex flex-wrap items-center gap-1.5 mt-2 text-[11px]">
+              <Badge variant="outline" className={cn('text-[10px] px-1.5 h-5', replyBadgeClasses('classification', reply.classification))}>{replyClassText(reply.classification)}</Badge>
+              <Badge variant="outline" className={cn('text-[10px] px-1.5 h-5', replyBadgeClasses('status', reply.status))}>{replyClassText(reply.status)}</Badge>
+              <Badge variant="outline" className={cn('text-[10px] px-1.5 h-5', replyBadgeClasses('sentiment', reply.sentiment))}>{replyClassText(reply.sentiment)}</Badge>
+              <span className="text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" />{timeAgo(reply.lastActivityAt || reply.lastReplyAt)}</span>
+            </div>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0">
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+
+        <div className="px-5 py-3 border-b border-border bg-muted/20 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1.5 text-xs text-muted-foreground">
+          <div><span className="font-medium text-foreground mr-1">Lead</span>{reply.leadEmail}</div>
+          <div><span className="font-medium text-foreground mr-1">Tracking</span><span className="font-mono text-[11px]">{reply.trackingId}</span></div>
+          <div><span className="font-medium text-foreground mr-1">Replies</span>{reply.replyCount}</div>
+          <div><span className="font-medium text-foreground mr-1">AI Replies</span>{reply.aiReplyCount}</div>
+        </div>
+
+        <div className="overflow-y-auto p-5 space-y-3 bg-muted/10">
+          {reply.messages.map((message) => (
+            <div key={message.id} className={cn('max-w-[88%] rounded-lg p-3 text-sm border', message.type === 'reply' ? 'mr-auto bg-card border-border' : 'ml-auto bg-primary/10 border-primary/20')}>
+              <div className="flex items-center gap-2 mb-1 text-[11px] text-muted-foreground">
+                <span className="font-medium text-foreground">{message.type === 'reply' ? (reply.leadName || 'Lead') : message.type === 'manual' ? 'You' : message.type === 'ai_response' ? 'AI' : 'Agent'}</span>
+                <span>· {timeAgo(message.timestamp)}</span>
+              </div>
+              <p className="whitespace-pre-wrap text-foreground">{message.content || message.subject || 'No content'}</p>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  )
+}
+
 function EditFollowUpModal({ email, onClose, onSaved }: { email: AnalyticsEmail; onClose: () => void; onSaved: () => void }) {
   const [date, setDate] = useState(email.followUpDate ? new Date(email.followUpDate).toISOString().slice(0, 16) : new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 16))
   const [saving, setSaving] = useState(false)
@@ -401,23 +536,35 @@ function Pagination({ page, total, pageSize = PAGE_SIZE, onChange }: {
 }
 
 // ── main export ───────────────────────────────────────────────────────────────
-type Tab = 'sent' | 'followups' | 'templates'
+type Tab = 'sent' | 'replies' | 'followups' | 'templates'
+
+function isValidTab(value: string | null): value is Tab {
+  return value === 'sent' || value === 'replies' || value === 'followups' || value === 'templates'
+}
 
 export function ContactedContent() {
+  const router = useRouter()
+  const pathname = usePathname()
   const searchParams = useSearchParams()
-  const urlTab = (searchParams.get('tab') ?? 'sent') as Tab
+  const tabParam = searchParams.get('tab')
+  const urlTab: Tab = isValidTab(tabParam) ? tabParam : 'sent'
   const [tab, setTab] = useState<Tab>(urlTab)
+  const highlightedTrackingId = searchParams.get('trackingId')
+  const agentIdFromUrl = searchParams.get('agentId')
 
   // Sync tab whenever the URL search param changes (sidebar clicks)
   useEffect(() => { setTab(urlTab) }, [urlTab])
   const [emails, setEmails]               = useState<AnalyticsEmail[]>([])
+  const [replies, setReplies]             = useState<ReplyConversation[]>([])
   const [agents, setAgents]               = useState<AgentFull[]>([])
   const [selectedAgent, setSelectedAgent] = useState<AgentFull | null>(null)
   const [agentFilter, setAgentFilter]     = useState('all')
   const [search, setSearch]               = useState('')
   const [loading, setLoading]             = useState(true)
   const [sentPage, setSentPage]           = useState(1)
+  const [repliesPage, setRepliesPage]     = useState(1)
   const [followUpsPage, setFollowUpsPage] = useState(1)
+  const [selectedReply, setSelectedReply] = useState<ReplyConversation | null>(null)
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedIds, setSelectedIds]     = useState<Set<string>>(new Set())
   const [editFollowUpEmail, setEditFollowUpEmail] = useState<AnalyticsEmail | null>(null)
@@ -425,15 +572,28 @@ export function ContactedContent() {
   const [showMassFollowUpModal, setShowMassFollowUpModal] = useState(false)
   const [saved, setSaved]                 = useState(false)
 
+  useEffect(() => {
+    if (agentIdFromUrl) {
+      setAgentFilter(agentIdFromUrl)
+      return
+    }
+
+    setAgentFilter('all')
+  }, [agentIdFromUrl])
+
   const load = useCallback(async () => {
     setLoading(true)
     try {
       const params = agentFilter !== 'all' ? { agentId: agentFilter } : {}
-      const r = await api.get('/api/analytics/emails', { params })
+      const [emailRes, repliesRes] = await Promise.all([
+        api.get('/api/analytics/emails', { params }),
+        api.get('/api/replies', { params: { ...params, timeRange: '30d' } }).catch(() => null)
+      ])
       // api.get returns { data: { data: [...] } } when analytics wraps it, or { data: [...] }
-      const raw = r.data?.data ?? r.data ?? []
+      const raw = emailRes.data?.data ?? emailRes.data ?? []
       const list: AnalyticsEmail[] = Array.isArray(raw) ? raw : []
       setEmails([...list].sort((a, b) => new Date(sentDate(b)).getTime() - new Date(sentDate(a)).getTime()))
+      setReplies(repliesRes?.data?.data?.replies || [])
     } catch { /* silent */ }
     setLoading(false)
   }, [agentFilter])
@@ -477,13 +637,46 @@ export function ContactedContent() {
   }
 
   // Reset to page 1 when search or tab changes
-  useEffect(() => { setSentPage(1); setFollowUpsPage(1) }, [search, tab])
+  useEffect(() => { setSentPage(1); setRepliesPage(1); setFollowUpsPage(1) }, [search, tab])
 
   const displayedSent      = applySearch(sent)
+  const displayedReplies   = useMemo(() => {
+    if (!search.trim()) return replies
+    const q = search.toLowerCase()
+    return replies.filter((reply) =>
+      (reply.leadName || '').toLowerCase().includes(q) ||
+      (reply.leadEmail || '').toLowerCase().includes(q) ||
+      (reply.company || '').toLowerCase().includes(q) ||
+      (reply.subject || '').toLowerCase().includes(q) ||
+      (reply.preview || '').toLowerCase().includes(q) ||
+      (reply.classification || '').toLowerCase().includes(q)
+    )
+  }, [replies, search])
+
+    useEffect(() => {
+      if (!highlightedTrackingId) return
+      const highlightedReply = replies.find((reply) => reply.trackingId === highlightedTrackingId)
+      if (highlightedReply) setSelectedReply(highlightedReply)
+    }, [highlightedTrackingId, replies])
+
+    useEffect(() => {
+      if (!selectedReply) return
+      const updatedReply = replies.find((reply) => reply.trackingId === selectedReply.trackingId)
+      if (updatedReply) setSelectedReply(updatedReply)
+    }, [replies, selectedReply])
   const displayedFollowUps = applySearch(followUps)
   const pagedSent      = displayedSent.slice((sentPage - 1) * PAGE_SIZE, sentPage * PAGE_SIZE)
+  const pagedReplies   = displayedReplies.slice((repliesPage - 1) * PAGE_SIZE, repliesPage * PAGE_SIZE)
   const pagedFollowUps = displayedFollowUps.slice((followUpsPage - 1) * PAGE_SIZE, followUpsPage * PAGE_SIZE)
   const agentTemplates     = selectedAgent?.settings?.followUpTemplates?.templates ?? []
+
+  const changeTab = (nextTab: Tab) => {
+    setTab(nextTab)
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('tab', nextTab)
+    if (nextTab !== 'replies') params.delete('trackingId')
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+  }
 
   const eligibleForMassFollowUp = useMemo(() => {
     if (!selectedAgent) return []
@@ -509,6 +702,7 @@ export function ContactedContent() {
 
   const TABS: { id: Tab; label: string; count?: number }[] = [
     { id: 'sent',      label: 'Sent Emails',  count: sent.length },
+    { id: 'replies',   label: 'Replies',      count: replies.length },
     { id: 'followups', label: 'Follow-ups',   count: followUps.length },
     { id: 'templates', label: 'Templates' },
   ]
@@ -542,7 +736,7 @@ export function ContactedContent() {
       {/* tabs */}
       <div className="flex items-center gap-1 border-b border-border">
         {TABS.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)}
+          <button key={t.id} onClick={() => changeTab(t.id)}
             className={cn('px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px',
               tab === t.id ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground')}>
             {t.label}{t.count !== undefined ? ` (${t.count})` : ''}
@@ -599,6 +793,37 @@ export function ContactedContent() {
                 ))}
               </div>
               <Pagination page={sentPage} total={displayedSent.length} onChange={p => { setSentPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
+            </>
+          )}
+        </Card>
+      )}
+
+      {/* ── REPLIES ─────────────────────────────────────────────────────── */}
+      {tab === 'replies' && (
+        <Card className="p-5">
+          <div className="relative mb-4">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
+            <input className="w-full h-8 rounded-md border border-input bg-background pl-7 pr-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+              placeholder="Search replies by lead, company, subject, classification..." value={search} onChange={e => setSearch(e.target.value)} />
+            {search && <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="w-3 h-3" /></button>}
+          </div>
+
+          {loading ? (
+            <div className="space-y-3">{[...Array(4)].map((_, i) => <div key={i} className="animate-pulse space-y-1"><div className="h-3 bg-muted rounded w-1/3" /><div className="h-3 bg-muted rounded w-1/2" /><div className="h-2 bg-muted rounded w-1/4" /></div>)}</div>
+          ) : displayedReplies.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-14 gap-3 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center"><MessageSquare className="w-5 h-5 text-muted-foreground" /></div>
+              <div>
+                <p className="text-sm font-medium">{search ? 'No results' : 'No replies yet'}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{search ? `No replies match "${search}"` : 'Inbound lead replies will appear here with classifications.'}</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="divide-y divide-border">
+                {pagedReplies.map((reply) => <ReplyRow key={reply.trackingId} reply={reply} highlighted={highlightedTrackingId === reply.trackingId} onOpen={setSelectedReply} />)}
+              </div>
+              <Pagination page={repliesPage} total={displayedReplies.length} onChange={p => { setRepliesPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
             </>
           )}
         </Card>
@@ -740,6 +965,7 @@ export function ContactedContent() {
         <MassFollowUpModal agent={selectedAgent} templates={agentTemplates} eligibleEmails={eligibleForMassFollowUp}
           onClose={() => setShowMassFollowUpModal(false)} onSent={load} />
       )}
+      {selectedReply && <ReplyDetailModal reply={selectedReply} onClose={() => setSelectedReply(null)} />}
     </div>
   )
 }

@@ -325,6 +325,7 @@ const smartLimiter = (req, res, next) => {
     '/c/',           // Click tracking  
     '/api/unsubscribe', // Unsubscribe links
     '/api/gmail-pubsub', // Google Gmail Pub/Sub push notifications
+    '/api/auth/outlook/webhook', // Microsoft Graph change notifications
     '/api/tracking',    // Desktop tracking
     '/webhooks',        // Email webhooks
     '/api/webhooks',    // Email response webhooks
@@ -500,6 +501,7 @@ const publicEmailEndpoints = [
   '/api/unsubscribe', // Unsubscribe links
   '/api/email-queue/counts', // Queue counts (may be accessed by email clients)
   '/api/gmail-pubsub', // Google Gmail Pub/Sub push notifications
+  '/api/auth/outlook/webhook', // Microsoft Graph change notifications
   '/webhooks',     // Mailgun/email webhooks
   '/api/webhooks', // Email response webhooks
   '/api/tracking', // Desktop tracking
@@ -762,6 +764,15 @@ const server = app.listen(PORT, async () => {
     console.log('✅ [EMAIL] Gmail Pub/Sub watch renewal service started');
   } catch (error) {
     console.error('⚠️ [EMAIL] Failed to start Gmail watch renewer:', error.message);
+  }
+
+  try {
+    const { OutlookSubscriptionRenewer } = await import('./utils/outlookSubscriptionRenewer.js');
+    const outlookSubscriptionRenewer = new OutlookSubscriptionRenewer();
+    outlookSubscriptionRenewer.start();
+    console.log('✅ [EMAIL] Outlook reply subscription renewal service started');
+  } catch (error) {
+    console.error('⚠️ [EMAIL] Failed to start Outlook subscription renewer:', error.message);
   }
   
   try {
