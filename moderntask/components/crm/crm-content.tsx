@@ -56,7 +56,7 @@ export function CRMContent() {
   const [launching, setLaunching]           = useState(false)
   const [launched, setLaunched]             = useState(false)
   const [stopping, setStopping]             = useState(false)
-  const [scanningId, setScanningId]         = useState<string | null>(null)
+  const [activeAuditorIds, setActiveAuditorIds] = useState<Set<string>>(new Set())
   const [exitingIds, setExitingIds]         = useState<Set<string>>(new Set())
   const [completedCount, setCompletedCount] = useState(0)
   const [totalQueued, setTotalQueued]       = useState(0)
@@ -74,10 +74,12 @@ export function CRMContent() {
   const esRef            = useRef<EventSource | null>(null)
   const contactsRef      = useRef<CRMContact[]>([])
   const resultsRef       = useRef<AuditorResult[]>([])
+  const activeIdsRef     = useRef<Set<string>>(new Set())
   const totalRef         = useRef(0)
   const selectedAgentRef = useRef<string>("")
   useEffect(() => { contactsRef.current      = contacts      }, [contacts])
   useEffect(() => { resultsRef.current       = auditorResults }, [auditorResults])
+  useEffect(() => { activeIdsRef.current     = activeAuditorIds }, [activeAuditorIds])
   useEffect(() => { totalRef.current         = totalQueued   }, [totalQueued])
   useEffect(() => { selectedAgentRef.current = selectedAgent }, [selectedAgent])
 
@@ -111,12 +113,20 @@ export function CRMContent() {
       const res   = await api.get("/api/crm/auditor-state")
       const state = res.data?.state
       if (!state?.launched) return
+      if (state.agentId) {
+        const status = await api.get(`/api/lead-agent/status?agentId=${encodeURIComponent(state.agentId)}`)
+        if (!status.data?.isActive) {
+          await api.delete("/api/crm/auditor-state").catch(() => {})
+          return
+        }
+      }
       setLaunched(true)
       setTotalQueued(state.totalQueued ?? 0)
       setCompletedCount(state.completedCount ?? 0)
       setAuditorResults(state.results ?? [])
       if (state.agentId) setSelectedAgent(state.agentId)
       setContacts(state.pendingContacts ?? [])
+      setActiveAuditorIds(new Set(state.activeContactIds ?? []))
       setStatusLine("Reconnected to running session…")
       connectSSE()
     } catch { /* silent */ }
@@ -137,11 +147,20 @@ export function CRMContent() {
           setTotalQueued(data.contacts?.length ?? 0)
         }
         if (data.type === "crm_contact_scanning") {
-          setScanningId(data.contactId ?? null)
           const found = contactsRef.current.find(c => (c.crmId || c.email) === data.contactId)
           const fallbackName = found ? [found.firstName, found.lastName].filter(Boolean).join(" ") || found.email : data.email || "contact"
           const fallbackCompany = found?.company || data.company || "their company"
-          setStatusLine(`Researching ${data.contactName || fallbackName} at ${fallbackCompany}…`)
+          if (data.contactId) {
+            setActiveAuditorIds(prev => {
+              const next = new Set(prev)
+              next.add(data.contactId)
+              const activeCount = next.size
+              setStatusLine(activeCount > 1
+                ? `Auditing ${activeCount} contacts in parallel…`
+                : `Researching ${data.contactName || fallbackName} at ${fallbackCompany}…`)
+              return next
+            })
+          }
         }
         if (data.type === "crm_contact_complete") {
           const id = data.contactId
@@ -161,7 +180,11 @@ export function CRMContent() {
           }
           const nextResults = [result, ...resultsRef.current].slice(0, 12)
           setAuditorResults(nextResults)
-          setScanningId(prev => prev === id ? null : prev)
+          setActiveAuditorIds(prev => {
+            const next = new Set(prev)
+            next.delete(id)
+            return next
+          })
           setExitingIds(prev => new Set([...prev, id]))
           setTimeout(() => {
             setContacts(prev => {
@@ -169,6 +192,9 @@ export function CRMContent() {
               setCompletedCount(n => {
                 const newCount = n + 1
                 const total    = totalRef.current
+                const remainingActive = activeIdsRef.current.has(id)
+                  ? Math.max(0, activeIdsRef.current.size - 1)
+                  : Math.max(0, activeIdsRef.current.size)
                 const name     = result.contactName || (found ? [found.firstName, found.lastName].filter(Boolean).join(" ") || found.email : "contact")
                 const resultLabel = result.crmStatus === "failed"
                   ? "CRM update failed"
@@ -177,15 +203,15 @@ export function CRMContent() {
                     : result.crmAction === "contact_synced"
                       ? `synced${result.crmIntegration ? ` to ${result.crmIntegration}` : " to CRM"}`
                       : "queued"
-                setStatusLine(`${name}: ${resultLabel} ✓  (${newCount}/${total})`)
-                api.post("/api/crm/auditor-state", { completedCount: newCount, pendingContacts: next, results: nextResults }).catch(() => {})
+                setStatusLine(remainingActive > 0
+                  ? `${name}: ${resultLabel} ✓  (${newCount}/${total}) · ${remainingActive} still in progress`
+                  : `${name}: ${resultLabel} ✓  (${newCount}/${total})`)
                 if (next.length === 0) {
-                  api.delete("/api/crm/auditor-state").catch(() => {})
                   // Auto-stop the agent — job is done
                   api.post("/api/lead-agent/stop", { agentId: selectedAgentRef.current }).catch(() => {})
                   esRef.current?.close()
                   esRef.current = null
-                  setScanningId(null)
+                  setActiveAuditorIds(new Set())
                 }
                 return newCount
               })
@@ -204,7 +230,7 @@ export function CRMContent() {
     setLoading(true)
     setSelected(new Set())
     setLaunched(false)
-    setScanningId(null)
+    setActiveAuditorIds(new Set())
     setExitingIds(new Set())
     setCompletedCount(0)
     setTotalQueued(0)
@@ -325,7 +351,7 @@ export function CRMContent() {
       esRef.current?.close()
       esRef.current = null
       setLaunched(false)
-      setScanningId(null)
+      setActiveAuditorIds(new Set())
       setStatusLine("")
       setExitingIds(new Set())
       toast({ title: "Auditor stopped" })
@@ -344,7 +370,7 @@ export function CRMContent() {
     setTotalQueued(0)
     setStatusLine("")
     setAuditorResults([])
-    setScanningId(null)
+    setActiveAuditorIds(new Set())
     setExitingIds(new Set())
     esRef.current?.close()
     esRef.current = null
@@ -576,7 +602,7 @@ export function CRMContent() {
             <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
               <div className="h-full bg-emerald-500 transition-all duration-500 rounded-full" style={{ width: `${Math.min(100, (completedCount / totalQueued) * 100)}%` }} />
             </div>
-            <span className="text-xs text-muted-foreground shrink-0">{completedCount} / {totalQueued} built</span>
+            <span className="text-xs text-muted-foreground shrink-0">{completedCount} / {totalQueued} completed</span>
           </div>
         )}
       </div>
@@ -643,7 +669,7 @@ export function CRMContent() {
               {completedCount > 0 ? (
                 <>
                   <p className="font-medium text-sm text-emerald-600 dark:text-emerald-400">All done!</p>
-                  <p className="text-xs text-muted-foreground mt-1">{completedCount} email{completedCount !== 1 ? "s" : ""} built and queued. Check the <span className="font-medium">Email Queue</span>.</p>
+                  <p className="text-xs text-muted-foreground mt-1">{completedCount} contact{completedCount !== 1 ? "s" : ""} finished. Check the <span className="font-medium">Email Queue</span>.</p>
                   <Button size="sm" variant="outline" className="mt-3 gap-1.5 h-7 text-xs" onClick={resetAuditor}>
                     <RefreshCw className="w-3 h-3" />Start New Batch
                   </Button>
@@ -701,6 +727,11 @@ export function CRMContent() {
                 <Loader2 className="w-2.5 h-2.5 animate-spin" />
                 Auditor Mode
               </Badge>
+              {activeAuditorIds.size > 0 && (
+                <Badge variant="outline" className="text-[10px] border-blue-300/70 text-blue-600 dark:text-blue-400">
+                  {activeAuditorIds.size} active
+                </Badge>
+              )}
               <span>{contacts.length} remaining</span>
               <button
                 onClick={stopAuditor}
@@ -716,12 +747,12 @@ export function CRMContent() {
             const id         = c.crmId || c.email
             const globalIdx  = (page - 1) * PAGE_SIZE + i
             const isSelected = selected.has(id)
-            const isScanning = scanningId === id
+            const isScanning = activeAuditorIds.has(id)
             const isExiting  = exitingIds.has(id)
             return (
               <div key={id} className={`transition-all duration-400 ${isExiting ? "opacity-0 -translate-x-4 scale-95" : "opacity-100 translate-x-0 scale-100"}`}>
                 <Card
-                  className={`cursor-pointer transition-colors ${isScanning ? "border-blue-400 bg-blue-50/40 dark:bg-blue-900/20 shadow-sm shadow-blue-200 dark:shadow-blue-900/30" : isSelected ? "border-primary/50 bg-primary/5" : "hover:bg-muted/50"}`}
+                  className={`cursor-pointer transition-colors ${isScanning ? "border-blue-400 bg-blue-50/50 dark:bg-blue-900/20 shadow-sm shadow-blue-200 dark:shadow-blue-900/30 ring-1 ring-blue-300/70" : isSelected ? "border-primary/50 bg-primary/5" : "hover:bg-muted/50"}`}
                   onClick={() => !launched && toggleContact(id)}
                 >
                   <CardContent className="px-3 py-2.5 flex items-center gap-3">
@@ -780,7 +811,7 @@ export function CRMContent() {
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-800 px-4 py-3 flex items-center gap-3">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
           <div>
-            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">All done — {completedCount} email{completedCount !== 1 ? "s" : ""} queued</p>
+            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">All done — {completedCount} contact{completedCount !== 1 ? "s" : ""} completed</p>
             <p className="text-xs text-emerald-600 dark:text-emerald-500">Head to <strong>Email Queue</strong> to review and approve before sending.</p>
           </div>
           <Button size="sm" variant="outline" className="ml-auto shrink-0 gap-1.5 h-7 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-900/30" onClick={resetAuditor}>

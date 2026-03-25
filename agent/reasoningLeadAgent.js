@@ -90,6 +90,7 @@ class ReasoningLeadAgent extends EventEmitter {
     this.customInterval = null;
     this.cycleTimer = null;
     this.crmContactList = null; // CRM mode: contacts to process instead of Apollo search
+    this.auditorStateUpdateChain = Promise.resolve();
     
     // Load saved settings from DynamoDB
     this.loadSavedSettings();
@@ -809,6 +810,99 @@ IMPORTANT RULES:
         ...data
       }))
       .catch(() => {});
+  }
+
+  _getCRMContactId(lead) {
+    return lead?.crmId || lead?.email || null;
+  }
+
+  _getCRMContactName(lead) {
+    return lead?.name || lead?.first_name || [lead?.firstName, lead?.lastName].filter(Boolean).join(' ') || lead?.email || 'Contact';
+  }
+
+  _getCRMCompanyName(lead) {
+    return lead?.company || lead?.organization?.name || null;
+  }
+
+  _queueAuditorStateUpdate(mutator) {
+    this.auditorStateUpdateChain = this.auditorStateUpdateChain
+      .then(async () => {
+        const currentState = await this.awsManager.getAuditorState(this.userId);
+        const nextPatch = await mutator(currentState || {});
+        if (!nextPatch) return;
+        await this.awsManager.saveAuditorState(this.userId, nextPatch);
+      })
+      .catch(error => {
+        console.error('❌ [AUDITOR STATE] Failed to update auditor state:', error.message);
+      });
+
+    return this.auditorStateUpdateChain;
+  }
+
+  async _markAuditorContactActive(lead) {
+    if (!lead?._fromCRM) return;
+
+    const contactId = this._getCRMContactId(lead);
+    if (!contactId) return;
+
+    await this._queueAuditorStateUpdate(async (currentState) => {
+      const activeContactIds = new Set(currentState?.activeContactIds || []);
+      activeContactIds.add(contactId);
+
+      return {
+        launched: true,
+        agentId: this.agentId,
+        activeContactIds: [...activeContactIds]
+      };
+    });
+  }
+
+  async _markAuditorContactComplete(lead, { crmSync = null, queueId = null, completedAt = null } = {}) {
+    if (!lead?._fromCRM) return;
+
+    const contactId = this._getCRMContactId(lead);
+    if (!contactId) return;
+
+    const result = {
+      contactId,
+      contactName: this._getCRMContactName(lead),
+      company: this._getCRMCompanyName(lead),
+      email: lead?.email || null,
+      crmStatus: crmSync?.status === 'failed' ? 'failed' : crmSync?.status === 'skipped' ? 'skipped' : 'success',
+      crmAction: crmSync?.action || 'queued',
+      crmMessage: crmSync?.message || 'Email queued',
+      crmIntegration: crmSync?.crmIntegration || null,
+      crmContactId: crmSync?.crmContactId || null,
+      completedAt: completedAt || new Date().toISOString()
+    };
+
+    await this._queueAuditorStateUpdate(async (currentState) => {
+      const pendingContacts = (currentState?.pendingContacts || []).filter(contact => (contact.crmId || contact.email) !== contactId);
+      const activeContactIds = new Set(currentState?.activeContactIds || []);
+      activeContactIds.delete(contactId);
+      const existingResults = (currentState?.results || []).filter(entry => entry?.contactId !== contactId);
+      const totalQueued = currentState?.totalQueued || pendingContacts.length + (currentState?.completedCount || 0) + 1;
+      const completedCount = Math.max(0, totalQueued - pendingContacts.length);
+
+      return {
+        launched: pendingContacts.length > 0,
+        agentId: this.agentId,
+        totalQueued,
+        completedCount,
+        pendingContacts,
+        results: [result, ...existingResults].slice(0, 25),
+        activeContactIds: [...activeContactIds]
+      };
+    });
+
+    this._emitCRMEvent('crm_contact_complete', {
+      contactId,
+      contactName: result.contactName,
+      company: result.company,
+      email: result.email,
+      queueId,
+      crmSync
+    });
   }
 
   getOperationLogs() {
@@ -1666,7 +1760,7 @@ Call the appropriate function to continue the workflow.`;
             }).catch(err => {
               console.error('⚠️ [SSE] Failed to broadcast new lead activity:', err.message);
             });
-          } else if (this.memory.currentCycle.leadsProcessed < this.memory.currentCycle.targetLeads) {
+          } else if (!this.isCrmMode && this.memory.currentCycle.leadsProcessed < this.memory.currentCycle.targetLeads) {
             // Need more leads - search again
             this.memory.currentCycle.processingPhase = 'search';
           } else {
@@ -1725,7 +1819,7 @@ Call the appropriate function to continue the workflow.`;
             }).catch(err => {
               console.error('⚠️ [SSE] Failed to broadcast new lead activity:', err.message);
             });
-          } else if (this.memory.currentCycle.leadsProcessed < this.memory.currentCycle.targetLeads) {
+          } else if (!this.isCrmMode && this.memory.currentCycle.leadsProcessed < this.memory.currentCycle.targetLeads) {
             // Need more leads - search again
             this.memory.currentCycle.processingPhase = 'search';
           } else {
@@ -6868,8 +6962,19 @@ Target Positions:`;
   async processLeadPipeline(lead) {
     const leadName    = lead.name || `${lead.first_name ?? ''} ${lead.last_name ?? ''}`.trim();
     const companyName = lead.company || lead.organization?.name || 'Unknown';
+    const isCRMLead = !!lead?._fromCRM;
 
     try {
+      if (isCRMLead) {
+        this._emitCRMEvent('crm_contact_scanning', {
+          contactId: this._getCRMContactId(lead),
+          contactName: this._getCRMContactName(lead),
+          company: this._getCRMCompanyName(lead),
+          email: lead.email || null
+        });
+        await this._markAuditorContactActive(lead);
+      }
+
       // 1 ─ Research
       this.broadcastAgentActivity({
         agentId:   this.agentId,
@@ -6886,6 +6991,9 @@ Target Positions:`;
 
       if (!research?.success) {
         this.logOperation('⏭️ Research Failed', `Skipping ${leadName} — research returned no data`, 'warning');
+        await this._markAuditorContactComplete(lead, {
+          crmSync: { status: 'failed', action: 'research_failed', message: 'Research returned no usable data' }
+        });
         return { success: false, leadName, company: companyName };
       }
 
@@ -6897,11 +7005,17 @@ Target Positions:`;
 
       if (!qualification?.success) {
         this.logOperation('⏭️ Qualification Failed', `Skipping ${leadName} — qualification returned no decision`, 'warning');
+        await this._markAuditorContactComplete(lead, {
+          crmSync: { status: 'failed', action: 'qualification_failed', message: 'Qualification returned no decision' }
+        });
         return { success: false, leadName, company: companyName };
       }
 
       if (qualification.tier === 'REJECT' || qualification.qualified === false) {
         this.logOperation('⏭️ Lead Rejected', `Skipping ${leadName} at ${companyName} — qualification tier ${qualification.tier || 'REJECT'}`, 'info');
+        await this._markAuditorContactComplete(lead, {
+          crmSync: { status: 'skipped', action: 'qualification_rejected', message: `Lead did not meet qualification criteria (${qualification.tier || 'REJECT'})` }
+        });
         return { success: false, leadName, company: companyName, rejected: true };
       }
 
@@ -6932,6 +7046,9 @@ Target Positions:`;
               agentId:       this.agentId
             });
           } catch { /* non-fatal */ }
+          await this._markAuditorContactComplete(lead, {
+            crmSync: { status: 'failed', action: 'email_unlock_failed', message: emailUnlock?.error || 'No valid email found' }
+          });
           return { success: false, leadName, company: companyName };
         }
 
@@ -6942,6 +7059,9 @@ Target Positions:`;
       // 3 ─ Build personalized email
       if (!this.memory.emailSettings) {
         this.logOperation('⚠️ No Email Settings', `Email settings not loaded — skipping ${leadName}`, 'warning');
+        await this._markAuditorContactComplete(lead, {
+          crmSync: { status: 'failed', action: 'email_settings_missing', message: 'Email settings were not loaded' }
+        });
         return { success: false, leadName, company: companyName };
       }
 
@@ -6954,6 +7074,9 @@ Target Positions:`;
 
       if (!personalizedEmail?.success) {
         this.logOperation('⏭️ Email Build Failed', `Skipping ${leadName} — could not generate email`, 'warning');
+        await this._markAuditorContactComplete(lead, {
+          crmSync: { status: 'failed', action: 'email_build_failed', message: 'Could not generate a personalized email' }
+        });
         return { success: false, leadName, company: companyName };
       }
 
@@ -6974,7 +7097,7 @@ Target Positions:`;
       await this.addLeadToDatabase(completeLead);
       // Nullify shared qualification so addToEmailQueue doesn't pick up a stale value from another worker
       this.memory.currentQualification = null;
-      await this.addToEmailQueue(completeLead);
+      const queueResult = await this.addToEmailQueue(completeLead);
 
       // Update duplicate tracking (safe in JS single-threaded event loop)
       const lcCompany = companyName.toLowerCase();
@@ -6991,17 +7114,25 @@ Target Positions:`;
         { leadName, company: companyName, email: emailAddress }
       );
 
+      await this._markAuditorContactComplete(lead, {
+        queueId: queueResult?.id || null,
+        crmSync: queueResult?.crmSync || { status: 'success', action: 'queued', message: 'Email queued' }
+      });
+
       return { success: true, leadName, company: companyName };
     } catch (err) {
       this.logOperation('❌ Pipeline Error', `${leadName}: ${err.message}`, 'error');
+      await this._markAuditorContactComplete(lead, {
+        crmSync: { status: 'failed', action: 'pipeline_error', message: err.message || 'Unexpected pipeline error' }
+      });
       return { success: false, leadName, company: companyName, error: err.message };
     }
   }
 
   /**
-   * Drain the current lead queue using `concurrencyLevel` parallel workers.
-   * Pulls all leads (including `currentLead`) into a local array, then processes
-   * them in batches of `f`, fully replacing the sequential LLM-driven path.
+  * Drain the current lead queue using `concurrencyLevel` parallel workers.
+  * Pulls all leads (including `currentLead`) into a local array, then keeps
+  * up to `f` leads in flight until the queue is exhausted.
    * @param {number} concurrencyLevel  1–10, clamped internally
    */
   async drainQueueConcurrently(concurrencyLevel) {
@@ -7028,17 +7159,21 @@ Target Positions:`;
       'info'
     );
 
-    // Chunk into batches of f and run each batch concurrently
-    for (let i = 0; i < allLeads.length; i += f) {
-      if (!this.isRunning) break;
-      const batch = allLeads.slice(i, i + f);
-      await Promise.allSettled(batch.map(lead => this.processLeadPipeline(lead)));
-    }
+    const workerCount = Math.min(f, allLeads.length);
+    const workers = Array.from({ length: workerCount }, async () => {
+      while (this.isRunning && allLeads.length > 0) {
+        const nextLead = allLeads.shift();
+        if (!nextLead) break;
+        await this.processLeadPipeline(nextLead);
+      }
+    });
+
+    await Promise.allSettled(workers);
 
     // Check if we still need more leads to hit the target
     const processed = this.memory.currentCycle.leadsProcessed;
     const target = this.memory.currentCycle.targetLeads;
-    if (this.isRunning && processed < target) {
+    if (this.isRunning && !this.isCrmMode && processed < target) {
       console.log(`⚡ [CONCURRENCY] ${processed}/${target} leads done — searching for ${target - processed} more`);
       this.memory.currentCycle.processingPhase = 'search';
       this.memory.currentCycle.cycleComplete   = false;
@@ -7168,6 +7303,15 @@ Target Positions:`;
     if (!crmContacts || crmContacts.length === 0) {
       return { success: false, message: 'No contacts provided', isActive: false };
     }
+    await this.awsManager.saveAuditorState(this.userId, {
+      launched: true,
+      agentId: this.agentId,
+      totalQueued: crmContacts.length,
+      completedCount: 0,
+      pendingContacts: crmContacts,
+      results: [],
+      activeContactIds: []
+    });
     this.crmContactList = crmContacts; // picked up by executeReasoningCycle
     this.isCrmMode = true;             // marks agent as reserved for auditor mode
     return await this.start(minutes, userId);
