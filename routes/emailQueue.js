@@ -102,7 +102,10 @@ router.get('/counts', rateLimitCounts, async (req, res) => {
     if (agentId === 'all' || !agentId) {
       // Single counter item read — 1 DynamoDB read regardless of email volume
       const counts = await awsQueue.getCountsFromCounters(req.user.userId);
-      return res.json(counts);
+      return res.json({
+        ...counts,
+        sent: (counts.sent || 0) + (counts.replied || 0)
+      });
     }
     
     // For specific agent, get all counts in parallel
@@ -128,10 +131,11 @@ router.get('/counts', rateLimitCounts, async (req, res) => {
       }))
     ]);
     
+    const repliedCount = repliedResponse.Count || 0;
     res.json({
       queued: queuedResponse.Count || 0,
-      sent: sentResponse.Count || 0,
-      replied: repliedResponse.Count || 0
+      sent: (sentResponse.Count || 0) + repliedCount,
+      replied: repliedCount
     });
   } catch (error) {
     console.error('[EMAIL QUEUE API] Error getting counts:', error);
@@ -178,32 +182,55 @@ router.get('/sent/count', async (req, res) => {
     const awsQueue = getAWSEmailQueue();
     
     if (agentId === 'all' || !agentId) {
-      // Count all sent for user via GSI
-      const countResponse = await awsQueue.dynamodb.send(new (await import('@aws-sdk/lib-dynamodb')).QueryCommand({
-        TableName: awsQueue.tableName,
-        IndexName: awsQueue.gsiName,
-        KeyConditionExpression: 'GSIPK = :gsipk',
-        ExpressionAttributeValues: {
-          ':gsipk': `${req.user.userId}#SENT`
-        },
-        Select: 'COUNT'
-      }));
-      return res.json({ count: countResponse.Count || 0 });
+      const QueryCommand = (await import('@aws-sdk/lib-dynamodb')).QueryCommand;
+      const [sentCountResponse, repliedCountResponse] = await Promise.all([
+        awsQueue.dynamodb.send(new QueryCommand({
+          TableName: awsQueue.tableName,
+          IndexName: awsQueue.gsiName,
+          KeyConditionExpression: 'GSIPK = :gsipk',
+          ExpressionAttributeValues: {
+            ':gsipk': `${req.user.userId}#SENT`
+          },
+          Select: 'COUNT'
+        })),
+        awsQueue.dynamodb.send(new QueryCommand({
+          TableName: awsQueue.tableName,
+          IndexName: awsQueue.gsiName,
+          KeyConditionExpression: 'GSIPK = :gsipk',
+          ExpressionAttributeValues: {
+            ':gsipk': `${req.user.userId}#REPLIED`
+          },
+          Select: 'COUNT'
+        }))
+      ]);
+      return res.json({ count: (sentCountResponse.Count || 0) + (repliedCountResponse.Count || 0) });
     }
-    
+
     // For specific agent, count directly
     const pk = `${req.user.userId}#${agentId}`;
-    const countResponse = await awsQueue.dynamodb.send(new (await import('@aws-sdk/lib-dynamodb')).QueryCommand({
-      TableName: awsQueue.tableName,
-      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
-      ExpressionAttributeValues: {
-        ':pk': pk,
-        ':status': 'SENT#'
-      },
-      Select: 'COUNT'
-    }));
-    
-    res.json({ count: countResponse.Count || 0 });
+    const QueryCommand = (await import('@aws-sdk/lib-dynamodb')).QueryCommand;
+    const [sentCountResponse, repliedCountResponse] = await Promise.all([
+      awsQueue.dynamodb.send(new QueryCommand({
+        TableName: awsQueue.tableName,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
+        ExpressionAttributeValues: {
+          ':pk': pk,
+          ':status': 'SENT#'
+        },
+        Select: 'COUNT'
+      })),
+      awsQueue.dynamodb.send(new QueryCommand({
+        TableName: awsQueue.tableName,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
+        ExpressionAttributeValues: {
+          ':pk': pk,
+          ':status': 'REPLIED#'
+        },
+        Select: 'COUNT'
+      }))
+    ]);
+
+    res.json({ count: (sentCountResponse.Count || 0) + (repliedCountResponse.Count || 0) });
   } catch (error) {
     console.error('[EMAIL QUEUE API] Error getting sent count:', error);
     res.status(500).json({ error: 'Failed to get sent count' });
@@ -807,18 +834,41 @@ router.get('/sent', async (req, res) => {
     const agentId = req.query.agentId;
     const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
     const awsQueue = getAWSEmailQueue();
+
+    const mergeVisibleSent = (sentEmails = [], repliedEmails = []) => {
+      const byId = new Map();
+
+      for (const email of [...sentEmails, ...repliedEmails]) {
+        if (!email?.id) continue;
+        byId.set(email.id, email);
+      }
+
+      return [...byId.values()].sort((a, b) => {
+        const aTime = new Date(a.repliedAt || a.sentAt || a.updatedAt || a.createdAt || 0).getTime();
+        const bTime = new Date(b.repliedAt || b.sentAt || b.updatedAt || b.createdAt || 0).getTime();
+        return bTime - aTime;
+      });
+    };
     
     // Getting sent emails - silent
     
     // If agentId is 'all', fetch from all agents using AWS
     if (agentId === 'all') {
-      const emails = await awsQueue.getAllSentEmailsForUser(req.user.userId);
+      const [sentEmails, repliedEmails] = await Promise.all([
+        awsQueue.getAllSentEmailsForUser(req.user.userId),
+        awsQueue.getAllRepliedEmailsForUser(req.user.userId)
+      ]);
+      const emails = mergeVisibleSent(sentEmails, repliedEmails);
       // Found sent emails - silent
       return res.json(emails);
     }
     
     // For specific agent, use AWS method (includes orphaned emails from deleted agents)
-    const emails = await awsQueue.getSentEmails(req.user.userId, agentId);
+    const [sentEmails, repliedEmails] = await Promise.all([
+      awsQueue.getSentEmails(req.user.userId, agentId),
+      awsQueue.getRepliedEmails(req.user.userId, agentId)
+    ]);
+    const emails = mergeVisibleSent(sentEmails, repliedEmails);
     // Found sent emails - silent
     res.json(emails);
   } catch (error) {

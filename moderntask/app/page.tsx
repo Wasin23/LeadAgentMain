@@ -432,7 +432,7 @@ export default function LandingPage() {
                 highlight: false,
                 cta: "Start Free",
                 features: [
-                  "1,000 free credits",
+                  "250 free credits",
                   "Gmail or Outlook",
                   "AI lead research",
                   "Personalized email writing",
@@ -538,7 +538,7 @@ export default function LandingPage() {
       {/* Final CTA */}
       <section className="px-6 sm:px-10 py-16 bg-muted/20 border-t border-border">
         <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4 tracking-tight">Start with 1,000 free credits.</h2>
+          <h2 className="text-3xl sm:text-4xl font-bold mb-4 tracking-tight">Start with 250 free credits.</h2>
           <p className="text-muted-foreground mb-8">
             No card required. Connect your inbox, set your ICP, and watch the first batch of outreach go out — usually within the hour.
           </p>

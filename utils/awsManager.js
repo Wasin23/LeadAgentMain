@@ -58,12 +58,12 @@ class AWSManager {
     this.plans = {
       'free-trial': {
         name: 'Free Trial',
-        initialCredits: 1000,
-        maxCredits: 1000,
+        initialCredits: 250,
+        maxCredits: 250,
         canPurchaseMore: false,
         maxAgents: 1,
         maxConcurrency: 5,
-        description: 'Try Meridian with 1,000 free credits'
+        description: 'Try Meridian with 250 free credits'
       },
       'starter': {
         name: 'Starter Plan',
@@ -110,6 +110,10 @@ class AWSManager {
       maxAgents: planConfig.maxAgents || 1,
       maxConcurrency: planConfig.maxConcurrency || 1,
     };
+  }
+
+  isTrialBlockedUser(user) {
+    return user?.plan === 'free-trial' && user?.trialEligible === false;
   }
 
   // =====================
@@ -191,8 +195,14 @@ class AWSManager {
       
       const planConfig = this.plans[user.plan];
       if (planConfig) {
-        user.trialCreditsLimit = Math.max(user.trialCreditsLimit || 0, planConfig.initialCredits);
-        user.maxCredits = planConfig.maxCredits;
+        const currentTrialLimit = Number(user.trialCreditsLimit ?? 0);
+        if (this.isTrialBlockedUser(user)) {
+          user.trialCreditsLimit = 0;
+          user.maxCredits = 0;
+        } else {
+          user.trialCreditsLimit = Math.max(currentTrialLimit, planConfig.initialCredits);
+          user.maxCredits = planConfig.maxCredits;
+        }
         user.canPurchaseMore = planConfig.canPurchaseMore;
         user.maxAgents = planConfig.maxAgents || 1;
         user.maxConcurrency = planConfig.maxConcurrency || 1;
@@ -258,6 +268,42 @@ class AWSManager {
       return result.Items[0];
     } catch (error) {
       console.error('❌ [AWS] Error getting user by email:', error);
+      throw error;
+    }
+  }
+
+  async findTrialFingerprintMatch(signupIpHash = null, signupDeviceHash = null) {
+    try {
+      const clauses = [];
+      const expressionAttributeValues = {
+        ':true': true,
+        ':zero': 0
+      };
+
+      if (signupIpHash) {
+        clauses.push('signupIpHash = :signupIpHash');
+        expressionAttributeValues[':signupIpHash'] = signupIpHash;
+      }
+
+      if (signupDeviceHash) {
+        clauses.push('signupDeviceHash = :signupDeviceHash');
+        expressionAttributeValues[':signupDeviceHash'] = signupDeviceHash;
+      }
+
+      if (clauses.length === 0) {
+        return null;
+      }
+
+      const command = new ScanCommand({
+        TableName: this.tables.users,
+        FilterExpression: '((trialGranted = :true) OR trialCreditsLimit > :zero) AND (' + clauses.join(' OR ') + ')',
+        ExpressionAttributeValues: expressionAttributeValues
+      });
+
+      const result = await this.dynamodb.send(command);
+      return result.Items?.[0] || null;
+    } catch (error) {
+      console.error('❌ [AWS] Error finding trial fingerprint match:', error);
       throw error;
     }
   }
@@ -1588,9 +1634,9 @@ class AWSManager {
             }
           } else {
             // Legacy trial credits system
-            const currentCreditsUsed = user.trialCreditsUsed || 0;
+            const currentCreditsUsed = user.trialCreditsUsed ?? 0;
             const newCreditsUsed = currentCreditsUsed + creditsToDeduct;
-            const creditsLimit = user.trialCreditsLimit || this.plans[user.plan || 'free-trial'].initialCredits;
+            const creditsLimit = user.trialCreditsLimit ?? this.plans[user.plan || 'free-trial'].initialCredits;
             
             await this.updateUser(userId, {
               trialCreditsUsed: newCreditsUsed
@@ -3454,7 +3500,9 @@ class AWSManager {
         throw new Error(`${planConfig.name} does not allow credit purchases. Please upgrade your plan.`);
       }
 
-      const currentLimit = Math.max(user.trialCreditsLimit || 0, planConfig.initialCredits);
+      const currentLimit = this.isTrialBlockedUser(user)
+        ? 0
+        : Math.max(Number(user.trialCreditsLimit ?? 0), planConfig.initialCredits);
       const newLimit = currentLimit + creditAmount;
 
       // Check against max credits for plan
@@ -3510,8 +3558,10 @@ class AWSManager {
       }
 
       const planConfig = this.getPlanConfig(user.plan || 'free-trial');
-      const creditsUsed = user.trialCreditsUsed || 0;
-      const creditsLimit = Math.max(user.trialCreditsLimit || 0, planConfig.initialCredits);
+      const creditsUsed = user.trialCreditsUsed ?? 0;
+      const creditsLimit = this.isTrialBlockedUser(user)
+        ? 0
+        : Math.max(Number(user.trialCreditsLimit ?? 0), planConfig.initialCredits);
       const remainingCredits = creditsLimit - creditsUsed;
 
       return {

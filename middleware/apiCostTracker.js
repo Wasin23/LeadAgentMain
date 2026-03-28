@@ -33,8 +33,8 @@ export async function trackApiUsage(userId, apiType, quantity = 1) {
       throw new Error('User not found');
     }
 
-    const currentCreditsUsed = user.trialCreditsUsed || 0;
-    const creditsLimit = user.trialCreditsLimit || 1000;
+    const currentCreditsUsed = user.trialCreditsUsed ?? 0;
+    const creditsLimit = user.trialCreditsLimit ?? 250;
     const newCreditsUsed = currentCreditsUsed + cost;
     const percentageUsed = (newCreditsUsed / creditsLimit) * 100;
 
@@ -130,8 +130,8 @@ export async function checkTrialCredits(userId, apiType, quantity = 1) {
       };
     }
 
-    const currentCreditsUsed = user.trialCreditsUsed || 0;
-    const creditsLimit = user.trialCreditsLimit || 1000;
+    const currentCreditsUsed = user.trialCreditsUsed ?? 0;
+    const creditsLimit = user.trialCreditsLimit ?? 250;
     const estimatedCost = (API_COSTS[apiType] || 0.001) * quantity;
     const wouldExceedLimit = (currentCreditsUsed + estimatedCost) > creditsLimit;
 
@@ -175,12 +175,12 @@ export async function getTrialCreditStatus(userId) {
     }
 
     // MIGRATION: If user doesn't have trial credit fields, add them
-    // Also upgrade old trial users to the current 1,000-credit trial.
-    if (user.trialCreditsUsed === undefined || user.trialCreditsLimit === undefined || user.paymentMethodAdded === undefined || user.trialCreditsLimit === 25 || user.trialCreditsLimit === 500) {
+    // Also normalize older trial users to the current 250-credit trial.
+    if (user.trialEligible !== false && (user.trialCreditsUsed === undefined || user.trialCreditsLimit === undefined || user.paymentMethodAdded === undefined || user.trialCreditsLimit === 25 || user.trialCreditsLimit === 500 || user.trialCreditsLimit === 1000)) {
       console.log('⚠️ [TRIAL] User missing trial fields or has old 25-credit limit, migrating...');
       await awsManager.updateUser(userId, {
-        trialCreditsUsed: user.trialCreditsUsed || 0,
-        trialCreditsLimit: 1000,
+        trialCreditsUsed: user.trialCreditsUsed ?? 0,
+        trialCreditsLimit: 250,
         paymentMethodAdded: user.paymentMethodAdded || false,
         stripeCustomerId: user.stripeCustomerId || null
       });
@@ -190,8 +190,8 @@ export async function getTrialCreditStatus(userId) {
       Object.assign(user, updatedUser);
     }
 
-    const creditsUsed = user.trialCreditsUsed || 0;
-    const creditsLimit = user.trialCreditsLimit || 1000;
+    const creditsUsed = user.trialCreditsUsed ?? 0;
+    const creditsLimit = user.trialCreditsLimit ?? 250;
     const creditsRemaining = Math.max(0, creditsLimit - creditsUsed);
     const percentageUsed = (creditsUsed / creditsLimit) * 100;
 

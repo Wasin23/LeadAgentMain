@@ -353,7 +353,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
   const addJob = (t: string) => { if (!settings.jobTitles.includes(t)) { setSettings(s => ({ ...s, jobTitles: [...s.jobTitles, t] })); setJobSearch('') } }
 
   const plans = [
-    { id: 'free-trial', name: 'Free Trial', price: 0, credits: 1000, maxAgents: 1, maxConcurrency: 5, description: 'Perfect for trying out Meridian', features: ['1,000 free credits', '1 agent included', 'Up to 5x concurrency for testing', 'No credit card required'] },
+    { id: 'free-trial', name: 'Free Trial', price: 0, credits: 250, maxAgents: 1, maxConcurrency: 5, description: 'Perfect for trying out Meridian', features: ['250 free credits', '1 agent included', 'Up to 5x concurrency for testing', 'No credit card required'] },
     { id: 'starter', name: 'Starter', price: 500, credits: 10000, maxAgents: 5, maxConcurrency: 5, description: 'Great for solo entrepreneurs', features: ['10,000 credits', 'Up to 5 agents', 'Up to 5x concurrency', 'All core features unlocked'] },
     { id: 'professional', name: 'Professional', price: 1000, credits: 25000, maxAgents: 10, maxConcurrency: 10, description: 'Perfect for growing teams', features: ['25,000 credits', 'Up to 10 agents', 'Up to 10x concurrency', 'Best fit for active outreach teams'], popular: true },
     { id: 'enterprise', name: 'Enterprise', price: 2500, credits: 70000, maxAgents: 30, maxConcurrency: 30, description: 'For high-volume operations', features: ['70,000 credits', 'Up to 30 agents', 'Up to 30x concurrency', 'Best for multi-agent teams'] },
@@ -1190,7 +1190,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
               {selectedPlan === 'free-trial' ? (
                 <div className="bg-green-50 border-2 border-green-200 rounded-xl p-5">
                   <h3 className="font-bold text-green-900 text-lg mb-2">✓ Free Trial Ready!</h3>
-                  <p className="text-sm text-green-800 mb-3">Start with 1,000 free credits. No credit card required.</p>
+                  <p className="text-sm text-green-800 mb-3">Start with 250 free credits. No credit card required.</p>
                   <ul className="space-y-1 text-sm text-green-800">
                     {['No credit card required', '1 agent included', 'Up to 5x concurrency for testing', 'Upgrade anytime'].map((f, i) => <li key={i}>✓ {f}</li>)}
                   </ul>

@@ -42,6 +42,30 @@ const normalizeUsernameBase = (value) => {
   return sanitized.length >= 3 ? sanitized : 'user';
 };
 
+const hashSignupSignal = (value) => {
+  if (!value) return null;
+  return crypto.createHash('sha256').update(String(value).trim().toLowerCase()).digest('hex');
+};
+
+const getRequestIp = (req) => {
+  const forwarded = req.get('X-Forwarded-For') || '';
+  const firstForwardedIp = forwarded.split(',').map(part => part.trim()).find(Boolean);
+  const rawIp = firstForwardedIp || req.ip || req.connection?.remoteAddress || '';
+  return rawIp.replace(/^::ffff:/, '');
+};
+
+const getRequestDeviceHash = (req) => {
+  const fingerprint = [
+    req.get('User-Agent') || '',
+    req.get('Accept-Language') || '',
+    req.get('Sec-CH-UA') || '',
+    req.get('Sec-CH-UA-Platform') || '',
+    req.get('Sec-CH-UA-Mobile') || ''
+  ].join('|');
+
+  return hashSignupSignal(fingerprint);
+};
+
 // Helper function to generate personality-themed email response prompts
 function getEmailResponsePromptForPersonality(personality) {
   // If personality has an emailPrompt field, use it directly
@@ -124,7 +148,10 @@ router.get('/google/callback', async (req, res) => {
       for (let attempt = 0; attempt < 5; attempt += 1) {
         const candidate = buildUsernameCandidate(base, attempt);
         try {
-          user = await registerUser(candidate, email, password);
+          user = await registerUser(candidate, email, password, {
+            signupIpHash: hashSignupSignal(getRequestIp(req)),
+            signupDeviceHash: getRequestDeviceHash(req)
+          });
           break;
         } catch (registerError) {
           if (attempt === 4) {
@@ -181,7 +208,10 @@ router.post('/register', async (req, res) => {
     }
     
     console.log('[AUTH] Calling registerUser...');
-    const user = await registerUser(username, email, password);
+    const user = await registerUser(username, email, password, {
+      signupIpHash: hashSignupSignal(getRequestIp(req)),
+      signupDeviceHash: getRequestDeviceHash(req)
+    });
     console.log(`[AUTH] ✅ New user registered: ${username} (${email})`);
     
     // Generate JWT token
@@ -192,7 +222,9 @@ router.post('/register', async (req, res) => {
       success: true, 
       message: 'User registered successfully',
       token: token,
-      user: { userId: user.userId, username: user.username, email: user.email }
+      user: { userId: user.userId, username: user.username, email: user.email },
+      trialEligible: user.trialEligible !== false,
+      trialCreditsLimit: user.trialCreditsLimit
     });
   } catch (error) {
     console.error('[AUTH] ❌ Registration error:', error.message);

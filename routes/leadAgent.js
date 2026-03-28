@@ -1073,7 +1073,7 @@ router.get('/api-usage/total', async (req, res) => {
     } catch (userError) {
       console.error('[LEAD AGENT API] Error getting user:', userError);
     }
-    const trialCreditsUsed = user?.trialCreditsUsed || 0;
+    const trialCreditsUsed = user?.trialCreditsUsed ?? 0;
     const hasPaymentMethod = user?.paymentMethodAdded || false;
     
     // Calculate outstanding (usage minus payments) for ALL months

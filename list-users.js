@@ -24,7 +24,7 @@ async function listUsers() {
       console.log(`   Email: ${user.email}`);
       console.log(`   Plan: ${user.plan || 'free-trial'}`);
       console.log(`   Credit Balance: ${user.creditBalance || 0} credits`);
-      console.log(`   Trial Credits Used: ${user.trialCreditsUsed || 0}/${user.trialCreditsLimit || 500}`);
+      console.log(`   Trial Credits Used: ${user.trialCreditsUsed ?? 0}/${user.trialCreditsLimit ?? 250}`);
       console.log(`   Created: ${user.createdAt ? new Date(user.createdAt).toLocaleString() : 'Unknown'}`);
       console.log(`   Payment Method Added: ${user.paymentMethodAdded ? 'Yes' : 'No'}`);
       if (user.stripeCustomerId) {

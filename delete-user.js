@@ -29,8 +29,13 @@ async function deleteUser() {
     
     const user = users.Items[0];
     const userId = user.userId;
+    const hadSignupIpHash = Boolean(user.signupIpHash);
+    const hadSignupDeviceHash = Boolean(user.signupDeviceHash);
     
     console.log(`Found user: ${user.username} (${userId})`);
+    if (hadSignupIpHash || hadSignupDeviceHash) {
+      console.log(`Deleting stored signup fingerprint data: IP hash=${hadSignupIpHash ? 'yes' : 'no'}, device hash=${hadSignupDeviceHash ? 'yes' : 'no'}`);
+    }
     console.log(`Starting deletion of user ${userId}...`);
     
     // Delete user record from Users table
@@ -39,7 +44,7 @@ async function deleteUser() {
       TableName: awsManager.tables.users,
       Key: { userId }
     }));
-    console.log('✅ User record deleted');
+    console.log('✅ User record deleted, including stored signup IP/device hashes');
     
     // Delete user settings
     console.log('Deleting user settings...');

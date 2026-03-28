@@ -7674,8 +7674,8 @@ Target Positions:`;
         };
       } else {
         // Legacy trial credits system
-        const creditsUsed = user.trialCreditsUsed || 0;
-        const creditsLimit = user.trialCreditsLimit || this.awsManager.plans[user.plan || 'free-trial'].initialCredits;
+        const creditsUsed = user.trialCreditsUsed ?? 0;
+        const creditsLimit = user.trialCreditsLimit ?? this.awsManager.plans[user.plan || 'free-trial'].initialCredits;
         const remainingCredits = creditsLimit - creditsUsed;
 
         // Check if exhausted
