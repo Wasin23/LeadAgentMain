@@ -5013,16 +5013,20 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       let keywordSource = 'base';
       
       // Priority 1: Campaign-specific keyword (until high duplicate rate)
+      // IMPORTANT: clear campaign priority BEFORE the rotation reset below so that
+      // the rotation (which sets leadsFoundWithCurrentKeyword=0) doesn't prevent
+      // us from seeing the 999 signal that means "move on from this keyword".
+      if (this.memory.campaignPriorityKeyword && this.memory.leadsFoundWithCurrentKeyword >= 999) {
+        if (!this.memory.exhaustedCampaignKeywords) this.memory.exhaustedCampaignKeywords = new Set();
+        this.memory.exhaustedCampaignKeywords.add(this.memory.campaignPriorityKeyword);
+        this.memory.campaignPriorityKeyword = null; // Clear before reset so normal rotation takes over
+      }
+
       if (this.memory.campaignPriorityKeyword && this.memory.leadsFoundWithCurrentKeyword < 999) {
         selectedKeyword = this.memory.campaignPriorityKeyword;
         keywordSource = 'campaign';
         selectedPositionIndex = 0; // Use first position for campaign priority
       } else {
-        // Finished campaign priority OR no campaign priority set
-        if (this.memory.campaignPriorityKeyword && this.memory.leadsFoundWithCurrentKeyword >= 999) {
-          this.memory.campaignPriorityKeyword = null; // Clear it
-          this.memory.leadsFoundWithCurrentKeyword = 0;
-        }
         
         // Get base and AI arrays
         const baseKeywords = this.memory.baseIndustryKeywords;
