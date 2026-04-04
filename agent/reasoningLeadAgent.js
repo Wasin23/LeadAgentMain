@@ -5170,10 +5170,49 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       //
       // Requirements: >= 5 total attempts (to avoid skipping on noise from tiny samples).
       if (tracker.cumulativeDuplicateRate > 20 && tracker.totalAttempts >= 5) {
-        console.log(`[EXHAUST PRE-SKIP] "${selectedKeyword}": ${tracker.cumulativeDuplicateRate.toFixed(1)}% dup rate (${tracker.totalAttempts} attempts). Skipping without API call.`);
+        // Check if there are ANY other keywords to rotate to. If this is the only
+        // keyword (or all keywords are exhausted), rotating is a no-op and the agent
+        // will loop forever burning API credits. In that case, return shouldStop=true
+        // so the LLM and the run loop know to halt rather than retry.
+        const baseKws   = this.memory.baseIndustryKeywords || [];
+        const aiKws     = this.memory.aiGeneratedKeywords || [];
+        const totalKws  = baseKws.length + aiKws.length;
+
+        // A keyword is *viable* if it is NOT the currently-exhausted keyword AND either:
+        //   (a) it has never been tried (no tracker entry), OR
+        //   (b) its cumulative dup rate is still ≤ 20%.
+        // Using the full base+AI list catches newly-generated AI keywords that have
+        // no tracker entry yet — they should be tried before we stop the agent.
+        const viableAlternatives = [...baseKws, ...aiKws].filter(kw =>
+          kw !== selectedKeyword &&
+          (!this.memory.industryExhaustion[kw] ||
+           (this.memory.industryExhaustion[kw]?.cumulativeDuplicateRate || 0) <= 20)
+        ).length;
+        const allExhausted = viableAlternatives === 0;
+
+        console.log(`[EXHAUST PRE-SKIP] "${selectedKeyword}": ${tracker.cumulativeDuplicateRate.toFixed(1)}% dup rate (${tracker.totalAttempts} attempts). totalKeywords=${totalKws} viableAlternatives=${viableAlternatives} allExhausted=${allExhausted}`);
+
+        if (allExhausted) {
+          // No viable keywords remain — stop the agent cleanly
+          this.logOperation(
+            '🛑 All Keywords Exhausted',
+            `"${selectedKeyword}" is the only keyword and has ${tracker.cumulativeDuplicateRate.toFixed(1)}% dup rate (${tracker.totalAttempts} attempts). No alternatives available. Stopping agent to avoid wasting credits.`,
+            'warning'
+          );
+          return {
+            success: false,
+            found: 0,
+            leads: [],
+            skipped: true,
+            shouldStop: true,
+            reason: `All keywords exhausted — "${selectedKeyword}" at ${tracker.cumulativeDuplicateRate.toFixed(1)}% dup rate with no alternatives`
+          };
+        }
+
+        // Other keywords exist — rotate to them
         this.logOperation(
           '⏭ Keyword Pre-Skipped',
-          `"${selectedKeyword}" has ${tracker.cumulativeDuplicateRate.toFixed(1)}% cumulative dup rate (${tracker.totalAttempts} total attempts across all positions). Rotating to next keyword without calling Apollo.`,
+          `"${selectedKeyword}" has ${tracker.cumulativeDuplicateRate.toFixed(1)}% cumulative dup rate (${tracker.totalAttempts} total attempts). Rotating to next keyword without calling Apollo.`,
           'warning'
         );
         this.memory.leadsFoundWithCurrentKeyword = 999;
@@ -7880,7 +7919,13 @@ Target Positions:`;
         this.memory.totalLeadsFoundThisCycle = 0;
         this.memory.industryExhaustion = {};
         this.memory.searchHistoryDB = new Map();
-        
+
+        // Reset memory flag so Zilliz is re-queried on the next start().
+        // If we don't do this, the exhaustion tracker starts empty on restart
+        // but the memoryInitialized guard skips the Zilliz reload, so the
+        // preemptive dup-rate check never has accurate data until the agent
+        // re-accumulates 5+ attempts from scratch.
+        this.memoryInitialized = false;
       }
       
       // Clear campaign plan (will be regenerated from instructions)
