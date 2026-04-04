@@ -85,7 +85,7 @@ export const LEAD_SOURCES = [
     /**
      * search() — Apollo implementation
      * Accepts standard params, returns standard lead shape.
-     * The actual fetch logic that was previously inline in apolloSearch()
+     * The actual fetch logic that was previously inline in leadSearch()
      * now lives here so the agent's method can stay source-agnostic.
      */
     async search(params, apiKey) {

@@ -195,8 +195,8 @@ class ReasoningLeadAgent extends EventEmitter {
         }
       },
       {
-        name: 'apollo_search',
-        description: 'Search for leads using Apollo API. You must intelligently determine what to search for based on: 1) User\'s configured target positions, industries, company size, and locations (baseline criteria), 2) Special instructions/campaign plan (what specific prospects to find). IMPORTANT: You can INTELLIGENTLY SELECT which configured industry best fits the campaign goal - if "Hotels & Resorts" aligns with "independent hospitality", use it. If campaign requires a different configured industry, select the most relevant one. NEVER use industries not in user settings. Always validate industry choice matches campaign intent.',
+        name: 'lead_search',
+        description: 'Search for leads using the configured lead source (Apollo or other registered sources). You must intelligently determine what to search for based on: 1) User\'s configured target positions, industries, company size, and locations (baseline criteria), 2) Special instructions/campaign plan (what specific prospects to find). IMPORTANT: You can INTELLIGENTLY SELECT which configured industry best fits the campaign goal - if "Hotels & Resorts" aligns with "independent hospitality", use it. If campaign requires a different configured industry, select the most relevant one. NEVER use industries not in user settings. Always validate industry choice matches campaign intent.',
         parameters: {
           type: 'object',
           properties: {
@@ -1010,7 +1010,7 @@ IMPORTANT RULES:
     const messages = {
       'get_user_settings': 'Loading your search preferences and targeting criteria',
       'get_email_settings': 'Loading email templates and branding settings',
-      'apollo_search': `Searching for ${context.targetLeads || 'new'} qualified leads in your target industries`,
+      'lead_search': `Searching for ${context.targetLeads || 'new'} qualified leads in your target industries`,
       'serper_research': `Researching ${context.currentLead?.company || 'company'} to personalize outreach`,
       'unlock_email': `Finding email address for ${context.currentLead?.name || 'contact'}`,
       'build_personalized_email': `Writing personalized email for ${context.currentLead?.name || 'lead'}${context.currentLead?.company ? ` at ${context.currentLead.company}` : ''}`,
@@ -1303,7 +1303,7 @@ Call the appropriate function to continue the workflow.`;
             if (!context.currentLead && (context.leadQueue?.length || 0) === 0) {
               return {
                 reasoning: 'OpenAI unavailable, using fallback: need to search for leads',
-                action: 'apollo_search',
+                action: 'lead_search',
                 parameters: {
                   query: 'CEO',
                   companySize: '300-5000',
@@ -1385,7 +1385,7 @@ Call the appropriate function to continue the workflow.`;
     switch (context.processingPhase) {
       case 'search':
         if (!context.currentLead && (context.leadQueue.length === 0)) {
-          return { name: 'apollo_search' };
+          return { name: 'lead_search' };
         }
         break;
         
@@ -1430,7 +1430,7 @@ Call the appropriate function to continue the workflow.`;
   // Update cycle state after each action
   async updateCycleState(action, actionResult) {
     switch (action) {
-      case 'apollo_search':
+      case 'lead_search':
         if (actionResult?.leads?.length > 0) {
           // Reset duplicate counter when we find new leads
           this.memory.consecutiveDuplicateSearches = 0;
@@ -4934,7 +4934,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
   }
 
   // Execute Apollo search with reasoning
-  async apolloSearch(parameters) {
+  async leadSearch(parameters) {
     
     try {
       const apiKey = await this.getApiKey('apollo');
@@ -5846,7 +5846,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
    * ─────────────────────
    * Shared deduplication + keyword tracking path used by ALL lead sources.
    *
-   * Previously this logic was inlined inside apolloSearch(). Now that non-Apollo
+   * Previously this logic was inlined inside leadSearch(). Now that non-Apollo
    * sources can run via the registry, they need to go through the same pipeline:
    *   1. Deduplication check against contacted-leads DB
    *   2. Junk company-name filter
@@ -5855,7 +5855,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
    *   5. Dup-rate → source switch or keyword rotation
    *
    * Apollo still calls this indirectly (its results are deduped in the same
-   * block later in apolloSearch), but non-Apollo sources call it directly
+   * block later in leadSearch), but non-Apollo sources call it directly
    * and return early via the `if (activeSource.id !== 'apollo')` branch above.
    *
    * @param {object[]} enrichedLeads — leads already tagged with _leadSource
@@ -5863,8 +5863,8 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
    * @param {string} targetPosition
    * @param {string} keywordSource — 'base' | 'ai' | 'campaign'
    * @param {string} activeSourceId — source ID that ran this search
-   * @param {object} parameters — original parameters passed to apolloSearch
-   * @returns standard apolloSearch result shape: { found, leads, ... }
+   * @param {object} parameters — original parameters passed to leadSearch
+   * @returns standard leadSearch result shape: { found, leads, ... }
    */
   async _processSearchResults(enrichedLeads, selectedKeyword, targetPosition, keywordSource, activeSourceId, parameters) {
     if (!enrichedLeads || enrichedLeads.length === 0) {
@@ -6245,9 +6245,9 @@ Target Positions:`;
           this.logOperation('Action Execution', '✅ [COMPLETE] Email settings retrieved successfully', 'success', { hasSettings: !!actionResult });
           break;
           
-        case 'apollo_search':
+        case 'lead_search':
           this.logOperation('Lead Search', `🔍 [SEARCH] Searching for ${decision.parameters.title || 'leads'} at ${decision.parameters.industry || 'various industries'}`, 'in-progress', decision.parameters);
-          actionResult = await this.apolloSearch(decision.parameters);
+          actionResult = await this.leadSearch(decision.parameters);
           if (actionResult.found > 0) {
             this.logOperation('Lead Search', `✅ [SEARCH SUCCESS] Found ${actionResult.found} leads! Total progress: ${foundLeads.length + actionResult.found}/${targetLeads}`, 'success', { 
               found: actionResult.found, 
@@ -8333,8 +8333,8 @@ Target Positions:`;
           }
           break;
           
-        case 'apollo_search':
-          result = await this.apolloSearch(parameters);
+        case 'lead_search':
+          result = await this.leadSearch(parameters);
           break;
           
         case 'serper_research':
@@ -8522,7 +8522,7 @@ Target Positions:`;
       this.memory.currentCycle.currentLead   = crmLeads[0];           // Prime the first lead NOW
       this.memory.currentCycle.leadQueue     = crmLeads.slice(1);     // Rest wait in queue
       this.memory.currentCycle.targetLeads   = crmLeads.length;
-      this.memory.currentCycle.processingPhase = 'research'; // Skip apollo_search
+      this.memory.currentCycle.processingPhase = 'research'; // Skip lead_search
       this.crmContactList = null; // Consumed — clear so next cycle uses Apollo normally
       crmContactsLoadedThisCycle = true;
       console.log(`[CRM MODE] Pre-loaded ${crmLeads.length} contacts from CRM, skipping Apollo search — starting with ${crmLeads[0]?.name}`);
@@ -8729,7 +8729,7 @@ Target Positions:`;
         // After Apollo fills the queue, if concurrencyLevel > 1, drain all
         // leads in parallel instead of one-by-one through the LLM loop.
         if (
-          reasoningResult.action === 'apollo_search' &&
+          reasoningResult.action === 'lead_search' &&
           actionResult?.leads?.length > 0
         ) {
           const concurrencyLevel = this.settings?.concurrencyLevel || 1;
