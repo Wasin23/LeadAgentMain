@@ -5193,10 +5193,55 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         console.log(`[EXHAUST PRE-SKIP] "${selectedKeyword}": ${tracker.cumulativeDuplicateRate.toFixed(1)}% dup rate (${tracker.totalAttempts} attempts). totalKeywords=${totalKws} viableAlternatives=${viableAlternatives} allExhausted=${allExhausted}`);
 
         if (allExhausted) {
-          // No viable keywords remain — stop the agent cleanly
+          // No viable keywords remain — try generating new AI keywords before giving up.
+          const basePositions = this.memory.originalTargetPositions || userSettings.targetPositions || [];
+          const canGenerate = this.memory.aiGeneratedKeywords.length < 5;
+
+          if (canGenerate) {
+            this.logOperation(
+              '🔄 Generating New Keywords',
+              `All keywords exhausted (${selectedKeyword} at ${tracker.cumulativeDuplicateRate.toFixed(1)}%). Generating fresh AI keywords before stopping.`,
+              'info'
+            );
+            try {
+              await this.generateRelatedIndustryKeywordsAndPositions(
+                userSettings.companyIndustries,
+                basePositions
+              );
+            } catch (genErr) {
+              console.error('[EXHAUST] AI keyword generation failed:', genErr.message);
+            }
+          }
+
+          // Check again after (attempted) generation
+          const freshAiKws = this.memory.aiGeneratedKeywords || [];
+          const hasNewKeywords = freshAiKws.filter(kw =>
+            kw !== selectedKeyword &&
+            (!this.memory.industryExhaustion[kw] ||
+             (this.memory.industryExhaustion[kw]?.cumulativeDuplicateRate || 0) <= 20)
+          ).length > 0;
+
+          if (hasNewKeywords) {
+            // New keywords generated — rotate to them
+            this.logOperation(
+              '⏭ Rotating to New AI Keywords',
+              `Generated fresh AI keywords after exhausting "${selectedKeyword}". Rotating now.`,
+              'info'
+            );
+            this.memory.leadsFoundWithCurrentKeyword = 999;
+            return {
+              success: true,
+              found: 0,
+              leads: [],
+              skipped: true,
+              reason: `Rotated to newly generated keywords after "${selectedKeyword}" exhausted`
+            };
+          }
+
+          // Truly nothing left — stop
           this.logOperation(
             '🛑 All Keywords Exhausted',
-            `"${selectedKeyword}" is the only keyword and has ${tracker.cumulativeDuplicateRate.toFixed(1)}% dup rate (${tracker.totalAttempts} attempts). No alternatives available. Stopping agent to avoid wasting credits.`,
+            `"${selectedKeyword}" at ${tracker.cumulativeDuplicateRate.toFixed(1)}% dup rate and no new keywords could be generated. Stopping to avoid wasting credits.`,
             'warning'
           );
           return {
@@ -5205,7 +5250,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
             leads: [],
             skipped: true,
             shouldStop: true,
-            reason: `All keywords exhausted — "${selectedKeyword}" at ${tracker.cumulativeDuplicateRate.toFixed(1)}% dup rate with no alternatives`
+            reason: `All keywords exhausted — "${selectedKeyword}" at ${tracker.cumulativeDuplicateRate.toFixed(1)}% dup rate, generation failed or capped`
           };
         }
 
