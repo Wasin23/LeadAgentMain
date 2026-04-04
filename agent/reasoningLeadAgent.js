@@ -6247,7 +6247,7 @@ Target Positions:`;
           
         case 'apollo_search':
           this.logOperation('Lead Search', `🔍 [SEARCH] Searching for ${decision.parameters.title || 'leads'} at ${decision.parameters.industry || 'various industries'}`, 'in-progress', decision.parameters);
-          actionResult = await this.searchLeads(decision.parameters);
+          actionResult = await this.apolloSearch(decision.parameters);
           if (actionResult.found > 0) {
             this.logOperation('Lead Search', `✅ [SEARCH SUCCESS] Found ${actionResult.found} leads! Total progress: ${foundLeads.length + actionResult.found}/${targetLeads}`, 'success', { 
               found: actionResult.found, 
@@ -8334,7 +8334,7 @@ Target Positions:`;
           break;
           
         case 'apollo_search':
-          result = await this.searchLeads(parameters);
+          result = await this.apolloSearch(parameters);
           break;
           
         case 'serper_research':
