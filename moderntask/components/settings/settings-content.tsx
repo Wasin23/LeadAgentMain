@@ -39,7 +39,7 @@ interface Notification {
   message: string
   timestamp: string
   read: boolean
-  data?: Record<string, unknown>
+  data?: Record<string, string | number | boolean | null | undefined>
 }
 
 interface KeywordMemory {
@@ -243,7 +243,7 @@ export function SettingsContent() {
   const [keywords, setKeywords] = useState<KeywordMemory[]>([])
   const [memoryStats, setMemoryStats] = useState<MemoryStats | null>(null)
   const [memoryLoading, setMemoryLoading] = useState(false)
-  const [memoryFilter, setMemoryFilter] = useState<'all' | 'exhausted' | 'good'>('all')
+  const [memoryFilter, setMemoryFilter] = useState<'all' | 'exhausted' | 'warning' | 'good'>('all')
   const [resettingKeyword, setResettingKeyword] = useState<string | null>(null)
 
   // ── Industry Facts ────────────────────────────────────────────────────────
@@ -900,12 +900,12 @@ export function SettingsContent() {
                               )}
                             </div>
                             <p className="text-sm text-muted-foreground leading-snug mb-1 line-clamp-2">{notif.message}</p>
-                            {notif.data?.subject && (
+                            {notif.data?.subject != null && (
                               <p className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded mb-1 truncate">
                                 Re: {String(notif.data.subject)}
                               </p>
                             )}
-                            {notif.data?.leadName && (
+                            {notif.data?.leadName != null && (
                               <p className="text-xs text-muted-foreground">
                                 <span className="font-medium text-foreground">{String(notif.data.leadName)}</span>
                                 {notif.data.company ? ` · ${String(notif.data.company)}` : ''}
@@ -1469,7 +1469,8 @@ export function SettingsContent() {
         {tab === "memory" && (() => {
           const filteredKeywords = keywords.filter(k => {
             if (memoryFilter === 'exhausted') return k.isExhausted
-            if (memoryFilter === 'good') return !k.isExhausted
+            if (memoryFilter === 'warning') return !k.isExhausted && k.cumulativeDuplicateRate > 20
+            if (memoryFilter === 'good') return k.cumulativeDuplicateRate <= 20
             return true
           }).sort((a, b) => b.cumulativeDuplicateRate - a.cumulativeDuplicateRate)
 
@@ -1563,12 +1564,20 @@ export function SettingsContent() {
                   Exhausted ({keywords.filter(k => k.isExhausted).length})
                 </Button>
                 <Button
+                  variant={memoryFilter === 'warning' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setMemoryFilter('warning')}
+                  className="text-xs"
+                >
+                  High Dup ({keywords.filter(k => !k.isExhausted && k.cumulativeDuplicateRate > 20).length})
+                </Button>
+                <Button
                   variant={memoryFilter === 'good' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setMemoryFilter('good')}
                   className="text-xs"
                 >
-                  Good ({keywords.filter(k => !k.isExhausted).length})
+                  Good ({keywords.filter(k => k.cumulativeDuplicateRate <= 20).length})
                 </Button>
               </div>
 
@@ -1649,11 +1658,11 @@ export function SettingsContent() {
                                   <div className="w-24 bg-muted rounded-full h-2">
                                     <div
                                       className={`h-2 rounded-full ${
-                                        keyword.cumulativeDuplicateRate > 70
+                                        keyword.cumulativeDuplicateRate > 50
                                           ? 'bg-red-600'
-                                          : keyword.cumulativeDuplicateRate > 50
+                                          : keyword.cumulativeDuplicateRate > 20
                                           ? 'bg-orange-500'
-                                          : keyword.cumulativeDuplicateRate > 30
+                                          : keyword.cumulativeDuplicateRate > 10
                                           ? 'bg-yellow-500'
                                           : 'bg-green-500'
                                       }`}
@@ -1665,7 +1674,15 @@ export function SettingsContent() {
                               <td className="px-4 py-3">
                                 {keyword.isExhausted ? (
                                   <Badge variant="destructive" className="text-xs">
-                                    ⚠️ Exhausted
+                                    ✗ Exhausted
+                                  </Badge>
+                                ) : keyword.cumulativeDuplicateRate > 20 ? (
+                                  <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-600 border-orange-500/20">
+                                    ⚠ High Dup
+                                  </Badge>
+                                ) : keyword.cumulativeDuplicateRate > 10 ? (
+                                  <Badge variant="outline" className="text-xs bg-yellow-500/10 text-yellow-600 border-yellow-500/20">
+                                    ~ Warning
                                   </Badge>
                                 ) : (
                                   <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600 border-green-500/20">

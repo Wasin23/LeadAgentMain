@@ -23,6 +23,8 @@ import { companyIntelligence } from '../tools/companyIntelligence.js';
 import { deepResearch } from '../tools/deepResearch.js';
 import { ZillizLeadMemory } from '../utils/zillizLeadMemory.js';
 import { industryFacts, ZillizIndustryFacts } from '../utils/zillizIndustryFacts.js';
+import { LeadSourceBandit } from '../utils/leadSourceBandit.js';
+import { getAvailableSources, getSourceById } from '../utils/leadSourceRegistry.js';
 import MergeManager from '../utils/mergeManager.js';
 import fs from 'fs/promises';
 import path from 'path';
@@ -75,6 +77,17 @@ class ReasoningLeadAgent extends EventEmitter {
     // Zilliz lead memory for persistent learning
     this.leadMemory = new ZillizLeadMemory();
     this.memoryInitialized = false;
+
+    /**
+     * THOMPSON SAMPLING BANDIT
+     * ------------------------
+     * Decides which lead source (Apollo, Proxycurl, etc.) to use for each
+     * keyword. Learns from results over time — sources that return clean,
+     * non-duplicate leads are preferred, but alternatives are still explored.
+     * See utils/leadSourceBandit.js for the full algorithm explanation.
+     */
+    this.bandit = new LeadSourceBandit(userId, this.awsManager);
+    this.banditInitialized = false;
     
     // Report agent initialization to monitoring
     this.emitAgentStatus('initialized');
@@ -108,6 +121,7 @@ class ReasoningLeadAgent extends EventEmitter {
       consecutiveDuplicateSearches: 0, // Track consecutive failed searches
       searchPageOffset: 0, // Increase page numbers when exhausting early pages
       industryExhaustion: {}, // Track leads found per industry: { "Hotels & Resorts": { leadsFound: 45, lastSearched: timestamp }, ... }
+      sourceExhaustion: {}, // Per-source duplicate rates: { apollo: { "saas": { cumulativeDuplicateRate, totalAttempts } }, hunter: {...} }
       totalLeadsFoundThisCycle: 0,
       aiGeneratedKeywords: [], // AI-generated related industry keywords
       aiGeneratedPositions: [], // AI-generated positions paired with keywords
@@ -121,6 +135,34 @@ class ReasoningLeadAgent extends EventEmitter {
       cycleOffset: 0, // Offset for position pairing - increases each full cycle for variety
       searchHistoryDB: new Map(), // Cache of searched industry+position combos from DB
       lastSearchKey: null, // Track last search combo to detect changes for SSE updates
+
+      /**
+       * LEAD SOURCE BANDIT STATE
+       * ------------------------
+       * These fields track the active source per keyword and the depth counter
+       * used to trigger forced source switches.
+       *
+       * keywordSourceAssignments:
+       *   Maps each keyword to the sourceId currently assigned to it.
+       *   e.g. { "saas": "apollo", "fintech": "proxycurl" }
+       *   The bandit selects the source on first search, then this assignment
+       *   is used for subsequent searches on the same keyword until a switch
+       *   trigger fires (depth or dup-rate).
+       *   Survives agent restarts — reloaded from bandit DB on startup.
+       *
+       * sourcePageDepthCount:
+       *   Tracks how many times the page offset was incremented for a
+       *   specific source × keyword pair.
+       *   Key format: "sourceId#keyword" e.g. "apollo#saas"
+       *   When this hits 3, we force a source switch instead of going deeper.
+       *
+       * sourceSwitchLog:
+       *   Audit trail of every source switch, with reason.
+       *   Useful for debugging, admin views, and future analytics.
+       */
+      keywordSourceAssignments: {},
+      sourcePageDepthCount: {},
+      sourceSwitchLog: [],
       
       // Current cycle lead tracking with queue system
       currentCycle: {
@@ -1410,7 +1452,11 @@ Call the appropriate function to continue the workflow.`;
             
             const normalizedLead = {
               ...lead,
-              company: companyName
+              company: companyName,
+              // Preserve _leadSource tag from search — if the lead came through
+              // the registry it already has one; Apollo leads are tagged at enrich time.
+              // Fall back to 'apollo' for any legacy leads that predate this system.
+              _leadSource: lead._leadSource || 'apollo'
             };
             this.memory.currentCycle.leadQueue.push(normalizedLead);
           });
@@ -1437,31 +1483,95 @@ Call the appropriate function to continue the workflow.`;
           this.memory.consecutiveDuplicateSearches++;
           // After 3 consecutive duplicate searches, broaden criteria
           if (this.memory.consecutiveDuplicateSearches >= 3) {
-            // Increase page offset to search deeper pages
-            this.memory.searchPageOffset += 5;
-            
-            // Reset duplicate counter after adaptation
-            this.memory.consecutiveDuplicateSearches = 0;
-            
-            // Log to user
-            this.logOperation(
-              '🔍 Search Strategy Adapted',
-              `Exhausted recent leads - now searching deeper pages (${this.memory.searchPageOffset + 1}+) for fresh prospects`,
-              'info',
-              {
-                pageOffset: this.memory.searchPageOffset,
-                timestamp: new Date().toISOString()
+            // ─────────────────────────────────────────────────────────────
+            // DEPTH TRIGGER: SOURCE SWITCH
+            // ─────────────────────────────────────────────────────────────
+            // Before going deeper into pagination, check if we've already
+            // gone deep 3+ times on this source × keyword pair. If so,
+            // the source is genuinely exhausted for this keyword right now.
+            // Switch to the best alternative source instead of digging deeper
+            // into the same database.
+            //
+            // This prevents the agent from spending credits on page 20+ of
+            // Apollo when another source might have fresh leads on page 1.
+            // ─────────────────────────────────────────────────────────────
+            const currentKeyword = this.memory.lastKeywordUsed || this.memory.campaignPriorityKeyword;
+            const currentSource = currentKeyword
+              ? this.memory.keywordSourceAssignments[currentKeyword]
+              : null;
+            const depthKey = `${currentSource}#${currentKeyword}`;
+            if (!this.memory.sourcePageDepthCount[depthKey]) {
+              this.memory.sourcePageDepthCount[depthKey] = 0;
+            }
+            this.memory.sourcePageDepthCount[depthKey]++;
+
+            const depthCount = this.memory.sourcePageDepthCount[depthKey];
+
+            if (depthCount >= 3 && currentKeyword && currentSource) {
+              // We've gone deep 3 times on this source — try an alternative
+              const available = getAvailableSources();
+              const alt = this.bandit.selectAlternative(currentKeyword, currentSource, available);
+
+              if (alt) {
+                // Switch source assignment for this keyword
+                const prevSource = currentSource;
+                this.memory.keywordSourceAssignments[currentKeyword] = alt.id;
+                // Reset depth counter for the new source
+                this.memory.sourcePageDepthCount[`${alt.id}#${currentKeyword}`] = 0;
+                // Also reset page offset since we're starting fresh with a new source
+                this.memory.searchPageOffset = 0;
+                this.memory.consecutiveDuplicateSearches = 0;
+
+                // Audit log
+                this.memory.sourceSwitchLog.push({
+                  timestamp: new Date().toISOString(),
+                  keyword: currentKeyword,
+                  from: prevSource,
+                  to: alt.id,
+                  reason: 'depth_trigger',
+                  depthCount
+                });
+
+                this.logOperation(
+                  '🔀 Source Switched (Depth)',
+                  `Keyword "${currentKeyword}": switched from ${prevSource} → ${alt.label} after ${depthCount} deep-page searches`,
+                  'info',
+                  { keyword: currentKeyword, from: prevSource, to: alt.id, depthCount }
+                );
+              } else {
+                // No alternative available — fall back to regular page deepening
+                this.memory.searchPageOffset += 5;
+                this.memory.consecutiveDuplicateSearches = 0;
+                this.logOperation(
+                  '🔍 Search Strategy Adapted',
+                  `Exhausted recent leads - now searching deeper pages (${this.memory.searchPageOffset + 1}+) for fresh prospects (no alternative source available)`,
+                  'info',
+                  { pageOffset: this.memory.searchPageOffset }
+                );
               }
-            );
-            
-            // Also emit as an issue/alert for the Agent Director alerts section
-            this.logIssue('info', 'Search Strategy Adapted', {
-              message: `Exhausted recent leads in pages 1-${this.memory.searchPageOffset}. Now searching deeper pages (${this.memory.searchPageOffset + 1}+) for fresh prospects.`,
-              pageOffset: this.memory.searchPageOffset,
-              searchRange: `${this.memory.searchPageOffset + 1}-${this.memory.searchPageOffset + 10}`,
-              reason: 'consecutive_duplicates',
-              timestamp: new Date().toISOString()
-            });
+            } else {
+              // Normal depth increase — haven't hit the source-switch threshold yet
+              this.memory.searchPageOffset += 5;
+              this.memory.consecutiveDuplicateSearches = 0;
+
+              this.logOperation(
+                '🔍 Search Strategy Adapted',
+                `Exhausted recent leads - now searching deeper pages (${this.memory.searchPageOffset + 1}+) for fresh prospects`,
+                'info',
+                {
+                  pageOffset: this.memory.searchPageOffset,
+                  timestamp: new Date().toISOString()
+                }
+              );
+
+              this.logIssue('info', 'Search Strategy Adapted', {
+                message: `Exhausted recent leads in pages 1-${this.memory.searchPageOffset}. Now searching deeper pages (${this.memory.searchPageOffset + 1}+) for fresh prospects.`,
+                pageOffset: this.memory.searchPageOffset,
+                searchRange: `${this.memory.searchPageOffset + 1}-${this.memory.searchPageOffset + 10}`,
+                reason: 'consecutive_duplicates',
+                timestamp: new Date().toISOString()
+              });
+            }
           }
           
           // Check if we still need more leads for our target
@@ -5051,8 +5161,31 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       
       const tracker = this.memory.industryExhaustion[selectedKeyword];
       tracker.lastSearched = Date.now();
-      
-      
+
+      // PREEMPTIVE EXHAUSTION CHECK
+      // If memory was loaded at startup (from Zilliz) and this keyword is already
+      // above 20% dup rate, skip it without making an Apollo API call. The in-memory
+      // tracker is seeded from the aggregated Zilliz data at agent start(), so we can
+      // trust this number immediately.
+      //
+      // Requirements: >= 5 total attempts (to avoid skipping on noise from tiny samples).
+      if (tracker.cumulativeDuplicateRate > 20 && tracker.totalAttempts >= 5) {
+        console.log(`[EXHAUST PRE-SKIP] "${selectedKeyword}": ${tracker.cumulativeDuplicateRate.toFixed(1)}% dup rate (${tracker.totalAttempts} attempts). Skipping without API call.`);
+        this.logOperation(
+          '⏭ Keyword Pre-Skipped',
+          `"${selectedKeyword}" has ${tracker.cumulativeDuplicateRate.toFixed(1)}% cumulative dup rate (${tracker.totalAttempts} total attempts across all positions). Rotating to next keyword without calling Apollo.`,
+          'warning'
+        );
+        this.memory.leadsFoundWithCurrentKeyword = 999;
+        return {
+          success: true,
+          found: 0,
+          leads: [],
+          skipped: true,
+          reason: `Keyword pre-skipped (${tracker.cumulativeDuplicateRate.toFixed(1)}% cumulative dup rate from memory)`
+        };
+      }
+
       // Use pagination and vary search parameters intelligently
       // Apply page offset from search adaptation strategy
       const basePageRange = this.memory.searchPageOffset || 0;
@@ -5092,10 +5225,18 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       );
       
       if (historyCheck.isDuplicate) {
+        // This exact combo (keyword + position) was already searched within the 30-day
+        // window and is stored in DynamoDB search history.
         
         // Check if this keyword has high cumulative duplicate rate - if so, skip it entirely
         const tracker = this.memory.industryExhaustion[selectedKeyword];
         if (tracker && tracker.cumulativeDuplicateRate > 20 && tracker.totalAttempts >= 5) {
+          console.log(`[EXHAUST HISTORY-SKIP] "${selectedKeyword}" + "${targetPosition}": already in 30-day history AND ${tracker.cumulativeDuplicateRate.toFixed(1)}% dup rate. Force-rotating keyword.`);
+          this.logOperation(
+            '⏭ Keyword Exhausted (History)',
+            `"${selectedKeyword}" + "${targetPosition}" already searched recently — and keyword has ${tracker.cumulativeDuplicateRate.toFixed(1)}% dup rate (${tracker.totalAttempts} attempts). Rotating keyword.`,
+            'warning'
+          );
           this.memory.leadsFoundWithCurrentKeyword = 999; // Force rotation to next keyword
           return {
             success: true,
@@ -5106,7 +5247,13 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
           };
         }
         
-        // Otherwise just force rotation to try next keyword
+        // Otherwise just force rotation to try next keyword + position combo
+        console.log(`[HISTORY-SKIP] "${selectedKeyword}" + "${targetPosition}": already searched within 30 days. Rotating to next keyword.`);
+        this.logOperation(
+          '⏭ Combo Already Searched',
+          `"${selectedKeyword}" + "${targetPosition}" was already searched within the last 30 days. Rotating to next keyword/position.`,
+          'info'
+        );
         this.memory.leadsFoundWithCurrentKeyword = 999;
         return {
           success: true,
@@ -5124,8 +5271,105 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       const leadsNeeded = this.memory.currentCycle.targetLeads - this.memory.currentCycle.leadsProcessed;
       const remainingInQueue = this.memory.currentCycle.leadQueue.length;
       const leadsToRequest = Math.max(1, leadsNeeded - remainingInQueue);
-      
-      
+
+      // ─────────────────────────────────────────────────────────────────────
+      // STEP 3.5: BANDIT SOURCE SELECTION
+      // ─────────────────────────────────────────────────────────────────────
+      // Determine which lead source (Apollo, Proxycurl, etc.) should execute
+      // this search. The bandit learns over time — sources that produce clean,
+      // non-duplicate leads get preferred. New or uncertain sources are still
+      // explored occasionally so the system can detect when quality shifts.
+      //
+      // If only one source is available (just Apollo), this is a no-op and
+      // Apollo is used as always. No behaviour change until a second source
+      // is added to the registry.
+      // ─────────────────────────────────────────────────────────────────────
+      const availableSources = getAvailableSources();
+
+      if (!this.memory.keywordSourceAssignments[selectedKeyword]) {
+        /**
+         * First time we're searching this keyword — ask the bandit to pick.
+         * With only Apollo in the registry, this always returns Apollo.
+         * With multiple sources, Thompson Sampling chooses based on priors
+         * and any past observations for this keyword.
+         */
+        const chosenSource = this.bandit.select(selectedKeyword, availableSources);
+        this.memory.keywordSourceAssignments[selectedKeyword] = chosenSource.id;
+        console.log(`🎰 [BANDIT] Assigned source "${chosenSource.id}" to keyword "${selectedKeyword}"`);
+      }
+
+      const activeSourceId = this.memory.keywordSourceAssignments[selectedKeyword];
+      const activeSource = getSourceById(activeSourceId) || availableSources[0];
+
+      // Build the normalized params object every source's search() expects
+      let sizeMin, sizeMax;
+      if (parameters.companySize) {
+        const sizeRange = parameters.companySize.toString().split(/[-,]/);
+        sizeMin = parseInt(sizeRange[0]);
+        sizeMax = parseInt(sizeRange[1]) || sizeMin;
+      } else {
+        if (!userSettings.companySizeMin || !userSettings.companySizeMax) {
+          throw new Error('Company size range not configured in user settings');
+        }
+        sizeMin = userSettings.companySizeMin;
+        sizeMax = userSettings.companySizeMax;
+      }
+
+      const sourceParams = {
+        keyword: selectedKeyword,
+        position: targetPosition,
+        companySizeMin: sizeMin,
+        companySizeMax: sizeMax,
+        locations: parameters.location
+          ? [parameters.location]
+          : (userSettings.targetLocations || []),
+        page: searchPage,
+        perPage: leadsToRequest,
+        excludeKeywords: this.campaignPlan?.searchStrategy?.excludeKeywords || []
+      };
+
+      // ─────────────────────────────────────────────────────────────────────
+      // ROUTE: non-Apollo sources bypass the Apollo-specific payload builder
+      // and rate-limit logic below. They go straight to the registry adapter.
+      // Apollo still follows its existing path for backwards compatibility.
+      // ─────────────────────────────────────────────────────────────────────
+      if (activeSource.id !== 'apollo') {
+        const sourceApiKey = process.env[activeSource.envKey];
+        if (!sourceApiKey) {
+          // Key missing — fall back to Apollo silently and log a warning
+          console.warn(`⚠️ [BANDIT] No API key for source "${activeSource.id}", falling back to Apollo`);
+          this.memory.keywordSourceAssignments[selectedKeyword] = 'apollo';
+        } else {
+          this.logOperation(
+            `🔍 Searching via ${activeSource.label}`,
+            `Using ${activeSource.label} for "${selectedKeyword}" (${targetPosition})`,
+            'info'
+          );
+          try {
+            const sourceResult = await activeSource.search(sourceParams, sourceApiKey);
+            // Tag every lead with the source that found it
+            const taggedLeads = (sourceResult.leads || []).map(l => ({ ...l, _leadSource: activeSource.id }));
+            // Fall through to the shared deduplication + tracking logic below
+            // by returning an enrichedLeads-compatible object
+            return await this._processSearchResults(
+              taggedLeads, selectedKeyword, targetPosition, keywordSource, activeSource.id, parameters
+            );
+          } catch (sourceErr) {
+            console.error(`❌ [SOURCE ${activeSource.id}] Search failed:`, sourceErr.message);
+            // Fall through to Apollo as safety net
+            console.warn(`⚠️ Falling back to Apollo for this search`);
+            this.memory.keywordSourceAssignments[selectedKeyword] = 'apollo';
+          }
+        }
+      }
+
+      // ─────────────────────────────────────────────────────────────────────
+      // APOLLO PATH (original logic, now source-aware)
+      // Continues below exactly as before, except:
+      //   1. We re-use the already-built sizeMin/sizeMax/locations from above
+      //   2. Enriched leads get tagged with _leadSource: 'apollo'
+      // ─────────────────────────────────────────────────────────────────────
+
       const searchPayload = {
         q_keywords: targetPosition,
         page: searchPage,
@@ -5134,25 +5378,8 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         reveal_phone_number: true
       };
 
-      // Use agent-reasoned company size or fall back to user settings
-      let sizeMin, sizeMax;
-      if (parameters.companySize) {
-        // Parse agent's company size parameter (e.g. "300-5000" or "300,5000")
-        const sizeRange = parameters.companySize.toString().split(/[-,]/);
-        sizeMin = parseInt(sizeRange[0]);
-        sizeMax = parseInt(sizeRange[1]) || sizeMin;
-      } else {
-        // Fallback to user settings
-        if (!userSettings.companySizeMin || !userSettings.companySizeMax) {
-          throw new Error('Company size range not configured in user settings');
-        }
-        sizeMin = userSettings.companySizeMin;
-        sizeMax = userSettings.companySizeMax;
-      }
-      
       searchPayload.organization_num_employees_ranges = [`${sizeMin},${sizeMax}`];
 
-      // Use agent-reasoned location or fall back to user settings
       if (parameters.location) {
         searchPayload.person_locations = [parameters.location];
       } else if (userSettings.targetLocations && userSettings.targetLocations.length > 0) {
@@ -5258,7 +5485,8 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
             country: enrichedPerson.country,
             linkedin_url: enrichedPerson.linkedin_url,
             phone: enrichedPerson.phone_number || enrichedPerson.direct_phone,
-            ...enrichedPerson // Include all other fields from enriched data
+            ...enrichedPerson, // Include all other fields from enriched data
+            _leadSource: 'apollo' // Tag with source so all downstream code knows where this lead came from
           };
 
           enrichedLeads.push(completeLead);
@@ -5427,7 +5655,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
               if (this.memoryInitialized) {
                 try {
                   const storeResult = await this.leadMemory.storeKeywordPerformance(
-                    this.userId, // Use agent's userId, not userSettings.userId
+                    this.userId,
                     this.agentId,
                     selectedKeyword,
                     targetPosition,
@@ -5436,7 +5664,6 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
                     keywordSource
                   );
                   
-                  // Log to UI so user can see RAG is working
                   this.logOperation(
                     '🧠 Memory Updated',
                     `Stored performance for "${selectedKeyword}" - ${storeResult.totalAttempts} total attempts, ${storeResult.cumulativeRate.toFixed(1)}% duplicate rate`,
@@ -5446,27 +5673,108 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
                   console.error('⚠️ [MEMORY] Failed to store performance:', memError.message);
                   this.logOperation('⚠️ Memory Error', `Failed to store performance: ${memError.message}`, 'warning');
                 }
-              } else {
               }
-              
-              // Rotate if CUMULATIVE duplicate rate exceeds 20%
+
+              /**
+               * BANDIT REWARD — update Thompson Sampling stats for this search batch.
+               *
+               * We call reward() here because this is the point where we know the
+               * actual outcome: how many leads were valid vs. duplicates.
+               *
+               * successes = newLeads.length  (valid, non-duplicate leads)
+               * failures  = duplicateLeads.length  (duplicates caught by dedup)
+               *
+               * The bandit accumulates these across every search on this source ×
+               * keyword pair. Over time, sources that produce more successes than
+               * failures will be preferred by Thompson Sampling.
+               *
+               * Future: multiply successes by a reply-rate weight once that data
+               * is available. The formula here doesn't need to change.
+               */
+              if (this.banditInitialized && activeSourceId) {
+                this.bandit.reward(selectedKeyword, activeSourceId, newLeads.length, duplicateLeads.length);
+                // Flush updated stats to DynamoDB (non-blocking)
+                this.bandit.flushToDB().catch(e => console.warn('⚠️ [BANDIT] Flush failed:', e.message));
+              }
+
+              // ─────────────────────────────────────────────────────────────
+              // DUP-RATE TRIGGER: SOURCE SWITCH BEFORE KEYWORD ROTATION
+              // ─────────────────────────────────────────────────────────────
+              // When cumulative dup rate > 20%, the old behaviour was to
+              // immediately rotate to the next keyword. Instead, we now first
+              // try switching to a different source on the SAME keyword.
+              //
+              // Rationale: the keyword may still be a good targeting choice,
+              // but the current source's coverage of that keyword is exhausted.
+              // Another source may have an entirely fresh audience for the same
+              // industry + position.
+              //
+              // We only rotate the keyword if:
+              //   a) There is no alternative source available, OR
+              //   b) The alternative source is ALSO exhausted for this keyword
+              //      (its bandit mean is below 0.2, meaning it has a history of
+              //       failures too). In that case, the keyword itself is done.
+              // ─────────────────────────────────────────────────────────────
               if (tracker.cumulativeDuplicateRate > 20 && tracker.totalAttempts >= 5) {
-                
-                // Record this search to DB with ACTUAL new leads (before setting rotation flag)
+
                 await this.awsManager.recordSearchHistory(
                   this.userId,
                   this.agentId,
                   selectedKeyword,
                   targetPosition,
-                  newLeads.length // Save actual leads found, not rotation flag
+                  newLeads.length
                 );
-                
-                // If this was the campaign priority keyword, permanently retire it this run
+
                 if (selectedKeyword === this.memory.campaignPriorityKeyword) {
                   if (!this.memory.exhaustedCampaignKeywords) this.memory.exhaustedCampaignKeywords = new Set();
                   this.memory.exhaustedCampaignKeywords.add(selectedKeyword);
                 }
-                this.memory.leadsFoundWithCurrentKeyword = 999; // Force rotation AFTER recording
+
+                // Attempt source switch before keyword rotation
+                const available = getAvailableSources();
+                const altSource = available.length > 1
+                  ? this.bandit.selectAlternative(selectedKeyword, activeSourceId, available)
+                  : null;
+
+                if (altSource) {
+                  // Check if the alternative source is also likely exhausted for this keyword
+                  // by looking at its bandit stats mean. If its mean is > 0.2, it's worth trying.
+                  const altStats = this.bandit._getStats(selectedKeyword, altSource);
+                  const altMean = altStats.alpha / (altStats.alpha + altStats.beta);
+
+                  if (altMean > 0.2) {
+                    // Switch source, don't rotate keyword yet
+                    const prev = activeSourceId;
+                    // Capture rate BEFORE resetting so the log shows the triggering value
+                    const triggeringDupRate = tracker.cumulativeDuplicateRate;
+                    this.memory.keywordSourceAssignments[selectedKeyword] = altSource.id;
+                    // Reset the tracker's counters so the new source gets a fair chance
+                    tracker.totalAttempts = 0;
+                    tracker.totalDuplicates = 0;
+                    tracker.cumulativeDuplicateRate = 0;
+
+                    this.memory.sourceSwitchLog.push({
+                      timestamp: new Date().toISOString(),
+                      keyword: selectedKeyword,
+                      from: prev,
+                      to: altSource.id,
+                      reason: 'dup_rate_trigger',
+                      dupRate: triggeringDupRate
+                    });
+
+                    this.logOperation(
+                      '🔀 Source Switched (Dup Rate)',
+                      `Keyword "${selectedKeyword}": switched ${prev} → ${altSource.label} (dup rate was ${triggeringDupRate.toFixed(1)}%, alt source looks fresh)`,
+                      'info'
+                    );
+                  } else {
+                    // Alt source also looks exhausted for this keyword — rotate keyword
+                    this.memory.leadsFoundWithCurrentKeyword = 999;
+                  }
+                } else {
+                  // No alternative — rotate keyword as before
+                  this.memory.leadsFoundWithCurrentKeyword = 999;
+                }
               }
               } // end tracker null-guard
             }
@@ -5533,7 +5841,104 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
     }
   }
 
-  // Generate AI-related industry keywords by analyzing company profile + current targeting
+  /**
+   * _processSearchResults
+   * ─────────────────────
+   * Shared deduplication + keyword tracking path used by ALL lead sources.
+   *
+   * Previously this logic was inlined inside apolloSearch(). Now that non-Apollo
+   * sources can run via the registry, they need to go through the same pipeline:
+   *   1. Deduplication check against contacted-leads DB
+   *   2. Junk company-name filter
+   *   3. Keyword exhaustion tracking (industryExhaustion)
+   *   4. Bandit reward for the source that ran this search
+   *   5. Dup-rate → source switch or keyword rotation
+   *
+   * Apollo still calls this indirectly (its results are deduped in the same
+   * block later in apolloSearch), but non-Apollo sources call it directly
+   * and return early via the `if (activeSource.id !== 'apollo')` branch above.
+   *
+   * @param {object[]} enrichedLeads — leads already tagged with _leadSource
+   * @param {string} selectedKeyword
+   * @param {string} targetPosition
+   * @param {string} keywordSource — 'base' | 'ai' | 'campaign'
+   * @param {string} activeSourceId — source ID that ran this search
+   * @param {object} parameters — original parameters passed to apolloSearch
+   * @returns standard apolloSearch result shape: { found, leads, ... }
+   */
+  async _processSearchResults(enrichedLeads, selectedKeyword, targetPosition, keywordSource, activeSourceId, parameters) {
+    if (!enrichedLeads || enrichedLeads.length === 0) {
+      return { found: 0, totalFound: 0, leads: [], duplicatesFiltered: [], query: parameters.query, parameters };
+    }
+
+    // Emit dedup start for UI
+    this.emit('progress', {
+      id: this.generateUniqueId(),
+      timestamp: new Date().toISOString(),
+      operation: 'Deduplication Check',
+      details: `🔍 Checking ${enrichedLeads.length} leads for duplicates...`,
+      status: 'processing',
+      data: { phase: 'deduplication_start', totalLeads: enrichedLeads.length }
+    });
+
+    const deduplicationResult = await this.awsManager.checkForDuplicateContacts(this.userId, enrichedLeads);
+    if (!deduplicationResult.success) {
+      return { found: enrichedLeads.length, leads: enrichedLeads, query: parameters.query, parameters };
+    }
+
+    let { newLeads, duplicateLeads, summary } = deduplicationResult;
+
+    // Junk company filter
+    const junkCompanyPatterns = [
+      /^artificial intelligence$/i, /^machine learning$/i, /^deep learning$/i,
+      /^data science$/i, /^technology$/i, /^software$/i,
+      /^information technology$/i, /^ai\/ml$/i, /^n\/a$/i, /^none$/i, /^unknown$/i
+    ];
+    newLeads = newLeads.filter(lead => {
+      const co = (lead.organization?.name || lead.company || '').trim();
+      if (!co) return false;
+      return !junkCompanyPatterns.some(p => p.test(co));
+    });
+    summary = { ...summary, newCount: newLeads.length };
+
+    // Keyword + bandit tracking
+    if (newLeads.length > 0 || duplicateLeads.length > 0) {
+      const totalAttempts = newLeads.length + duplicateLeads.length;
+
+      this.memory.leadsFoundWithCurrentKeyword += newLeads.length;
+      this.memory.totalLeadsFoundThisCycle += newLeads.length;
+
+      const tracker = this.memory.industryExhaustion[selectedKeyword];
+      if (tracker) {
+        tracker.leadsFound += newLeads.length;
+        tracker.totalAttempts += totalAttempts;
+        tracker.totalDuplicates += duplicateLeads.length;
+        tracker.cumulativeDuplicateRate = (tracker.totalDuplicates / tracker.totalAttempts) * 100;
+      }
+
+      // Bandit reward for this source
+      if (this.banditInitialized && activeSourceId) {
+        this.bandit.reward(selectedKeyword, activeSourceId, newLeads.length, duplicateLeads.length);
+        this.bandit.flushToDB().catch(e => console.warn('⚠️ [BANDIT] Flush failed:', e.message));
+      }
+    }
+
+    this.memory.searchHistory.push({
+      timestamp: new Date().toISOString(),
+      parameters,
+      results: { found: newLeads.length, totalFound: enrichedLeads.length, duplicatesFiltered: duplicateLeads.length },
+      success: newLeads.length > 0
+    });
+
+    return {
+      found: newLeads.length,
+      totalFound: enrichedLeads.length,
+      leads: newLeads,
+      duplicatesFiltered: duplicateLeads,
+      query: parameters.query,
+      parameters
+    };
+  }
   async generateRelatedIndustryKeywordsAndPositions(userIndustries, basePositions) {
     try {
       const userSettings = this.memory.userSettings;
@@ -5841,8 +6246,8 @@ Target Positions:`;
           break;
           
         case 'apollo_search':
-          this.logOperation('Lead Search', `🔍 [SEARCH] Searching Apollo for ${decision.parameters.title || 'leads'} at ${decision.parameters.industry || 'various industries'}`, 'in-progress', decision.parameters);
-          actionResult = await this.apolloSearch(decision.parameters);
+          this.logOperation('Lead Search', `🔍 [SEARCH] Searching for ${decision.parameters.title || 'leads'} at ${decision.parameters.industry || 'various industries'}`, 'in-progress', decision.parameters);
+          actionResult = await this.searchLeads(decision.parameters);
           if (actionResult.found > 0) {
             this.logOperation('Lead Search', `✅ [SEARCH SUCCESS] Found ${actionResult.found} leads! Total progress: ${foundLeads.length + actionResult.found}/${targetLeads}`, 'success', { 
               found: actionResult.found, 
@@ -6026,8 +6431,9 @@ Target Positions:`;
       }
       
       // Fallback to environment variables
-      const envKey = service === 'apollo' ? 'APOLLO_API_KEY' : 
-                    service === 'serper' ? 'SERPER_API_KEY' : null;
+      const envKey = service === 'apollo' ? 'APOLLO_API_KEY' :
+                    service === 'serper' ? 'SERPER_API_KEY' :
+                    service === 'hunter' ? 'HUNTER_API_KEY' : null;
       return envKey ? process.env[envKey] : null;
     } catch (error) {
       console.error(`Error getting ${service} API key:`, error.message);
@@ -7223,23 +7629,63 @@ Target Positions:`;
               this.memory.industryExhaustion = {};
             }
             
-            // Restore memory into industryExhaustion tracker
-            Object.keys(memoryData.performanceMap).forEach(keyword => {
-              const data = memoryData.performanceMap[keyword];
-              this.memory.industryExhaustion[keyword] = {
-                leadsFound: 0, // Reset current cycle count
-                lastSearched: data.lastUpdated,
-                exhausted: data.isExhausted,
-                totalAttempts: data.totalAttempts,
-                totalDuplicates: data.totalDuplicates,
-                cumulativeDuplicateRate: data.cumulativeDuplicateRate
-              };
+            // Restore memory into industryExhaustion tracker.
+            //
+            // Zilliz stores one row per search_combo (keyword + position). The
+            // agent's industryExhaustion is keyed by keyword only — it rotates at
+            // the keyword level, not per-position. So we must AGGREGATE all combos
+            // that share the same keyword: sum their totalAttempts and totalDuplicates,
+            // then recompute the rate. This gives the true per-keyword exhaustion
+            // signal rather than one arbitrary combo's stats overwriting the others.
+            const keywordAggMap = {};
+            Object.values(memoryData.performanceMap).forEach(data => {
+              const kw = data.keyword;
+              if (!keywordAggMap[kw]) {
+                keywordAggMap[kw] = {
+                  totalAttempts: 0,
+                  totalDuplicates: 0,
+                  lastSearched: data.lastUpdated,
+                  exhausted: false,
+                  combos: [] // for logging
+                };
+              }
+              keywordAggMap[kw].totalAttempts += data.totalAttempts;
+              keywordAggMap[kw].totalDuplicates += data.totalDuplicates;
+              if (data.isExhausted) keywordAggMap[kw].exhausted = true;
+              // Keep the most recent lastSearched across all combos
+              if (new Date(data.lastUpdated) > new Date(keywordAggMap[kw].lastSearched)) {
+                keywordAggMap[kw].lastSearched = data.lastUpdated;
+              }
+              keywordAggMap[kw].combos.push(`${data.position} (${data.cumulativeDuplicateRate.toFixed(1)}%)`);
             });
-            
+
+            let preSkippedCount = 0;
+            Object.keys(keywordAggMap).forEach(keyword => {
+              const agg = keywordAggMap[keyword];
+              agg.cumulativeDuplicateRate = agg.totalAttempts > 0
+                ? (agg.totalDuplicates / agg.totalAttempts) * 100
+                : 0;
+              this.memory.industryExhaustion[keyword] = {
+                leadsFound: 0,
+                lastSearched: agg.lastSearched,
+                exhausted: agg.exhausted,
+                totalAttempts: agg.totalAttempts,
+                totalDuplicates: agg.totalDuplicates,
+                cumulativeDuplicateRate: agg.cumulativeDuplicateRate
+              };
+              const rate = agg.cumulativeDuplicateRate;
+              const flag = agg.exhausted ? '🔴 EXHAUSTED' : rate > 20 ? '🟠 HIGH-DUP' : rate > 10 ? '🟡 WARNING' : '🟢 OK';
+              console.log(`[MEMORY RESTORE] ${flag} "${keyword}": ${rate.toFixed(1)}% dup rate (${agg.totalAttempts} attempts across ${agg.combos.length} position(s): ${agg.combos.join(', ')})`);
+              if (rate > 20 && agg.totalAttempts >= 5) preSkippedCount++;
+            });
+
+            const exhaustedCount = Object.values(keywordAggMap).filter(a => a.exhausted).length;
+            const highDupCount = Object.values(keywordAggMap).filter(a => !a.exhausted && a.cumulativeDuplicateRate > 20).length;
+
             // Log to UI
             this.logOperation(
               '🧠 Memory Loaded',
-              `Restored ${memoryData.count} keyword records from Zilliz (${Object.keys(memoryData.performanceMap).filter(k => memoryData.performanceMap[k].isExhausted).length} exhausted)`,
+              `Restored ${memoryData.count} combo records → ${Object.keys(keywordAggMap).length} keywords. ${exhaustedCount} exhausted (Zilliz), ${highDupCount} high-dup (>20%, will be pre-skipped this run).`,
               'success'
             );
           } else {
@@ -7249,6 +7695,60 @@ Target Positions:`;
         } catch (memError) {
           console.error('⚠️ [MEMORY] Failed to load memory, continuing without it:', memError.message);
           this.logOperation('⚠️ Memory Error', `Failed to load memory: ${memError.message}`, 'warning');
+        }
+      }
+
+      /**
+       * BANDIT STARTUP LOAD
+       * -------------------
+       * Load Thompson Sampling stats (α, β per keyword × source) from DynamoDB.
+       * This gives the bandit its "memory" of which sources performed well for
+       * which keywords, so it doesn't start blind on every agent restart.
+       *
+       * We also restore keywordSourceAssignments here — if a keyword was
+       * already being searched by a specific source, we keep that assignment
+       * rather than re-randomizing, so the bandit's learning is continuous.
+       */
+      if (!this.banditInitialized) {
+        try {
+          await this.bandit.loadFromDB();
+
+          // Restore keyword → source assignments from the bandit stats we just loaded.
+          // For every keyword that has at least one source with observations, pre-assign
+          // the highest-estimated source so the agent doesn't re-pick randomly on restart.
+          const availableSources = getAvailableSources();
+          if (availableSources.length > 0) {
+            const summary = this.bandit.getSummary();
+            // Group by keyword → pick the source with the highest estimated rate
+            const bestByKeyword = {};
+            for (const entry of summary) {
+              if (
+                !bestByKeyword[entry.keyword] ||
+                entry.estimatedRate > bestByKeyword[entry.keyword].estimatedRate
+              ) {
+                bestByKeyword[entry.keyword] = entry;
+              }
+            }
+            for (const [keyword, best] of Object.entries(bestByKeyword)) {
+              // Only restore if the source is still available in env
+              if (availableSources.find(s => s.id === best.sourceId)) {
+                this.memory.keywordSourceAssignments[keyword] = best.sourceId;
+              }
+            }
+            const restored = Object.keys(bestByKeyword).length;
+            if (restored > 0) {
+              this.logOperation(
+                '🎰 Bandit Loaded',
+                `Restored source assignments for ${restored} keyword(s) from previous learning`,
+                'success'
+              );
+            }
+          }
+
+          this.banditInitialized = true;
+        } catch (banditErr) {
+          console.warn('⚠️ [BANDIT] Failed to load from DB, starting with priors:', banditErr.message);
+          this.banditInitialized = true; // Still mark initialized — priors are fine
         }
       }
       
@@ -7834,7 +8334,7 @@ Target Positions:`;
           break;
           
         case 'apollo_search':
-          result = await this.apolloSearch(parameters);
+          result = await this.searchLeads(parameters);
           break;
           
         case 'serper_research':

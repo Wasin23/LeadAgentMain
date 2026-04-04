@@ -38,7 +38,10 @@ class AWSManager {
       searchHistory: process.env.AWS_DYNAMODB_SEARCH_HISTORY_TABLE || 'meridian-search-history',
       paymentHistory: process.env.AWS_DYNAMODB_PAYMENT_HISTORY_TABLE || 'meridian-payment-history',
       agentMetrics: process.env.AWS_DYNAMODB_AGENT_METRICS_TABLE || 'meridian-agent-metrics',
-      crmContacts: process.env.AWS_DYNAMODB_CRM_CONTACTS_TABLE || 'meridian-crm-contacts'
+      crmContacts: process.env.AWS_DYNAMODB_CRM_CONTACTS_TABLE || 'meridian-crm-contacts',
+      // Thompson Sampling bandit stats for lead source selection
+      // PK: userId, SK: keyword#sourceId
+      leadSourceBandit: process.env.AWS_DYNAMODB_LEAD_SOURCE_BANDIT_TABLE || 'meridian-lead-source-bandit'
     };
     
     // API Cost rates (with 1.2x multiplier for platform margin)
@@ -3691,6 +3694,75 @@ class AWSManager {
   async clearAuditorState(userId) {
     await this.updateUser(userId, { auditorState: null });
     return { success: true };
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // LEAD SOURCE BANDIT — Thompson Sampling persistence
+  //
+  // Table: meridian-lead-source-bandit
+  //   PK: userId (string)
+  //   SK: keyword#sourceId (string)  e.g. "saas#apollo"
+  //   alpha: number  — success count (non-duplicate, valid leads)
+  //   beta:  number  — failure count (duplicates, invalid emails)
+  //
+  // These two methods are the only DB surface the LeadSourceBandit class needs.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Load all bandit stat rows for a user.
+   * Returns an array of { userId, sk, keyword, sourceId, alpha, beta }.
+   * Returns [] (not throws) if the table is empty or does not exist yet.
+   */
+  async getBanditStats(userId) {
+    try {
+      const result = await this.dynamodb.send(new QueryCommand({
+        TableName: this.tables.leadSourceBandit,
+        KeyConditionExpression: 'userId = :uid',
+        ExpressionAttributeValues: { ':uid': userId }
+      }));
+      return result.Items || [];
+    } catch (error) {
+      // Table may not exist yet on first run — treat as empty
+      console.warn('⚠️ [AWS] getBanditStats failed (table may not exist yet):', error.message);
+      return [];
+    }
+  }
+
+  /**
+   * Upsert an array of bandit stat rows.
+   * Each item must have: { userId, sk, keyword, sourceId, alpha, beta }.
+   * Uses BatchWrite in chunks of 25 (DynamoDB limit).
+   */
+  async putBanditStats(rows) {
+    if (!rows || rows.length === 0) return;
+
+    // DynamoDB BatchWrite limit is 25 items per call
+    const chunks = [];
+    for (let i = 0; i < rows.length; i += 25) {
+      chunks.push(rows.slice(i, i + 25));
+    }
+
+    for (const chunk of chunks) {
+      const requestItems = chunk.map(row => ({
+        PutRequest: {
+          Item: {
+            userId: row.userId,
+            sk: row.sk,           // "keyword#sourceId"
+            keyword: row.keyword,
+            sourceId: row.sourceId,
+            alpha: row.alpha,
+            beta: row.beta,
+            updatedAt: new Date().toISOString()
+          }
+        }
+      }));
+
+      await this.dynamodb.send(new BatchWriteCommand({
+        RequestItems: {
+          [this.tables.leadSourceBandit]: requestItems
+        }
+      }));
+    }
   }
 }
 

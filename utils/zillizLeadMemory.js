@@ -340,7 +340,12 @@ export class ZillizLeadMemory {
             
             if (results.data && results.data.length > 0) {
                 results.data.forEach(item => {
-                    performanceMap[item.keyword] = {
+                    // KEY: use search_combo (keyword#position) not keyword alone.
+                    // A keyword can have multiple positions (e.g. "SaaS / Founder" AND
+                    // "SaaS / CEO"). Keying by keyword would make each combo overwrite
+                    // the previous one, silently dropping all but the last record.
+                    // The agent startup aggregates by keyword separately.
+                    performanceMap[item.search_combo] = {
                         keyword: item.keyword,
                         position: item.position,
                         searchCombo: item.search_combo,
