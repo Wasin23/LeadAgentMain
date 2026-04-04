@@ -1010,7 +1010,7 @@ IMPORTANT RULES:
     const messages = {
       'get_user_settings': 'Loading your search preferences and targeting criteria',
       'get_email_settings': 'Loading email templates and branding settings',
-      'lead_search': `Searching for ${context.targetLeads || 'new'} qualified leads in your target industries`,
+      'lead_search': `Searching for ${context.targetLeads || 'new'} qualified leads${context.memory?.lastSearchKey ? ` — ${context.memory.lastSearchKey.replace('#', ' · ')}` : ' in your target industries'}`,
       'serper_research': `Researching ${context.currentLead?.company || 'company'} to personalize outreach`,
       'unlock_email': `Finding email address for ${context.currentLead?.name || 'contact'}`,
       'build_personalized_email': `Writing personalized email for ${context.currentLead?.name || 'lead'}${context.currentLead?.company ? ` at ${context.currentLead.company}` : ''}`,
@@ -5203,8 +5203,8 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
 
           if (canGenerate) {
             this.logOperation(
-              '🔄 Generating New Keywords',
-              `All keywords exhausted (${selectedKeyword} at ${tracker.cumulativeDuplicateRate.toFixed(1)}%). Generating fresh AI keywords before stopping.`,
+              '🔄 Finding New Markets',
+              `"${selectedKeyword}" has been fully searched. Discovering related industries to keep finding leads...`,
               'info'
             );
             try {
@@ -5227,9 +5227,10 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
 
           if (hasNewKeywords) {
             // New keywords generated — rotate to them
+            const newKws = (this.memory.aiGeneratedKeywords || []).slice(-3).join(', ');
             this.logOperation(
-              '⏭ Rotating to New AI Keywords',
-              `Generated fresh AI keywords after exhausting "${selectedKeyword}". Rotating now.`,
+              '✅ New Markets Found',
+              `Switching from "${selectedKeyword}" to fresh target industries: ${newKws || 'newly generated'}`,
               'info'
             );
             this.memory.leadsFoundWithCurrentKeyword = 999;
@@ -5244,8 +5245,8 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
 
           // Truly nothing left — stop
           this.logOperation(
-            '🛑 All Keywords Exhausted',
-            `"${selectedKeyword}" at ${tracker.cumulativeDuplicateRate.toFixed(1)}% dup rate and no new keywords could be generated. Stopping to avoid wasting credits.`,
+            '🛑 Search Complete',
+            `All target industries and generated markets have been fully searched. Stopping to avoid duplicate outreach.`,
             'warning'
           );
           return {
@@ -5260,9 +5261,9 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
 
         // Other keywords exist — rotate to them
         this.logOperation(
-          '⏭ Keyword Pre-Skipped',
-          `"${selectedKeyword}" has ${tracker.cumulativeDuplicateRate.toFixed(1)}% cumulative dup rate (${tracker.totalAttempts} total attempts). Rotating to next keyword without calling Apollo.`,
-          'warning'
+          '🔄 Switching Target Industry',
+          `"${selectedKeyword}" is saturated (${tracker.cumulativeDuplicateRate.toFixed(1)}% already contacted). Moving to the next industry to find fresh leads.`,
+          'info'
         );
         this.memory.leadsFoundWithCurrentKeyword = 999;
         return {
