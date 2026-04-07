@@ -602,8 +602,9 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                   </div>
                   <div className="grid grid-cols-1 gap-2 text-xs text-muted-foreground sm:grid-cols-2">
                     <div className="rounded-md border border-border bg-background px-3 py-2">Free Trial: 1 agent · 5x concurrency</div>
-                    <div className="rounded-md border border-border bg-background px-3 py-2">Starter: 5 agents · 5x concurrency</div>
-                    <div className="rounded-md border border-border bg-background px-3 py-2">Professional: 10 agents · 10x concurrency</div>
+                    <div className="rounded-md border border-border bg-background px-3 py-2">Basic: 3 agents · 5x concurrency</div>
+                    <div className="rounded-md border border-border bg-background px-3 py-2">Starter: 5 agents · 10x concurrency</div>
+                    <div className="rounded-md border border-border bg-background px-3 py-2">Professional: 10 agents · 20x concurrency</div>
                     <div className="rounded-md border border-border bg-background px-3 py-2">Enterprise: 30 agents · 30x concurrency</div>
                   </div>
                 </div>

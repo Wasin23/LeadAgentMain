@@ -245,7 +245,7 @@ function AgentCard({
                     <button
                       onClick={() => setEditingConcurrency(true)}
                       className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-                      title="Concurrency level – click to edit"
+                      title="Speed – click to edit"
                     >
                       <Cpu className="w-2.5 h-2.5" />{concurrencyDraft}×
                     </button>
@@ -433,10 +433,11 @@ function CreateAgentModal({ onClose, onCreated }: { onClose: () => void; onCreat
   const planName = planStatus?.plan?.name ?? 'Current plan'
   const atAgentLimit = maxAgents > 0 && agentCount >= maxAgents
   const tierRows = [
-    { name: 'Free Trial', agents: 1, concurrency: 5 },
-    { name: 'Starter', agents: 5, concurrency: 5 },
-    { name: 'Professional', agents: 10, concurrency: 10 },
-    { name: 'Enterprise', agents: 30, concurrency: 30 },
+    { name: 'Free Trial', agents: 1, speed: 3 },
+    { name: 'Basic', agents: 3, speed: 5 },
+    { name: 'Starter', agents: 5, speed: 10 },
+    { name: 'Professional', agents: 10, speed: 20 },
+    { name: 'Enterprise', agents: 30, speed: 30 },
   ]
 
   const fetchPresets = async () => {
@@ -534,7 +535,7 @@ function CreateAgentModal({ onClose, onCreated }: { onClose: () => void; onCreat
               {tierRows.map((tier) => (
                 <div key={tier.name} className="rounded-lg border border-border bg-background px-3 py-2 flex items-center justify-between gap-3">
                   <span className="font-medium text-foreground">{tier.name}</span>
-                  <span>{tier.agents} agents · {tier.concurrency}x</span>
+                  <span>{tier.agents} agents · {tier.speed}x</span>
                 </div>
               ))}
             </div>

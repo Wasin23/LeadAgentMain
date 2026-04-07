@@ -182,10 +182,11 @@ export function Header({
   const maxAgents = planStatus?.plan?.maxAgents ?? 0
   const maxConcurrency = planStatus?.plan?.maxConcurrency ?? 0
   const tierRows = [
-    { name: 'Free Trial', agents: 1, concurrency: 5 },
-    { name: 'Starter', agents: 5, concurrency: 5 },
-    { name: 'Professional', agents: 10, concurrency: 10 },
-    { name: 'Enterprise', agents: 30, concurrency: 30 },
+    { name: 'Free Trial', agents: 1, speed: 3 },
+    { name: 'Basic', agents: 3, speed: 5 },
+    { name: 'Starter', agents: 5, speed: 10 },
+    { name: 'Professional', agents: 10, speed: 20 },
+    { name: 'Enterprise', agents: 30, speed: 30 },
   ]
 
   return (
@@ -240,7 +241,7 @@ export function Header({
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-sm font-semibold text-foreground">{planName} limits</p>
-                      <p className="text-xs text-muted-foreground">{totalAgents}/{maxAgents} agents used · up to {maxConcurrency}x concurrency</p>
+                      <p className="text-xs text-muted-foreground">{totalAgents}/{maxAgents} agents used · up to {maxConcurrency}x speed</p>
                     </div>
                     <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-semibold text-primary">Click for limits</span>
                   </div>
@@ -258,7 +259,7 @@ export function Header({
                     <div className="rounded-lg border border-border bg-background p-3">
                       <div className="flex items-center gap-2 mb-1.5">
                         <Cpu className="w-3.5 h-3.5 text-primary" />
-                        <p className="text-xs font-semibold text-foreground">Concurrency</p>
+                        <p className="text-xs font-semibold text-foreground">Speed</p>
                       </div>
                       <p className="text-[11px] text-muted-foreground">How many leads one agent researches in parallel during a cycle. Higher is faster.</p>
                     </div>
@@ -270,7 +271,7 @@ export function Header({
                       {tierRows.map((tier) => (
                         <div key={tier.name} className="flex items-center justify-between gap-3 rounded-md bg-background px-2.5 py-2 text-[11px]">
                           <span className="font-medium text-foreground">{tier.name}</span>
-                          <span className="text-muted-foreground">{tier.agents} agents · {tier.concurrency}x concurrency</span>
+                          <span className="text-muted-foreground">{tier.agents} agents · {tier.speed}x speed</span>
                         </div>
                       ))}
                     </div>
