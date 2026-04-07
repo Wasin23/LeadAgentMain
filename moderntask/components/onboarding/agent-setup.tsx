@@ -96,54 +96,75 @@ const JOB_TITLES = [
 
 const INTRO_SLIDES = [
   {
-    eyebrow: 'What is an agent?',
-    title: 'An agent is your dedicated AI rep',
-    description: 'Each agent has its own personality, targeting rules, and outreach settings. You can run different agents for different markets or campaigns.',
+    eyebrow: 'Step 1 — Build your agent',
+    title: 'Give it a personality and a target',
+    description: 'Pick a communication style, define who it should contact, and connect your inbox. That\'s all.',
+    fact: { label: 'Your agent, your voice', detail: 'Choose from personalities like The Hunter or The Relationship Builder — the agent writes every email in that style.' },
     avatars: PERSONALITY_TYPES.slice(0, 3),
     stats: [
-      { label: 'Own personality', value: '1 style' },
-      { label: 'Own targeting', value: '1 ICP' },
-      { label: 'Own workflow', value: '1 loop' },
+      { label: 'Personality', value: '1 style' },
+      { label: 'Target audience', value: '1 ICP' },
+      { label: 'Connected inbox', value: 'Gmail / Outlook' },
     ],
     mockup: {
       badge: 'Agent profile',
       title: 'Series A Outreach Agent',
-      subtitle: 'Targets healthcare startups with a warm follow-up style',
-      rows: ['Personality: Relationship Builder', 'Targeting: CTOs in US healthcare', 'Sending: Gmail + follow-ups on'],
+      subtitle: 'Warm, relationship-first tone — targets SaaS founders in the US',
+      rows: ['Personality: Relationship Builder', 'Targeting: Founders at B2B SaaS, 10–200 employees', 'Sending: Gmail · follow-up after 7 days'],
     },
   },
   {
-    eyebrow: 'What does it do?',
-    title: 'It researches leads and writes the outreach',
-    description: 'Your agent finds qualified prospects, gathers context, and drafts personalized emails before they go out.',
+    eyebrow: 'Step 2 — The agent goes to work',
+    title: 'It finds leads, researches them, and writes the email',
+    description: 'Every cycle, it pulls fresh leads, reads their company context, and writes a personalized email — fully automatically.',
+    fact: { label: 'Real research, not mail merge', detail: 'It reads LinkedIn profiles, recent funding news, and company pages to write something that sounds hand-crafted.' },
     avatars: [PERSONALITY_TYPES[2], PERSONALITY_TYPES[3], PERSONALITY_TYPES[0]],
     stats: [
-      { label: 'Find leads', value: 'Auto' },
-      { label: 'Research', value: 'Per lead' },
-      { label: 'Emails', value: 'Custom' },
+      { label: 'Lead sourcing', value: 'Auto' },
+      { label: 'Research depth', value: 'Per lead' },
+      { label: 'Email copy', value: 'Personalized' },
     ],
     mockup: {
-      badge: 'Live cycle',
-      title: 'Research queue',
-      subtitle: 'Agent is enriching leads before writing emails',
-      rows: ['Apollo search → 24 matches', 'Researching latest company context', 'Drafting email with custom CTA'],
+      badge: 'Active cycle',
+      title: 'Researching + writing',
+      subtitle: 'Agent is processing 12 leads this cycle',
+      rows: ['Pulled 12 leads from Apollo matching ICP', 'Reading company context + recent activity', 'Writing personalized first-line for each lead'],
     },
   },
   {
-    eyebrow: 'What happens next?',
-    title: 'It keeps cycling until you stop it',
-    description: 'Once started, the agent keeps running in cycles until you stop it. A cycle is one full pass of work: the agent checks for leads to process, researches them, writes or queues outreach, and reviews any reply activity. Then it waits for the next scheduled run and does it again until you stop it.',
-    avatars: [PERSONALITY_TYPES[4], PERSONALITY_TYPES[1], PERSONALITY_TYPES[0]],
+    eyebrow: 'Step 3 — Emails go out from your inbox',
+    title: 'Sent from your real Gmail or Outlook',
+    description: 'Emails land in your sent folder — not from a tool domain. Replies come back to you directly.',
+    fact: { label: 'Your domain, your reputation', detail: 'Because it sends from your real account, deliverability is tied to your domain — not shared sending infrastructure.' },
+    avatars: [PERSONALITY_TYPES[1], PERSONALITY_TYPES[4], PERSONALITY_TYPES[2]],
     stats: [
-      { label: 'Runs in cycles', value: 'Ongoing' },
-      { label: 'Replies tracked', value: 'Live' },
-      { label: 'Meetings', value: 'Faster' },
+      { label: 'Sent from', value: 'Your inbox' },
+      { label: 'Domain', value: 'Yours' },
+      { label: 'Follow-ups', value: 'Automatic' },
     ],
     mockup: {
-      badge: 'Outcome',
-      title: 'Pipeline moving',
-      subtitle: 'Your agent keeps the queue active until you tell it to stop',
-      rows: ['42 emails queued for today', '7 replies detected', '3 meeting-ready prospects'],
+      badge: 'Outbox',
+      title: 'Emails queued for today',
+      subtitle: 'Sending across your schedule window — looks natural',
+      rows: ['18 first-touch emails queued', '6 follow-ups on day-7 cadence', 'Sending spread across 9am–5pm window'],
+    },
+  },
+  {
+    eyebrow: 'Step 4 — Replies and opens are tracked',
+    title: 'You\'ll know exactly who\'s interested',
+    description: 'Every email is tracked. Opens, clicks, and replies surface automatically so you know who to prioritize.',
+    fact: { label: 'No inbox hunting', detail: 'When someone replies, Meridian detects it in real time and flags the lead — so you can focus on responding to warm prospects.' },
+    avatars: [PERSONALITY_TYPES[0], PERSONALITY_TYPES[3], PERSONALITY_TYPES[1]],
+    stats: [
+      { label: 'Open tracking', value: 'Live' },
+      { label: 'Reply detection', value: 'Real-time' },
+      { label: 'Hot leads', value: 'Surfaced' },
+    ],
+    mockup: {
+      badge: 'Inbox activity',
+      title: 'Pipeline heating up',
+      subtitle: 'Replies and opens tracked across all active campaigns',
+      rows: ['3 replies detected — flagged for review', '11 opens in the last 24 hours', '2 prospects visited your link twice'],
     },
   },
 ] as const
@@ -499,22 +520,23 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
               </div>
 
               <div className="rounded-[1.75rem] border border-white/20 bg-white/95 p-5 md:p-6 text-gray-900">
-                <div className="rounded-[1.25rem] border border-blue-100 bg-blue-50 px-5 py-4 mb-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-600">Step {introSlide + 1} of {INTRO_SLIDES.length}</p>
-                  <p className="mt-2 text-sm md:text-base font-semibold leading-relaxed text-slate-800">{currentIntroSlide.description}</p>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-600">Step {introSlide + 1} of {INTRO_SLIDES.length}</span>
+                  <span className="text-slate-300">·</span>
+                  <p className="text-xs text-slate-500">{currentIntroSlide.description}</p>
                 </div>
-
-                <div className="grid gap-3 md:grid-cols-3 mb-4">
-                  {[
-                    { title: 'What an agent is', detail: 'A reusable AI worker with its own personality and ICP.' },
-                    { title: 'How it does the work', detail: 'Finds leads, researches them, and writes outreach.' },
-                    { title: 'How cycles work', detail: 'Repeats the full pass of work on each scheduled run.' },
-                  ].map((item) => (
-                    <div key={item.title} className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-slate-700">
-                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{item.title}</p>
-                      <p className="mt-1 text-sm leading-relaxed">{item.detail}</p>
-                    </div>
-                  ))}
+                <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 mb-4 flex items-center gap-3">
+                  <div className="flex -space-x-2 flex-shrink-0">
+                    {currentIntroSlide.avatars.slice(0, 2).map((avatar) => (
+                      <div key={avatar.id} className={`w-9 h-9 rounded-full bg-gradient-to-br ${colorGrad[avatar.color]} p-0.5 border-2 border-white`}>
+                        <img src={avatar.avatar} alt={avatar.name} className="w-full h-full rounded-full object-cover bg-white" onError={e => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(avatar.name)}&background=3b82f6&color=ffffff` }} />
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">{currentIntroSlide.fact.label}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{currentIntroSlide.fact.detail}</p>
+                  </div>
                 </div>
 
                 <div className="rounded-[1.5rem] border border-gray-200 bg-white px-5 py-5">
@@ -1119,7 +1141,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
               <h2 className="text-4xl font-bold text-white mb-2">Choose Your Plan</h2>
               <p className="text-xl text-white/70">Start with a free trial or jump right into a paid plan</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
               {plans.map(plan => (
                 <div
                   key={plan.id}
