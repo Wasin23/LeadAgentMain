@@ -218,6 +218,33 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
   const [presets, setPresets] = useState<any[]>([]);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [loadingPresets, setLoadingPresets] = useState(false);
+  const [autofilling, setAutofilling] = useState(false);
+
+  const handleAutofill = async () => {
+    setAutofilling(true);
+    try {
+      const r = await api.post('/api/company-profile/autofill-targeting');
+      const a = r.data.autofill;
+      setSettings(prev => ({
+        ...prev,
+        specialInstructions: a.generalInstructions || prev.specialInstructions,
+        companyCriteria: {
+          ...prev.companyCriteria,
+          companySizeMin: a.companySizeMin ?? prev.companyCriteria.companySizeMin,
+          companySizeMax: a.companySizeMax ?? prev.companyCriteria.companySizeMax,
+          companyIndustries: a.industries?.length ? a.industries : prev.companyCriteria.companyIndustries,
+        },
+        contactCriteria: {
+          ...prev.contactCriteria,
+          targetPositions: a.jobTitles?.length ? a.jobTitles : prev.contactCriteria.targetPositions,
+        },
+      }));
+    } catch {
+      alert('Could not autofill — make sure your Company Profile is filled out in Settings.');
+    } finally {
+      setAutofilling(false);
+    }
+  };
 
   // ── fetch ──
   useEffect(() => {
@@ -470,7 +497,22 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
 
           {/* General Instructions */}
           <div className="bg-primary/5 border border-primary/20 rounded-xl p-6">
-            <h3 className="text-base font-semibold text-primary mb-1">General Instructions</h3>
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-base font-semibold text-primary">General Instructions</h3>
+              <button
+                type="button"
+                onClick={handleAutofill}
+                disabled={autofilling}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/30 bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-all disabled:opacity-50"
+              >
+                {autofilling ? (
+                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                ) : (
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                )}
+                {autofilling ? 'Filling...' : 'Autofill from company profile'}
+              </button>
+            </div>
             <p className="text-sm text-muted-foreground mb-4">High-level instructions that guide the entire campaign. Be specific about who to target and what pain points to address.</p>
             <Textarea
               value={settings.specialInstructions}
@@ -653,14 +695,8 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
           </Section>
 
           {/* Email Settings */}
-          <Section title="Email Settings" description="Configure follow-ups, auto-response and sending">
+          <Section title="Email Settings" description="Configure follow-ups and sending">
             <div className="space-y-5 mt-4">
-              <div className="space-y-1.5">
-                <Label>Auto-Response Prompt</Label>
-                <Textarea value={settings.emailBuilder.emailResponsePrompt} onChange={e => updateEmail('emailResponsePrompt', e.target.value)} placeholder="Instructions for AI auto-responses to replies…" className="resize-y min-h-[80px]" />
-                <p className="text-xs text-muted-foreground">Used when auto-response is enabled</p>
-              </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>CC Emails</Label>
@@ -672,15 +708,10 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label>Follow-up Interval (days)</Label>
-                  <Input type="number" min={1} max={30} value={settings.emailBuilder.rebumpIntervalDays} onChange={e => updateEmail('rebumpIntervalDays', parseInt(e.target.value) || 3)} />
-                  <p className="text-xs text-muted-foreground">Days before sending a follow-up</p>
-                </div>
-                <div className="pt-7">
-                  <ToggleRow label="Enable AI Auto-Response" checked={settings.emailBuilder.enableAutoResponse} onChange={v => updateEmail('enableAutoResponse', v)} description="Automatically respond to replies with AI" />
-                </div>
+              <div className="space-y-1.5">
+                <Label>Follow-up Interval (days)</Label>
+                <Input type="number" min={1} max={30} value={settings.emailBuilder.rebumpIntervalDays} onChange={e => updateEmail('rebumpIntervalDays', parseInt(e.target.value) || 3)} />
+                <p className="text-xs text-muted-foreground">Days before sending a follow-up</p>
               </div>
 
               {/* Gmail */}

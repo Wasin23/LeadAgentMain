@@ -197,6 +197,27 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
     }).catch(() => {})
   }, [])
 
+  const [autofilling, setAutofilling] = useState(false)
+  const handleAutofill = async () => {
+    setAutofilling(true)
+    try {
+      const r = await api.post('/api/company-profile/autofill-targeting')
+      const a = r.data.autofill
+      if (a.generalInstructions) setSpecialInstructions(a.generalInstructions)
+      setSettings(s => ({
+        ...s,
+        companySizeMin: a.companySizeMin ?? s.companySizeMin,
+        companySizeMax: a.companySizeMax ?? s.companySizeMax,
+        industries: a.industries?.length ? a.industries : s.industries,
+        jobTitles: a.jobTitles?.length ? a.jobTitles : s.jobTitles,
+      }))
+    } catch {
+      alert('Could not autofill — make sure your Company Profile is filled out in Settings.')
+    } finally {
+      setAutofilling(false)
+    }
+  }
+
   const next = () => {
     const ni = stepIdx + 1
     if (ni < steps.length) {
@@ -630,10 +651,25 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
 
             {/* General Instructions */}
             <div className="bg-white/95 backdrop-blur-md rounded-2xl p-6 mb-5 border border-gray-200 shadow-sm">
-              <h3 className="text-gray-900 font-bold text-lg mb-1.5 flex items-center gap-2">
-                <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                Campaign Instructions
-              </h3>
+              <div className="flex items-center justify-between mb-1.5">
+                <h3 className="text-gray-900 font-bold text-lg flex items-center gap-2">
+                  <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                  Campaign Instructions
+                </h3>
+                <button
+                  type="button"
+                  onClick={handleAutofill}
+                  disabled={autofilling}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-blue-600 text-xs font-semibold hover:bg-blue-100 transition-all disabled:opacity-50"
+                >
+                  {autofilling ? (
+                    <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                  ) : (
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                  )}
+                  {autofilling ? 'Filling...' : 'Autofill from company profile'}
+                </button>
+              </div>
               <p className="text-gray-500 text-sm mb-3">Give your agent specific guidance. The AI adapts its research, outreach, and engagement based on these instructions.</p>
               <textarea
                 value={specialInstructions}
@@ -800,15 +836,6 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                 <div className="mt-4">
                   <label className="block text-gray-700 font-semibold text-sm mb-1">Follow-up Interval (Days)</label>
                   <input type="number" min="1" max="30" value={settings.followupIntervalDays} onChange={e => setSettings(s => ({ ...s, followupIntervalDays: parseInt(e.target.value) || 7 }))} className="w-32 px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-gray-900 focus:border-blue-400 focus:outline-none transition-all text-sm" />
-                </div>
-                <div className="mt-4 flex items-center justify-between">
-                  <div>
-                    <label className="text-gray-700 font-semibold text-sm">Enable AI Auto-Response</label>
-                    <p className="text-gray-500 text-xs mt-0.5">AI automatically responds to incoming emails from leads</p>
-                  </div>
-                  <button onClick={() => setSettings(s => ({ ...s, enableAutoResponse: !s.enableAutoResponse }))} className={`relative flex-shrink-0 w-11 h-6 rounded-full transition-colors ${settings.enableAutoResponse ? 'bg-green-400' : 'bg-neutral-300'}`}>
-                    <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all duration-200 ${settings.enableAutoResponse ? 'left-[22px]' : 'left-0.5'}`} />
-                  </button>
                 </div>
               </div>
             </div>

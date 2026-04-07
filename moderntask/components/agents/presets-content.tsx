@@ -265,7 +265,6 @@ function PresetFormModal({
             <Field label="Follow-up Interval (days)">
               <NumInput value={form.followupIntervalDays} onChange={v => set('followupIntervalDays', v ?? 7)} placeholder="7" />
             </Field>
-            <Toggle value={!!form.enableAutoResponse} onChange={v => set('enableAutoResponse', v)} label="Enable auto-response" />
           </div>
 
           {/* special instructions */}

@@ -51,6 +51,60 @@ router.get('/check', async (req, res) => {
 });
 
 /**
+ * Autofill agent targeting from company profile
+ */
+router.post('/autofill-targeting', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const awsManager = new AWSManager();
+    const userSettings = await awsManager.getUserSettings(userId);
+    const profile = userSettings?.companyProfile;
+
+    if (!profile) {
+      return res.status(400).json({ success: false, error: 'No company profile found. Please complete your company profile first.' });
+    }
+
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    const prompt = `You are a B2B sales expert. Based on this company profile, determine the ideal targeting for an AI outreach agent.
+
+Company profile:
+- Name: ${profile.companyName || ''}
+- Industry: ${profile.industry || ''}
+- Description: ${profile.description || ''}
+- Services: ${profile.services || ''}
+- Core Offering: ${profile.coreOffering || ''}
+- Key Advantages: ${profile.keyAdvantages || ''}
+- Target Market: ${profile.targetMarket || ''}
+- Tagline: ${profile.tagline || ''}
+
+Return a JSON object with EXACTLY these fields:
+{
+  "generalInstructions": "2-3 sentence campaign instruction focusing on who to target and what pain point to lead with",
+  "companySizeMin": <number, min employees of ideal target company>,
+  "companySizeMax": <number, max employees of ideal target company>,
+  "industries": ["array", "of", "3-6", "target industries"],
+  "jobTitles": ["array", "of", "4-8", "specific job titles to target"]
+}
+
+Be specific and realistic. Return only valid JSON.`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      response_format: { type: 'json_object' },
+      max_tokens: 500,
+    });
+
+    const result = JSON.parse(completion.choices[0].message.content);
+    res.json({ success: true, autofill: result });
+  } catch (error) {
+    console.error('Error autofilling targeting:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
  * Analyze uploaded document and extract company profile
  */
 router.post('/analyze', async (req, res) => {
