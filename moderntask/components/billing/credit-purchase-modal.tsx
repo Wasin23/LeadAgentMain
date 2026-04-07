@@ -40,24 +40,33 @@ export function CreditPurchaseModal({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [userPlanInfo, setUserPlanInfo] = useState<any>(null)
+  const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean | null>(null)
 
   const pricingTiers: PricingTier[] = [
+    {
+      id: "basic",
+      name: "Basic",
+      price: 100,
+      credits: 1200,
+      emails: 1200,
+      features: ["1,200 credits included", "~1,200 emails", "Up to 3 agents", "Up to 5x concurrency"],
+    },
     {
       id: "starter",
       name: "Starter",
       price: 500,
-      credits: 10000,
-      emails: 10000,
-      features: ["10,000 credits included", "~10,000 emails", "Up to 5 agents", "Up to 5x concurrency"],
+      credits: 13000,
+      emails: 13000,
+      features: ["13,000 credits included", "~13,000 emails", "Up to 5 agents", "Up to 10x concurrency"],
     },
     {
       id: "professional",
       name: "Professional",
       price: 1000,
-      credits: 25000,
-      emails: 25000,
+      credits: 30000,
+      emails: 30000,
       popular: true,
-      features: ["25,000 credits included", "~25,000 emails", "Up to 10 agents", "Up to 10x concurrency"],
+      features: ["30,000 credits included", "~30,000 emails", "Up to 10 agents", "Up to 20x concurrency"],
     },
     {
       id: "enterprise",
@@ -80,6 +89,9 @@ export function CreditPurchaseModal({
     api.get("/api/plans/status")
       .then(({ data }) => { if (data.success) setUserPlanInfo(data) })
       .catch(() => {})
+    api.get("/api/billing/payment-methods")
+      .then(({ data }) => { setHasPaymentMethod((data?.paymentMethods?.length ?? 0) > 0) })
+      .catch(() => { setHasPaymentMethod(false) })
   }, [])
 
   const handlePurchase = async () => {
@@ -149,7 +161,7 @@ export function CreditPurchaseModal({
           {mode === "upgrade" && (
             <>
               <h3 className="text-base font-semibold mb-4">Upgrade Options</h3>
-              <div className="grid gap-5 mb-8 grid-cols-1 md:grid-cols-3">
+              <div className="grid gap-5 mb-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                 {pricingTiers.map((tier, i) => {
                   const isCurrent = currentPlan === tier.id
                   const isSelected = selectedTier === tier.id
@@ -248,7 +260,7 @@ export function CreditPurchaseModal({
                         <Check className="w-4 h-4 text-muted-foreground" />
                         {tier.credits.toLocaleString()} credits
                       </div>
-                      <div className="text-xs text-muted-foreground">${(tier.price / tier.credits).toFixed(3)} per credit</div>
+  
                     </div>
                     {isSelected && (
                       <div className="absolute top-3 right-3">
@@ -279,6 +291,14 @@ export function CreditPurchaseModal({
             </ul>
           </div>
 
+          {hasPaymentMethod === false && (
+            <div className="bg-amber-500/10 border border-amber-500/40 rounded-lg p-4 mb-5">
+              <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
+                No payment method on file. Please add a card in <strong>Settings → Billing</strong> before purchasing.
+              </p>
+            </div>
+          )}
+
           {error && (
             <div className="bg-destructive/8 border border-destructive/30 rounded-lg p-4 mb-5">
               <p className="text-sm text-destructive">Error: {error}</p>
@@ -287,7 +307,7 @@ export function CreditPurchaseModal({
 
           <button
             onClick={handlePurchase}
-            disabled={loading}
+            disabled={loading || hasPaymentMethod === false}
             className="w-full py-4 bg-primary text-primary-foreground font-bold text-lg rounded-xl hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (

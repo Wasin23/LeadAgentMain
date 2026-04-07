@@ -38,6 +38,15 @@ function UnsubscribeContent() {
     resize();
     window.addEventListener('resize', resize);
 
+    const handleVisibility = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(raf);
+      } else {
+        raf = requestAnimationFrame(draw);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
     const draw = () => {
       const W = canvas.width;
       const H = canvas.height;
@@ -118,6 +127,7 @@ function UnsubscribeContent() {
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener('resize', resize);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, []);
 

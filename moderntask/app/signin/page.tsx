@@ -53,6 +53,9 @@ export default function SignInPage() {
   const { login, register, isAuthenticated } = useAuth()
   const router = useRouter()
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [globePaused, setGlobePaused] = useState(false)
+  const pauseRef = useRef(false)
+  const drawRef = useRef<(() => void) | null>(null)
 
   // Canvas globe
   useEffect(() => {
@@ -70,7 +73,17 @@ export default function SignInPage() {
     resize()
     window.addEventListener('resize', resize)
 
+    const handleVisibility = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(raf)
+      } else if (!pauseRef.current) {
+        raf = requestAnimationFrame(draw)
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+
     const draw = () => {
+      if (pauseRef.current) return
       const W = canvas.width
       const H = canvas.height
       t += 0.001
@@ -179,10 +192,12 @@ export default function SignInPage() {
 
       raf = requestAnimationFrame(draw)
     }
+    drawRef.current = draw
     draw()
     return () => {
       cancelAnimationFrame(raf)
       window.removeEventListener('resize', resize)
+      document.removeEventListener('visibilitychange', handleVisibility)
     }
   }, [])
 
@@ -403,6 +418,31 @@ export default function SignInPage() {
 
     <div className="min-h-screen relative flex items-center justify-center overflow-hidden p-4">
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{ zIndex: 0 }} />
+
+      {/* Globe pause toggle — bottom left */}
+      <button
+        onClick={() => {
+          const next = !globePaused
+          pauseRef.current = next
+          setGlobePaused(next)
+          if (!next) drawRef.current?.()
+        }}
+        title={globePaused ? 'Resume globe' : 'Pause globe'}
+        className="absolute bottom-4 left-4 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200 hover:scale-105"
+        style={{ zIndex: 20, color: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.15)' }}
+      >
+        {globePaused ? (
+          <>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><polygon points="2,1 9,5 2,9" /></svg>
+            Resume
+          </>
+        ) : (
+          <>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><rect x="1" y="1" width="3" height="8" /><rect x="6" y="1" width="3" height="8" /></svg>
+            Pause
+          </>
+        )}
+      </button>
 
       {/* Back to landing — top left */}
       <Button

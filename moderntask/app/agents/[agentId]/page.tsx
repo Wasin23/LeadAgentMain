@@ -162,7 +162,7 @@ export default function AgentDashboardPage({ params }: { params: Promise<{ agent
   const [streamingResponses, setStreamingResponses] = useState<any[]>([]);
 
   const ITEMS_PER_PAGE = 20;
-  const logsEndRef = useRef<HTMLDivElement>(null);
+  const logsContainerRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<EventSource | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
 
@@ -399,7 +399,10 @@ export default function AgentDashboardPage({ params }: { params: Promise<{ agent
     return () => { clearInterval(poll); wsRef.current?.close(); };
   }, [agentId]);
 
-  useEffect(() => { logsEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [agentLogs]);
+  useEffect(() => {
+    const el = logsContainerRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [agentLogs]);
 
   // ─────────────────────────────────────────────────────
   // Actions
@@ -1038,7 +1041,7 @@ export default function AgentDashboardPage({ params }: { params: Promise<{ agent
                 )}
               </div>
             </CardHeader>
-            <div className="flex-1 overflow-y-auto font-mono text-xs" style={{ height: 480 }}>
+            <div ref={logsContainerRef} className="flex-1 overflow-y-auto font-mono text-xs" style={{ height: 480 }}>
               {agentLogs.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-6 text-center">
                   <p className="text-sm">No activity logs yet</p>
@@ -1076,7 +1079,7 @@ export default function AgentDashboardPage({ params }: { params: Promise<{ agent
                   </div>
                 </div>
               ))}
-              <div ref={logsEndRef} />
+
             </div>
           </Card>
 

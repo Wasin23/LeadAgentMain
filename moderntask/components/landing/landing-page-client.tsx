@@ -534,7 +534,7 @@ export function LandingPageClient() {
             <p className="mt-3 text-muted-foreground">Start free, validate the workflow, then scale up without seat-count games.</p>
           </div>
 
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
             {[
               {
                 name: "Free Trial",
@@ -553,35 +553,51 @@ export function LandingPageClient() {
                 ],
               },
               {
-                name: "Starter",
-                price: "$500",
-                sub: "10,000 credits",
-                credits: "Up to 5 agents, 5x concurrency",
+                name: "Basic",
+                price: "$100",
+                sub: "1,200 credits",
+                credits: "Up to 3 agents, 5x concurrency",
                 highlight: false,
                 cta: "Get Started",
                 features: [
                   "Everything in Free",
-                  "Up to 5 agents",
+                  "1,200 credits included",
+                  "Up to 3 agents",
                   "Up to 5x concurrency",
                   "Automated follow-ups",
                   "CRM pipeline",
+                ],
+              },
+              {
+                name: "Starter",
+                price: "$500",
+                sub: "13,000 credits",
+                credits: "Up to 5 agents, 10x concurrency",
+                highlight: false,
+                cta: "Get Started",
+                features: [
+                  "Everything in Basic",
+                  "13,000 credits included",
+                  "Up to 5 agents",
+                  "Up to 10x concurrency",
                   "Timezone-aware sending",
+                  "Company intelligence",
                 ],
               },
               {
                 name: "Professional",
                 price: "$1,000",
-                sub: "25,000 credits",
-                credits: "Up to 10 agents, 10x concurrency",
+                sub: "30,000 credits",
+                credits: "Up to 10 agents, 20x concurrency",
                 highlight: true,
                 cta: "Get Started",
                 features: [
                   "Everything in Starter",
+                  "30,000 credits included",
                   "Up to 10 agents",
-                  "Up to 10x concurrency",
+                  "Up to 20x concurrency",
                   "Calendar integration",
                   "Advanced analytics",
-                  "Company intelligence",
                 ],
               },
               {
@@ -593,10 +609,10 @@ export function LandingPageClient() {
                 cta: "Talk to Sales",
                 features: [
                   "Everything in Professional",
+                  "70,000 credits included",
                   "Up to 30 agents",
                   "Up to 30x concurrency",
                   "Dedicated onboarding",
-                  "Custom integrations",
                   "Priority support",
                 ],
               },

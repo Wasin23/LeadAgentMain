@@ -68,24 +68,34 @@ class AWSManager {
         maxConcurrency: 5,
         description: 'Try Meridian with 250 free credits'
       },
+      'basic': {
+        name: 'Basic Plan',
+        initialCredits: 1200,
+        maxCredits: 10000,
+        canPurchaseMore: true,
+        creditPackages: [1000, 2000, 5000],
+        maxAgents: 3,
+        maxConcurrency: 5,
+        description: 'Get started with outreach on a budget'
+      },
       'starter': {
         name: 'Starter Plan',
-        initialCredits: 10000,
-        maxCredits: 25000,
+        initialCredits: 13000,
+        maxCredits: 30000,
         canPurchaseMore: true,
         creditPackages: [1000, 5000, 10000],
         maxAgents: 5,
-        maxConcurrency: 5,
+        maxConcurrency: 10,
         description: 'Perfect for small teams and solo entrepreneurs'
       },
       'professional': {
         name: 'Professional Plan',
-        initialCredits: 25000,
-        maxCredits: 70000,
+        initialCredits: 30000,
+        maxCredits: 80000,
         canPurchaseMore: true,
         creditPackages: [5000, 10000, 20000],
         maxAgents: 10,
-        maxConcurrency: 10,
+        maxConcurrency: 20,
         description: 'Ideal for growing businesses and agencies'
       },
       'enterprise': {
