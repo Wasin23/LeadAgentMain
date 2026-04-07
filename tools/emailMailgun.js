@@ -327,6 +327,10 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
               threadId: replyOptions?.threadId || null
             });
             
+            if (!outlookResult.success) {
+              throw new Error(outlookResult.error || 'Outlook send failed');
+            }
+            
             console.log(`✅ [OUTLOOK] Email sent successfully from ${outlookResult.fromEmail}`);
             console.log(`🚀 [EMAIL ROUTING] Outlook send complete - exiting function, NOT sending via Mailgun`);
             

@@ -388,7 +388,7 @@ class OutlookManager {
       if (trackingId) {
         message.internetMessageHeaders = [
           { name: 'X-Meridian-Tracking-Id', value: trackingId },
-          { name: 'Message-ID', value: this.buildTrackingMessageId(trackingId) }
+          { name: 'X-Meridian-Message-Id', value: this.buildTrackingMessageId(trackingId) }
         ];
       }
 
