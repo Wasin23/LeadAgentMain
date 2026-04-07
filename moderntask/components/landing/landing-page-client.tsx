@@ -540,7 +540,7 @@ export function LandingPageClient() {
                 name: "Free Trial",
                 price: "Free",
                 sub: "250 credits included",
-                credits: "1 agent, up to 5x concurrency",
+                credits: "1 agent, up to 3x speed",
                 highlight: false,
                 cta: "Start Free",
                 features: [

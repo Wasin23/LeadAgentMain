@@ -353,11 +353,11 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
   const addJob = (t: string) => { if (!settings.jobTitles.includes(t)) { setSettings(s => ({ ...s, jobTitles: [...s.jobTitles, t] })); setJobSearch('') } }
 
   const plans = [
-    { id: 'free-trial', name: 'Free Trial', price: 0, credits: 250, maxAgents: 1, maxConcurrency: 5, description: 'Perfect for trying out Meridian', features: ['250 free credits', '1 agent included', 'Up to 5x concurrency for testing', 'No credit card required'] },
-    { id: 'basic', name: 'Basic', price: 100, credits: 1200, maxAgents: 3, maxConcurrency: 5, description: 'Get started with outreach on a budget', features: ['1,200 credits', 'Up to 3 agents', 'Up to 5x concurrency', 'All core features unlocked'] },
-    { id: 'starter', name: 'Starter', price: 500, credits: 13000, maxAgents: 5, maxConcurrency: 10, description: 'Great for solo entrepreneurs', features: ['13,000 credits', 'Up to 5 agents', 'Up to 10x concurrency', 'All core features unlocked'] },
-    { id: 'professional', name: 'Professional', price: 1000, credits: 30000, maxAgents: 10, maxConcurrency: 20, description: 'Perfect for growing teams', features: ['30,000 credits', 'Up to 10 agents', 'Up to 20x concurrency', 'Best fit for active outreach teams'], popular: true },
-    { id: 'enterprise', name: 'Enterprise', price: 2500, credits: 70000, maxAgents: 30, maxConcurrency: 30, description: 'For high-volume operations', features: ['70,000 credits', 'Up to 30 agents', 'Up to 30x concurrency', 'Best for multi-agent teams'] },
+    { id: 'free-trial', name: 'Free Trial', price: 0, credits: 250, maxAgents: 1, maxConcurrency: 3, description: 'Perfect for trying out Meridian', features: ['250 free credits', '1 agent included', 'Up to 3x speed for testing', 'No credit card required'] },
+    { id: 'basic', name: 'Basic', price: 100, credits: 1200, maxAgents: 3, maxConcurrency: 5, description: 'Get started with outreach on a budget', features: ['1,200 credits', 'Up to 3 agents', 'Up to 5x speed', 'All core features unlocked'] },
+    { id: 'starter', name: 'Starter', price: 500, credits: 13000, maxAgents: 5, maxConcurrency: 10, description: 'Great for solo entrepreneurs', features: ['13,000 credits', 'Up to 5 agents', 'Up to 10x speed', 'All core features unlocked'] },
+    { id: 'professional', name: 'Professional', price: 1000, credits: 30000, maxAgents: 10, maxConcurrency: 20, description: 'Perfect for growing teams', features: ['30,000 credits', 'Up to 10 agents', 'Up to 20x speed', 'Best fit for active outreach teams'], popular: true },
+    { id: 'enterprise', name: 'Enterprise', price: 2500, credits: 70000, maxAgents: 30, maxConcurrency: 30, description: 'For high-volume operations', features: ['70,000 credits', 'Up to 30 agents', 'Up to 30x speed', 'Best for multi-agent teams'] },
   ]
 
   const planDetails = plans.find(p => p.id === selectedPlan) || plans[0]
