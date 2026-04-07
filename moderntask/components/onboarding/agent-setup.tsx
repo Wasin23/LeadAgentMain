@@ -96,76 +96,44 @@ const JOB_TITLES = [
 
 const INTRO_SLIDES = [
   {
-    eyebrow: 'Step 1 — Build your agent',
-    title: 'Give it a personality and a target',
-    description: 'Pick a communication style, define who it should contact, and connect your inbox. That\'s all.',
-    fact: { label: 'Your agent, your voice', detail: 'Choose from personalities like The Hunter or The Relationship Builder — the agent writes every email in that style.' },
+    eyebrow: 'Step 1 of 4',
+    title: 'You build it once. It runs forever.',
     avatars: PERSONALITY_TYPES.slice(0, 3),
-    stats: [
-      { label: 'Personality', value: '1 style' },
-      { label: 'Target audience', value: '1 ICP' },
-      { label: 'Connected inbox', value: 'Gmail / Outlook' },
+    items: [
+      'Pick a personality — The Hunter, The Analyst, whatever fits your style',
+      'Tell it who to target: industry, company size, job title, location',
+      'Connect your Gmail or Outlook — emails come from you, not a tool',
     ],
-    mockup: {
-      badge: 'Agent profile',
-      title: 'Series A Outreach Agent',
-      subtitle: 'Warm, relationship-first tone — targets SaaS founders in the US',
-      rows: ['Personality: Relationship Builder', 'Targeting: Founders at B2B SaaS, 10–200 employees', 'Sending: Gmail · follow-up after 7 days'],
-    },
   },
   {
-    eyebrow: 'Step 2 — The agent goes to work',
-    title: 'It finds leads, researches them, and writes the email',
-    description: 'Every cycle, it pulls fresh leads, reads their company context, and writes a personalized email — fully automatically.',
-    fact: { label: 'Real research, not mail merge', detail: 'It reads LinkedIn profiles, recent funding news, and company pages to write something that sounds hand-crafted.' },
+    eyebrow: 'Step 2 of 4',
+    title: 'It finds leads and writes each email from scratch.',
     avatars: [PERSONALITY_TYPES[2], PERSONALITY_TYPES[3], PERSONALITY_TYPES[0]],
-    stats: [
-      { label: 'Lead sourcing', value: 'Auto' },
-      { label: 'Research depth', value: 'Per lead' },
-      { label: 'Email copy', value: 'Personalized' },
+    items: [
+      'Pulls leads from Apollo that match your exact target audience',
+      'Reads each company\'s website, recent news, and LinkedIn before writing',
+      'Writes a unique email for every lead — not a template with a name swapped in',
     ],
-    mockup: {
-      badge: 'Active cycle',
-      title: 'Researching + writing',
-      subtitle: 'Agent is processing 12 leads this cycle',
-      rows: ['Pulled 12 leads from Apollo matching ICP', 'Reading company context + recent activity', 'Writing personalized first-line for each lead'],
-    },
   },
   {
-    eyebrow: 'Step 3 — Emails go out from your inbox',
-    title: 'Sent from your real Gmail or Outlook',
-    description: 'Emails land in your sent folder — not from a tool domain. Replies come back to you directly.',
-    fact: { label: 'Your domain, your reputation', detail: 'Because it sends from your real account, deliverability is tied to your domain — not shared sending infrastructure.' },
+    eyebrow: 'Step 3 of 4',
+    title: 'Emails go out from your real inbox.',
     avatars: [PERSONALITY_TYPES[1], PERSONALITY_TYPES[4], PERSONALITY_TYPES[2]],
-    stats: [
-      { label: 'Sent from', value: 'Your inbox' },
-      { label: 'Domain', value: 'Yours' },
-      { label: 'Follow-ups', value: 'Automatic' },
+    items: [
+      'Sent from your actual Gmail or Outlook — your name, your domain',
+      'Sending is spread across your schedule window so it looks natural',
+      'If no reply after a few days, a follow-up sends automatically',
     ],
-    mockup: {
-      badge: 'Outbox',
-      title: 'Emails queued for today',
-      subtitle: 'Sending across your schedule window — looks natural',
-      rows: ['18 first-touch emails queued', '6 follow-ups on day-7 cadence', 'Sending spread across 9am–5pm window'],
-    },
   },
   {
-    eyebrow: 'Step 4 — Replies and opens are tracked',
-    title: 'You\'ll know exactly who\'s interested',
-    description: 'Every email is tracked. Opens, clicks, and replies surface automatically so you know who to prioritize.',
-    fact: { label: 'No inbox hunting', detail: 'When someone replies, Meridian detects it in real time and flags the lead — so you can focus on responding to warm prospects.' },
+    eyebrow: 'Step 4 of 4',
+    title: 'You see exactly who opens, clicks, and replies.',
     avatars: [PERSONALITY_TYPES[0], PERSONALITY_TYPES[3], PERSONALITY_TYPES[1]],
-    stats: [
-      { label: 'Open tracking', value: 'Live' },
-      { label: 'Reply detection', value: 'Real-time' },
-      { label: 'Hot leads', value: 'Surfaced' },
+    items: [
+      'Every email is tracked — you see opens and link clicks in real time',
+      'When someone replies, it gets flagged so nothing slips through',
+      'Hot leads bubble up automatically so you know who to follow up with',
     ],
-    mockup: {
-      badge: 'Inbox activity',
-      title: 'Pipeline heating up',
-      subtitle: 'Replies and opens tracked across all active campaigns',
-      rows: ['3 replies detected — flagged for review', '11 opens in the last 24 hours', '2 prospects visited your link twice'],
-    },
   },
 ] as const
 
@@ -520,70 +488,23 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
               </div>
 
               <div className="rounded-[1.75rem] border border-white/20 bg-white/95 p-5 md:p-6 text-gray-900">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-600">Step {introSlide + 1} of {INTRO_SLIDES.length}</span>
-                  <span className="text-slate-300">·</span>
-                  <p className="text-xs text-slate-500">{currentIntroSlide.description}</p>
-                </div>
-                <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 mb-4 flex items-center gap-3">
-                  <div className="flex -space-x-2 flex-shrink-0">
-                    {currentIntroSlide.avatars.slice(0, 2).map((avatar) => (
-                      <div key={avatar.id} className={`w-9 h-9 rounded-full bg-gradient-to-br ${colorGrad[avatar.color]} p-0.5 border-2 border-white`}>
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex -space-x-2">
+                    {currentIntroSlide.avatars.slice(0, 3).map((avatar) => (
+                      <div key={avatar.id} className={`w-10 h-10 rounded-full bg-gradient-to-br ${colorGrad[avatar.color]} p-0.5 border-2 border-white`}>
                         <img src={avatar.avatar} alt={avatar.name} className="w-full h-full rounded-full object-cover bg-white" onError={e => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(avatar.name)}&background=3b82f6&color=ffffff` }} />
                       </div>
                     ))}
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800">{currentIntroSlide.fact.label}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">{currentIntroSlide.fact.detail}</p>
-                  </div>
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-500">{currentIntroSlide.eyebrow}</span>
                 </div>
-
-                <div className="rounded-[1.5rem] border border-gray-200 bg-white px-5 py-5">
-                  <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
-                    <div>
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className="rounded-full bg-blue-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-blue-600">{currentIntroSlide.mockup.badge}</span>
-                        <div className="flex -space-x-2">
-                          {currentIntroSlide.avatars.map((avatar) => (
-                            <div key={avatar.id} className={`w-11 h-11 rounded-full bg-gradient-to-br ${colorGrad[avatar.color]} p-0.5 border-2 border-white`}>
-                              <img src={avatar.avatar} alt={avatar.name} className="w-full h-full rounded-full object-cover bg-white" onError={e => { (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(avatar.name)}&background=3b82f6&color=ffffff` }} />
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      <p className="text-2xl font-bold text-gray-900">{currentIntroSlide.mockup.title}</p>
-                      <p className="text-base text-gray-500 mt-1.5">{currentIntroSlide.mockup.subtitle}</p>
+                <div className="space-y-2.5">
+                  {currentIntroSlide.items.map((item, i) => (
+                    <div key={i} className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3.5">
+                      <span className="mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-[10px] font-bold text-blue-600">{i + 1}</span>
+                      <span className="text-sm leading-relaxed text-gray-700">{item}</span>
                     </div>
-
-                    <div className="grid grid-cols-3 gap-3 w-full lg:w-auto lg:min-w-[340px]">
-                      {currentIntroSlide.stats.map((stat) => (
-                        <div key={stat.label} className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-center">
-                          <p className="text-lg font-bold text-gray-900">{stat.value}</p>
-                          <p className="text-[11px] uppercase tracking-[0.12em] text-gray-500 mt-1">{stat.label}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="grid gap-3 md:grid-cols-3">
-                    {currentIntroSlide.mockup.rows.map((row, index) => {
-                      const metricMatch = row.match(/^(\d+)\s+(.*)$/)
-                      return (
-                        <div key={row} className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4">
-                          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-xs font-bold text-blue-600">{index + 1}</span>
-                          {metricMatch ? (
-                            <>
-                              <span className="min-w-[3rem] text-3xl font-bold tracking-tight text-gray-900">{metricMatch[1]}</span>
-                              <span className="text-sm md:text-base text-gray-700 leading-snug">{metricMatch[2]}</span>
-                            </>
-                          ) : (
-                            <span className="text-sm md:text-base text-gray-700 leading-snug">{row}</span>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>
