@@ -399,10 +399,7 @@ export default function AgentDashboardPage({ params }: { params: Promise<{ agent
     return () => { clearInterval(poll); wsRef.current?.close(); };
   }, [agentId]);
 
-  useEffect(() => {
-    const el = logsContainerRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [agentLogs]);
+  // auto-scroll disabled
 
   // ─────────────────────────────────────────────────────
   // Actions
