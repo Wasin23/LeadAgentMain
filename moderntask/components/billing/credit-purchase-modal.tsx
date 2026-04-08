@@ -49,7 +49,7 @@ export function CreditPurchaseModal({
       price: 100,
       credits: 1200,
       emails: 1200,
-      features: ["1,200 credits included", "~1,200 emails", "Up to 3 agents", "Up to 5x concurrency"],
+      features: ["1,200 credits included", "~1,700 emails (at 0.7 credits/email)", "Up to 3 agents", "Up to 5x speed"],
     },
     {
       id: "starter",
@@ -57,7 +57,7 @@ export function CreditPurchaseModal({
       price: 500,
       credits: 13000,
       emails: 13000,
-      features: ["13,000 credits included", "~13,000 emails", "Up to 5 agents", "Up to 10x concurrency"],
+      features: ["13,000 credits included", "~18,500 emails (at 0.7 credits/email)", "Up to 5 agents", "Up to 10x speed"],
     },
     {
       id: "professional",
@@ -66,7 +66,7 @@ export function CreditPurchaseModal({
       credits: 30000,
       emails: 30000,
       popular: true,
-      features: ["30,000 credits included", "~30,000 emails", "Up to 10 agents", "Up to 20x concurrency"],
+      features: ["30,000 credits included", "~42,800 emails (at 0.7 credits/email)", "Up to 10 agents", "Up to 20x speed"],
     },
     {
       id: "enterprise",
@@ -74,7 +74,7 @@ export function CreditPurchaseModal({
       price: 2500,
       credits: 70000,
       emails: 70000,
-      features: ["70,000 credits included", "~70,000 emails", "Up to 30 agents", "Up to 30x concurrency"],
+      features: ["70,000 credits included", "~100,000 emails (at 0.7 credits/email)", "Up to 30 agents", "Up to 30x speed"],
     },
   ]
 
@@ -221,7 +221,7 @@ export function CreditPurchaseModal({
                     <strong className="text-foreground">Agent:</strong> an agent is one AI outbound worker with its own targeting, settings, and sending behavior. More agents let you run separate outreach strategies at the same time.
                   </p>
                   <p>
-                    <strong className="text-foreground">Concurrency:</strong> concurrency is how many leads one agent can research in parallel during a cycle. Higher concurrency means faster research, but it also uses more credits and API activity at once.
+                    <strong className="text-foreground">Speed:</strong> how many leads one agent researches in parallel. Higher speed means faster outreach, but burns through credits more quickly.
                   </p>
                 </div>
               </div>

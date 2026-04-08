@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { loadStripe } from "@stripe/stripe-js"
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js"
-import { DollarSign, CheckCircle, XCircle, RefreshCw, Calendar, CreditCard, Plus, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, Zap, Mail, TrendingDown, AlertTriangle, Gift, Lock } from "lucide-react"
+import { DollarSign, CheckCircle, XCircle, RefreshCw, Calendar, CreditCard, Plus, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, Zap, Mail, TrendingDown, AlertTriangle, Gift, Lock, Bot, Users, RefreshCcw } from "lucide-react"
 import api from "@/lib/api"
 import { fetchDisplayedCreditData } from "@/lib/credit-balance"
 import { CreditPurchaseModal } from "./credit-purchase-modal"
@@ -335,9 +335,36 @@ function BillingTabInner() {
   const [userPlan, setUserPlan] = useState<any>(null)
   const [apiStats, setApiStats] = useState<ApiUsageStats>({})
   const [showCostBreakdown, setShowCostBreakdown] = useState(false)
+  const [showAgentBreakdown, setShowAgentBreakdown] = useState(false)
   const [showCreditPurchaseModal, setShowCreditPurchaseModal] = useState(false)
   const [creditPurchaseMode, setCreditPurchaseMode] = useState<"upgrade" | "topup">("topup")
   const [creditLoading, setCreditLoading] = useState(true)
+
+  // Auto top-up
+  const [autoTopup, setAutoTopup] = useState({ enabled: false, threshold: 50, tierId: 'small' })
+  const [autoTopupSaving, setAutoTopupSaving] = useState(false)
+
+  // Per-agent usage
+  type AgentUsage = { agentId: string; name: string; totalCost: number; credits: number }
+  const [agentUsage, setAgentUsage] = useState<AgentUsage[]>([])
+  const [agentUsageLoading, setAgentUsageLoading] = useState(false)
+
+  // Payment status + plan management
+  const [paymentStatus, setPaymentStatus] = useState<string>('active')
+  const [nextPaymentDue, setNextPaymentDue] = useState<string | null>(null)
+  const [gracePeriodEnd, setGracePeriodEnd] = useState<string | null>(null)
+  const [cancelConfirm, setCancelConfirm] = useState(false)
+  const [cancelLoading, setCancelLoading] = useState(false)
+  const [downgradeTarget, setDowngradeTarget] = useState('')
+  const [downgradeLoading, setDowngradeLoading] = useState(false)
+
+  const PLAN_ORDER = ['free-trial', 'basic', 'starter', 'professional', 'enterprise']
+  const PLAN_LABELS: Record<string, string> = {
+    basic: 'Basic — $100/mo',
+    starter: 'Starter — $500/mo',
+    professional: 'Professional — $1,000/mo',
+    enterprise: 'Enterprise — $2,500/mo',
+  }
 
   const avgCreditsPerEmail = 0.7
   const estimatedEmailsAvailable = Math.floor(creditBalance / avgCreditsPerEmail)
@@ -348,7 +375,57 @@ function BillingTabInner() {
     loadPaymentMethods()
     loadTrialCredits()
     fetchCreditData()
+    api.get('/api/settings/auto-topup').then(r => { if (r.data?.settings) setAutoTopup(r.data.settings) }).catch(() => {})
+    api.get('/api/billing/payment-status').then(r => {
+      if (r.data) {
+        setPaymentStatus(r.data.status || 'active')
+        setNextPaymentDue(r.data.nextPaymentDue || null)
+        setGracePeriodEnd(r.data.gracePeriodEnd || null)
+      }
+    }).catch(() => {})
   }, [])
+
+  const handleCancelPlan = async () => {
+    setCancelLoading(true)
+    try {
+      await api.post('/api/plans/cancel')
+      setCancelConfirm(false)
+      await fetchCreditData()
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to cancel plan')
+    } finally {
+      setCancelLoading(false)
+    }
+  }
+
+  const handleDowngrade = async () => {
+    if (!downgradeTarget) return
+    setDowngradeLoading(true)
+    try {
+      await api.post('/api/plans/downgrade', { planType: downgradeTarget })
+      setDowngradeTarget('')
+      await fetchCreditData()
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to downgrade plan')
+    } finally {
+      setDowngradeLoading(false)
+    }
+  }
+
+  const saveAutoTopup = async (updated: typeof autoTopup) => {
+    setAutoTopupSaving(true)
+    try { await api.put('/api/settings/auto-topup', updated) } catch {}
+    finally { setAutoTopupSaving(false) }
+  }
+
+  const loadAgentUsage = async () => {
+    setAgentUsageLoading(true)
+    try {
+      const { data } = await api.get('/api/lead-agent/api-usage/by-agent')
+      if (data.success) setAgentUsage(data.agents || [])
+    } catch {}
+    finally { setAgentUsageLoading(false) }
+  }
 
   useEffect(() => {
     if (searchParams.get("upgrade") === "plans") {
@@ -440,15 +517,49 @@ function BillingTabInner() {
   return (
     <div className="space-y-6">
 
+      {/* ── Payment Failed Banner ───────────────────────────────────────── */}
+      {paymentStatus === 'payment_failed' && (
+        <div className="flex items-start gap-3 rounded-xl bg-destructive/10 border border-destructive/30 px-4 py-3">
+          <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-destructive">Payment failed</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              We couldn't process your last payment.
+              {gracePeriodEnd && ` You have until ${new Date(gracePeriodEnd).toLocaleDateString()} to update your payment method before your account is suspended.`}
+            </p>
+          </div>
+          <button
+            className="text-xs font-medium text-destructive underline underline-offset-2 flex-shrink-0"
+            onClick={() => document.getElementById('payment-methods-section')?.scrollIntoView({ behavior: 'smooth' })}
+          >
+            Fix now
+          </button>
+        </div>
+      )}
+
       {/* ── Credit Balance Card ─────────────────────────────────────────── */}
       <div className="rounded-2xl bg-primary p-6 text-primary-foreground shadow-sm">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            {/* Plan badge */}
+            {/* Plan badge + limits */}
             {userPlan?.plan && (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary-foreground/15 rounded-full text-xs font-medium mb-3">
-                <Sparkles className="w-3.5 h-3.5" />
-                {userPlan.plan.name}
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary-foreground/15 rounded-full text-xs font-medium">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  {userPlan.plan.name}
+                </div>
+                {userPlan.plan.maxAgents && (
+                  <div className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary-foreground/10 rounded-full text-xs text-primary-foreground/70">
+                    <Bot className="w-3 h-3" />
+                    {userPlan.plan.maxAgents} agent{userPlan.plan.maxAgents === 1 ? '' : 's'}
+                  </div>
+                )}
+                {userPlan.plan.maxConcurrency && (
+                  <div className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary-foreground/10 rounded-full text-xs text-primary-foreground/70">
+                    <Zap className="w-3 h-3" />
+                    {userPlan.plan.maxConcurrency}x speed
+                  </div>
+                )}
               </div>
             )}
 
@@ -539,6 +650,57 @@ function BillingTabInner() {
         ))}
       </div>
 
+      {/* ── Auto Top-up ─────────────────────────────────────────────────── */}
+      <div className="rounded-xl border bg-card p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <RefreshCcw className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm font-semibold">Auto Top-up</span>
+              {autoTopupSaving && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />}
+            </div>
+            <p className="text-xs text-muted-foreground">Automatically buy more credits when your balance drops below a threshold. Prevents agents from going idle.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => { const updated = { ...autoTopup, enabled: !autoTopup.enabled }; setAutoTopup(updated); saveAutoTopup(updated) }}
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none mt-0.5 ${autoTopup.enabled ? 'bg-primary' : 'bg-muted-foreground/30'}`}
+          >
+            <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform duration-200 ${autoTopup.enabled ? 'translate-x-5' : 'translate-x-0'}`} />
+          </button>
+        </div>
+
+        {autoTopup.enabled && (
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Trigger when balance falls below</label>
+              <select
+                value={autoTopup.threshold}
+                onChange={e => { const updated = { ...autoTopup, threshold: Number(e.target.value) }; setAutoTopup(updated); saveAutoTopup(updated) }}
+                className="w-full text-sm border border-input rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+              >
+                {[25, 50, 100, 200, 500].map(v => (
+                  <option key={v} value={v}>{v} credits</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Top-up amount</label>
+              <select
+                value={autoTopup.tierId}
+                onChange={e => { const updated = { ...autoTopup, tierId: e.target.value }; setAutoTopup(updated); saveAutoTopup(updated) }}
+                className="w-full text-sm border border-input rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+              >
+                <option value="mini">Mini — 100 credits ($10)</option>
+                <option value="small">Small — 550 credits ($50)</option>
+                <option value="medium">Medium — 1,150 credits ($100)</option>
+                <option value="bulk">Bulk — 3,000 credits ($250)</option>
+              </select>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* ── Cost Breakdown Accordion ────────────────────────────────────── */}
       <div className="rounded-xl border bg-card overflow-hidden">
         <button
@@ -561,11 +723,11 @@ function BillingTabInner() {
             <div className="overflow-hidden">
               <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
-                  { label: "Apollo",     cost: apiStats.apollo?.cost ?? 0,     detail: `${(apiStats.apollo?.calls ?? 0).toLocaleString()} calls` },
-                  { label: "OpenAI",     cost: apiStats.openai?.cost ?? 0,     detail: `${((apiStats.openai?.tokens ?? 0) / 1000).toFixed(1)}k tokens` },
-                  { label: "Mailgun",    cost: apiStats.mailgun?.cost ?? 0,    detail: `${(apiStats.mailgun?.sent ?? 0).toLocaleString()} emails sent` },
-                  { label: "ZeroBounce", cost: apiStats.zerobounce?.cost ?? 0, detail: `${(apiStats.zerobounce?.validations ?? 0).toLocaleString()} validations` },
-                  { label: "Serper",     cost: apiStats.serper?.cost ?? 0,     detail: `${(apiStats.serper?.searches ?? 0).toLocaleString()} searches` },
+                  { label: "Apollo (lead sourcing)",        cost: apiStats.apollo?.cost ?? 0,     detail: `${(apiStats.apollo?.calls ?? 0).toLocaleString()} lead lookups` },
+                  { label: "OpenAI (AI writing)",           cost: apiStats.openai?.cost ?? 0,     detail: `${((apiStats.openai?.tokens ?? 0) / 1000).toFixed(1)}k tokens` },
+                  { label: "Mailgun (email sending)",       cost: apiStats.mailgun?.cost ?? 0,    detail: `${(apiStats.mailgun?.sent ?? 0).toLocaleString()} emails sent` },
+                  { label: "Email Validation",              cost: apiStats.zerobounce?.cost ?? 0, detail: `${(apiStats.zerobounce?.validations ?? 0).toLocaleString()} addresses checked` },
+                  { label: "Web Research (Serper)",         cost: apiStats.serper?.cost ?? 0,     detail: `${(apiStats.serper?.searches ?? 0).toLocaleString()} searches` },
                 ].map((service) => (
                   <div key={service.label} className="rounded-lg border bg-muted/50 p-4">
                     <div className="flex items-center justify-between">
@@ -581,6 +743,134 @@ function BillingTabInner() {
           )}
       </div>
 
+      {/* ── Per-Agent Breakdown Accordion ───────────────────────────────── */}
+      <div className="rounded-xl border bg-card overflow-hidden">
+        <button
+          onClick={() => {
+            setShowAgentBreakdown(v => !v)
+            if (!showAgentBreakdown && agentUsage.length === 0) loadAgentUsage()
+          }}
+          className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/40 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-semibold">Credits by Agent</span>
+            <span className="text-xs text-muted-foreground ml-1">see which agent is spending the most</span>
+          </div>
+          {showAgentBreakdown ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+        </button>
+        {showAgentBreakdown && (
+          <div className="px-5 pb-5">
+            {agentUsageLoading ? (
+              <div className="flex items-center justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+            ) : agentUsage.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No agent usage data yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {agentUsage
+                  .sort((a, b) => b.credits - a.credits)
+                  .map(agent => {
+                    const total = agentUsage.reduce((s, a) => s + a.credits, 0)
+                    const pct = total > 0 ? Math.round((agent.credits / total) * 100) : 0
+                    return (
+                      <div key={agent.agentId}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium">{agent.name}</span>
+                          <span className="text-sm font-semibold tabular-nums">{agent.credits.toLocaleString()} credits</span>
+                        </div>
+                        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">{pct}% of total · ${agent.totalCost.toFixed(2)} in API costs</p>
+                      </div>
+                    )
+                  })}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      {/* ── Plan Management ─────────────────────────────────────────────── */}
+      {userPlan?.plan?.id && userPlan.plan.id !== 'free-trial' && (() => {
+        const currentIdx = PLAN_ORDER.indexOf(userPlan.plan.id)
+        const downgradePlans = PLAN_ORDER.slice(1, currentIdx)
+        return (
+          <div className="rounded-xl border bg-card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-sm font-semibold">Manage Plan</h3>
+                {nextPaymentDue && (
+                  <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5" />
+                    Next renewal: {new Date(nextPaymentDue!).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Downgrade */}
+            {downgradePlans.length > 0 && (
+              <div className="mb-4">
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Downgrade to a lower plan</label>
+                <p className="text-xs text-muted-foreground mb-2">No charge — your existing credits are kept. New agent and speed limits apply immediately.</p>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={downgradeTarget}
+                    onChange={e => setDowngradeTarget(e.target.value)}
+                    className="flex-1 text-sm border border-input rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  >
+                    <option value="">Select a plan…</option>
+                    {downgradePlans.map(p => (
+                      <option key={p} value={p}>{PLAN_LABELS[p] ?? p}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={handleDowngrade}
+                    disabled={!downgradeTarget || downgradeLoading}
+                    className="px-4 py-2 text-sm font-medium rounded-lg border border-input bg-background hover:bg-muted disabled:opacity-40 transition-colors flex items-center gap-1.5"
+                  >
+                    {downgradeLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    Confirm Downgrade
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Cancel plan */}
+            <div className="border-t pt-4">
+              {!cancelConfirm ? (
+                <button
+                  onClick={() => setCancelConfirm(true)}
+                  className="text-sm text-destructive/70 hover:text-destructive underline underline-offset-2 transition-colors"
+                >
+                  Cancel plan
+                </button>
+              ) : (
+                <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3">
+                  <p className="text-sm font-medium mb-1">Cancel your plan?</p>
+                  <p className="text-xs text-muted-foreground mb-3">Your account will be moved to Free Trial (1 agent, 5x speed). No further monthly charges will apply.</p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleCancelPlan}
+                      disabled={cancelLoading}
+                      className="px-3 py-1.5 text-sm font-medium rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 transition-colors flex items-center gap-1.5"
+                    >
+                      {cancelLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                      Yes, cancel plan
+                    </button>
+                    <button
+                      onClick={() => setCancelConfirm(false)}
+                      className="px-3 py-1.5 text-sm font-medium rounded-lg border border-input hover:bg-muted transition-colors"
+                    >
+                      Keep plan
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
       {/* ── CreditPurchaseModal ─────────────────────────────────────────── */}
       {showCreditPurchaseModal && (
         <CreditPurchaseModal
@@ -654,7 +944,7 @@ function BillingTabInner() {
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div id="payment-methods-section" className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-semibold">Payment Methods</h2>
           <p className="text-xs text-muted-foreground mt-0.5">Manage cards used for plan upgrades and credit purchases</p>
