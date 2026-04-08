@@ -137,7 +137,7 @@ const INTRO_SLIDES = [
   },
 ] as const
 
-type Step = 'intro' | 'personality' | 'name-agent' | 'plan' | 'configure' | 'name-preset' | 'email-setup' | 'crm-setup' | 'payment' | 'review' | 'creating'
+type Step = 'intro' | 'personality' | 'name-agent' | 'plan' | 'configure' | 'name-preset' | 'email-setup' | 'notifications' | 'crm-setup' | 'payment' | 'review' | 'creating'
 
 interface Props {
   onComplete: () => void
@@ -173,6 +173,10 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
   const [createError, setCreateError] = useState<string | null>(null)
   const [returnToReview, setReturnToReview] = useState(false)
 
+  // Notification preferences
+  const [notifEmailEnabled, setNotifEmailEnabled] = useState(true)
+  const [notifSmsEnabled, setNotifSmsEnabled] = useState(false)
+
   // Industry search state
   const [industrySearch, setIndustrySearch] = useState('')
   const [jobSearch, setJobSearch] = useState('')
@@ -184,7 +188,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
   const [crmError, setCrmError] = useState<string | null>(null)
   const [showCrmDropdown, setShowCrmDropdown] = useState(false)
 
-  const steps: Step[] = ['intro', 'personality', 'name-agent', 'plan', 'configure', 'name-preset', 'email-setup', 'crm-setup', 'payment', 'review', 'creating']
+  const steps: Step[] = ['intro', 'personality', 'name-agent', 'plan', 'configure', 'name-preset', 'email-setup', 'notifications', 'crm-setup', 'payment', 'review', 'creating']
   const stepIdx = steps.indexOf(step)
   const totalSteps = steps.length - 2 // exclude creating
 
@@ -306,6 +310,8 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
         }
       })
       if (agentRes.data.success) {
+        // Save notification preferences
+        await api.put('/api/settings/notifications', { emailEnabled: notifEmailEnabled, smsEnabled: notifSmsEnabled }).catch(() => {})
         setCreateSuccess(true)
         setIsCreating(false)
         setTimeout(onComplete, 1500)
@@ -988,6 +994,79 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
           </div>
         )}
 
+        {/* NOTIFICATIONS */}
+        {step === 'notifications' && (
+          <div className="max-w-2xl mx-auto">
+            <div className="text-center mb-7">
+              <h2 className="text-4xl font-bold text-white mb-2">Notification Preferences</h2>
+              <p className="text-xl text-white/70">Choose how you want to be alerted about agent activity</p>
+            </div>
+            <div className="bg-white/95 backdrop-blur-md border border-gray-200 rounded-2xl p-6 mb-6 shadow-sm space-y-5">
+              {/* What you'll be notified about */}
+              <div>
+                <p className="text-sm font-semibold text-gray-700 mb-3">You'll receive alerts for:</p>
+                <div className="grid grid-cols-1 gap-2">
+                  {[
+                    { icon: '↩️', label: 'Replies', desc: 'When a lead replies to one of your emails' },
+                    { icon: '👁️', label: 'Email Opens', desc: 'When a lead opens an email you sent' },
+                    { icon: '📅', label: 'Meetings Booked', desc: 'When a calendar event is confirmed' },
+                    { icon: '❌', label: 'Failed Sends', desc: 'When an email bounces or fails to deliver' },
+                    { icon: '⚠️', label: 'Agent Issues', desc: 'When your agent encounters an error or warning' },
+                  ].map(item => (
+                    <div key={item.label} className="flex items-start gap-3 px-4 py-3 rounded-xl bg-gray-50 border border-gray-100">
+                      <span className="text-lg leading-none mt-0.5">{item.icon}</span>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">{item.label}</p>
+                        <p className="text-xs text-gray-500">{item.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-t border-gray-100 pt-4 space-y-4">
+                {/* Email notifications */}
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800">Email Notifications</p>
+                    <p className="text-xs text-gray-500">Receive alerts in your inbox</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setNotifEmailEnabled(v => !v)}
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${notifEmailEnabled ? 'bg-blue-600' : 'bg-gray-200'}`}
+                  >
+                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform duration-200 ${notifEmailEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+
+                {/* SMS notifications */}
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800">SMS Notifications</p>
+                    <p className="text-xs text-gray-500">Text alerts for replies and meetings</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setNotifSmsEnabled(v => !v)}
+                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${notifSmsEnabled ? 'bg-blue-600' : 'bg-gray-200'}`}
+                  >
+                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform duration-200 ${notifSmsEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+
+                <p className="text-xs text-gray-400">You can change these anytime in Settings → Notifications.</p>
+              </div>
+            </div>
+            <div className="flex justify-between">
+              <button onClick={back} className="px-6 py-3 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl font-semibold transition-all">← Back</button>
+              <button onClick={next} className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-semibold hover:shadow-xl hover:scale-105 transition-all">
+                Continue →
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* CRM SETUP */}
         {step === 'crm-setup' && (
           <div className="max-w-2xl mx-auto">
@@ -1315,6 +1394,20 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                 </p>
                 </div>
                 <button onClick={() => editStep('email-setup')} className="shrink-0 text-xs text-blue-600 hover:text-blue-800 font-medium px-2.5 py-1 rounded-lg hover:bg-blue-50 transition-colors">Edit</button>
+              </div>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Notifications</p>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${notifEmailEnabled ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-400'}`}>
+                      📧 Email {notifEmailEnabled ? 'on' : 'off'}
+                    </span>
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${notifSmsEnabled ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+                      💬 SMS {notifSmsEnabled ? 'on' : 'off'}
+                    </span>
+                  </div>
+                </div>
+                <button onClick={() => editStep('notifications')} className="shrink-0 text-xs text-blue-600 hover:text-blue-800 font-medium px-2.5 py-1 rounded-lg hover:bg-blue-50 transition-colors">Edit</button>
               </div>
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1">

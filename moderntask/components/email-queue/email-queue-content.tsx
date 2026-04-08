@@ -556,10 +556,11 @@ function EmailRow({ email, agentMap, selected, onSelect, fontSize, actions, onEd
               <div className="relative" ref={menuRef}>
                 <button
                   onClick={() => setMenuOpen(p => !p)}
-                  className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  className="flex items-center gap-1 px-2 py-1 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors font-medium"
                   title="More options"
                 >
                   <MoreHorizontal className="w-3.5 h-3.5" />
+                  Edit
                 </button>
                 {menuOpen && (
                   <div className="absolute right-0 top-full z-50 mt-1 w-44 bg-popover border border-border rounded-lg shadow-xl overflow-hidden">
