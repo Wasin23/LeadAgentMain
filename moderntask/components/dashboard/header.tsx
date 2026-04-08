@@ -202,11 +202,11 @@ export function Header({
             onQueryChange={onQueryChange}
             loading={loading}
           />
+
+          {actions && <div className="flex items-center">{actions}</div>}
         </div>
 
         <div className="flex items-center gap-1.5 md:gap-2">
-          {actions && <div className="flex items-center">{actions}</div>}
-          {actions && <div className="w-px h-5 bg-border" />}
           {/* CRM connection status */}
           {crmName !== undefined && <CrmBadge name={crmName} />}
 
