@@ -1405,14 +1405,15 @@ router.post('/rebuild', async (req, res) => {
       return res.status(400).json({ error: 'emailId, agentId, and instruction are required' });
     }
 
-    // Extract and preserve any compliance footer (unsubscribe block)
-    // Footer is appended as "\n\n{company...}\n<a href="...">Stop emails</a>"
+    // Extract and preserve the compliance footer (unsubscribe block).
+    // ^([\s\S]*) is greedy, so it consumes as much as possible — meaning \n\n matches
+    // the LAST double-newline before a block containing an unsubscribe signal.
     let bodyForAI = currentBody || '';
     let preservedFooter = '';
-    const footerMatch = bodyForAI.match(/([\r\n]{2}[\s\S]*?(?:unsubscribe|stop emails|\/unsubscribe\?token=)[\s\S]*)$/i);
+    const footerMatch = bodyForAI.match(/^([\s\S]*)\r?\n\r?\n([\s\S]*(?:unsubscribe|stop emails|\/unsubscribe\?token=)[\s\S]*)$/i);
     if (footerMatch) {
-      preservedFooter = footerMatch[1];
-      bodyForAI = bodyForAI.slice(0, bodyForAI.length - preservedFooter.length);
+      bodyForAI = footerMatch[1];
+      preservedFooter = '\n\n' + footerMatch[2];
     }
 
     const Anthropic = (await import('@anthropic-ai/sdk')).default;
