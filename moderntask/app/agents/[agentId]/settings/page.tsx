@@ -735,35 +735,6 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
             </div>
           </Section>
 
-          {/* Research Focus */}
-          <Section title="Research Focus" description="Configure how leads are researched before outreach">
-            <div className="space-y-5 mt-4">
-              <TagInput
-                label="Focus Areas"
-                tags={settings.researchFocus.focusAreas}
-                onAdd={t => updateResearch('focusAreas', [...settings.researchFocus.focusAreas, t])}
-                onRemove={t => updateResearch('focusAreas', settings.researchFocus.focusAreas.filter((x: string) => x !== t))}
-                suggestions={['Pain Points', 'Recent Wins', 'Company Culture', 'Tech Stack', 'Competitors', 'Growth Plans']}
-                placeholder="Add research focus areas…"
-                helpText="What to prioritize when researching leads"
-              />
-              <div className="space-y-1.5">
-                <Label>Research Depth</Label>
-                <select value={settings.researchFocus.researchDepth} onChange={e => updateResearch('researchDepth', e.target.value)}
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring">
-                  <option value="minimal">Minimal (faster, less personalized)</option>
-                  <option value="standard">Standard (balanced)</option>
-                  <option value="deep">Deep (slower, highly personalized)</option>
-                </select>
-              </div>
-              <div className="space-y-3 pt-1">
-                <ToggleRow label="Include Company News" checked={settings.researchFocus.includeCompanyNews} onChange={v => updateResearch('includeCompanyNews', v)} description="Research recent company news and announcements" />
-                <ToggleRow label="Include Personal Info" checked={settings.researchFocus.includePersonalInfo} onChange={v => updateResearch('includePersonalInfo', v)} description="Research contact's background and interests" />
-                <ToggleRow label="Include Social Media" checked={settings.researchFocus.includeSocialMedia} onChange={v => updateResearch('includeSocialMedia', v)} description="Research contact's social media activity" />
-              </div>
-            </div>
-          </Section>
-
           {/* Email Settings */}
           <Section title="Email Settings" description="Configure follow-ups and sending">
             <div className="space-y-5 mt-4">
