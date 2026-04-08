@@ -171,6 +171,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
   const [isCreating, setIsCreating] = useState(false)
   const [createSuccess, setCreateSuccess] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
+  const [returnToReview, setReturnToReview] = useState(false)
 
   // Industry search state
   const [industrySearch, setIndustrySearch] = useState('')
@@ -219,6 +220,11 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
   }
 
   const next = () => {
+    if (returnToReview) {
+      setReturnToReview(false)
+      setStep('review')
+      return
+    }
     const ni = stepIdx + 1
     if (ni < steps.length) {
       const nextStep = steps[ni]
@@ -227,6 +233,11 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
     }
   }
   const back = () => {
+    if (returnToReview) {
+      setReturnToReview(false)
+      setStep('review')
+      return
+    }
     const pi = stepIdx - 1
     if (pi >= 0) {
       const previousStep = steps[pi]
@@ -236,6 +247,10 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
         setIntroSlide(0)
       }
     }
+  }
+  const editStep = (s: Step) => {
+    setReturnToReview(true)
+    setStep(s)
   }
 
   const createAgent = async () => {
@@ -1230,18 +1245,25 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
               <p className="text-xl text-white/70">Everything look good?</p>
             </div>
             <div className="bg-white/95 backdrop-blur-md border border-gray-200 rounded-2xl p-6 mb-6 shadow-sm space-y-5">
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Agent Name</p>
-                <p className="text-2xl font-bold text-gray-900">{agentName}</p>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-sm text-gray-500 mb-1">Agent Name</p>
+                  <p className="text-2xl font-bold text-gray-900">{agentName}</p>
+                </div>
+                <button onClick={() => editStep('name-agent')} className="shrink-0 text-xs text-blue-600 hover:text-blue-800 font-medium px-2.5 py-1 rounded-lg hover:bg-blue-50 transition-colors">Edit</button>
               </div>
               {specialInstructions.trim() && (
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                  <p className="text-xs font-bold text-blue-900 mb-1">General Instructions</p>
-                  <p className="text-xs text-blue-800">{specialInstructions}</p>
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-xs font-bold text-blue-900 mb-1">General Instructions</p>
+                    <p className="text-xs text-blue-800">{specialInstructions}</p>
+                  </div>
+                  <button onClick={() => editStep('configure')} className="shrink-0 text-xs text-blue-600 hover:text-blue-800 font-medium px-2.5 py-1 rounded-lg hover:bg-blue-100 transition-colors">Edit</button>
                 </div>
               )}
               {personality && (
-                <div>
+                <div className="flex items-start justify-between gap-2">
+                  <div>
                   <p className="text-sm text-gray-500 mb-1">Personality</p>
                   <div className="flex items-center gap-3">
                     <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${colorGrad[personality.color]} p-0.5`}>
@@ -1252,9 +1274,12 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                       <p className="text-xs text-gray-500">{personality.emailStyle}</p>
                     </div>
                   </div>
+                  </div>
+                  <button onClick={() => editStep('personality')} className="shrink-0 text-xs text-blue-600 hover:text-blue-800 font-medium px-2.5 py-1 rounded-lg hover:bg-blue-50 transition-colors">Edit</button>
                 </div>
               )}
-              <div>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1">
                 <p className="text-sm text-gray-500 mb-1">Settings Preset</p>
                 <p className="text-lg font-bold text-gray-900">{presetName}</p>
                 <div className="mt-2 space-y-1 text-sm">
@@ -1277,14 +1302,20 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                     </div>
                   )}
                 </div>
+                </div>
+                <button onClick={() => editStep('configure')} className="shrink-0 text-xs text-blue-600 hover:text-blue-800 font-medium px-2.5 py-1 rounded-lg hover:bg-blue-50 transition-colors">Edit</button>
               </div>
-              <div>
+              <div className="flex items-start justify-between gap-2">
+                <div>
                 <p className="text-sm text-gray-500 mb-1">Email Sending</p>
                 <p className="font-semibold text-gray-900">
                   {useGmail ? '📧 Gmail (Primary inbox)' : useOutlook ? '📧 Outlook/Office 365' : '📧 Mailgun (Standard)'}
                 </p>
+                </div>
+                <button onClick={() => editStep('email-setup')} className="shrink-0 text-xs text-blue-600 hover:text-blue-800 font-medium px-2.5 py-1 rounded-lg hover:bg-blue-50 transition-colors">Edit</button>
               </div>
-              <div>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1">
                 <p className="text-sm text-gray-500 mb-1">Plan</p>
                 <p className="font-semibold text-gray-900">{planDetails.name} — {planDetails.credits.toLocaleString()} credits</p>
                 <p className="text-xs text-gray-500 mt-1">Up to {planDetails.maxAgents} agent{planDetails.maxAgents === 1 ? '' : 's'} · Up to {planDetails.maxConcurrency}x concurrency</p>
@@ -1301,6 +1332,8 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                       ))}
                   </div>
                 )}
+                </div>
+                <button onClick={() => editStep('plan')} className="shrink-0 text-xs text-blue-600 hover:text-blue-800 font-medium px-2.5 py-1 rounded-lg hover:bg-blue-50 transition-colors">Edit</button>
               </div>
             </div>
             <div className="flex justify-between">

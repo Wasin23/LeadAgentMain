@@ -1041,7 +1041,7 @@ export default function AgentDashboardPage({ params }: { params: Promise<{ agent
                 )}
               </div>
             </CardHeader>
-            <div ref={logsContainerRef} className="flex-1 overflow-y-auto font-mono text-xs" style={{ height: 480 }}>
+            <div ref={logsContainerRef} className="overflow-y-auto font-mono text-xs" style={{ maxHeight: 480 }}>
               {agentLogs.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-6 text-center">
                   <p className="text-sm">No activity logs yet</p>
@@ -1117,7 +1117,7 @@ export default function AgentDashboardPage({ params }: { params: Promise<{ agent
                 </div>
               </div>
             </CardHeader>
-            <div className="flex-1 overflow-y-auto divide-y divide-border" style={{ maxHeight: 420 }}>
+            <div className="overflow-y-auto divide-y divide-border" style={{ maxHeight: 420 }}>
               {recentEmails.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full py-12 text-muted-foreground text-center px-4">
                   <Mail className="h-10 w-10 mb-2 opacity-30" />
