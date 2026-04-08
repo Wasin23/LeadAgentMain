@@ -219,6 +219,39 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [loadingPresets, setLoadingPresets] = useState(false);
   const [autofilling, setAutofilling] = useState(false);
+  const [resetWebsiteUrl, setResetWebsiteUrl] = useState('');
+  const [resetScraping, setResetScraping] = useState(false);
+  const [showResetWebsite, setShowResetWebsite] = useState(false);
+
+  const handleResetFromWebsite = async () => {
+    if (!resetWebsiteUrl.trim()) return;
+    setResetScraping(true);
+    try {
+      const r = await api.post('/api/company-profile/scrape-website', { url: resetWebsiteUrl.trim() });
+      const p = r.data?.profile;
+      if (p) {
+        await api.post('/api/company-profile/save', { profile: p, recommendedPreset: r.data?.recommendedPreset || null });
+        setSettings(prev => ({
+          ...prev,
+          companyBranding: {
+            ...prev.companyBranding,
+            companyName: p.companyName || prev.companyBranding.companyName,
+            companyWebsite: p.website || prev.companyBranding.companyWebsite,
+            companyDescription: p.description || prev.companyBranding.companyDescription,
+            primaryService: p.services || prev.companyBranding.primaryService,
+            coreOffering: p.coreOffering || prev.companyBranding.coreOffering,
+            keyAdvantages: p.keyAdvantages || prev.companyBranding.keyAdvantages,
+          },
+        }));
+        setShowResetWebsite(false);
+        setResetWebsiteUrl('');
+      }
+    } catch {
+      alert('Failed to scrape website. Check the URL and try again.');
+    } finally {
+      setResetScraping(false);
+    }
+  };
 
   const handleAutofill = async () => {
     setAutofilling(true);
@@ -526,7 +559,42 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
 
           {/* Company Branding */}
           <Section title="Your Company" description="Information about your company for email personalization" defaultOpen={true}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            {/* Reset from website */}
+            <div className="mt-4 mb-3">
+              {!showResetWebsite ? (
+                <button
+                  type="button"
+                  onClick={() => setShowResetWebsite(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-muted bg-muted/40 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                  Reset from website
+                </button>
+              ) : (
+                <div className="flex items-center gap-2 p-3 rounded-lg border border-border bg-muted/20">
+                  <Input
+                    value={resetWebsiteUrl}
+                    onChange={e => setResetWebsiteUrl(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleResetFromWebsite(); }}
+                    placeholder="https://yourcompany.com"
+                    className="flex-1 text-sm h-8"
+                    autoFocus
+                    disabled={resetScraping}
+                  />
+                  <Button
+                    size="sm"
+                    onClick={handleResetFromWebsite}
+                    disabled={resetScraping || !resetWebsiteUrl.trim()}
+                    className="gap-1.5 h-8 px-3 text-xs flex-shrink-0"
+                  >
+                    {resetScraping ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>}
+                    {resetScraping ? 'Scanning…' : 'Go'}
+                  </Button>
+                  <button type="button" onClick={() => { setShowResetWebsite(false); setResetWebsiteUrl(''); }} className="text-xs text-muted-foreground hover:text-foreground transition-colors flex-shrink-0" disabled={resetScraping}>Cancel</button>
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {([
                 ['agentName', 'Agent Name', 'Sales Bot'],
                 ['companyName', 'Company Name', 'Acme Inc'],

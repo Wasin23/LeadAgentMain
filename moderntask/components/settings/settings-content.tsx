@@ -545,12 +545,14 @@ export function SettingsContent() {
     if (!analyzeWebsiteUrl.trim()) { toast.error("Enter a website URL first"); return }
     setAnalyzingWebsite(true)
     try {
-      const r = await api.post("/api/company-profile/analyze", { website: analyzeWebsiteUrl })
+      const r = await api.post("/api/company-profile/scrape-website", { url: analyzeWebsiteUrl.trim() })
       if (r.data?.profile) {
-        setCompanyProfile(prev => ({ ...prev, ...r.data.profile }))
-        toast.success("Profile filled from website!")
+        const merged = { ...companyProfile, ...r.data.profile }
+        setCompanyProfile(merged)
+        await api.post("/api/company-profile/save", { profile: merged, recommendedPreset: r.data?.recommendedPreset || null })
+        toast.success("Company profile reset from website!")
       }
-    } catch { toast.error("Failed to analyze website") }
+    } catch { toast.error("Failed to scrape website. Check the URL and try again.") }
     finally { setAnalyzingWebsite(false) }
   }
 
@@ -1180,7 +1182,7 @@ export function SettingsContent() {
                 />
                 <Button variant="secondary" className="gap-1.5 flex-shrink-0" onClick={analyzeFromWebsite} disabled={analyzingWebsite}>
                   {analyzingWebsite ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                  Auto-fill
+                  {analyzingWebsite ? 'Scanning…' : 'Reset from website'}
                 </Button>
               </div>
             </div>
