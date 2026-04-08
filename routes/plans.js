@@ -2,6 +2,7 @@ import express from 'express';
 import Stripe from 'stripe';
 import { authenticateToken } from '../middleware/jwt.js';
 import AWSManager from '../utils/awsManager.js';
+import { sendPlanUpgradedEmail, sendPlanCancelledEmail, sendPlanChangedEmail } from '../utils/billingEmails.js';
 
 const router = express.Router();
 const awsManager = new AWSManager();
@@ -131,6 +132,13 @@ router.post('/upgrade', authenticateToken, async (req, res) => {
 
     const result = await awsManager.updateUserPlan(userId, planType);
 
+    // Send upgrade confirmation email (non-blocking)
+    try {
+      const fromPlanName = awsManager.getPlanConfig(user.plan || 'free-trial').name;
+      const toPlanName = awsManager.getPlanConfig(planType).name;
+      sendPlanUpgradedEmail(userId, user.email, fromPlanName, toPlanName, planPriceCents / 100).catch(() => {});
+    } catch {}
+
     res.json({ success: true, ...result });
   } catch (error) {
     console.error('[PLANS] Error upgrading plan:', error);
@@ -240,6 +248,79 @@ router.get('/purchase-history', authenticateToken, async (req, res) => {
       success: false,
       error: error.message
     });
+  }
+});
+
+const PLAN_ORDER = ['free-trial', 'basic', 'starter', 'professional', 'enterprise'];
+
+// Cancel plan — reverts to free-trial, keeps existing credits
+router.post('/cancel', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const user = await awsManager.getUserById(userId);
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+    const currentPlan = user.plan || 'free-trial';
+    if (currentPlan === 'free-trial') {
+      return res.status(400).json({ success: false, error: 'You are already on the free trial.' });
+    }
+
+    const freePlanConfig = awsManager.getPlanConfig('free-trial');
+    await awsManager.updateUser(userId, {
+      plan: 'free-trial',
+      maxAgents: freePlanConfig.maxAgents,
+      maxConcurrency: freePlanConfig.maxConcurrency,
+      maxCredits: freePlanConfig.maxCredits,
+      planUpdatedAt: new Date().toISOString(),
+    });
+
+    const fromPlanName = awsManager.getPlanConfig(currentPlan).name;
+    sendPlanCancelledEmail(userId, user.email, fromPlanName).catch(() => {});
+
+    console.log(`📋 [PLANS] User ${userId} cancelled plan (was ${currentPlan})`);
+    res.json({ success: true, message: 'Plan cancelled. You are now on the Free Trial.' });
+  } catch (error) {
+    console.error('[PLANS] Error cancelling plan:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Downgrade plan — moves to a lower paid tier, no charge, keeps existing credits
+router.post('/downgrade', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { planType } = req.body;
+
+    if (!planType) return res.status(400).json({ success: false, error: 'planType is required' });
+
+    const user = await awsManager.getUserById(userId);
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+
+    const currentPlan = user.plan || 'free-trial';
+    const currentIdx = PLAN_ORDER.indexOf(currentPlan);
+    const newIdx = PLAN_ORDER.indexOf(planType);
+
+    if (newIdx === -1) return res.status(400).json({ success: false, error: `Invalid plan: ${planType}` });
+    if (newIdx === 0) return res.status(400).json({ success: false, error: 'Use the cancel endpoint to revert to Free Trial.' });
+    if (newIdx >= currentIdx) return res.status(400).json({ success: false, error: 'Use the upgrade endpoint to move to a higher plan.' });
+
+    const newPlanConfig = awsManager.getPlanConfig(planType);
+    await awsManager.updateUser(userId, {
+      plan: planType,
+      maxAgents: newPlanConfig.maxAgents,
+      maxConcurrency: newPlanConfig.maxConcurrency,
+      maxCredits: newPlanConfig.maxCredits,
+      planUpdatedAt: new Date().toISOString(),
+    });
+
+    const fromPlanName = awsManager.getPlanConfig(currentPlan).name;
+    sendPlanChangedEmail(userId, user.email, fromPlanName, newPlanConfig.name).catch(() => {});
+
+    console.log(`📋 [PLANS] User ${userId} downgraded from ${currentPlan} to ${planType}`);
+    res.json({ success: true, message: `Downgraded to ${newPlanConfig.name}.`, plan: newPlanConfig });
+  } catch (error) {
+    console.error('[PLANS] Error downgrading plan:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 

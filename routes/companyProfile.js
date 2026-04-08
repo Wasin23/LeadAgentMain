@@ -242,6 +242,7 @@ router.post('/scrape-website', async (req, res) => {
   try {
     const userId = req.user.userId;
     const { url } = req.body;
+    const awsManager = new AWSManager();
 
     if (!url) {
       return res.status(400).json({
@@ -434,6 +435,21 @@ Return as JSON: {profile: {...}, recommendedPreset: {...}}`
     }
     
     console.log('[COMPANY PROFILE] Website scraping complete:', result.profile);
+
+    // Charge 1 credit for the scrape
+    try {
+      await awsManager.logApiUsage({
+        userId,
+        agentId: 'system',
+        service: 'openai',
+        operation: 'company_profile_scrape',
+        usage: 1,
+        cost: 0.05,
+        metadata: { url }
+      });
+    } catch (creditErr) {
+      console.error('[COMPANY PROFILE] Failed to log credit charge:', creditErr.message);
+    }
 
     res.json({
       success: true,

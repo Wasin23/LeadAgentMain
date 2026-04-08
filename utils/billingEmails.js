@@ -296,3 +296,143 @@ Thank you for your prompt payment!
     console.error(`❌ [EMAIL] Failed to send account reactivated email:`, error);
   }
 }
+
+export async function sendPlanCancelledEmail(userId, userEmail, fromPlanName) {
+  const subject = 'Your Meridian plan has been cancelled';
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #374151;">Plan Cancelled</h2>
+      <p>Hello,</p>
+      <p>Your <strong>${fromPlanName}</strong> subscription has been cancelled. Your account has been moved to the Free Trial tier.</p>
+
+      <div style="background-color: #f9fafb; border-left: 4px solid #9ca3af; padding: 15px; margin: 20px 0;">
+        <p style="margin: 0;"><strong>What this means:</strong></p>
+        <ul style="margin: 8px 0 0 0; padding-left: 20px;">
+          <li>You now have 1 agent slot and 5x speed</li>
+          <li>No further monthly charges will be processed</li>
+          <li>You can re-subscribe at any time from your billing settings</li>
+        </ul>
+      </div>
+
+      <p style="margin: 30px 0;">
+        <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings?tab=billing"
+           style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+          Manage Billing
+        </a>
+      </p>
+
+      <p>We're sorry to see you go. If there's anything we can improve, please reach out to our support team.</p>
+
+      <p style="color: #666; font-size: 12px; margin-top: 40px;">
+        This is an automated message from Meridian. Please do not reply to this email.
+      </p>
+    </div>
+  `;
+  const textBody = `
+Plan Cancelled
+
+Your ${fromPlanName} subscription has been cancelled. Your account has been moved to the Free Trial tier.
+
+What this means:
+- You now have 1 agent slot and 5x speed
+- No further monthly charges will be processed
+- You can re-subscribe at any time from your billing settings
+
+Manage billing: ${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings?tab=billing
+  `;
+  try {
+    await awsManager.sendEmail({ to: userEmail, from: FROM_EMAIL, subject, htmlBody, textBody });
+    console.log(`✅ [EMAIL] Plan cancelled notification sent to ${userEmail}`);
+  } catch (error) {
+    console.error(`❌ [EMAIL] Failed to send plan cancelled email:`, error);
+  }
+}
+
+export async function sendPlanChangedEmail(userId, userEmail, fromPlanName, toPlanName) {
+  const subject = `Your Meridian plan has been changed to ${toPlanName}`;
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #374151;">Plan Updated</h2>
+      <p>Hello,</p>
+      <p>Your Meridian plan has been updated from <strong>${fromPlanName}</strong> to <strong>${toPlanName}</strong>.</p>
+
+      <div style="background-color: #f9fafb; border-left: 4px solid #9ca3af; padding: 15px; margin: 20px 0;">
+        <p style="margin: 0;">Your new plan limits are now active. The change takes effect immediately.</p>
+      </div>
+
+      <p style="margin: 30px 0;">
+        <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings?tab=billing"
+           style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+          View Billing
+        </a>
+      </p>
+
+      <p style="color: #666; font-size: 12px; margin-top: 40px;">
+        This is an automated message from Meridian. Please do not reply to this email.
+      </p>
+    </div>
+  `;
+  const textBody = `
+Plan Updated
+
+Your Meridian plan has been updated from ${fromPlanName} to ${toPlanName}.
+
+Your new plan limits are now active. The change takes effect immediately.
+
+View billing: ${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings?tab=billing
+  `;
+  try {
+    await awsManager.sendEmail({ to: userEmail, from: FROM_EMAIL, subject, htmlBody, textBody });
+    console.log(`✅ [EMAIL] Plan changed notification sent to ${userEmail}`);
+  } catch (error) {
+    console.error(`❌ [EMAIL] Failed to send plan changed email:`, error);
+  }
+}
+
+export async function sendPlanUpgradedEmail(userId, userEmail, fromPlanName, toPlanName, amountCharged) {
+  const subject = `✅ Welcome to ${toPlanName}`;
+  const htmlBody = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #16a34a;">Plan Upgraded</h2>
+      <p>Hello,</p>
+      <p>Your plan has been upgraded from <strong>${fromPlanName}</strong> to <strong>${toPlanName}</strong>.</p>
+
+      <div style="background-color: #f0fdf4; border-left: 4px solid #16a34a; padding: 15px; margin: 20px 0;">
+        <p style="margin: 0;"><strong>Amount Charged:</strong> $${amountCharged.toFixed(2)}</p>
+        <p style="margin: 5px 0 0 0;"><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+        <p style="margin: 5px 0 0 0;">Your new credits and agent limits are now active.</p>
+      </div>
+
+      <p style="margin: 30px 0;">
+        <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}"
+           style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+          Go to Dashboard
+        </a>
+      </p>
+
+      <p>Thank you for upgrading!</p>
+
+      <p style="color: #666; font-size: 12px; margin-top: 40px;">
+        This is an automated message from Meridian. Please do not reply to this email.
+      </p>
+    </div>
+  `;
+  const textBody = `
+Plan Upgraded — Welcome to ${toPlanName}!
+
+Your plan has been upgraded from ${fromPlanName} to ${toPlanName}.
+
+Amount Charged: $${amountCharged.toFixed(2)}
+Date: ${new Date().toLocaleDateString()}
+
+Your new credits and agent limits are now active.
+
+Go to dashboard: ${process.env.FRONTEND_URL || 'http://localhost:3000'}
+  `;
+  try {
+    await awsManager.sendEmail({ to: userEmail, from: FROM_EMAIL, subject, htmlBody, textBody });
+    console.log(`✅ [EMAIL] Plan upgraded notification sent to ${userEmail}`);
+  } catch (error) {
+    console.error(`❌ [EMAIL] Failed to send plan upgraded email:`, error);
+  }
+}

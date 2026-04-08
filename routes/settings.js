@@ -268,4 +268,52 @@ router.put('/notifications', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/settings/auto-topup
+ * Returns the user's auto top-up preferences.
+ */
+router.get('/auto-topup', async (req, res) => {
+  try {
+    const awsManager = new AWSManager();
+    const userSettings = await awsManager.getUserSettings(req.user.userId) || {};
+    res.json({
+      success: true,
+      settings: userSettings.autoTopup || { enabled: false, threshold: 50, tierId: 'small' }
+    });
+  } catch (error) {
+    console.error('Error getting auto top-up settings:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * PUT /api/settings/auto-topup
+ * Saves the user's auto top-up preferences.
+ * Body: { enabled: boolean, threshold: number, tierId: string }
+ */
+router.put('/auto-topup', async (req, res) => {
+  try {
+    const { enabled, threshold, tierId } = req.body;
+    const validTiers = ['mini', 'small', 'medium', 'bulk'];
+    if (tierId && !validTiers.includes(tierId)) {
+      return res.status(400).json({ success: false, error: 'Invalid tier ID' });
+    }
+    if (threshold !== undefined && (typeof threshold !== 'number' || threshold < 0)) {
+      return res.status(400).json({ success: false, error: 'Invalid threshold value' });
+    }
+    const awsManager = new AWSManager();
+    const userSettings = await awsManager.getUserSettings(req.user.userId) || {};
+    userSettings.autoTopup = {
+      enabled: !!enabled,
+      threshold: typeof threshold === 'number' ? threshold : 50,
+      tierId: validTiers.includes(tierId) ? tierId : 'small',
+    };
+    await awsManager.saveUserSettings(req.user.userId, userSettings);
+    res.json({ success: true, settings: userSettings.autoTopup });
+  } catch (error) {
+    console.error('Error saving auto top-up settings:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 export default router;

@@ -1157,6 +1157,40 @@ router.get('/api-usage/total', async (req, res) => {
   }
 });
 
+// Get API usage broken down per-agent for billing display
+router.get('/api-usage/by-agent', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const userAgent = getUserAgent(userId, 'reasoning-lead-agent');
+    if (!userAgent?.awsManager) {
+      return res.status(500).json({ success: false, message: 'Agent not initialised' });
+    }
+
+    // Pull agent list from user record
+    const user = await userAgent.awsManager.getUserById(userId);
+    const agents = user?.activeAgents || [];
+
+    // Fetch usage for each agent in parallel
+    const results = await Promise.all(
+      agents.map(async (agent) => {
+        const usage = await userAgent.awsManager.getAgentApiUsage(agent.agentId);
+        const totalCost = Object.values(usage.stats || {}).reduce((sum, s) => sum + (s.cost || 0), 0);
+        return {
+          agentId: agent.agentId,
+          name: agent.name || `Agent ${agent.agentId.slice(-6)}`,
+          totalCost,
+          credits: Math.round(totalCost / 0.05),
+        };
+      })
+    );
+
+    res.json({ success: true, agents: results });
+  } catch (error) {
+    console.error('[LEAD AGENT API] Error getting per-agent usage:', error);
+    res.status(500).json({ success: false, message: 'Error getting per-agent usage', error: error.message });
+  }
+});
+
 // Cache for API usage time series (2 minute TTL)
 const apiUsageTimeSeriesCache = new Map();
 const CACHE_TTL = 2 * 60 * 1000; // 2 minutes

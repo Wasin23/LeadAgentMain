@@ -65,7 +65,7 @@ class AWSManager {
         maxCredits: 250,
         canPurchaseMore: false,
         maxAgents: 1,
-        maxConcurrency: 5,
+        maxConcurrency: 3,
         description: 'Try Meridian with 250 free credits'
       },
       'basic': {
