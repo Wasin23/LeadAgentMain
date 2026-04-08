@@ -119,6 +119,7 @@ class ReasoningLeadAgent extends EventEmitter {
       currentIndustryIndex: 0, // Track which industry to search next
       currentKeywordIndex: 0, // Track which keyword within industry (for & splits)
       consecutiveDuplicateSearches: 0, // Track consecutive failed searches
+      consecutiveDisqualifications: 0, // Track consecutive SKIP/DISQ leads — triggers keyword rotation at 3
       searchPageOffset: 0, // Increase page numbers when exhausting early pages
       industryExhaustion: {}, // Track leads found per industry: { "Hotels & Resorts": { leadsFound: 45, lastSearched: timestamp }, ... }
       sourceExhaustion: {}, // Per-source duplicate rates: { apollo: { "saas": { cumulativeDuplicateRate, totalAttempts } }, hunter: {...} }
@@ -1591,8 +1592,9 @@ Call the appropriate function to continue the workflow.`;
       case 'pre_qualify_lead':
         if (actionResult?.success) {
           if (actionResult.recommendation === 'SKIP') {
-            // Pre-qualification failed, skip lead and get next
+            // Pre-qualification failed — increment streak and maybe rotate keyword
             console.log(`[SKIP] Pre-qualification failed (score: ${actionResult.score}/100), skipping lead`);
+            this._rotateKeywordOnDisq();
             this.memory.currentCycle.currentLead = null;
             
             // Get next lead from queue or search for more
@@ -1645,15 +1647,18 @@ Call the appropriate function to continue the workflow.`;
           };
           
           if (actionResult.qualified) {
-            // Qualification passed, check if we need email unlock or can skip to build
+            // Qualification passed — reset disqualification streak
+            this.memory.consecutiveDisqualifications = 0;
+            // Check if we need email unlock or can skip to build
             if (this.memory.currentCycle.currentLead?.email) {
               this.memory.currentCycle.processingPhase = 'build';
             } else {
               this.memory.currentCycle.processingPhase = 'email';
             }
           } else {
-            // Qualification failed, skip lead and get next
+            // Qualification failed — increment streak and maybe rotate keyword
             console.log(`[DISQ] Lead disqualified (score: ${actionResult.score}/100), skipping lead`);
+            this._rotateKeywordOnDisq();
             this.memory.currentCycle.currentLead = null;
             
             // Get next lead from queue or search for more
@@ -1949,6 +1954,70 @@ Call the appropriate function to continue the workflow.`;
         break;
     }
     
+  }
+
+  // Increment consecutive-disqualification counter; rotate keyword when threshold (3) is hit.
+  // Cross-checks the candidate new keyword against the Zilliz-seeded industryExhaustion
+  // tracker and skips keywords that already carry a >20% duplicate rate.
+  _rotateKeywordOnDisq() {
+    this.memory.consecutiveDisqualifications = (this.memory.consecutiveDisqualifications || 0) + 1;
+
+    if (this.memory.consecutiveDisqualifications < 3) return;
+
+    this.memory.consecutiveDisqualifications = 0;
+
+    const baseKeywords = this.memory.baseIndustryKeywords || [];
+    const aiKeywords   = this.memory.aiGeneratedKeywords  || [];
+    const allKeywords  = [...baseKeywords, ...aiKeywords];
+    const total        = allKeywords.length;
+
+    // If a campaign priority keyword is active, clear it so normal rotation resumes
+    if (this.memory.campaignPriorityKeyword) {
+      const cleared = this.memory.campaignPriorityKeyword;
+      this.memory.campaignPriorityKeyword = null;
+      this.memory.leadsFoundWithCurrentKeyword = 0;
+      this.memory.searchPageOffset = 0;
+      this.logOperation(
+        '🔄 DISQ Rotate (Campaign)',
+        `3 consecutive SKIP/DISQ leads — cleared campaign keyword "${cleared}", resuming normal rotation`,
+        'warn'
+      );
+      return;
+    }
+
+    if (total === 0) return;
+
+    // Advance to next keyword
+    this.memory.currentKeywordIndex = (this.memory.currentKeywordIndex || 0) + 1;
+    this.memory.leadsFoundWithCurrentKeyword = 0;
+    this.memory.searchPageOffset = 0;
+
+    // Cross-check the candidate keyword against the Zilliz-seeded exhaustion tracker.
+    // Skip keywords that already have a high duplicate rate (>20% with >=5 attempts).
+    let skipped = 0;
+    while (skipped < total) {
+      const idx     = this.memory.currentKeywordIndex % total;
+      const kw      = allKeywords[idx];
+      const tracker = this.memory.industryExhaustion?.[kw];
+      if (tracker && tracker.cumulativeDuplicateRate > 20 && tracker.totalAttempts >= 5) {
+        this.logOperation(
+          '⏭️ DISQ Rotate Skip',
+          `Skipping "${kw}" (${tracker.cumulativeDuplicateRate.toFixed(1)}% dup rate in Zilliz memory, ${tracker.totalAttempts} attempts)`,
+          'info'
+        );
+        this.memory.currentKeywordIndex++;
+        skipped++;
+      } else {
+        break;
+      }
+    }
+
+    const chosenKw = allKeywords[this.memory.currentKeywordIndex % total] || 'unknown';
+    this.logOperation(
+      '🔄 DISQ Keyword Rotate',
+      `3 consecutive SKIP/DISQ leads — rotating search keyword to "${chosenKw}"`,
+      'warn'
+    );
   }
 
   // Extract business type from research content
@@ -5353,8 +5422,9 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         };
       }
       
-      // Reset duplicate search counter on successful new search
+      // Reset search counters on successful new search
       this.memory.consecutiveDuplicateSearches = 0;
+      this.memory.consecutiveDisqualifications = 0;
       
       // Calculate how many leads we still need
       const leadsNeeded = this.memory.currentCycle.targetLeads - this.memory.currentCycle.leadsProcessed;
@@ -8177,6 +8247,7 @@ Target Positions:`;
         currentGoal: null,
         currentIndustryIndex: 0,
         consecutiveDuplicateSearches: 0,
+        consecutiveDisqualifications: 0,
         searchPageOffset: 0,
         
         currentCycle: {

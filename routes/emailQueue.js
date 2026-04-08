@@ -1405,6 +1405,16 @@ router.post('/rebuild', async (req, res) => {
       return res.status(400).json({ error: 'emailId, agentId, and instruction are required' });
     }
 
+    // Extract and preserve any compliance footer (unsubscribe block)
+    // Footer is appended as "\n\n{company...}\n<a href="...">Stop emails</a>"
+    let bodyForAI = currentBody || '';
+    let preservedFooter = '';
+    const footerMatch = bodyForAI.match(/([\r\n]{2}[\s\S]*?(?:unsubscribe|stop emails|\/unsubscribe\?token=)[\s\S]*)$/i);
+    if (footerMatch) {
+      preservedFooter = footerMatch[1];
+      bodyForAI = bodyForAI.slice(0, bodyForAI.length - preservedFooter.length);
+    }
+
     const Anthropic = (await import('@anthropic-ai/sdk')).default;
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -1418,12 +1428,12 @@ router.post('/rebuild', async (req, res) => {
     }
     const reportText = reportLines.length ? `\n\nResearch context:\n${reportLines.join('\n')}` : '';
 
-    const systemPrompt = `You are an expert cold-email copywriter. Rewrite the provided outreach email based on the user's instruction. Keep it professional, concise (under 150 words), and natural-sounding. You may use the research context to improve personalization. Return ONLY a JSON object with "subject" and "body" fields — no explanations, no markdown fences.`;
+    const systemPrompt = `You are an expert cold-email copywriter. Rewrite the provided outreach email based on the user's instruction. Keep it professional, concise (under 150 words), and natural-sounding. You may use the research context to improve personalization. Do NOT include any footer, unsubscribe link, or company address — those are added automatically. Return ONLY a JSON object with "subject" and "body" fields — no explanations, no markdown fences.`;
 
     const userPrompt = `Current subject: ${currentSubject || '(none)'}
 
 Current body:
-${currentBody || '(none)'}${reportText}
+${bodyForAI || '(none)'}${reportText}
 
 Rewrite instruction: ${instruction.trim()}
 
@@ -1450,10 +1460,13 @@ Return JSON only: {"subject": "...", "body": "..."}`;
       return res.status(500).json({ error: 'AI response missing subject or body' });
     }
 
-    const userEmailQueue = getUserEmailQueue(req.user.userId, agentId);
-    await userEmailQueue.updateEmail(emailId, { subject: parsed.subject, body: parsed.body });
+    // Re-attach the preserved compliance footer
+    const finalBody = parsed.body + preservedFooter;
 
-    res.json({ success: true, subject: parsed.subject, body: parsed.body });
+    const userEmailQueue = getUserEmailQueue(req.user.userId, agentId);
+    await userEmailQueue.updateEmail(emailId, { subject: parsed.subject, body: finalBody });
+
+    res.json({ success: true, subject: parsed.subject, body: finalBody });
   } catch (error) {
     console.error('[EMAIL QUEUE API] Error rebuilding email:', error);
     res.status(500).json({ error: 'Failed to rebuild email', details: error.message });
