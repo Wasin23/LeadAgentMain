@@ -1396,4 +1396,68 @@ router.get('/scheduled-batches', async (req, res) => {
   }
 });
 
+// Rebuild email content with AI
+router.post('/rebuild', async (req, res) => {
+  try {
+    const { emailId, agentId, instruction, currentSubject, currentBody, aiReport } = req.body;
+
+    if (!emailId || !agentId || !instruction?.trim()) {
+      return res.status(400).json({ error: 'emailId, agentId, and instruction are required' });
+    }
+
+    const Anthropic = (await import('@anthropic-ai/sdk')).default;
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+    const reportLines = [];
+    if (aiReport) {
+      if (aiReport.companyName) reportLines.push(`Company: ${aiReport.companyName}`);
+      if (aiReport.contactName) reportLines.push(`Contact: ${aiReport.contactName}`);
+      if (aiReport.reasoning)   reportLines.push(`Research: ${aiReport.reasoning}`);
+      if (aiReport.keyStrengths?.length) reportLines.push(`Strengths: ${aiReport.keyStrengths.join(', ')}`);
+      if (aiReport.allCitedFacts?.length) reportLines.push(`Key Facts: ${aiReport.allCitedFacts.slice(0, 5).map(f => f.fact).join('; ')}`);
+    }
+    const reportText = reportLines.length ? `\n\nResearch context:\n${reportLines.join('\n')}` : '';
+
+    const systemPrompt = `You are an expert cold-email copywriter. Rewrite the provided outreach email based on the user's instruction. Keep it professional, concise (under 150 words), and natural-sounding. You may use the research context to improve personalization. Return ONLY a JSON object with "subject" and "body" fields — no explanations, no markdown fences.`;
+
+    const userPrompt = `Current subject: ${currentSubject || '(none)'}
+
+Current body:
+${currentBody || '(none)'}${reportText}
+
+Rewrite instruction: ${instruction.trim()}
+
+Return JSON only: {"subject": "...", "body": "..."}`;
+
+    const response = await client.messages.create({
+      model: 'claude-sonnet-4-5',
+      max_tokens: 800,
+      temperature: 0.6,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+    });
+
+    const raw = response.content[0].text.trim();
+    let parsed;
+    try {
+      const jsonStr = raw.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```$/, '').trim();
+      parsed = JSON.parse(jsonStr);
+    } catch {
+      return res.status(500).json({ error: 'AI returned invalid JSON' });
+    }
+
+    if (!parsed.subject || !parsed.body) {
+      return res.status(500).json({ error: 'AI response missing subject or body' });
+    }
+
+    const userEmailQueue = getUserEmailQueue(req.user.userId, agentId);
+    await userEmailQueue.updateEmail(emailId, { subject: parsed.subject, body: parsed.body });
+
+    res.json({ success: true, subject: parsed.subject, body: parsed.body });
+  } catch (error) {
+    console.error('[EMAIL QUEUE API] Error rebuilding email:', error);
+    res.status(500).json({ error: 'Failed to rebuild email', details: error.message });
+  }
+});
+
 export default router;

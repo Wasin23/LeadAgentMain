@@ -728,6 +728,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                     </div>
                   )}
                 </div>
+                <p className="text-xs text-gray-400 mt-1">Not in the list? Type it and press Enter to add.</p>
                 <div className="flex flex-wrap gap-2 mt-2 mb-2">
                   {['Technology', 'Healthcare', 'Finance', 'Retail', 'SaaS', 'E-commerce', 'Consulting'].map(ind => (
                     <button key={ind} onClick={() => addIndustry(ind)} disabled={settings.industries.includes(ind)} className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${settings.industries.includes(ind) ? 'bg-purple-100 text-purple-400 cursor-default' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}>
@@ -766,6 +767,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                     </div>
                   )}
                 </div>
+                <p className="text-xs text-gray-400 mt-1">Not in the list? Type it and press Enter to add.</p>
                 <div className="flex flex-wrap gap-2 mt-2 mb-2">
                   {['CEO', 'CTO', 'VP of Sales', 'Head of Marketing', 'Director of Operations'].map(t => (
                     <button key={t} onClick={() => addJob(t)} disabled={settings.jobTitles.includes(t)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${settings.jobTitles.includes(t) ? 'bg-blue-100 text-blue-400 cursor-default' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}>

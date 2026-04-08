@@ -509,6 +509,91 @@ export function LandingPageClient() {
       <section className="border-y border-border bg-muted/20 px-6 py-20 sm:px-10">
         <div className="mx-auto max-w-6xl">
           <div className="mb-14 text-center">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary">
+              Outreach tracking
+            </div>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Know exactly what happens after you send.</h2>
+            <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
+              Meridian tracks every email in real time — opens, replies, bounces, and follow-up timing — so you always know where each conversation stands.
+            </p>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-3 mb-12">
+            <div className="rounded-2xl border border-border bg-card p-6">
+              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                <Mail className="h-4 w-4 text-primary" />
+              </div>
+              <h3 className="mb-2 text-base font-bold">Open tracking</h3>
+              <p className="text-sm leading-relaxed text-muted-foreground">Pixel-based open detection tells you which prospects read your email and when, so follow-ups go to warm leads first.</p>
+            </div>
+            <div className="rounded-2xl border border-border bg-card p-6">
+              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                <Inbox className="h-4 w-4 text-primary" />
+              </div>
+              <h3 className="mb-2 text-base font-bold">Reply detection</h3>
+              <p className="text-sm leading-relaxed text-muted-foreground">Replies are caught automatically across Gmail, Outlook, and Mailgun. The agent stops following up and routes the conversation to you the moment someone responds.</p>
+            </div>
+            <div className="rounded-2xl border border-border bg-card p-6">
+              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                <Clock className="h-4 w-4 text-primary" />
+              </div>
+              <h3 className="mb-2 text-base font-bold">Timed follow-ups</h3>
+              <p className="text-sm leading-relaxed text-muted-foreground">Set a follow-up interval and Meridian re-engages automatically — only if there's been no reply. Never double-message a prospect who already responded.</p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-card overflow-hidden">
+            <div className="grid lg:grid-cols-2">
+              <div className="p-8 flex flex-col justify-center">
+                <h3 className="text-xl font-bold mb-3">A live view of every conversation</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-6">
+                  Your agent dashboard shows a live feed of contacted prospects — filtered by sent, opened, or replied — so you can jump in at the right moment without digging through your inbox.
+                </p>
+                <ul className="space-y-3 text-sm text-muted-foreground">
+                  {[
+                    "See who opened but hasn't replied",
+                    "Instantly view the exact email that was sent",
+                    "Track domain-level engagement across a company",
+                    "Bounce and unsubscribe handling built in",
+                  ].map(item => (
+                    <li key={item} className="flex items-start gap-2.5">
+                      <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="bg-muted/30 border-l border-border p-8 flex flex-col gap-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Recently Contacted</p>
+                {[
+                  { name: "Sarah Chen", company: "Acme Logistics", status: "Replied", statusColor: "text-green-600 bg-green-500/10 border-green-500/20", time: "2h ago" },
+                  { name: "Marcus Webb", company: "Peak Capital", status: "Opened", statusColor: "text-primary bg-primary/10 border-primary/20", time: "5h ago" },
+                  { name: "Priya Nair", company: "Foundry Health", status: "Opened", statusColor: "text-primary bg-primary/10 border-primary/20", time: "Yesterday" },
+                  { name: "Jordan Ellis", company: "Bright Systems", status: "Sent", statusColor: "text-muted-foreground bg-muted border-border", time: "2d ago" },
+                ].map(c => (
+                  <div key={c.name} className="flex items-center gap-3 rounded-xl border border-border bg-background px-4 py-3">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                      {c.name[0]}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate">{c.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{c.company}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${c.statusColor}`}>{c.status}</span>
+                      <span className="text-[10px] text-muted-foreground">{c.time}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-y border-border bg-muted/20 px-6 py-20 sm:px-10">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-14 text-center">
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">What Meridian automates.</h2>
             <p className="mt-3 text-muted-foreground">Everything needed to run AI-assisted outbound without duct-taping together five different tools.</p>
           </div>

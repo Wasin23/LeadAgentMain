@@ -13,6 +13,7 @@ import {
   CheckSquare, Square, ChevronsLeft, ChevronLeft,
   ChevronRight, ChevronsRight, X, CalendarClock, Calendar,
   Settings2, Save, Search, FileText, ExternalLink,
+  MoreHorizontal, Wrench, Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -470,7 +471,7 @@ function PaginationBar({ offset, limit, total, onChange }: {
 }
 
 // ── email row ─────────────────────────────────────────────────────────────────
-function EmailRow({ email, agentMap, selected, onSelect, fontSize, actions, onEdit, onSchedule, onCancelSchedule, onCancelAutoSchedule, autoScheduleDate, onViewReport }: {
+function EmailRow({ email, agentMap, selected, onSelect, fontSize, actions, onEdit, onSchedule, onCancelSchedule, onCancelAutoSchedule, autoScheduleDate, onViewReport, onRebuild }: {
   email: QueueEmail; agentMap: Record<string, Agent>
   selected: boolean; onSelect: (id: string) => void
   fontSize: number; actions?: React.ReactNode; onEdit?: () => void; onSchedule?: () => void
@@ -478,10 +479,22 @@ function EmailRow({ email, agentMap, selected, onSelect, fontSize, actions, onEd
   onCancelAutoSchedule?: () => void
   autoScheduleDate?: Date
   onViewReport?: () => void
+  onRebuild?: () => void
 }) {
   const [expanded, setExpanded] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
   const { to, subject, body, name, company } = ef(email)
   const agent = email.agentId ? agentMap[email.agentId] : null
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const handle = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [menuOpen])
   return (
     <div className={cn('flex gap-3 py-3 border-l-2 pl-3 transition-colors', selected ? 'border-l-primary bg-primary/5' : 'border-l-transparent hover:bg-muted/30')}>
       <button onClick={() => onSelect(email.id)} className="shrink-0 mt-0.5 text-muted-foreground hover:text-foreground">
@@ -539,20 +552,56 @@ function EmailRow({ email, agentMap, selected, onSelect, fontSize, actions, onEd
             </div>
           </button>
           <div className="flex items-center gap-1 shrink-0">
-            {email.aiReport && onViewReport && (
-              <button onClick={onViewReport} className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="View AI Research Report">
-                <FileText className="w-3.5 h-3.5" />
-              </button>
-            )}
-            {onSchedule && (
-              <button onClick={onSchedule} className={cn('p-1 rounded transition-colors hover:bg-muted', email.scheduledAt ? 'text-blue-400' : 'text-muted-foreground hover:text-foreground')} title="Schedule send">
-                <CalendarClock className="w-3.5 h-3.5" />
-              </button>
-            )}
-            {onEdit && (
-              <button onClick={onEdit} className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" title="Edit email">
-                <Pencil className="w-3.5 h-3.5" />
-              </button>
+            {(email.aiReport || onSchedule || onEdit || onRebuild) && (
+              <div className="relative" ref={menuRef}>
+                <button
+                  onClick={() => setMenuOpen(p => !p)}
+                  className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                  title="More options"
+                >
+                  <MoreHorizontal className="w-3.5 h-3.5" />
+                </button>
+                {menuOpen && (
+                  <div className="absolute right-0 top-full z-50 mt-1 w-44 bg-popover border border-border rounded-lg shadow-xl overflow-hidden">
+                    {email.aiReport && onViewReport && (
+                      <button
+                        onClick={() => { setMenuOpen(false); onViewReport() }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-foreground hover:bg-muted transition-colors"
+                      >
+                        <FileText className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                        View Report
+                      </button>
+                    )}
+                    {onSchedule && (
+                      <button
+                        onClick={() => { setMenuOpen(false); onSchedule() }}
+                        className={cn('w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-muted transition-colors', email.scheduledAt ? 'text-blue-400' : 'text-foreground')}
+                      >
+                        <CalendarClock className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                        {email.scheduledAt ? 'Reschedule' : 'Schedule'}
+                      </button>
+                    )}
+                    {onEdit && (
+                      <button
+                        onClick={() => { setMenuOpen(false); onEdit() }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-foreground hover:bg-muted transition-colors"
+                      >
+                        <Pencil className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                        Edit
+                      </button>
+                    )}
+                    {onRebuild && (
+                      <button
+                        onClick={() => { setMenuOpen(false); onRebuild() }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-foreground hover:bg-muted transition-colors border-t border-border"
+                      >
+                        <Wrench className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                        Rebuild Email
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
             {actions}
           </div>
@@ -563,6 +612,79 @@ function EmailRow({ email, agentMap, selected, onSelect, fontSize, actions, onEd
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+// ── rebuild modal ───────────────────────────────────────────────────────────
+function RebuildModal({ email, onSave, onClose }: {
+  email: QueueEmail
+  onSave: (id: string, to: string, cc: string, bcc: string, subject: string, body: string, agentId?: string) => Promise<void>
+  onClose: () => void
+}) {
+  const fields = ef(email)
+  const [instruction, setInstruction] = useState('')
+  const [rebuilding, setRebuilding] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const wordCount = instruction.trim() ? instruction.trim().split(/\s+/).length : 0
+
+  const rebuild = async () => {
+    setRebuilding(true)
+    setError(null)
+    try {
+      const res = await api.post('/api/email-queue/rebuild', {
+        emailId: email.id,
+        agentId: email.agentId,
+        instruction,
+        currentSubject: fields.subject,
+        currentBody: fields.body,
+        aiReport: email.aiReport || null,
+      })
+      await onSave(email.id, fields.to, fields.cc, fields.bcc, res.data.subject, res.data.body, email.agentId)
+      onClose()
+    } catch {
+      setError('Rebuild failed — try again.')
+    } finally {
+      setRebuilding(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <Card className="w-full max-w-md p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <Wrench className="w-4 h-4 text-primary" />
+              Rebuild Email
+            </h3>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{fields.name || fields.to}</p>
+          </div>
+          <button onClick={onClose}><X className="w-4 h-4 text-muted-foreground" /></button>
+        </div>
+        <div className="space-y-1">
+          <label className="text-[11px] font-medium text-muted-foreground">How should this email be rewritten?</label>
+          <textarea
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring resize-none leading-relaxed"
+            rows={3}
+            value={instruction}
+            onChange={e => setInstruction(e.target.value)}
+            placeholder="e.g. Make it more casual and focus on cost savings…"
+            maxLength={300}
+            autoFocus
+          />
+          <p className={cn('text-[10px] text-right', wordCount > 30 ? 'text-destructive' : 'text-muted-foreground')}>{wordCount}/30 words</p>
+        </div>
+        {error && <p className="text-xs text-destructive">{error}</p>}
+        <div className="flex justify-end gap-2">
+          <Button size="sm" variant="outline" onClick={onClose} disabled={rebuilding}>Cancel</Button>
+          <Button size="sm" disabled={rebuilding || !instruction.trim() || wordCount > 30} onClick={rebuild}>
+            {rebuilding
+              ? <><Loader2 className="w-3 h-3 mr-1.5 animate-spin" />Rebuilding…</>
+              : <><Wrench className="w-3 h-3 mr-1.5" />Rebuild</>}
+          </Button>
+        </div>
+      </Card>
     </div>
   )
 }
@@ -825,6 +947,7 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
   const [selected, setSelected]     = useState<Set<string>>(new Set())
   const [editTarget, setEditTarget]       = useState<QueueEmail | null>(null)
   const [scheduleTarget, setScheduleTarget] = useState<QueueEmail | null>(null)
+  const [rebuildTarget, setRebuildTarget] = useState<QueueEmail | null>(null)
   const [showReplace, setShowReplace] = useState(false)
   const [viewingAiReport, setViewingAiReport] = useState<AIReport | null>(null)
   const LIMIT = 20
@@ -1097,6 +1220,7 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
               fontSize={fontSize}
               onEdit={() => setEditTarget(email)}
               onSchedule={() => setScheduleTarget(email)}
+              onRebuild={() => setRebuildTarget(email)}
               onViewReport={email.aiReport ? () => setViewingAiReport(email.aiReport!) : undefined}
               onCancelSchedule={email.scheduledAt ? () => scheduleEmail(email.id, null, email.agentId) : undefined}
               onCancelAutoSchedule={autoSendDates.has(email.id) ? async () => {
@@ -1125,6 +1249,7 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
 
       {editTarget      && <EditModal    email={editTarget}    onSave={saveEdit}    onClose={() => setEditTarget(null)} />}
       {scheduleTarget  && <ScheduleModal email={scheduleTarget} onSave={scheduleEmail} onClose={() => setScheduleTarget(null)} />}
+      {rebuildTarget   && <RebuildModal  email={rebuildTarget}  onSave={saveEdit}    onClose={() => setRebuildTarget(null)} />}
       {showReplace  && <BulkReplaceModal agentId={agentId} onClose={() => setShowReplace(false)} onDone={() => { setShowReplace(false); load(0); toast({ title: 'Find & replace applied', duration: 2000 }) }} />}
       {viewingAiReport && <AIReportModal report={viewingAiReport} onClose={() => setViewingAiReport(null)} />}
     </div>

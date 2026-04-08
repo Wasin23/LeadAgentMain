@@ -559,6 +559,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                 onRemove={t => updateCompany('companyIndustries', settings.companyCriteria.companyIndustries.filter((x: string) => x !== t))}
                 suggestions={INDUSTRIES}
                 placeholder="Search or type an industry…"
+                helpText="Not in the list? Type it and press Enter to add."
               />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
@@ -583,6 +584,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                 onRemove={t => updateContact('targetPositions', settings.contactCriteria.targetPositions.filter((x: string) => x !== t))}
                 suggestions={JOB_TITLES}
                 placeholder="Search or type a job title…"
+                helpText="Not in the list? Type it and press Enter to add."
               />
               <div className="space-y-1.5">
                 <Label>Seniority Level</Label>
