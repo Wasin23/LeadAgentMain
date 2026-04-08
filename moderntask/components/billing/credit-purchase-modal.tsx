@@ -79,10 +79,10 @@ export function CreditPurchaseModal({
   ]
 
   const topupOptions: TopupOption[] = [
-    { id: "mini",   name: "Mini Top-up",   price: 10,  credits: 200  },
-    { id: "small",  name: "Small Top-up",  price: 50,  credits: 1000 },
-    { id: "medium", name: "Medium Top-up", price: 100, credits: 2000, popular: true },
-    { id: "bulk",   name: "Bulk Top-up",   price: 250, credits: 5000 },
+    { id: "mini",   name: "Mini Top-up",   price: 10,  credits: 100  },
+    { id: "small",  name: "Small Top-up",  price: 50,  credits: 550  },
+    { id: "medium", name: "Medium Top-up", price: 100, credits: 1150, popular: true },
+    { id: "bulk",   name: "Bulk Top-up",   price: 250, credits: 3000 },
   ]
 
   useEffect(() => {
