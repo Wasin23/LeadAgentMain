@@ -543,9 +543,10 @@ export function SettingsContent() {
 
   const analyzeFromWebsite = async () => {
     if (!analyzeWebsiteUrl.trim()) { toast.error("Enter a website URL first"); return }
+    const url = /^https?:\/\//i.test(analyzeWebsiteUrl.trim()) ? analyzeWebsiteUrl.trim() : `https://${analyzeWebsiteUrl.trim()}`
     setAnalyzingWebsite(true)
     try {
-      const r = await api.post("/api/company-profile/scrape-website", { url: analyzeWebsiteUrl.trim() })
+      const r = await api.post("/api/company-profile/scrape-website", { url })
       if (r.data?.profile) {
         const merged = { ...companyProfile, ...r.data.profile }
         setCompanyProfile(merged)

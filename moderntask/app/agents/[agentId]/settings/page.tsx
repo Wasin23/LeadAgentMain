@@ -225,9 +225,10 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
 
   const handleResetFromWebsite = async () => {
     if (!resetWebsiteUrl.trim()) return;
+    const url = /^https?:\/\//i.test(resetWebsiteUrl.trim()) ? resetWebsiteUrl.trim() : `https://${resetWebsiteUrl.trim()}`;
     setResetScraping(true);
     try {
-      const r = await api.post('/api/company-profile/scrape-website', { url: resetWebsiteUrl.trim() });
+      const r = await api.post('/api/company-profile/scrape-website', { url });
       const p = r.data?.profile;
       if (p) {
         await api.post('/api/company-profile/save', { profile: p, recommendedPreset: r.data?.recommendedPreset || null });
