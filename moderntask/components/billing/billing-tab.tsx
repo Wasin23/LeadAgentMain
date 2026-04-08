@@ -34,28 +34,6 @@ interface Payment {
   errorMessage?: string
 }
 
-interface PaymentStats {
-  billingMode?: "prepaid" | "postpaid"
-  totalPaid: number
-  totalFailed: number
-  outstanding: number
-  successCount: number
-  failedCount: number
-  lastSuccessfulPayment?: Payment
-  lastFailedPayment?: Payment
-  nextBillingDate?: string
-}
-
-interface HistoricalData {
-  date: string
-  tokens: number
-  cost: number
-  credits: number
-  label: string
-}
-
-type TimeFilter = "hour" | "day" | "month"
-
 interface ApiUsageStats {
   apollo?: { cost: number; calls: number }
   openai?: { cost: number; tokens: number }
@@ -215,57 +193,23 @@ function AddCardForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
   )
 }
 
-// ── Purchases & Payments ─────────────────────────────────────────────────────
+// ── Payment History ───────────────────────────────────────────────────────────
 
 function PaymentHistorySection() {
   const [payments, setPayments] = useState<Payment[]>([])
-  const [stats, setStats] = useState<PaymentStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<"all" | "success" | "failed">("all")
-  const [historicalData, setHistoricalData] = useState<HistoricalData[]>([])
-  const [timeFilter, setTimeFilter] = useState<TimeFilter>("day")
-  const [hoveredBar, setHoveredBar] = useState<{ index: number; cost: number; x: number; y: number } | null>(null)
-  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
-    const now = new Date()
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
-  })
 
   useEffect(() => {
     fetchPaymentData()
-    fetchHistoricalData("day")
   }, [])
-
-  useEffect(() => { fetchHistoricalData(timeFilter) }, [timeFilter])
-
-  const fetchHistoricalData = async (tf: TimeFilter) => {
-    try {
-      const params = tf === "hour"
-        ? { days: 1, interval: "hour" }
-        : tf === "month"
-        ? { days: 365, interval: "month" }
-        : { days: 365, interval: "day" }
-      const res = await api.get("/api/lead-agent/api-usage/timeseries", { params })
-      if (res.data.success && res.data.series) {
-        setHistoricalData(res.data.series.map((item: any) => {
-          const dateStr = item.sortKey.split("T")[0]
-          const day = dateStr.split("-")[2]
-          const cost = item.total?.cost || 0
-          return { date: dateStr, label: tf === "day" ? day : item.date, tokens: item.totalCalls || 0, cost, credits: cost / 0.05 }
-        }))
-      } else { setHistoricalData([]) }
-    } catch { setHistoricalData([]) }
-  }
 
   const fetchPaymentData = async () => {
     setLoading(true); setError(null)
     try {
-      const [histRes, statsRes] = await Promise.all([
-        api.get("/api/billing/payment-history?limit=50"),
-        api.get("/api/billing/payment-stats"),
-      ])
-      setPayments(histRes.data.payments || [])
-      setStats(statsRes.data.stats)
+      const { data } = await api.get("/api/billing/payment-history?limit=50")
+      setPayments(data.payments || [])
     } catch (err: any) {
       setError(err.response?.data?.error || err.message || "Failed to load payment data")
     } finally { setLoading(false) }
@@ -295,171 +239,6 @@ function PaymentHistorySection() {
 
   return (
     <div className="space-y-6 mt-8">
-      <h3 className="text-base font-semibold">Purchases & Payments</h3>
-
-      {/* Stats grid */}
-      {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <div className="rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-green-700 dark:text-green-400 font-medium">Total Purchased</p>
-                <p className="text-xl font-bold text-green-800 dark:text-green-300">{fmt(stats.totalPaid)}</p>
-              </div>
-              <CheckCircle className="w-7 h-7 text-green-500" />
-            </div>
-            <p className="text-xs text-green-600 dark:text-green-500 mt-1">{stats.successCount} successful purchase{stats.successCount === 1 ? '' : 's'}</p>
-          </div>
-
-          <div className="rounded-lg bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-orange-700 dark:text-orange-400 font-medium">{stats.billingMode === "prepaid" ? "Billing Model" : "Outstanding"}</p>
-                <p className="text-xl font-bold text-orange-800 dark:text-orange-300">
-                  {stats.billingMode === "prepaid" ? "Prepaid" : fmt(stats.outstanding || 0)}
-                </p>
-              </div>
-              <DollarSign className="w-7 h-7 text-orange-500" />
-            </div>
-            <p className="text-xs text-orange-600 dark:text-orange-500 mt-1">
-              {stats.billingMode === "prepaid"
-                ? "Usage draws down your credit balance"
-                : stats.nextBillingDate
-                ? `Next: ${new Date(stats.nextBillingDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
-                : "Unpaid usage"}
-            </p>
-          </div>
-
-          <div className="rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-red-700 dark:text-red-400 font-medium">Failed Purchases</p>
-                <p className="text-xl font-bold text-red-800 dark:text-red-300">{fmt(stats.totalFailed)}</p>
-              </div>
-              <XCircle className="w-7 h-7 text-red-500" />
-            </div>
-            <p className="text-xs text-red-600 dark:text-red-500 mt-1">{stats.failedCount} failed purchase attempt{stats.failedCount === 1 ? '' : 's'}</p>
-          </div>
-
-          <div className="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-blue-700 dark:text-blue-400 font-medium">Purchase Success Rate</p>
-                <p className="text-xl font-bold text-blue-800 dark:text-blue-300">
-                  {stats.successCount + stats.failedCount > 0
-                    ? Math.round((stats.successCount / (stats.successCount + stats.failedCount)) * 100)
-                    : 0}%
-                </p>
-              </div>
-              <DollarSign className="w-7 h-7 text-blue-500" />
-            </div>
-            <p className="text-xs text-blue-600 dark:text-blue-500 mt-1">Checkout reliability</p>
-          </div>
-
-          <div className="rounded-lg bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-purple-700 dark:text-purple-400 font-medium">Last Purchase</p>
-                <p className="text-lg font-bold text-purple-800 dark:text-purple-300">
-                  {stats.lastSuccessfulPayment ? fmt(stats.lastSuccessfulPayment.amount) : "N/A"}
-                </p>
-              </div>
-              <Calendar className="w-7 h-7 text-purple-500" />
-            </div>
-            <p className="text-xs text-purple-600 dark:text-purple-500 mt-1">
-              {stats.lastSuccessfulPayment
-                ? new Date(stats.lastSuccessfulPayment.timestamp).toLocaleDateString()
-                : "No purchases yet"}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Cost Over Time Chart */}
-      {historicalData.length > 0 && (
-        <div className="rounded-lg border bg-card p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="text-sm font-semibold">Credits Spent Over Time</h4>
-            <div className="flex gap-2 items-center flex-wrap">
-              {timeFilter === "day" && (
-                <input
-                  type="month"
-                  value={selectedMonth}
-                  min="2025-01"
-                  onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="px-2.5 py-1 text-xs rounded-md border border-input bg-background hover:bg-accent transition-colors cursor-pointer"
-                />
-              )}
-              <div className="flex gap-1">
-                {(["hour", "day", "month"] as TimeFilter[]).map(tf => (
-                  <button
-                    key={tf}
-                    onClick={() => setTimeFilter(tf)}
-                    className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${timeFilter === tf ? "bg-purple-600 text-white" : "bg-muted text-muted-foreground hover:bg-accent"}`}
-                  >
-                    {tf.charAt(0).toUpperCase() + tf.slice(1)}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-          {timeFilter === "day" && (
-            <div className="text-center mb-2 text-xs font-semibold text-muted-foreground">
-              {(() => {
-                const [y, m] = selectedMonth.split("-")
-                const names = ["January","February","March","April","May","June","July","August","September","October","November","December"]
-                return `${names[parseInt(m) - 1]} ${y}`
-              })()}
-            </div>
-          )}
-          <div className="relative h-64">
-            <svg className="w-full h-full" viewBox="0 0 1400 256">
-              {(() => {
-                const fd = historicalData.filter(d => timeFilter !== "day" || d.date.startsWith(selectedMonth))
-                const maxCredits = Math.max(...fd.map(d => d.credits)) || 1
-                const yMax = Math.ceil(maxCredits / 5) * 5 || 5
-                const yStep = yMax / 4
-                return (
-                  <>
-                    {[0, 1, 2, 3, 4].map(i => (
-                      <text key={i} x="10" y={240 - i * 50} fontSize="11" fill="currentColor" opacity="0.5">{(i * yStep).toFixed(1)}cr</text>
-                    ))}
-                    {fd.map((d, i) => {
-                      const bw = 1340 / fd.length
-                      const x = 50 + i * bw
-                      const bh = (d.credits / yMax) * 200
-                      const y = 220 - bh
-                      return (
-                        <g key={i}>
-                          <rect x={x} y={y} width={bw * 0.8} height={bh} fill="#9333ea" opacity={hoveredBar?.index === i ? 1 : 0.75} rx="2"
-                            onMouseEnter={() => setHoveredBar({ index: i, cost: d.credits, x: x + bw * 0.4, y })}
-                            onMouseLeave={() => setHoveredBar(null)}
-                            style={{ cursor: "pointer" }}
-                          />
-                          <text x={x + bw * 0.4} y="245" fontSize="10" fill="currentColor" opacity="0.5" textAnchor="middle">{d.label}</text>
-                        </g>
-                      )
-                    })}
-                  </>
-                )
-              })()}
-            </svg>
-            {hoveredBar && (
-              <div
-                className="absolute bg-popover text-popover-foreground border px-2 py-1 rounded text-xs font-semibold pointer-events-none z-50 whitespace-nowrap shadow"
-                style={{ left: `${(hoveredBar.x / 1400) * 100}%`, top: `${(hoveredBar.y / 256) * 100}%`, transform: "translate(-50%, -120%)" }}
-              >
-                {hoveredBar.cost.toFixed(2)} credits
-              </div>
-            )}
-          </div>
-          <div className="mt-4 pt-3 border-t flex justify-between text-xs">
-            <span className="text-muted-foreground">Total spent</span>
-            <span className="font-semibold">{historicalData.reduce((s, d) => s + d.credits, 0).toFixed(1)} credits</span>
-          </div>
-        </div>
-      )}
-
       {/* Filter buttons */}
       <div className="flex items-center gap-2">
         {([["all", "All"], ["success", "Successful"], ["failed", "Failed"]] as const).map(([val, label]) => (
@@ -705,6 +484,17 @@ function BillingTabInner() {
               <div className="text-xs text-primary-foreground/50">${(creditsSpent * 0.05).toFixed(2)} in API costs</div>
             </div>
 
+            {/* Upgrade plan */}
+            <button
+              onClick={() => {
+                setCreditPurchaseMode("upgrade")
+                setShowCreditPurchaseModal(true)
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-foreground/20 hover:bg-primary-foreground/30 border border-primary-foreground/30 rounded-lg text-sm font-semibold transition-all"
+            >
+              <Sparkles className="w-4 h-4" />
+              Upgrade Plan
+            </button>
             {/* Buy more credits */}
             <button
               onClick={() => {
@@ -940,6 +730,9 @@ function BillingTabInner() {
                     <p className="text-sm font-medium capitalize">{pm.brand} •••• {pm.last4}</p>
                     {pm.isDefault && (
                       <span className="px-2 py-0.5 bg-blue-600 text-white text-xs rounded-full font-medium">Default</span>
+                    )}
+                    {(pm.expYear < new Date().getFullYear() || (pm.expYear === new Date().getFullYear() && pm.expMonth < new Date().getMonth() + 1)) && (
+                      <span className="px-2 py-0.5 bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400 text-xs rounded-full font-medium border border-red-200 dark:border-red-800">Expired</span>
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">Expires {pm.expMonth}/{pm.expYear}</p>

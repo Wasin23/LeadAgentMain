@@ -91,7 +91,7 @@ export function CreditPurchaseModal({
       .catch(() => {})
     api.get("/api/billing/payment-methods")
       .then(({ data }) => { setHasPaymentMethod((data?.paymentMethods?.length ?? 0) > 0) })
-      .catch(() => { setHasPaymentMethod(false) })
+      .catch(() => {})
   }, [])
 
   const handlePurchase = async () => {
