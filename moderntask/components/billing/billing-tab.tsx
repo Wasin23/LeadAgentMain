@@ -339,7 +339,7 @@ function BillingTabInner() {
   const [creditPurchaseMode, setCreditPurchaseMode] = useState<"upgrade" | "topup">("topup")
   const [creditLoading, setCreditLoading] = useState(true)
 
-  const avgCreditsPerEmail = 1
+  const avgCreditsPerEmail = 0.7
   const estimatedEmailsAvailable = Math.floor(creditBalance / avgCreditsPerEmail)
   const estimatedEmailsPerDay = Math.floor(estimatedEmailsAvailable / 30)
   const estimatedEmailsPerWeek = Math.floor(estimatedEmailsAvailable / 4.33)

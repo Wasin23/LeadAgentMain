@@ -181,6 +181,17 @@ router.post('/add-payment-method', authenticateToken, async (req, res) => {
       stripeCustomerId: customerId  // Single source of truth in users table
     });
     console.log('✅ [BILLING] User update result:', updateResult);
+
+    // Also persist defaultPaymentMethodId in userSettings (first card = default)
+    if (existingPaymentMethods.data.length === 1) {
+      const existingSettings = await awsManager.getUserSettings(userId);
+      await awsManager.saveUserSettings(userId, {
+        ...existingSettings,
+        defaultPaymentMethodId: paymentMethodId,
+      });
+      console.log('✅ [BILLING] defaultPaymentMethodId saved to userSettings');
+    }
+
     console.log(`✅ [BILLING] Payment method added for user ${userId} - Trial restrictions removed`);
     
     res.json({

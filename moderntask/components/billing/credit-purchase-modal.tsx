@@ -283,7 +283,7 @@ export function CreditPurchaseModal({
             </h4>
             <ul className="text-sm text-muted-foreground space-y-1">
               <li>• <strong>1 credit = $0.05</strong> in tracked API costs (transparent pricing)</li>
-              <li>• <strong>~1 credit per email</strong> (full deep AI research, enrichment, validation, sending)</li>
+              <li>• <strong>~0.7 credits per email</strong> (full deep AI research, enrichment, validation, sending)</li>
               <li>• Credits never expire and roll over month-to-month</li>
               {mode === "topup" && <li>• <strong>Top-ups are added instantly</strong> to your current balance</li>}
               {mode === "upgrade" && <li>• Plan upgrades change your included credit ceiling immediately</li>}

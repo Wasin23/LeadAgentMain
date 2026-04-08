@@ -72,7 +72,29 @@ router.post('/upgrade', authenticateToken, async (req, res) => {
       awsManager.getUserById(userId),
       awsManager.getUserSettings(userId),
     ]);
-    if (!user?.stripeCustomerId || !userSettings?.defaultPaymentMethodId) {
+
+    let paymentMethodId = userSettings?.defaultPaymentMethodId;
+
+    // Fall back to Stripe if defaultPaymentMethodId not saved locally
+    if (!paymentMethodId && user?.stripeCustomerId) {
+      try {
+        const customer = await stripe.customers.retrieve(user.stripeCustomerId);
+        paymentMethodId = customer?.invoice_settings?.default_payment_method || null;
+        // If still nothing, grab the first attached card
+        if (!paymentMethodId) {
+          const pms = await stripe.paymentMethods.list({ customer: user.stripeCustomerId, type: 'card', limit: 1 });
+          paymentMethodId = pms.data[0]?.id || null;
+        }
+        // Persist it so future checks are instant
+        if (paymentMethodId) {
+          await awsManager.saveUserSettings(userId, { ...userSettings, defaultPaymentMethodId: paymentMethodId });
+        }
+      } catch (e) {
+        console.error('[PLANS] Stripe customer lookup failed:', e.message);
+      }
+    }
+
+    if (!user?.stripeCustomerId || !paymentMethodId) {
       return res.status(402).json({
         success: false,
         error: 'No payment method on file. Please add a payment method in Settings before upgrading.',
@@ -86,7 +108,7 @@ router.post('/upgrade', authenticateToken, async (req, res) => {
         amount: planPriceCents,
         currency: 'usd',
         customer: user.stripeCustomerId,
-        payment_method: userSettings.defaultPaymentMethodId,
+        payment_method: paymentMethodId,
         off_session: true,
         confirm: true,
         description: `Meridian ${planType} plan`,
@@ -131,7 +153,27 @@ router.post('/purchase-credits', authenticateToken, async (req, res) => {
       awsManager.getUserById(userId),
       awsManager.getUserSettings(userId),
     ]);
-    if (!user?.stripeCustomerId || !userSettings?.defaultPaymentMethodId) {
+
+    let paymentMethodId = userSettings?.defaultPaymentMethodId;
+
+    // Fall back to Stripe if defaultPaymentMethodId not saved locally
+    if (!paymentMethodId && user?.stripeCustomerId) {
+      try {
+        const customer = await stripe.customers.retrieve(user.stripeCustomerId);
+        paymentMethodId = customer?.invoice_settings?.default_payment_method || null;
+        if (!paymentMethodId) {
+          const pms = await stripe.paymentMethods.list({ customer: user.stripeCustomerId, type: 'card', limit: 1 });
+          paymentMethodId = pms.data[0]?.id || null;
+        }
+        if (paymentMethodId) {
+          await awsManager.saveUserSettings(userId, { ...userSettings, defaultPaymentMethodId: paymentMethodId });
+        }
+      } catch (e) {
+        console.error('[CREDITS] Stripe customer lookup failed:', e.message);
+      }
+    }
+
+    if (!user?.stripeCustomerId || !paymentMethodId) {
       return res.status(402).json({
         success: false,
         error: 'No payment method on file. Please add a payment method in Settings before purchasing credits.',
@@ -148,7 +190,7 @@ router.post('/purchase-credits', authenticateToken, async (req, res) => {
         amount: amountCents,
         currency: 'usd',
         customer: user.stripeCustomerId,
-        payment_method: userSettings.defaultPaymentMethodId,
+        payment_method: paymentMethodId,
         off_session: true,
         confirm: true,
         description: `Meridian ${creditAmount} credit top-up`,
