@@ -205,6 +205,8 @@ export function Header({
         </div>
 
         <div className="flex items-center gap-1.5 md:gap-2">
+          {actions && <div className="flex items-center">{actions}</div>}
+          {actions && <div className="w-px h-5 bg-border" />}
           {/* CRM connection status */}
           {crmName !== undefined && <CrmBadge name={crmName} />}
 
@@ -325,8 +327,6 @@ export function Header({
         <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-foreground mb-1">{title}</h1>
         <p className="text-xs md:text-sm text-muted-foreground">{description}</p>
       </div>
-
-      {actions && <div className="flex flex-col sm:flex-row gap-2">{actions}</div>}
     </header>
   )
 }

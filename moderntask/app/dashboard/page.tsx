@@ -312,7 +312,6 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
             <UpcomingFollowUps followUps={followUps} />
             <RecentNotifications notifications={notifications} />
-            <QuickActions />
           </div>
         </div>
       </main>

@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast'
 import {
   CheckCircle2, XCircle,
   Clock, RefreshCw, Bot, Building2,
-  Inbox, Trash2, Pencil, ZoomIn, ZoomOut, Replace,
+  Inbox, Pencil, ZoomIn, ZoomOut, Wand2,
   CheckSquare, Square, ChevronsLeft, ChevronLeft,
   ChevronRight, ChevronsRight, X, CalendarClock, Calendar,
   Settings2, Save, Search, FileText, ExternalLink,
@@ -403,50 +403,119 @@ function EditModal({ email, onSave, onClose }: {
   )
 }
 
-// ── bulk find & replace modal ─────────────────────────────────────────────────
-function BulkReplaceModal({ agentId, onClose, onDone }: {
-  agentId: string; onClose: () => void; onDone: () => void
+// ── mass re-edit modal ────────────────────────────────────────────────────────
+function MassReEditModal({ emails, onSave, onClose }: {
+  emails: QueueEmail[]
+  onSave: (id: string, to: string, cc: string, bcc: string, subject: string, body: string, agentId?: string) => Promise<void>
+  onClose: () => void
 }) {
-  const [find, setFind]         = useState('')
-  const [replace, setReplace]   = useState('')
-  const [useRegex, setUseRegex] = useState(false)
-  const [running, setRunning]   = useState(false)
-  const [result, setResult]     = useState<string | null>(null)
+  const [instruction, setInstruction] = useState('')
+  const [running, setRunning]         = useState(false)
+  const [done, setDone]               = useState(0)
+  const [failed, setFailed]           = useState(0)
+  const [completed, setCompleted]     = useState(false)
+  const wordCount = instruction.trim() ? instruction.trim().split(/\s+/).length : 0
+  const total = emails.length
+  const pct   = total > 0 ? Math.round((done / total) * 100) : 0
+
+  const run = async () => {
+    setRunning(true)
+    setDone(0)
+    setFailed(0)
+    for (const email of emails) {
+      const fields = ef(email)
+      try {
+        const res = await api.post('/api/email-queue/rebuild', {
+          emailId: email.id,
+          agentId: email.agentId,
+          instruction,
+          currentSubject: fields.subject,
+          currentBody: fields.body,
+          aiReport: email.aiReport || null,
+        })
+        await onSave(email.id, fields.to, fields.cc, fields.bcc, res.data.subject, res.data.body, email.agentId)
+      } catch {
+        setFailed(f => f + 1)
+      }
+      setDone(d => d + 1)
+    }
+    setRunning(false)
+    setCompleted(true)
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <Card className="w-full max-w-md p-6 space-y-4">
+      <Card className="w-full max-w-md p-5 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold">Bulk Find &amp; Replace</h3>
-          <button onClick={onClose}><X className="w-4 h-4 text-muted-foreground" /></button>
+          <div>
+            <h3 className="text-sm font-semibold flex items-center gap-2">
+              <Wand2 className="w-4 h-4 text-primary" />
+              Mass Re-edit
+            </h3>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{total} email{total !== 1 ? 's' : ''} selected</p>
+          </div>
+          <button onClick={onClose} disabled={running}><X className="w-4 h-4 text-muted-foreground" /></button>
         </div>
-        <div className="space-y-1">
-          <label className="text-[11px] text-muted-foreground">Find</label>
-          <input className="w-full h-8 rounded-md border border-input bg-background px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring" value={find} onChange={e => setFind(e.target.value)} placeholder="Text to find…" />
-        </div>
-        <div className="space-y-1">
-          <label className="text-[11px] text-muted-foreground">Replace with</label>
-          <input className="w-full h-8 rounded-md border border-input bg-background px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring" value={replace} onChange={e => setReplace(e.target.value)} placeholder="Replacement text…" />
-        </div>
-        <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
-          <input type="checkbox" checked={useRegex} onChange={e => setUseRegex(e.target.checked)} className="rounded" />
-          Use regular expression
-        </label>
-        {result && <p className="text-xs text-green-400">{result}</p>}
-        <div className="flex justify-end gap-2">
-          <Button size="sm" variant="outline" onClick={onClose}>Cancel</Button>
-          <Button size="sm" disabled={running || !find} onClick={async () => {
-            setRunning(true)
-            try {
-              const res = await api.post('/api/email-queue/bulk-edit', {
-                findText: find, replaceText: replace, useRegex,
-                agentId: agentId !== 'all' ? agentId : undefined,
-              })
-              setResult(`Updated ${res.data.updatedCount} of ${res.data.totalProcessed} emails.`)
-              onDone()
-            } catch { setResult('Failed.') }
-            finally { setRunning(false) }
-          }}>{running ? 'Running…' : 'Replace All'}</Button>
-        </div>
+
+        {!completed ? (
+          <>
+            <div className="space-y-1">
+              <label className="text-[11px] font-medium text-muted-foreground">How should these emails be rewritten?</label>
+              <textarea
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring resize-none leading-relaxed"
+                rows={3}
+                value={instruction}
+                onChange={e => setInstruction(e.target.value)}
+                placeholder="e.g. Make them more casual and friendly…"
+                maxLength={300}
+                autoFocus
+                disabled={running}
+              />
+              <p className={cn('text-[10px] text-right', wordCount > 30 ? 'text-destructive' : 'text-muted-foreground')}>{wordCount}/30 words</p>
+            </div>
+
+            {running && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-muted-foreground flex items-center gap-1.5">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Re-editing emails…
+                  </span>
+                  <span className="font-medium">{done}/{total} ({pct}%)</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className="h-full bg-primary rounded-full transition-all duration-300"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <Button size="sm" variant="outline" onClick={onClose} disabled={running}>Cancel</Button>
+              <Button size="sm" disabled={running || !instruction.trim() || wordCount > 30} onClick={run}>
+                {running
+                  ? <><Loader2 className="w-3 h-3 mr-1.5 animate-spin" />Running…</>
+                  : <><Wand2 className="w-3 h-3 mr-1.5" />Re-edit {total} email{total !== 1 ? 's' : ''}</>
+                }
+              </Button>
+            </div>
+          </>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex flex-col items-center gap-2 py-4">
+              <CheckCircle2 className="w-8 h-8 text-green-500" />
+              <p className="text-sm font-medium">Done!</p>
+              <p className="text-[11px] text-muted-foreground">
+                {total - failed} email{(total - failed) !== 1 ? 's' : ''} updated{failed > 0 ? `, ${failed} failed` : ''}.
+              </p>
+            </div>
+            <div className="flex justify-end">
+              <Button size="sm" onClick={onClose}>Close</Button>
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   )
@@ -949,7 +1018,7 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
   const [editTarget, setEditTarget]       = useState<QueueEmail | null>(null)
   const [scheduleTarget, setScheduleTarget] = useState<QueueEmail | null>(null)
   const [rebuildTarget, setRebuildTarget] = useState<QueueEmail | null>(null)
-  const [showReplace, setShowReplace] = useState(false)
+  const [showMassReEdit, setShowMassReEdit] = useState(false)
   const [viewingAiReport, setViewingAiReport] = useState<AIReport | null>(null)
   const LIMIT = 20
 
@@ -1144,14 +1213,6 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
     })
   }
 
-  const clearRejected = async () => {
-    try {
-      await api.post('/api/email-queue/clear-rejected', {}, { params: { agentId: agentId !== 'all' ? agentId : undefined } })
-      load(0)
-      toast({ title: 'Rejected emails cleared', duration: 2000 })
-    } catch { toast({ title: 'Failed to clear rejected', variant: 'destructive', duration: 2000 }) }
-  }
-
   return (
     <div className="space-y-3">
       {/* toolbar */}
@@ -1174,11 +1235,20 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
         )}
 
         <div className="ml-auto flex items-center gap-1">
-          <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-muted-foreground" onClick={() => setShowReplace(true)}>
-            <Replace className="w-3.5 h-3.5" /> Find &amp; Replace
-          </Button>
-          <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-muted-foreground" onClick={clearRejected}>
-            <Trash2 className="w-3.5 h-3.5" /> Clear Rejected
+          <Button
+            size="sm"
+            variant="ghost"
+            className={cn('h-7 text-xs gap-1', selected.size > 0 ? 'text-primary' : 'text-muted-foreground')}
+            onClick={() => {
+              if (selected.size === 0) {
+                toast({ title: 'Select emails first', description: 'Check the boxes next to the emails you want to re-edit.', duration: 3000 })
+                return
+              }
+              setShowMassReEdit(true)
+            }}
+          >
+            <Wand2 className="w-3.5 h-3.5" />
+            Mass Re-edit{selected.size > 0 ? ` (${selected.size})` : ''}
           </Button>
           <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground" onClick={() => load(offset)}>
             <RefreshCw className="w-3.5 h-3.5" />
@@ -1251,7 +1321,7 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
       {editTarget      && <EditModal    email={editTarget}    onSave={saveEdit}    onClose={() => setEditTarget(null)} />}
       {scheduleTarget  && <ScheduleModal email={scheduleTarget} onSave={scheduleEmail} onClose={() => setScheduleTarget(null)} />}
       {rebuildTarget   && <RebuildModal  email={rebuildTarget}  onSave={saveEdit}    onClose={() => setRebuildTarget(null)} />}
-      {showReplace  && <BulkReplaceModal agentId={agentId} onClose={() => setShowReplace(false)} onDone={() => { setShowReplace(false); load(0); toast({ title: 'Find & replace applied', duration: 2000 }) }} />}
+      {showMassReEdit && <MassReEditModal emails={emails.filter(e => selected.has(e.id))} onSave={saveEdit} onClose={() => { setShowMassReEdit(false); load(offset) }} />}
       {viewingAiReport && <AIReportModal report={viewingAiReport} onClose={() => setViewingAiReport(null)} />}
     </div>
   )
