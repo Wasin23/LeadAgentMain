@@ -157,7 +157,8 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
     industries: [] as string[], jobTitles: [] as string[],
     leadsPerCycle: 10, emailLength: 'medium', callToAction: 'schedule-meeting',
     personalizationLevel: 'high', ccEmails: '', bccEmails: '',
-    followupIntervalDays: 7, enableAutoResponse: true, concurrencyLevel: 1
+    followupIntervalDays: 7, enableAutoResponse: true, concurrencyLevel: 1,
+    useCustomSignature: true, signatureName: '', signatureTitle: ''
   })
   const [presetJson, setPresetJson] = useState('')
   const [useGmail, setUseGmail] = useState(false)
@@ -278,7 +279,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
         bccEmails: settings.bccEmails,
         followupIntervalDays: settings.followupIntervalDays,
         enableAutoResponse: settings.enableAutoResponse,
-        useCustomSignature: false,
+        useCustomSignature: true,
         signatureName: '',
         signatureTitle: '',
         specialInstructions
@@ -859,6 +860,45 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                 <div className="mt-4">
                   <label className="block text-gray-700 font-semibold text-sm mb-1">Follow-up Interval (Days)</label>
                   <input type="number" min="1" max="30" value={settings.followupIntervalDays} onChange={e => setSettings(s => ({ ...s, followupIntervalDays: parseInt(e.target.value) || 7 }))} className="w-32 px-3 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-gray-900 focus:border-blue-400 focus:outline-none transition-all text-sm" />
+                </div>
+                <div className="mt-5 rounded-xl bg-blue-50 border border-blue-200 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-gray-900 font-semibold text-sm">Auto-sign emails <span className="ml-1.5 text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">Recommended</span></p>
+                      <p className="text-gray-500 text-xs mt-0.5">Adds your name and title to every outreach email for a professional, personal touch.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSettings(s => ({ ...s, useCustomSignature: !s.useCustomSignature }))}
+                      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${settings.useCustomSignature ? 'bg-blue-500' : 'bg-gray-300'}`}
+                    >
+                      <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform duration-200 ${settings.useCustomSignature ? 'translate-x-5' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
+                  {settings.useCustomSignature && (
+                    <div className="grid grid-cols-2 gap-3 mt-4">
+                      <div>
+                        <label className="block text-gray-700 font-semibold text-xs mb-1">Your Name</label>
+                        <input
+                          type="text"
+                          value={settings.signatureName ?? ''}
+                          onChange={e => setSettings(s => ({ ...s, signatureName: e.target.value }))}
+                          placeholder="John Smith"
+                          className="w-full px-3 py-2 rounded-lg bg-white border border-blue-200 text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:outline-none transition-all text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-gray-700 font-semibold text-xs mb-1">Your Title</label>
+                        <input
+                          type="text"
+                          value={settings.signatureTitle ?? ''}
+                          onChange={e => setSettings(s => ({ ...s, signatureTitle: e.target.value }))}
+                          placeholder="VP of Sales"
+                          className="w-full px-3 py-2 rounded-lg bg-white border border-blue-200 text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:outline-none transition-all text-sm"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

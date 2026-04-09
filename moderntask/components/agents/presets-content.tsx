@@ -49,7 +49,7 @@ const EMPTY_FORM: Omit<Preset, 'id' | 'createdAt' | 'updatedAt'> = {
   bccEmails: '',
   followupIntervalDays: 7,
   enableAutoResponse: true,
-  useCustomSignature: false,
+  useCustomSignature: true,
   signatureName: '',
   signatureTitle: '',
   specialInstructions: '',
@@ -278,29 +278,24 @@ function PresetFormModal({
             />
           </Field>
 
-          {/* advanced (signature) */}
-          <div>
-            <button
-              type="button"
-              onClick={() => setShowAdvanced(p => !p)}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-            >
-              {showAdvanced ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              Custom Signature
-            </button>
-            {showAdvanced && (
-              <div className="mt-3 space-y-3 pl-3 border-l-2 border-border">
-                <Toggle value={!!form.useCustomSignature} onChange={v => set('useCustomSignature', v)} label="Use custom signature" />
-                {form.useCustomSignature && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <Field label="Signature Name">
-                      <TextInput value={form.signatureName ?? ''} onChange={v => set('signatureName', v)} placeholder="John Smith" />
-                    </Field>
-                    <Field label="Signature Title">
-                      <TextInput value={form.signatureTitle ?? ''} onChange={v => set('signatureTitle', v)} placeholder="VP of Sales" />
-                    </Field>
-                  </div>
-                )}
+          {/* email signature */}
+          <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <Toggle value={!!form.useCustomSignature} onChange={v => set('useCustomSignature', v)} label="Auto-sign emails" />
+                <p className="text-xs text-muted-foreground mt-1 ml-0.5">
+                  Recommended — adds your name and title to every email for a professional, personal touch.
+                </p>
+              </div>
+            </div>
+            {form.useCustomSignature && (
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <Field label="Signature Name">
+                  <TextInput value={form.signatureName ?? ''} onChange={v => set('signatureName', v)} placeholder="John Smith" />
+                </Field>
+                <Field label="Signature Title">
+                  <TextInput value={form.signatureTitle ?? ''} onChange={v => set('signatureTitle', v)} placeholder="VP of Sales" />
+                </Field>
               </div>
             )}
           </div>
