@@ -66,6 +66,8 @@ interface HomeSectionsProps {
   opened?:           number
   followUps?:        FollowUpItem[]
   notifications?:    NotificationItem[]
+  editMode?:         boolean
+  onEditModeChange?: (v: boolean) => void
 }
 
 function SortableSection({
@@ -132,10 +134,14 @@ export function HomeSections({
   opened = 0,
   followUps = [],
   notifications = [],
+  editMode: externalEditMode,
+  onEditModeChange,
 }: HomeSectionsProps) {
-  const [order, setOrder]       = useState<HomeSectionId[]>(DEFAULT_ORDER)
-  const [hidden, setHidden]     = useState<HomeSectionId[]>([])
-  const [editMode, setEditMode] = useState(false)
+  const [order, setOrder]            = useState<HomeSectionId[]>(DEFAULT_ORDER)
+  const [hidden, setHidden]          = useState<HomeSectionId[]>([])
+  const [internalEditMode, setInternalEditMode] = useState(false)
+  const editMode    = onEditModeChange ? (externalEditMode ?? false) : internalEditMode
+  const setEditMode = onEditModeChange ? onEditModeChange : setInternalEditMode
 
   useEffect(() => {
     try {
@@ -191,36 +197,42 @@ export function HomeSections({
 
   return (
     <div className="space-y-3">
-      {/* Edit bar */}
-      <div className="flex items-center justify-end gap-2 flex-wrap">
-        {editMode && addable.length > 0 && (
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-xs text-muted-foreground">Add:</span>
-            {addable.map(id => (
-              <button
-                key={id}
-                onClick={() => addSection(id)}
-                className="text-xs px-2.5 py-1 rounded-md border border-dashed border-border text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-colors"
-              >
-                + {SECTION_META[id].label}
-              </button>
-            ))}
-          </div>
-        )}
-        <button
-          onClick={() => setEditMode(e => !e)}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-            editMode
-              ? "bg-primary text-primary-foreground border-primary"
-              : "bg-muted/60 text-muted-foreground border-border hover:text-foreground"
-          }`}
-        >
-          {editMode
-            ? <><Check className="w-3 h-3" /> Done</>
-            : <><Settings2 className="w-3 h-3" /> Edit Layout</>
-          }
-        </button>
-      </div>
+      {/* Add pills — always shown when editing and sections are hidden */}
+      {editMode && addable.length > 0 && (
+        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+          <span className="text-xs text-muted-foreground">Add section:</span>
+          {addable.map(id => (
+            <button
+              key={id}
+              onClick={() => addSection(id)}
+              className="text-xs px-2.5 py-1 rounded-md border border-dashed border-border text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-colors"
+            >
+              + {SECTION_META[id].label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Stats add pills — shown via StatsCards internally */}
+
+      {/* Edit bar — only shown when not controlled externally */}
+      {!onEditModeChange && (
+        <div className="flex items-center justify-end gap-2 flex-wrap">
+          <button
+            onClick={() => setEditMode(!editMode)}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+              editMode
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-muted/60 text-muted-foreground border-border hover:text-foreground"
+            }`}
+          >
+            {editMode
+              ? <><Check className="w-3 h-3" /> Done</>
+              : <><Settings2 className="w-3 h-3" /> Edit Layout</>
+            }
+          </button>
+        </div>
+      )}
 
       {/* Sortable grid */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

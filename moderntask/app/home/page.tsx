@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import api from "@/lib/api"
+import { Settings2, Check } from "lucide-react"
 import { Sidebar } from "@/components/dashboard/sidebar"
 import { Header } from "@/components/dashboard/header"
 import { StatsCards } from "@/components/dashboard/stats-cards"
@@ -93,6 +94,7 @@ export default function DashboardPage() {
     hasSecondAgent: false,
   })
   const [isPaidPlan, setIsPaidPlan] = useState(false)
+  const [editMode, setEditMode] = useState(false)
 
   const fetchAll = useCallback(async () => {
     // Fire all requests in parallel; silently handle individual failures
@@ -385,6 +387,23 @@ export default function DashboardPage() {
         />
 
         <div className="mt-4 md:mt-5 space-y-3 md:space-y-4">
+          {/* Unified customize bar */}
+          <div className="flex items-center justify-end gap-2">
+            <button
+              onClick={() => setEditMode(e => !e)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                editMode
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-muted/60 text-muted-foreground border-border hover:text-foreground"
+              }`}
+            >
+              {editMode
+                ? <><Check className="w-3 h-3" /> Done</>
+                : <><Settings2 className="w-3 h-3" /> Customize</>
+              }
+            </button>
+          </div>
+
           <StatsCards
             sent={counts.sent}
             queued={counts.queued}
@@ -397,6 +416,8 @@ export default function DashboardPage() {
             bouncedCount={bouncedCount}
             openedCount={openedCount}
             creditBalance={creditBalance}
+            editMode={editMode}
+            onEditModeChange={setEditMode}
           />
 
           <HomeSections
@@ -411,6 +432,8 @@ export default function DashboardPage() {
             opened={openedCount}
             followUps={followUps}
             notifications={notifications}
+            editMode={editMode}
+            onEditModeChange={setEditMode}
           />
         </div>
       </main>

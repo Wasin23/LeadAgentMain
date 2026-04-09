@@ -109,12 +109,14 @@ function SortableCard({
   )
 }
 
-export function StatsCards({ sent = 0, queued = 0, runningAgents = 0, cyclesCompleted = 0, replies = 0, totalAgents = 0, followUpCount = 0, scheduledCount = 0, bouncedCount = 0, openedCount = 0, creditBalance = null }: StatsCardsProps) {
+export function StatsCards({ sent = 0, queued = 0, runningAgents = 0, cyclesCompleted = 0, replies = 0, totalAgents = 0, followUpCount = 0, scheduledCount = 0, bouncedCount = 0, openedCount = 0, creditBalance = null, editMode = false, onEditModeChange }: StatsCardsProps & { editMode?: boolean; onEditModeChange?: (v: boolean) => void }) {
   const EXTRA_IDS: StatId[] = ["replies", "reply-rate", "total-agents", "followups", "scheduled", "bounced", "bounce-rate", "open-rate", "credits"]
 
   const [order, setOrder] = useState<StatId[]>(DEFAULT_ORDER)
   const [hidden, setHidden] = useState<Set<StatId>>(new Set(EXTRA_IDS))
-  const [editMode, setEditMode] = useState(false)
+  const [internalEditMode, setInternalEditMode] = useState(false)
+  const isEditing = onEditModeChange ? editMode : internalEditMode
+  const setIsEditing = onEditModeChange ? onEditModeChange : setInternalEditMode
 
   useEffect(() => {
     try {
@@ -153,7 +155,7 @@ export function StatsCards({ sent = 0, queued = 0, runningAgents = 0, cyclesComp
 
   const visibleOrder = order.filter(id => !hidden.has(id))
 
-  function handleDragEnd(event: DragEndEvent) {
+  function handleDragEnd(event: DragEndEvent) {(event: DragEndEvent) {
     const { active, over } = event
     if (!over || active.id === over.id) return
     const newOrder = arrayMove(order, order.indexOf(active.id as StatId), order.indexOf(over.id as StatId))
@@ -196,24 +198,28 @@ export function StatsCards({ sent = 0, queued = 0, runningAgents = 0, cyclesComp
 
   return (
     <div>
-      <div className="flex items-center justify-end gap-2 mb-2">
-        {editMode && (
-          <button onClick={reset} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-            <RotateCcw className="w-3 h-3" /> Reset
+      {!onEditModeChange && (
+        <div className="flex items-center justify-end gap-2 mb-2">
+          <button
+            onClick={() => setIsEditing(!isEditing)}
+            className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md transition-colors ${
+              isEditing ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+            }`}
+          >
+            <Settings2 className="w-3 h-3" />
+            {isEditing ? "Done" : "Customize"}
           </button>
-        )}
-        <button
-          onClick={() => setEditMode(e => !e)}
-          className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md transition-colors ${
-            editMode ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-          }`}
-        >
-          <Settings2 className="w-3 h-3" />
-          {editMode ? "Done" : "Customize"}
-        </button>
-      </div>
+        </div>
+      )}
+      {isEditing && (
+        <div className="flex items-center justify-end mb-1">
+          <button onClick={reset} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+            <RotateCcw className="w-3 h-3" /> Reset stat cards
+          </button>
+        </div>
+      )}
 
-      {editMode && addable.length > 0 && (
+      {isEditing && addable.length > 0 && (
         <div className="mb-3 flex flex-wrap gap-1.5 items-center">
           <span className="text-xs text-muted-foreground">Add:</span>
           {addable.map(id => (
@@ -236,7 +242,7 @@ export function StatsCards({ sent = 0, queued = 0, runningAgents = 0, cyclesComp
                 key={id}
                 id={id}
                 stat={allStats[id]}
-                editMode={editMode}
+                editMode={isEditing}
                 onRemove={removeCard}
               />
             ))}
