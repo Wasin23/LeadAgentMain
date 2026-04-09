@@ -76,9 +76,9 @@ export function HomeCharts({
           <RangeToggle value={range} onChange={setRange} />
         </div>
         {slicedSeries.length === 0 ? (
-          <div className="h-[220px] flex items-center justify-center text-xs text-muted-foreground">No email data yet</div>
+          <div className="h-[150px] flex items-center justify-center text-xs text-muted-foreground">No email data yet</div>
         ) : (
-          <ResponsiveContainer width="100%" height={220}>
+          <ResponsiveContainer width="100%" height={150}>
             <AreaChart data={slicedSeries} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
               <defs>
                 <linearGradient id="hcgSent" x1="0" y1="0" x2="0" y2="1">
@@ -94,7 +94,7 @@ export function HomeCharts({
               <XAxis dataKey="date" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
               <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={28} allowDecimals={false} />
               <Tooltip content={<ChartTooltip />} />
-              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 8, color: "hsl(var(--muted-foreground))" }} />
               <Area type="monotone" dataKey="Sent"    stroke="#a855f7" strokeWidth={2} fill="url(#hcgSent)"    dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
               <Area type="monotone" dataKey="Replied" stroke="#22c55e" strokeWidth={2} fill="url(#hcgReplied)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
             </AreaChart>
@@ -142,6 +142,81 @@ export function HomeCharts({
 
       </div>
     </div>
+  )
+}
+
+export function EmailActivityCard({ emailTimeSeries = [] }: { emailTimeSeries?: EmailTimePoint[] }) {
+  const [range, setRange] = useState<Range>("7d")
+  const points = range === "7d" ? 7 : range === "14d" ? 14 : 30
+  const sliced = emailTimeSeries.slice(-points)
+  return (
+    <Card className="p-5">
+      <div className="flex items-center justify-between mb-4">
+        <CardTitle className="text-sm font-semibold">Email Activity Over Time</CardTitle>
+        <RangeToggle value={range} onChange={setRange} />
+      </div>
+      {sliced.length === 0 ? (
+        <div className="h-[150px] flex items-center justify-center text-xs text-muted-foreground">No email data yet</div>
+      ) : (
+        <ResponsiveContainer width="100%" height={150}>
+          <AreaChart data={sliced} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
+            <defs>
+              <linearGradient id="eacSent" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%"  stopColor="#a855f7" stopOpacity={0.22} />
+                <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="eacReplied" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%"  stopColor="#22c55e" stopOpacity={0.18} />
+                <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.4} vertical={false} />
+            <XAxis dataKey="date" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+            <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={28} allowDecimals={false} />
+            <Tooltip content={<ChartTooltip />} />
+            <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 8, color: "hsl(var(--muted-foreground))" }} />
+            <Area type="monotone" dataKey="Sent"    stroke="#a855f7" strokeWidth={2} fill="url(#eacSent)"    dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+            <Area type="monotone" dataKey="Replied" stroke="#22c55e" strokeWidth={2} fill="url(#eacReplied)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+          </AreaChart>
+        </ResponsiveContainer>
+      )}
+    </Card>
+  )
+}
+
+export function CreditConsumptionCard({ monthlyCredits = [], creditBalance = null }: { monthlyCredits?: MonthlyPoint[]; creditBalance?: number | null }) {
+  return (
+    <Card className="p-5">
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <CardTitle className="text-sm font-semibold">Credit Consumption Over Time</CardTitle>
+          {creditBalance !== null && (
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Balance: <span className="font-semibold text-foreground">{creditBalance.toLocaleString()}</span> credits remaining
+            </p>
+          )}
+        </div>
+      </div>
+      {monthlyCredits.every(m => m.Credits === 0) ? (
+        <div className="h-[160px] flex items-center justify-center text-xs text-muted-foreground">No usage data yet</div>
+      ) : (
+        <ResponsiveContainer width="100%" height={160}>
+          <BarChart data={monthlyCredits} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
+            <defs>
+              <linearGradient id="cccCredit" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%"  stopColor="#a855f7" stopOpacity={1} />
+                <stop offset="95%" stopColor="#a855f7" stopOpacity={0.5} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.4} vertical={false} />
+            <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
+            <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={28} allowDecimals={false} />
+            <Tooltip content={<ChartTooltip />} />
+            <Bar dataKey="Credits" name="Emails Sent" fill="url(#cccCredit)" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      )}
+    </Card>
   )
 }
 

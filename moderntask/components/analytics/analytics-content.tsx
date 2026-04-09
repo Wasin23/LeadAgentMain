@@ -439,7 +439,7 @@ export function AnalyticsContent() {
                     <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
                     <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} width={28} allowDecimals={false} />
                     <Tooltip content={<ChartTooltip />} />
-                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 8, color: 'hsl(var(--muted-foreground))' }} />
                     {Object.values(agentMap).map((name, i) => (
                       <Line key={name} type="monotone" dataKey={name} stroke={AGENT_COLORS[i % AGENT_COLORS.length]} strokeWidth={2} dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
                     ))}
@@ -460,7 +460,7 @@ export function AnalyticsContent() {
               <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
               <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} width={28} allowDecimals={false} />
               <Tooltip content={<ChartTooltip />} />
-              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 8, color: 'hsl(var(--muted-foreground))' }} />
               <Line type="monotone" dataKey="Sent"    stroke="#a855f7" strokeWidth={2}   dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
               <Line type="monotone" dataKey="Replied" stroke="#22c55e" strokeWidth={2.5} dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
             </LineChart>
@@ -550,7 +550,7 @@ export function AnalyticsContent() {
                         )
                       }}
                     />
-                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+                    <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 8, color: 'hsl(var(--muted-foreground))' }} />
                     <Bar dataKey="Success Rate" name="Success Rate" fill="url(#gSuccess)" radius={[0, 3, 3, 0]} />
                     <Bar dataKey="Open Rate"    name="Open Rate"    fill="url(#gOpenRate)" radius={[0, 3, 3, 0]} />
                   </BarChart>

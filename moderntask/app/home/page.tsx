@@ -6,12 +6,9 @@ import api from "@/lib/api"
 import { Sidebar } from "@/components/dashboard/sidebar"
 import { Header } from "@/components/dashboard/header"
 import { StatsCards } from "@/components/dashboard/stats-cards"
-import { HomeCharts, DeliveryHealthCard, type EmailTimePoint, type MonthlyPoint } from "@/components/dashboard/home-charts"
+import { HomeCharts, type EmailTimePoint, type MonthlyPoint } from "@/components/dashboard/home-charts"
+import { HomeSections } from "@/components/dashboard/home-sections"
 import { ProjectAnalytics } from "@/components/dashboard/project-analytics"
-import { TeamCollaboration } from "@/components/dashboard/team-collaboration"
-import { ProjectProgress } from "@/components/dashboard/project-progress"
-import { UpcomingFollowUps } from "@/components/dashboard/upcoming-followups"
-import { RecentNotifications } from "@/components/dashboard/recent-notifications"
 import { QuickActions } from "@/components/dashboard/quick-actions"
 import { HomeActions } from "@/components/dashboard/home-actions"
 import type { GettingStartedChecklist } from "@/components/dashboard/getting-started"
@@ -402,28 +399,19 @@ export default function DashboardPage() {
             creditBalance={creditBalance}
           />
 
-          <HomeCharts
+          <HomeSections
             emailTimeSeries={emailTimeSeries}
             monthlyCredits={monthlyCredits}
             scheduledBatches={scheduledBatches}
             creditBalance={creditBalance}
+            agentActivity={agentActivity}
+            agentProgress={agentProgress}
+            sent={counts.sent}
+            bounced={bouncedCount}
+            opened={openedCount}
+            followUps={followUps}
+            notifications={notifications}
           />
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
-            <div className="lg:col-span-2">
-              <TeamCollaboration agents={agentActivity} />
-            </div>
-            <div className="space-y-3 md:space-y-4">
-              <DeliveryHealthCard sent={counts.sent} bounced={bouncedCount} opened={openedCount} />
-              <ProjectProgress agents={agentProgress} />
-            </div>
-          </div>
-
-          {/* Bottom row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-            <UpcomingFollowUps followUps={followUps} />
-            <RecentNotifications notifications={notifications} />
-          </div>
         </div>
       </main>
     </div>

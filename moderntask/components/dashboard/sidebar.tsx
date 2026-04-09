@@ -85,9 +85,9 @@ function SortableNavItem({
   }
 
   return (
-    <div ref={setNodeRef} style={style} className="flex items-center">
+    <div ref={setNodeRef} style={style} className="flex items-center w-full">
       <div
-        className={`flex items-center transition-all duration-200 ${
+        className={`flex items-center w-full transition-all duration-200 ${
           editMode ? "gap-1.5 pl-1" : "gap-0 pl-0"
         }`}
       >
