@@ -352,8 +352,22 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false
 }));
 
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
+  : [
+      'https://meridianprospects.com',
+      'https://www.meridianprospects.com',
+      'http://localhost:3000',
+      'http://localhost:8080',
+    ];
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || (process.env.NODE_ENV === 'production' ? false : true),
+  origin: (origin, callback) => {
+    // Allow requests with no origin (curl, Postman, server-to-server)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS: origin ${origin} not allowed`));
+  },
   credentials: true
 }));
 
