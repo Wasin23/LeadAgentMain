@@ -1,11 +1,20 @@
 "use client"
 
-import { LayoutDashboard, CheckSquare, BarChart3, Settings, HelpCircle, LogOut, Mail, Bot, UserCheck, Circle, Building2 } from "lucide-react"
+import { LayoutDashboard, CheckSquare, BarChart3, Settings, HelpCircle, LogOut, Mail, Bot, UserCheck, Circle, Building2, GripVertical } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState, useEffect, Suspense } from "react"
 import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
 import api from "@/lib/api"
+import {
+  DndContext, closestCenter, PointerSensor, KeyboardSensor,
+  useSensor, useSensors, type DragEndEvent,
+} from "@dnd-kit/core"
+import {
+  SortableContext, sortableKeyboardCoordinates, useSortable,
+  verticalListSortingStrategy, arrayMove,
+} from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
 
 interface NavItem {
   icon: React.ElementType
@@ -55,9 +64,47 @@ const generalItems: NavItem[] = [
   { icon: LogOut,     label: "Logout",   href: "/logout" },
 ]
 
+const STATIC_HREFS = staticItems.map(i => i.href)
+
+function SortableNavItem({
+  item, pathname, search, hovered, setHovered,
+}: {
+  item: NavItem
+  pathname: string
+  search: string
+  hovered: string | null
+  setHovered: (v: string | null) => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.href })
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    position: "relative" as const,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} className="group/sortable flex items-center gap-1">
+      <button
+        {...attributes}
+        {...listeners}
+        tabIndex={-1}
+        className="opacity-0 group-hover/sortable:opacity-30 hover:!opacity-70 p-0.5 cursor-grab active:cursor-grabbing touch-none shrink-0 transition-opacity"
+        aria-label="Drag to reorder"
+      >
+        <GripVertical className="w-3 h-3 text-muted-foreground" />
+      </button>
+      <div className="flex-1 min-w-0">
+        <NavEntry item={item} pathname={pathname} search={search} hovered={hovered} setHovered={setHovered} />
+      </div>
+    </div>
+  )
+}
+
 function SidebarInner() {
-  const [hoveredItem, setHoveredItem]   = useState<string | null>(null)
-  const [agentItems, setAgentItems]     = useState<NavItem[]>([])
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null)
+  const [agentItems, setAgentItems]   = useState<NavItem[]>([])
+  const [navOrder, setNavOrder]       = useState<string[]>(STATIC_HREFS)
   const pathname    = usePathname()
   const searchParams = useSearchParams()
   const search      = searchParams.toString() ? `?${searchParams.toString()}` : ""
@@ -71,16 +118,39 @@ function SidebarInner() {
         href: `/agents?agent=${a.agentId}`,
       })))
     }).catch(() => {})
+
+    try {
+      const saved = localStorage.getItem("sidebar-nav-order")
+      if (saved) {
+        const parsed: string[] = JSON.parse(saved)
+        // Only use saved order if it contains all current hrefs (guards against stale data)
+        if (STATIC_HREFS.every(h => parsed.includes(h))) setNavOrder(parsed)
+      }
+    } catch {}
   }, [])
 
-  // Inject dynamic agent children
-  const menuItems: NavItem[] = staticItems.map(item =>
-    item.href === "/agents"
-      ? { ...item, children: agentItems }
-      : item
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
-  // Contacted sub-tab hrefs use ?tab= so isActive check needs to handle search params
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const newOrder = arrayMove(navOrder, navOrder.indexOf(active.id as string), navOrder.indexOf(over.id as string))
+    setNavOrder(newOrder)
+    localStorage.setItem("sidebar-nav-order", JSON.stringify(newOrder))
+  }
+
+  // Build item map with dynamic agent children injected
+  const itemByHref: Record<string, NavItem> = {}
+  for (const item of staticItems) {
+    itemByHref[item.href] = item.href === "/agents" ? { ...item, children: agentItems } : item
+  }
+
+  const orderedMenuItems = navOrder
+    .filter(h => itemByHref[h])
+    .map(h => itemByHref[h])
 
   return (
     <aside className="fixed top-0 left-0 w-64 bg-card border-r border-border p-4 h-screen overflow-y-auto lg:block">
@@ -103,9 +173,22 @@ function SidebarInner() {
       <div className="space-y-4">
         <div>
           <p className="text-[10px] font-medium text-muted-foreground mb-2 uppercase tracking-wider">Menu</p>
-          <nav className="space-y-0.5">
-            {menuItems.map(item => <NavEntry key={item.href} item={item} pathname={pathname} search={search} hovered={hoveredItem} setHovered={setHoveredItem} />)}
-          </nav>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={navOrder} strategy={verticalListSortingStrategy}>
+              <nav className="space-y-0.5">
+                {orderedMenuItems.map(item => (
+                  <SortableNavItem
+                    key={item.href}
+                    item={item}
+                    pathname={pathname}
+                    search={search}
+                    hovered={hoveredItem}
+                    setHovered={setHoveredItem}
+                  />
+                ))}
+              </nav>
+            </SortableContext>
+          </DndContext>
         </div>
 
         <div>

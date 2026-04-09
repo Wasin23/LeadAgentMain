@@ -423,36 +423,7 @@ export function AnalyticsContent() {
       {/* main recharts grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-        {/* Email activity – area chart */}
-        <Card className="p-5">
-          <div className="flex items-center justify-between mb-4">
-            <CardTitle className="text-sm font-semibold">Email Activity Over Time</CardTitle>
-            <RangeToggle value={timeRange} onChange={setTimeRange} />
-          </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={emailTimeSeries} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
-              <defs>
-                <linearGradient id="gSent" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#a855f7" stopOpacity={0.22} />
-                  <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="gReplied" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#22c55e" stopOpacity={0.18} />
-                  <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.4} vertical={false} />
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-              <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} width={28} allowDecimals={false} />
-              <Tooltip content={<ChartTooltip />} />
-              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
-              <Area type="monotone" dataKey="Sent"    stroke="#a855f7" strokeWidth={2} fill="url(#gSent)"    dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
-              <Area type="monotone" dataKey="Replied" stroke="#22c55e" strokeWidth={2} fill="url(#gReplied)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </Card>
-
-        {/* Agent performance – multi-line time series */}
+        {/* Agent performance – multi-line time series */}}
         <Card className="p-5">
           <div className="flex items-center justify-between mb-4">
             <CardTitle className="text-sm font-semibold">Agent Performance Over Time</CardTitle>
@@ -493,29 +464,6 @@ export function AnalyticsContent() {
               <Line type="monotone" dataKey="Sent"    stroke="#a855f7" strokeWidth={2}   dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
               <Line type="monotone" dataKey="Replied" stroke="#22c55e" strokeWidth={2.5} dot={false} activeDot={{ r: 5, strokeWidth: 0 }} />
             </LineChart>
-          </ResponsiveContainer>
-        </Card>
-
-        {/* Cycles – area chart */}
-        <Card className="p-5">
-          <div className="flex items-center justify-between mb-4">
-            <CardTitle className="text-sm font-semibold">Agent Cycles Completed</CardTitle>
-            <RangeToggle value={timeRange} onChange={setTimeRange} />
-          </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={cycleTimeSeries} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
-              <defs>
-                <linearGradient id="gCycle" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.25} />
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.4} vertical={false} />
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-              <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} tickLine={false} axisLine={false} width={28} allowDecimals={false} />
-              <Tooltip content={<ChartTooltip />} />
-              <Area type="monotone" dataKey="Cycles" stroke="#3b82f6" strokeWidth={2} fill="url(#gCycle)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
-            </AreaChart>
           </ResponsiveContainer>
         </Card>
 

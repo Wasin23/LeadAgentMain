@@ -6,6 +6,7 @@ import api from "@/lib/api"
 import { Sidebar } from "@/components/dashboard/sidebar"
 import { Header } from "@/components/dashboard/header"
 import { StatsCards } from "@/components/dashboard/stats-cards"
+import { HomeCharts, type EmailTimePoint, type MonthlyPoint } from "@/components/dashboard/home-charts"
 import { ProjectAnalytics } from "@/components/dashboard/project-analytics"
 import { Reminders } from "@/components/dashboard/reminders"
 import { TeamCollaboration } from "@/components/dashboard/team-collaboration"
@@ -63,9 +64,15 @@ export default function DashboardPage() {
   // stats
   const [counts, setCounts] = useState({ sent: 0, queued: 0, replied: 0 })
   const [runningAgents, setRunningAgents] = useState(0)
+  const [totalAgents, setTotalAgents] = useState(0)
+  const [bouncedCount, setBouncedCount] = useState(0)
+  const [openedCount, setOpenedCount] = useState(0)
+  const [creditBalance, setCreditBalance] = useState<number | null>(null)
 
   // chart – emails sent per day (last 7 days)
   const [chartData, setChartData] = useState<QueueChartDataPoint[]>([])
+  const [emailTimeSeries, setEmailTimeSeries] = useState<EmailTimePoint[]>([])
+  const [monthlyCredits, setMonthlyCredits] = useState<MonthlyPoint[]>([])
 
   // agent panels
   const [agentProgress, setAgentProgress] = useState<AgentProgressItem[]>([])
@@ -116,6 +123,9 @@ export default function DashboardPage() {
     if (planRes.status === "fulfilled") {
       const planId = planRes.value.data?.plan?.id || "free-trial"
       setIsPaidPlan(planId !== "free-trial")
+      const d = planRes.value.data
+      const bal = Number(d.credits?.remaining ?? d.plan?.remainingCredits ?? 0)
+      if (bal > 0) setCreditBalance(Math.round(bal))
     }
 
     // ── email counts ────────────────────────────────────────────────────
@@ -145,6 +155,7 @@ export default function DashboardPage() {
         (a) => a.isRunning === true || a.status === "running"
       ).length
       setRunningAgents(running)
+      setTotalAgents(agents.filter(a => a.agentId !== "orphan").length)
 
       // team-collaboration list
       setAgentActivity(
@@ -264,6 +275,47 @@ export default function DashboardPage() {
           agentName: (e.agentName as string) || "",
         }))
       setFollowUps(followUpList)
+
+      // bounce + open stats derived from sent emails
+      const bounced = sentEmailsForChart.filter(e => String(e.SK || "").startsWith("BOUNCED#")).length
+      const opened  = sentEmailsForChart.filter(e => e.opened === true).length
+      setBouncedCount(bounced)
+      setOpenedCount(opened)
+
+      // email activity time series — last 30 days
+      const timeSeries: EmailTimePoint[] = Array.from({ length: 30 }, (_, rev) => {
+        const daysAgo = 29 - rev
+        const d = new Date()
+        d.setDate(d.getDate() - daysAgo)
+        const dayStr = d.toLocaleDateString("en-CA")
+        const label  = d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+        let s = 0, r = 0
+        sentEmailsForChart.forEach(e => {
+          const ed = emailDate(e).toLocaleDateString("en-CA")
+          if (ed === dayStr) {
+            s++
+            if (e.replied === true || e.status === "REPLIED") r++
+          }
+        })
+        return { date: label, Sent: s, Replied: r }
+      })
+      setEmailTimeSeries(timeSeries)
+
+      // monthly credit consumption (last 6 months)
+      const now = new Date()
+      const monthly: MonthlyPoint[] = Array.from({ length: 6 }, (_, rev) => {
+        const i = 5 - rev
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+        const start = new Date(d.getFullYear(), d.getMonth(), 1)
+        const end   = new Date(d.getFullYear(), d.getMonth() + 1, 1)
+        const label = d.toLocaleDateString("en-US", { month: "short" })
+        const credits = sentEmailsForChart.filter(e => {
+          const t = emailDate(e)
+          return t >= start && t < end
+        }).length
+        return { month: label, Credits: credits }
+      })
+      setMonthlyCredits(monthly)
     }
 
     // ── scheduled batches (server-computed) ────────────────────────────
@@ -342,11 +394,26 @@ export default function DashboardPage() {
             queued={counts.queued}
             runningAgents={runningAgents}
             cyclesCompleted={counts.replied}
+            replies={counts.replied}
+            totalAgents={totalAgents}
+            followUpCount={followUps.length}
+            scheduledCount={scheduledBatches.reduce((s, b) => s + b.count, 0)}
+            bouncedCount={bouncedCount}
+            openedCount={openedCount}
+            creditBalance={creditBalance}
+          />
+
+          <HomeCharts
+            emailTimeSeries={emailTimeSeries}
+            monthlyCredits={monthlyCredits}
+            sent={counts.sent}
+            bounced={bouncedCount}
+            opened={openedCount}
+            creditBalance={creditBalance}
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
             <div className="lg:col-span-2 space-y-3 md:space-y-4">
-              <ProjectAnalytics data={chartData} />
               <TeamCollaboration agents={agentActivity} />
             </div>
 
