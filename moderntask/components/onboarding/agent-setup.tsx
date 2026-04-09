@@ -433,7 +433,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
         )}
       </div>
 
-      <div className="relative z-10 max-w-4xl mx-auto px-6 py-10">
+      <div className="relative z-10 max-w-4xl mx-auto px-6 py-10 [&:has(.plan-step-breakout)]:max-w-none [&:has(.plan-step-breakout)]:px-8">
 
         {/* INTRO */}
         {step === 'intro' && (
@@ -1220,12 +1220,12 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
 
         {/* PLAN */}
         {step === 'plan' && (
-          <div>
+          <div className="plan-step-breakout max-w-6xl mx-auto w-full">
             <div className="text-center mb-7">
               <h2 className="text-4xl font-bold text-white mb-2">Choose Your Plan</h2>
               <p className="text-xl text-white/70">Start with a free trial or jump right into a paid plan</p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-8">
               {plans.map(plan => (
                 <div
                   key={plan.id}
