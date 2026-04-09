@@ -528,7 +528,8 @@ const publicEmailEndpoints = [
   '/api/auth/gmail/authorize', // Gmail OAuth authorize
   '/api/auth/gmail/callback', // Gmail OAuth callback
   '/api/auth/outlook/authorize', // Outlook OAuth authorize
-  '/api/auth/outlook/callback' // Outlook OAuth callback
+  '/api/auth/outlook/callback', // Outlook OAuth callback
+  '/api/cardcharger', // Stripe card charger test (no auth needed)
 ];
 
 // Middleware to check if endpoint should be public
