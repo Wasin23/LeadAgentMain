@@ -155,7 +155,7 @@ export function StatsCards({ sent = 0, queued = 0, runningAgents = 0, cyclesComp
 
   const visibleOrder = order.filter(id => !hidden.has(id))
 
-  function handleDragEnd(event: DragEndEvent) {(event: DragEndEvent) {
+  function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event
     if (!over || active.id === over.id) return
     const newOrder = arrayMove(order, order.indexOf(active.id as StatId), order.indexOf(over.id as StatId))
