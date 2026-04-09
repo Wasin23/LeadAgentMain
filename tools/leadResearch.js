@@ -9,6 +9,27 @@ import AWSManager from '../utils/awsManager.js';
 
 const awsManager = new AWSManager();
 
+// ── junk keyword filter ───────────────────────────────────────────────────────
+const JUNK_KEYWORDS = new Set([
+  'any', 'all', 'everyone', 'anyone', 'any role', 'any position', 'any industry',
+  'any company', 'all industries', 'all roles', 'any title', 'n/a', 'na', 'none', 'other',
+]);
+function filterJunk(arr) {
+  return (arr || []).filter(v => v && !JUNK_KEYWORDS.has(v.toLowerCase().trim()));
+}
+
+// ── agent-decide rotation pools ──────────────────────────────────────────────
+const AGENT_DECIDE_POSITIONS = [
+  'CEO', 'COO', 'CFO', 'CMO', 'VP Sales', 'VP Marketing', 'VP Business Development',
+  'Director of Sales', 'Director of Marketing', 'President', 'Founder', 'Co-Founder',
+  'Managing Director', 'Chief Revenue Officer', 'Head of Growth',
+];
+// Returns a rotating position based on current time (changes every 4 hours)
+function getAgentDecidePosition() {
+  const idx = Math.floor(Date.now() / (4 * 3600000)) % AGENT_DECIDE_POSITIONS.length;
+  return AGENT_DECIDE_POSITIONS[idx];
+}
+
 // EXPERIMENTAL: Universal lead scoring weights - works for ANY industry/domain
 const SCORING_WEIGHTS = {
   EMAIL_VERIFIED: 35,        // Email deliverability verified 
@@ -231,7 +252,7 @@ const GROWTH_INDICATORS = [
 
 // EXPERIMENTAL: Dynamic decision-maker detection based on user's target positions
 function getDecisionMakerTitles(leadContactSettings) {
-  const userPositions = leadContactSettings?.targetPositions || [];
+  const userPositions = filterJunk(leadContactSettings?.targetPositions || []);
   
   // Start with user's target positions
   let decisionMakers = [...userPositions];
@@ -1031,11 +1052,13 @@ async function searchApollo(query, limit = 5, userId = null, leadContactSettings
   console.log(`🔑 [Apollo] API Key check: Present (${apiKey.substring(0, 10)}...)`);
   
   // EXPERIMENTAL: Extract target positions from YOUR settings structure (not nested contactCriteria)
-  const targetPositions = leadContactSettings?.targetPositions || [];
-  
-  let apolloQuery = targetPositions[0] || 'CEO'; // Use first target position from user settings
-  let industry = '';
-  let position = targetPositions[0] || 'CEO'; // fallback to generic position
+  const rawPositions = leadContactSettings?.targetPositions || [];
+  const agentDecidePositions = leadContactSettings?.agentDecidePositions === true;
+  const targetPositions = agentDecidePositions ? [] : filterJunk(rawPositions);
+
+  // If "let agent decide" or no valid positions, pick a rotating senior title
+  let apolloQuery = targetPositions[0] || getAgentDecidePosition();
+  let position = targetPositions[0] || getAgentDecidePosition();
   
   console.log(`[EXPERIMENTAL] 🔧 Fixed settings extraction - found ${targetPositions.length} positions:`, targetPositions);
   
@@ -1060,40 +1083,32 @@ async function searchApollo(query, limit = 5, userId = null, leadContactSettings
   }
 
   try {
-    // EXPERIMENTAL: Extract industry from YOUR settings structure (not nested companyCriteria)  
-    const targetIndustries = leadContactSettings?.companyIndustries || [];
-    
+    // EXPERIMENTAL: Extract industry from YOUR settings structure (not nested companyCriteria)
+    const agentDecideIndustries = leadContactSettings?.agentDecideIndustries === true;
+    const rawIndustries = leadContactSettings?.companyIndustries || [];
+    const targetIndustries = agentDecideIndustries ? [] : filterJunk(rawIndustries);
+
     console.log(`[EXPERIMENTAL] 🔧 Fixed industry extraction - found ${targetIndustries.length} industries:`, targetIndustries);
-    
+
     // Use first target industry from user settings, or try to match from query
-    industry = '';
+    let industry = '';
     for (const targetIndustry of targetIndustries) {
       if (query.toLowerCase().includes(targetIndustry.toLowerCase())) {
         industry = targetIndustry;
         break;
       }
     }
-    
+
     // If no industry match found, use the first target industry
     if (!industry && targetIndustries.length > 0) {
       industry = targetIndustries[0];
     }
-    
-    console.log(`[LEAD RESEARCH] Using target industries from settings:`, targetIndustries);
-    console.log(`[LEAD RESEARCH] Selected industry for search:`, industry);
-    
-    // EXPERIMENTAL: Build flexible search query for better results
-    if (industry && position !== 'CTO') {
-      // Try position first, then add industry as secondary filter
-      apolloQuery = position;
-      console.log(`[EXPERIMENTAL] 🎯 Using position-focused search: "${position}" with industry filter`);
-    } else if (industry) {
-      apolloQuery = position;
-      console.log(`[EXPERIMENTAL] 🎯 Using position-only search: "${position}"`);
-    } else {
-      apolloQuery = position;
-    }
 
+    console.log(`[LEAD RESEARCH] Using target industries from settings:`, targetIndustries, agentDecideIndustries ? '(agent decide — no filter)' : '');
+    console.log(`[LEAD RESEARCH] Selected industry for search:`, industry || '(none — wider net)');
+
+    // Build search query — always position-focused
+    apolloQuery = position;
     console.log(`🎯 [Apollo] Searching for leads: ${apolloQuery}`);
     
     // EXPERIMENTAL: Extract location and company size from YOUR settings structure

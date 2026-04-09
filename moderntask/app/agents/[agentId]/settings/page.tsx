@@ -69,6 +69,8 @@ interface AgentSettings {
   };
   companyCriteria: { companySizeMin: number; companySizeMax: number; companyIndustries: string[]; };
   contactCriteria: { targetPositions: string[]; seniorityLevel: string; };
+  agentDecidePositions?: boolean;
+  agentDecideIndustries?: boolean;
   geographicSettings: { targetLocations: string[]; excludedLocations: string[]; leadLimit: number; timezone: string; };
   concurrencyLevel: number;
   researchFocus: { focusAreas: string[]; researchDepth: string; includeCompanyNews: boolean; includePersonalInfo: boolean; includeSocialMedia: boolean; };
@@ -96,6 +98,8 @@ const defaultSettings: AgentSettings = {
   companyBranding: { agentName: '', companyName: '', agentTitle: '', primaryService: '', coreOffering: '', keyAdvantages: '', expertiseArea: '', companyWebsite: '', companyDescription: '' },
   companyCriteria: { companySizeMin: 10, companySizeMax: 500, companyIndustries: [] },
   contactCriteria: { targetPositions: [], seniorityLevel: 'senior' },
+  agentDecidePositions: false,
+  agentDecideIndustries: false,
   geographicSettings: { targetLocations: ['United States'], excludedLocations: [], leadLimit: 50, timezone: 'America/New_York' },
   concurrencyLevel: 1,
   researchFocus: { focusAreas: [], researchDepth: 'standard', includeCompanyNews: true, includePersonalInfo: false, includeSocialMedia: false },
@@ -105,6 +109,101 @@ const defaultSettings: AgentSettings = {
 // ─────────────────────────────────────────────────────
 // Sub-components
 // ─────────────────────────────────────────────────────
+const US_STATES = [
+  'Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut',
+  'Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa',
+  'Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan',
+  'Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire',
+  'New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio',
+  'Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota',
+  'Tennessee','Texas','Utah','Vermont','Virginia','Washington','West Virginia',
+  'Wisconsin','Wyoming',
+];
+
+function LocationTagInput({ values, onChange, placeholder }: {
+  values: string[]; onChange: (v: string[]) => void; placeholder?: string;
+}) {
+  const [input, setInput] = React.useState('');
+  const [showSuggestions, setShowSuggestions] = React.useState(false);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  const suggestions = input.trim().length >= 1
+    ? US_STATES.filter(s => s.toLowerCase().startsWith(input.toLowerCase()) && !values.includes(s)).slice(0, 6)
+    : [];
+
+  const add = (raw: string) => {
+    const trimmed = raw.trim();
+    if (!trimmed || values.includes(trimmed)) { setInput(''); setShowSuggestions(false); return; }
+    onChange([...values, trimmed]);
+    setInput('');
+    setShowSuggestions(false);
+  };
+
+  // Close suggestions on outside click
+  React.useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setShowSuggestions(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // Show "United States" hint when US state is being targeted outside US filter
+  const usCovered = values.includes('United States');
+
+  return (
+    <div ref={containerRef} className="relative">
+      <div className="rounded-md border border-input bg-background p-2 min-h-[38px] flex flex-wrap gap-1.5 focus-within:ring-1 focus-within:ring-ring">
+        {values.map(v => (
+          <span key={v} className="inline-flex items-center gap-1 bg-primary/10 text-primary border border-primary/20 rounded px-2 py-0.5 text-xs font-medium">
+            {v}
+            <button type="button" onClick={() => onChange(values.filter(x => x !== v))} className="hover:text-destructive transition-colors ml-0.5">
+              <X className="w-3 h-3" />
+            </button>
+          </span>
+        ))}
+        <input
+          className="flex-1 min-w-[120px] bg-transparent text-xs outline-none placeholder:text-muted-foreground"
+          placeholder={values.length === 0 ? placeholder : 'Add location…'}
+          value={input}
+          onChange={e => { setInput(e.target.value); setShowSuggestions(true); }}
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add(input); }
+            if (e.key === 'Backspace' && !input && values.length) onChange(values.slice(0, -1));
+            if (e.key === 'Escape') setShowSuggestions(false);
+          }}
+          onFocus={() => { if (input.trim()) setShowSuggestions(true); }}
+          onBlur={() => { setTimeout(() => { if (input.trim() && !showSuggestions) add(input); }, 150); }}
+        />
+      </div>
+
+      {/* US state suggestions */}
+      {showSuggestions && suggestions.length > 0 && (
+        <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden">
+          {!usCovered && (
+            <div className="px-3 py-1.5 border-b border-border flex items-center justify-between">
+              <span className="text-[10px] text-muted-foreground">US States</span>
+              <button
+                type="button"
+                onMouseDown={e => { e.preventDefault(); add('United States'); }}
+                className="text-[10px] text-primary hover:underline"
+              >+ Add all of United States</button>
+            </div>
+          )}
+          {suggestions.map(s => (
+            <button
+              key={s}
+              type="button"
+              onMouseDown={e => { e.preventDefault(); add(s); }}
+              className="w-full text-left px-3 py-2 text-xs hover:bg-muted transition-colors"
+            >{s}</button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Section({ title, description, children, defaultOpen = false, badge }: {
   title: string; description?: string; children: React.ReactNode; defaultOpen?: boolean; badge?: string;
 }) {
@@ -130,6 +229,11 @@ function Section({ title, description, children, defaultOpen = false, badge }: {
   );
 }
 
+const JUNK_KEYWORDS = new Set([
+  'any', 'all', 'everyone', 'anyone', 'any role', 'any position', 'any industry',
+  'any company', 'all industries', 'all roles', 'any title', 'n/a', 'na', 'none', 'other',
+]);
+
 function TagInput({ label, tags, onAdd, onRemove, suggestions, placeholder, helpText }: {
   label: string; tags: string[]; onAdd: (tag: string) => void; onRemove: (tag: string) => void;
   suggestions: string[]; placeholder: string; helpText?: string;
@@ -139,7 +243,10 @@ function TagInput({ label, tags, onAdd, onRemove, suggestions, placeholder, help
   const filtered = suggestions.filter(s => s.toLowerCase().includes(search.toLowerCase()) && !tags.includes(s)).slice(0, 10);
 
   const handleAdd = (value: string) => {
-    if (value.trim() && !tags.includes(value.trim())) { onAdd(value.trim()); setSearch(''); setShowDropdown(false); }
+    const trimmed = value.trim();
+    if (!trimmed || tags.includes(trimmed)) return;
+    if (JUNK_KEYWORDS.has(trimmed.toLowerCase())) return; // silently ignore junk
+    onAdd(trimmed); setSearch(''); setShowDropdown(false);
   };
 
   return (
@@ -338,6 +445,8 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
             leadLimit: u.leadLimit || u.geographicSettings?.leadLimit || 50,
             timezone: u.timezone || u.geographicSettings?.timezone || 'America/New_York',
           },
+          agentDecidePositions: u.agentDecidePositions ?? false,
+          agentDecideIndustries: u.agentDecideIndustries ?? false,
           concurrencyLevel: u.concurrencyLevel ?? 1,
           researchFocus: {
             focusAreas: u.focusAreas || u.researchFocus?.focusAreas || [],
@@ -621,15 +730,29 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
           {/* Target Companies */}
           <Section title="Target Companies" description="Define the types of companies to reach out to" badge={settings.companyCriteria.companyIndustries.length > 0 ? `${settings.companyCriteria.companyIndustries.length} industries` : undefined}>
             <div className="space-y-5 mt-4">
-              <TagInput
-                label="Industries"
-                tags={settings.companyCriteria.companyIndustries}
-                onAdd={t => updateCompany('companyIndustries', [...settings.companyCriteria.companyIndustries, t])}
-                onRemove={t => updateCompany('companyIndustries', settings.companyCriteria.companyIndustries.filter((x: string) => x !== t))}
-                suggestions={INDUSTRIES}
-                placeholder="Search or type an industry…"
-                helpText="Not in the list? Type it and press Enter to add."
-              />
+              {/* Let agent decide toggle */}
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
+                <div>
+                  <p className="text-sm font-medium">Let the agent decide</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Agent skips the industry filter and casts a wider net each cycle</p>
+                </div>
+                <Switch
+                  checked={!!settings.agentDecideIndustries}
+                  onCheckedChange={v => setSettings(p => ({ ...p, agentDecideIndustries: v }))}
+                />
+              </div>
+
+              {!settings.agentDecideIndustries && (
+                <TagInput
+                  label="Industries"
+                  tags={settings.companyCriteria.companyIndustries}
+                  onAdd={t => updateCompany('companyIndustries', [...settings.companyCriteria.companyIndustries, t])}
+                  onRemove={t => updateCompany('companyIndustries', settings.companyCriteria.companyIndustries.filter((x: string) => x !== t))}
+                  suggestions={INDUSTRIES}
+                  placeholder="Search or type an industry…"
+                  helpText="Not in the list? Type it and press Enter to add."
+                />
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>Min Company Size (employees)</Label>
@@ -646,15 +769,31 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
           {/* Target Contacts */}
           <Section title="Target Contacts" description="Define the job titles and roles to reach" badge={settings.contactCriteria.targetPositions.length > 0 ? `${settings.contactCriteria.targetPositions.length} positions` : undefined}>
             <div className="space-y-5 mt-4">
-              <TagInput
-                label="Job Titles"
-                tags={settings.contactCriteria.targetPositions}
-                onAdd={t => updateContact('targetPositions', [...settings.contactCriteria.targetPositions, t])}
-                onRemove={t => updateContact('targetPositions', settings.contactCriteria.targetPositions.filter((x: string) => x !== t))}
-                suggestions={JOB_TITLES}
-                placeholder="Search or type a job title…"
-                helpText="Not in the list? Type it and press Enter to add."
-              />
+              {/* Let agent decide toggle */}
+              <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
+                <div>
+                  <p className="text-sm font-medium">Let the agent decide</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Agent rotates through senior decision-maker titles each cycle</p>
+                </div>
+                <Switch
+                  checked={!!settings.agentDecidePositions}
+                  onCheckedChange={v => setSettings(p => ({ ...p, agentDecidePositions: v }))}
+                />
+              </div>
+
+              {!settings.agentDecidePositions && (
+                <>
+                  <TagInput
+                    label="Job Titles"
+                    tags={settings.contactCriteria.targetPositions}
+                    onAdd={t => updateContact('targetPositions', [...settings.contactCriteria.targetPositions, t])}
+                    onRemove={t => updateContact('targetPositions', settings.contactCriteria.targetPositions.filter((x: string) => x !== t))}
+                    suggestions={JOB_TITLES}
+                    placeholder="Search or type a job title…"
+                    helpText="Not in the list? Type it and press Enter to add."
+                  />
+                </>
+              )}
               <div className="space-y-1.5">
                 <Label>Seniority Level</Label>
                 <select value={settings.contactCriteria.seniorityLevel} onChange={e => updateContact('seniorityLevel', e.target.value)}
@@ -674,13 +813,19 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
               <div className="space-y-1.5">
                 <Label>Target Locations</Label>
-                <Input value={settings.geographicSettings.targetLocations.join(', ')} onChange={e => updateGeo('targetLocations', e.target.value.split(',').map(s => s.trim()).filter(Boolean))} placeholder="United States, Canada" />
-                <p className="text-xs text-muted-foreground">Comma-separated list</p>
+                <LocationTagInput
+                  values={settings.geographicSettings.targetLocations}
+                  onChange={v => updateGeo('targetLocations', v)}
+                  placeholder="e.g. United States"
+                />
               </div>
               <div className="space-y-1.5">
                 <Label>Excluded Locations</Label>
-                <Input value={settings.geographicSettings.excludedLocations.join(', ')} onChange={e => updateGeo('excludedLocations', e.target.value.split(',').map(s => s.trim()).filter(Boolean))} placeholder="Alaska, Hawaii" />
-                <p className="text-xs text-muted-foreground">Comma-separated list</p>
+                <LocationTagInput
+                  values={settings.geographicSettings.excludedLocations}
+                  onChange={v => updateGeo('excludedLocations', v)}
+                  placeholder="e.g. Alaska"
+                />
               </div>
               <div className="space-y-1.5">
                 <Label>Daily Lead Limit</Label>
