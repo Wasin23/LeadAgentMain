@@ -26,7 +26,8 @@ function CheckoutForm() {
 
     try {
       const cents = Math.round(parseFloat(amount) * 100);
-      const res = await fetch('/api/cardcharger', {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const res = await fetch(`${apiBase}/api/cardcharger/create-payment-intent`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount: cents }),

@@ -639,6 +639,10 @@ try {
 app.use('/api/unsubscribe', unsubscribeRoutes); // Unsubscribe management
 app.use('/api/billing', billingRoutes); // Billing and payment management
 
+// Card charger test route
+const { default: cardChargerRoutes } = await import('./routes/cardCharger.js');
+app.use('/api/cardcharger', cardChargerRoutes);
+
 app.use('/api/outreach', outreachRoutes); // Outreach dashboard stats and conversations
 app.use('/api/help', helpRoutes); // Help chat AI assistant
 
