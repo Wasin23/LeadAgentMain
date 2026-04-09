@@ -214,9 +214,13 @@ router.get('/payment-status', authenticateToken, async (req, res) => {
     const userId = req.user.userId;
     const userSettings = await awsManager.getUserSettings(userId);
     
-    // Calculate next payment due date (1st of next month at 2am)
+    // Billing cron runs on the 1st of every month at 2:00 AM.
+    // If we're on the 1st before 2am, the charge hasn't fired yet — show today.
+    // Otherwise, next charge is the 1st of the upcoming month.
     const now = new Date();
-    const nextPaymentDue = new Date(now.getFullYear(), now.getMonth() + 1, 1, 2, 0, 0);
+    const nextPaymentDue = (now.getDate() === 1 && now.getHours() < 2)
+      ? new Date(now.getFullYear(), now.getMonth(), 1, 2, 0, 0)
+      : new Date(now.getFullYear(), now.getMonth() + 1, 1, 2, 0, 0);
     
     res.json({
       status: userSettings?.paymentStatus || 'active',

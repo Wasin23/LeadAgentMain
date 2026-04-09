@@ -735,6 +735,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                 <div>
                   <p className="text-sm font-medium">Let the agent decide</p>
                   <p className="text-xs text-muted-foreground mt-0.5">Agent skips the industry filter and casts a wider net each cycle</p>
+                  <p className="text-[10px] text-primary/70 mt-0.5">Use this if your target is &ldquo;any industry&rdquo;</p>
                 </div>
                 <Switch
                   checked={!!settings.agentDecideIndustries}
@@ -774,6 +775,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                 <div>
                   <p className="text-sm font-medium">Let the agent decide</p>
                   <p className="text-xs text-muted-foreground mt-0.5">Agent rotates through senior decision-maker titles each cycle</p>
+                  <p className="text-[10px] text-primary/70 mt-0.5">Use this if your target is &ldquo;any position&rdquo;</p>
                 </div>
                 <Switch
                   checked={!!settings.agentDecidePositions}

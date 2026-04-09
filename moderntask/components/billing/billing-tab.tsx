@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { loadStripe } from "@stripe/stripe-js"
-import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js"
+import { Elements, CardElement, useStripe, useElements, PaymentRequestButtonElement } from "@stripe/react-stripe-js"
+import type { PaymentRequest } from "@stripe/stripe-js"
 import { DollarSign, CheckCircle, XCircle, RefreshCw, Calendar, CreditCard, Plus, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, Zap, Mail, TrendingDown, AlertTriangle, Gift, Lock, Bot, Users, RefreshCcw } from "lucide-react"
 import api from "@/lib/api"
 import { fetchDisplayedCreditData } from "@/lib/credit-balance"
@@ -41,6 +42,90 @@ interface ApiUsageStats {
   zerobounce?: { cost: number; validations: number }
   serper?: { cost: number; searches: number }
   total?: { cost: number }
+}
+
+// ── Wallet Pay Button (Apple Pay / Google Pay) ───────────────────────────────
+
+function WalletPayButton({ onSuccess }: { onSuccess: () => void }) {
+  const stripe = useStripe()
+  const [paymentRequest, setPaymentRequest] = useState<PaymentRequest | null>(null)
+  const [clientSecret, setClientSecret] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!stripe) return
+    let pr: PaymentRequest | null = null
+
+    api.post("/api/billing/setup-intent")
+      .then(({ data }) => {
+        const secret: string = data.clientSecret
+        setClientSecret(secret)
+
+        pr = stripe.paymentRequest({
+          country: "US",
+          currency: "usd",
+          total: { label: "Save payment method", amount: 0 },
+          requestPayerName: true,
+        })
+
+        pr.canMakePayment().then(result => {
+          if (result) setPaymentRequest(pr)
+        })
+
+        pr.on("paymentmethod", async (ev) => {
+          setError(null)
+          try {
+            const { error: confirmError, setupIntent } = await stripe.confirmCardSetup(
+              secret,
+              { payment_method: ev.paymentMethod.id },
+              { handleActions: false }
+            )
+            if (confirmError) {
+              ev.complete("fail")
+              setError(confirmError.message ?? "Wallet payment failed")
+              return
+            }
+            ev.complete("success")
+            if (setupIntent?.payment_method) {
+              await api.post("/api/billing/add-payment-method", {
+                paymentMethodId: setupIntent.payment_method,
+              })
+            }
+            onSuccess()
+          } catch (err: any) {
+            ev.complete("fail")
+            setError(err.response?.data?.error ?? "Failed to save wallet payment method")
+          }
+        })
+      })
+      .catch(() => {})
+
+    return () => { pr?.off("paymentmethod") }
+  }, [stripe])
+
+  if (!paymentRequest) return null
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <p className="text-xs text-muted-foreground mb-2 text-center">Pay with wallet</p>
+        <PaymentRequestButtonElement
+          options={{
+            paymentRequest,
+            style: { paymentRequestButton: { theme: "dark", height: "44px" } },
+          }}
+        />
+      </div>
+      {error && (
+        <p className="text-sm text-destructive text-center">{error}</p>
+      )}
+      <div className="relative flex items-center gap-3">
+        <div className="flex-1 h-px bg-border" />
+        <span className="text-xs text-muted-foreground">or enter card manually</span>
+        <div className="flex-1 h-px bg-border" />
+      </div>
+    </div>
+  )
 }
 
 // ── Add Card Form ─────────────────────────────────────────────────────────────
@@ -93,6 +178,9 @@ function AddCardForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Wallet Pay (Apple Pay / Google Pay) */}
+      <WalletPayButton onSuccess={onSuccess} />
+
       {/* Secure badge */}
       <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground bg-muted rounded-lg py-2 px-4 border">
         <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
@@ -541,23 +629,17 @@ function BillingTabInner() {
       <div className="rounded-2xl bg-primary p-6 text-primary-foreground shadow-sm">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            {/* Plan badge + limits */}
+            {/* Plan badge */}
             {userPlan?.plan && (
               <div className="flex flex-wrap items-center gap-2 mb-3">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary-foreground/15 rounded-full text-xs font-medium">
                   <Sparkles className="w-3.5 h-3.5" />
                   {userPlan.plan.name}
                 </div>
-                {userPlan.plan.maxAgents && (
+                {nextPaymentDue && userPlan.plan.id !== 'free-trial' && (
                   <div className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary-foreground/10 rounded-full text-xs text-primary-foreground/70">
-                    <Bot className="w-3 h-3" />
-                    {userPlan.plan.maxAgents} agent{userPlan.plan.maxAgents === 1 ? '' : 's'}
-                  </div>
-                )}
-                {userPlan.plan.maxConcurrency && (
-                  <div className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary-foreground/10 rounded-full text-xs text-primary-foreground/70">
-                    <Zap className="w-3 h-3" />
-                    {userPlan.plan.maxConcurrency}x speed
+                    <Calendar className="w-3 h-3" />
+                    Next charge {new Date(nextPaymentDue).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                   </div>
                 )}
               </div>
