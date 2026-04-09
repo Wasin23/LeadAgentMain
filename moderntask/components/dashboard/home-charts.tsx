@@ -7,17 +7,16 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer,
 } from "recharts"
+import { Reminders, type ScheduledBatch } from "@/components/dashboard/reminders"
 
 export interface EmailTimePoint { date: string; Sent: number; Replied: number }
 export interface MonthlyPoint   { month: string; Credits: number }
 
 interface HomeChartsProps {
-  emailTimeSeries?: EmailTimePoint[]
-  monthlyCredits?:  MonthlyPoint[]
-  sent?:            number
-  bounced?:         number
-  opened?:          number
-  creditBalance?:   number | null
+  emailTimeSeries?:  EmailTimePoint[]
+  monthlyCredits?:   MonthlyPoint[]
+  scheduledBatches?: ScheduledBatch[]
+  creditBalance?:    number | null
 }
 
 function ChartTooltip({ active, payload, label }: any) {
@@ -59,9 +58,7 @@ const DONUT_COLORS = ["#a855f7", "#f97316", "#22c55e"]
 export function HomeCharts({
   emailTimeSeries = [],
   monthlyCredits = [],
-  sent = 0,
-  bounced = 0,
-  opened = 0,
+  scheduledBatches = [],
   creditBalance = null,
 }: HomeChartsProps) {
   const [range, setRange] = useState<Range>("7d")
@@ -69,104 +66,48 @@ export function HomeCharts({
   const points = range === "7d" ? 7 : range === "14d" ? 14 : 30
   const slicedSeries = emailTimeSeries.slice(-points)
 
-  const delivered = Math.max(sent - bounced, 0)
-  const notOpened = Math.max(delivered - opened, 0)
-  const donutData = [
-    { name: "Opened",      value: opened },
-    { name: "Not Opened",  value: notOpened },
-    { name: "Bounced",     value: bounced },
-  ].filter(d => d.value > 0)
-
-  const totalEmails = sent + bounced
-  const openRate   = totalEmails > 0 ? ((opened  / totalEmails) * 100).toFixed(1) : "0"
-  const bounceRate = totalEmails > 0 ? ((bounced / totalEmails) * 100).toFixed(1) : "0"
-
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 md:gap-4">
+    <div className="space-y-3 md:space-y-4">
 
-      {/* Email Activity Over Time */}
-      <div className="lg:col-span-2">
-        <Card className="p-5 h-full">
-          <div className="flex items-center justify-between mb-4">
-            <CardTitle className="text-sm font-semibold">Email Activity Over Time</CardTitle>
-            <RangeToggle value={range} onChange={setRange} />
-          </div>
-          {slicedSeries.length === 0 ? (
-            <div className="h-[220px] flex items-center justify-center text-xs text-muted-foreground">No email data yet</div>
-          ) : (
-            <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={slicedSeries} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="hcgSent" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#a855f7" stopOpacity={0.22} />
-                    <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="hcgReplied" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#22c55e" stopOpacity={0.18} />
-                    <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.4} vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={28} allowDecimals={false} />
-                <Tooltip content={<ChartTooltip />} />
-                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
-                <Area type="monotone" dataKey="Sent"    stroke="#a855f7" strokeWidth={2} fill="url(#hcgSent)"    dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
-                <Area type="monotone" dataKey="Replied" stroke="#22c55e" strokeWidth={2} fill="url(#hcgReplied)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
-              </AreaChart>
-            </ResponsiveContainer>
-          )}
-        </Card>
-      </div>
-
-      {/* Delivery Health */}
+      {/* Email Activity — full width */}
       <Card className="p-5">
-        <CardTitle className="text-sm font-semibold mb-4">Delivery Health</CardTitle>
-        {totalEmails === 0 ? (
-          <div className="h-[220px] flex items-center justify-center text-xs text-muted-foreground">No emails sent yet</div>
+        <div className="flex items-center justify-between mb-4">
+          <CardTitle className="text-sm font-semibold">Email Activity Over Time</CardTitle>
+          <RangeToggle value={range} onChange={setRange} />
+        </div>
+        {slicedSeries.length === 0 ? (
+          <div className="h-[220px] flex items-center justify-center text-xs text-muted-foreground">No email data yet</div>
         ) : (
-          <div className="flex flex-col items-center">
-            <ResponsiveContainer width="100%" height={180}>
-              <PieChart>
-                <Pie
-                  data={donutData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={52}
-                  outerRadius={78}
-                  paddingAngle={3}
-                  dataKey="value"
-                >
-                  {donutData.map((_, i) => (
-                    <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} strokeWidth={0} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  content={({ active, payload }) => {
-                    if (!active || !payload?.length) return null
-                    const p = payload[0]
-                    const pct = totalEmails > 0 ? ((p.value as number / totalEmails) * 100).toFixed(1) : "0"
-                    return (
-                      <div className="bg-popover border border-border rounded-lg px-3 py-2 shadow-xl text-xs">
-                        <p style={{ color: p.payload.fill }} className="font-semibold">{p.name}</p>
-                        <p className="text-foreground">{p.value} <span className="text-muted-foreground">({pct}%)</span></p>
-                      </div>
-                    )
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="flex gap-4 text-xs mt-1">
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#a855f7] inline-block" />Open {openRate}%</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#f97316] inline-block" />Not opened</span>
-              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#22c55e] inline-block" />Bounced {bounceRate}%</span>
-            </div>
-          </div>
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart data={slicedSeries} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
+              <defs>
+                <linearGradient id="hcgSent" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="#a855f7" stopOpacity={0.22} />
+                  <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="hcgReplied" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="#22c55e" stopOpacity={0.18} />
+                  <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.4} vertical={false} />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+              <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={28} allowDecimals={false} />
+              <Tooltip content={<ChartTooltip />} />
+              <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+              <Area type="monotone" dataKey="Sent"    stroke="#a855f7" strokeWidth={2} fill="url(#hcgSent)"    dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+              <Area type="monotone" dataKey="Replied" stroke="#22c55e" strokeWidth={2} fill="url(#hcgReplied)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+            </AreaChart>
+          </ResponsiveContainer>
         )}
       </Card>
 
-      {/* Credit Consumption Over Time */}
-      <div className="lg:col-span-3">
+      {/* Scheduled Sends + Credit Consumption — side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
+
+        <Reminders batches={scheduledBatches} />
+
+        {/* Credit Consumption Over Time */}
         <Card className="p-5">
           <div className="flex items-start justify-between mb-4">
             <div>
@@ -179,9 +120,9 @@ export function HomeCharts({
             </div>
           </div>
           {monthlyCredits.every(m => m.Credits === 0) ? (
-            <div className="h-[180px] flex items-center justify-center text-xs text-muted-foreground">No usage data yet</div>
+            <div className="h-[160px] flex items-center justify-center text-xs text-muted-foreground">No usage data yet</div>
           ) : (
-            <ResponsiveContainer width="100%" height={180}>
+            <ResponsiveContainer width="100%" height={160}>
               <BarChart data={monthlyCredits} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
                 <defs>
                   <linearGradient id="hcgCredit" x1="0" y1="0" x2="0" y2="1">
@@ -198,8 +139,69 @@ export function HomeCharts({
             </ResponsiveContainer>
           )}
         </Card>
-      </div>
 
+      </div>
     </div>
+  )
+}
+
+export function DeliveryHealthCard({ sent = 0, bounced = 0, opened = 0 }: { sent?: number; bounced?: number; opened?: number }) {
+  const delivered = Math.max(sent - bounced, 0)
+  const notOpened = Math.max(delivered - opened, 0)
+  const donutData = [
+    { name: "Opened",     value: opened },
+    { name: "Not Opened", value: notOpened },
+    { name: "Bounced",    value: bounced },
+  ].filter(d => d.value > 0)
+
+  const totalEmails = sent + bounced
+  const openRate   = totalEmails > 0 ? ((opened  / totalEmails) * 100).toFixed(1) : "0"
+  const bounceRate = totalEmails > 0 ? ((bounced / totalEmails) * 100).toFixed(1) : "0"
+
+  return (
+    <Card className="p-5">
+      <CardTitle className="text-sm font-semibold mb-4">Delivery Health</CardTitle>
+      {totalEmails === 0 ? (
+        <div className="h-[200px] flex items-center justify-center text-xs text-muted-foreground">No emails sent yet</div>
+      ) : (
+        <div className="flex flex-col items-center">
+          <ResponsiveContainer width="100%" height={160}>
+            <PieChart>
+              <Pie
+                data={donutData}
+                cx="50%"
+                cy="50%"
+                innerRadius={46}
+                outerRadius={70}
+                paddingAngle={3}
+                dataKey="value"
+              >
+                {donutData.map((_, i) => (
+                  <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} strokeWidth={0} />
+                ))}
+              </Pie>
+              <Tooltip
+                content={({ active, payload }) => {
+                  if (!active || !payload?.length) return null
+                  const p = payload[0]
+                  const pct = totalEmails > 0 ? ((p.value as number / totalEmails) * 100).toFixed(1) : "0"
+                  return (
+                    <div className="bg-popover border border-border rounded-lg px-3 py-2 shadow-xl text-xs">
+                      <p style={{ color: p.payload.fill }} className="font-semibold">{p.name}</p>
+                      <p className="text-foreground">{p.value} <span className="text-muted-foreground">({pct}%)</span></p>
+                    </div>
+                  )
+                }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="flex gap-4 text-xs mt-1">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#a855f7] inline-block" />Open {openRate}%</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#f97316] inline-block" />Not opened</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#22c55e] inline-block" />Bounced {bounceRate}%</span>
+          </div>
+        </div>
+      )}
+    </Card>
   )
 }

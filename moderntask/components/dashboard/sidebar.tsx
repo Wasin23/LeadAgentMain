@@ -1,6 +1,6 @@
 "use client"
 
-import { LayoutDashboard, CheckSquare, BarChart3, Settings, HelpCircle, LogOut, Mail, Bot, UserCheck, Circle, Building2, GripVertical } from "lucide-react"
+import { LayoutDashboard, CheckSquare, BarChart3, Settings, HelpCircle, LogOut, Mail, Bot, UserCheck, Circle, Building2, GripVertical, Pencil, Check } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState, useEffect, Suspense } from "react"
 import Link from "next/link"
@@ -10,6 +10,7 @@ import {
   DndContext, closestCenter, PointerSensor, KeyboardSensor,
   useSensor, useSensors, type DragEndEvent,
 } from "@dnd-kit/core"
+import { restrictToVerticalAxis, restrictToParentElement } from "@dnd-kit/modifiers"
 import {
   SortableContext, sortableKeyboardCoordinates, useSortable,
   verticalListSortingStrategy, arrayMove,
@@ -67,35 +68,43 @@ const generalItems: NavItem[] = [
 const STATIC_HREFS = staticItems.map(i => i.href)
 
 function SortableNavItem({
-  item, pathname, search, hovered, setHovered,
+  item, pathname, search, hovered, setHovered, editMode,
 }: {
   item: NavItem
   pathname: string
   search: string
   hovered: string | null
   setHovered: (v: string | null) => void
+  editMode: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.href })
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : 1,
-    position: "relative" as const,
   }
 
   return (
-    <div ref={setNodeRef} style={style} className="group/sortable flex items-center gap-1">
-      <button
-        {...attributes}
-        {...listeners}
-        tabIndex={-1}
-        className="opacity-0 group-hover/sortable:opacity-30 hover:!opacity-70 p-0.5 cursor-grab active:cursor-grabbing touch-none shrink-0 transition-opacity"
-        aria-label="Drag to reorder"
+    <div ref={setNodeRef} style={style} className="flex items-center">
+      <div
+        className={`flex items-center transition-all duration-200 ${
+          editMode ? "gap-1.5 pl-1" : "gap-0 pl-0"
+        }`}
       >
-        <GripVertical className="w-3 h-3 text-muted-foreground" />
-      </button>
-      <div className="flex-1 min-w-0">
-        <NavEntry item={item} pathname={pathname} search={search} hovered={hovered} setHovered={setHovered} />
+        <button
+          {...attributes}
+          {...listeners}
+          tabIndex={-1}
+          className={`p-0.5 cursor-grab active:cursor-grabbing touch-none shrink-0 transition-all duration-200 ${
+            editMode ? "opacity-40 hover:opacity-80" : "opacity-0 w-0 overflow-hidden pointer-events-none"
+          }`}
+          aria-label="Drag to reorder"
+        >
+          <GripVertical className="w-3.5 h-3.5 text-muted-foreground" />
+        </button>
+        <div className="flex-1 min-w-0">
+          <NavEntry item={item} pathname={pathname} search={search} hovered={hovered} setHovered={setHovered} />
+        </div>
       </div>
     </div>
   )
@@ -105,6 +114,7 @@ function SidebarInner() {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
   const [agentItems, setAgentItems]   = useState<NavItem[]>([])
   const [navOrder, setNavOrder]       = useState<string[]>(STATIC_HREFS)
+  const [editMode, setEditMode]       = useState(false)
   const pathname    = usePathname()
   const searchParams = useSearchParams()
   const search      = searchParams.toString() ? `?${searchParams.toString()}` : ""
@@ -172,8 +182,22 @@ function SidebarInner() {
 
       <div className="space-y-4">
         <div>
-          <p className="text-[10px] font-medium text-muted-foreground mb-2 uppercase tracking-wider">Menu</p>
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Menu</p>
+            <button
+              onClick={() => setEditMode(e => !e)}
+              className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded transition-colors ${
+                editMode
+                  ? "text-primary bg-primary/10"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+              aria-label={editMode ? "Done editing" : "Reorder menu"}
+            >
+              {editMode ? <Check className="w-2.5 h-2.5" /> : <Pencil className="w-2.5 h-2.5" />}
+              {editMode ? "Done" : "Edit"}
+            </button>
+          </div>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd} modifiers={[restrictToVerticalAxis, restrictToParentElement]}>
             <SortableContext items={navOrder} strategy={verticalListSortingStrategy}>
               <nav className="space-y-0.5">
                 {orderedMenuItems.map(item => (
@@ -184,6 +208,7 @@ function SidebarInner() {
                     search={search}
                     hovered={hoveredItem}
                     setHovered={setHoveredItem}
+                    editMode={editMode}
                   />
                 ))}
               </nav>
