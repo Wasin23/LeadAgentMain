@@ -528,8 +528,7 @@ const publicEmailEndpoints = [
   '/api/auth/gmail/authorize', // Gmail OAuth authorize
   '/api/auth/gmail/callback', // Gmail OAuth callback
   '/api/auth/outlook/authorize', // Outlook OAuth authorize
-  '/api/auth/outlook/callback', // Outlook OAuth callback
-  '/api/cardcharger', // Stripe card charger test (no auth needed)
+  '/api/auth/outlook/callback' // Outlook OAuth callback
 ];
 
 // Middleware to check if endpoint should be public
@@ -653,10 +652,6 @@ try {
 
 app.use('/api/unsubscribe', unsubscribeRoutes); // Unsubscribe management
 app.use('/api/billing', billingRoutes); // Billing and payment management
-
-// Card charger test route
-const { default: cardChargerRoutes } = await import('./routes/cardCharger.js');
-app.use('/api/cardcharger', cardChargerRoutes);
 
 app.use('/api/outreach', outreachRoutes); // Outreach dashboard stats and conversations
 app.use('/api/help', helpRoutes); // Help chat AI assistant
