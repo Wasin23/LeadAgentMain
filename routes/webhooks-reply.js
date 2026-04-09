@@ -716,6 +716,20 @@ router.post('/mailgun-reply', async (req, res) => {
         }
       });
     }
+
+    // Restart-proof dedup: check DynamoDB for an existing event with this exact messageId
+    if (inboundMessageId) {
+      try {
+        const existingEvents = await awsManager.getEmailTrackingByTracking(trackingId);
+        const alreadyStored = existingEvents.some(e => e.messageId === inboundMessageId);
+        if (alreadyStored) {
+          console.log('[WEBHOOK] Message already stored in DB, skipping (restart-proof dedup)');
+          return res.json({ success: true, deduped: true });
+        }
+      } catch (dedupErr) {
+        console.warn('[WEBHOOK] DB dedup check failed, continuing:', dedupErr.message);
+      }
+    }
     
     // Get original email metadata for enrichment and mark email as REPLIED
     let leadName = null;

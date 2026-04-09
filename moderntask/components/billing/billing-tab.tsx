@@ -8,6 +8,7 @@ import type { PaymentRequest } from "@stripe/stripe-js"
 import { DollarSign, CheckCircle, XCircle, RefreshCw, Calendar, CreditCard, Plus, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, Zap, Mail, TrendingDown, AlertTriangle, Gift, Lock, Bot, Users, RefreshCcw } from "lucide-react"
 import api from "@/lib/api"
 import { fetchDisplayedCreditData } from "@/lib/credit-balance"
+import { useToast } from "@/hooks/use-toast"
 import { CreditPurchaseModal } from "./credit-purchase-modal"
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "")
@@ -411,6 +412,7 @@ function PaymentHistorySection() {
 function BillingTabInner() {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const { toast } = useToast()
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddCard, setShowAddCard] = useState(false)
@@ -480,7 +482,7 @@ function BillingTabInner() {
       setCancelConfirm(false)
       await fetchCreditData()
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to cancel plan')
+      toast({ title: 'Failed to cancel plan', description: err.response?.data?.error, variant: 'destructive', duration: 4000 })
     } finally {
       setCancelLoading(false)
     }
@@ -494,7 +496,7 @@ function BillingTabInner() {
       setDowngradeTarget('')
       await fetchCreditData()
     } catch (err: any) {
-      alert(err.response?.data?.error || 'Failed to downgrade plan')
+      toast({ title: 'Failed to downgrade plan', description: err.response?.data?.error, variant: 'destructive', duration: 4000 })
     } finally {
       setDowngradeLoading(false)
     }
@@ -578,12 +580,12 @@ function BillingTabInner() {
   }
 
   const handleRemoveCard = async (id: string) => {
-    if (!confirm("Are you sure you want to remove this card?")) return
     try {
       await api.delete(`/api/billing/payment-methods/${id}`)
       setPaymentMethods(pm => pm.filter(m => m.id !== id))
+      toast({ title: 'Card removed', duration: 2000 })
     } catch (err: any) {
-      alert(err.response?.data?.error || "Failed to remove card")
+      toast({ title: 'Failed to remove card', description: err.response?.data?.error, variant: 'destructive', duration: 4000 })
     }
   }
 
@@ -591,8 +593,9 @@ function BillingTabInner() {
     try {
       await api.post("/api/billing/set-default-payment", { paymentMethodId: id })
       setPaymentMethods(pm => pm.map(m => ({ ...m, isDefault: m.id === id })))
+      toast({ title: 'Default card updated', duration: 2000 })
     } catch (err: any) {
-      alert(err.response?.data?.error || "Failed to set default card")
+      toast({ title: 'Failed to set default card', description: err.response?.data?.error, variant: 'destructive', duration: 4000 })
     }
   }
 
@@ -745,8 +748,16 @@ function BillingTabInner() {
           </div>
           <button
             type="button"
-            onClick={() => { const updated = { ...autoTopup, enabled: !autoTopup.enabled }; setAutoTopup(updated); saveAutoTopup(updated) }}
-            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none mt-0.5 ${autoTopup.enabled ? 'bg-primary' : 'bg-muted-foreground/30'}`}
+            onClick={() => {
+              if (!autoTopup.enabled && paymentMethods.length === 0) {
+                toast({ title: 'No payment method', description: 'Add a card before enabling auto top-up.', variant: 'destructive', duration: 4000 })
+                return
+              }
+              const updated = { ...autoTopup, enabled: !autoTopup.enabled }
+              setAutoTopup(updated)
+              saveAutoTopup(updated)
+            }}
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none mt-0.5 ${autoTopup.enabled ? 'bg-primary' : paymentMethods.length === 0 ? 'bg-muted-foreground/15 cursor-not-allowed' : 'bg-muted-foreground/30'}`}
           >
             <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform duration-200 ${autoTopup.enabled ? 'translate-x-5' : 'translate-x-0'}`} />
           </button>
