@@ -423,7 +423,7 @@ export function AnalyticsContent() {
       {/* main recharts grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-        {/* Agent performance – multi-line time series */}}
+        {/* Agent performance – multi-line time series */}
         <Card className="p-5">
           <div className="flex items-center justify-between mb-4">
             <CardTitle className="text-sm font-semibold">Agent Performance Over Time</CardTitle>
