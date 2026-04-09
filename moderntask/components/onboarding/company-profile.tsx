@@ -219,7 +219,8 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
     setIsProcessing(true);
     try {
       const response = await api.post('/api/company-profile/scrape-website', {
-        url: formattedUrl
+        url: formattedUrl,
+        fromOnboarding: true
       });
 
       if (response.data.success && response.data.profile) {

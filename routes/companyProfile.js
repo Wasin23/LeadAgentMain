@@ -241,7 +241,7 @@ router.post('/scrape-website', async (req, res) => {
   let browser;
   try {
     const userId = req.user.userId;
-    const { url } = req.body;
+    const { url, fromOnboarding } = req.body;
     const awsManager = new AWSManager();
 
     if (!url) {
@@ -252,6 +252,23 @@ router.post('/scrape-website', async (req, res) => {
     }
 
     console.log(`[COMPANY PROFILE] Scraping website for user ${userId}: ${url}`);
+
+    // Charge 1 credit per scrape, except during onboarding
+    if (!fromOnboarding) {
+      try {
+        await awsManager.logApiUsage({
+          userId,
+          agentId: 'system',
+          service: 'openai',
+          operation: 'company_profile_scrape',
+          usage: 1,
+          cost: 0.05,
+          metadata: { url }
+        });
+      } catch (creditErr) {
+        console.error('[COMPANY PROFILE] Failed to log credit charge:', creditErr.message);
+      }
+    }
 
     // Use Puppeteer with real Chrome
     let websiteContent = '';
@@ -435,21 +452,6 @@ Return as JSON: {profile: {...}, recommendedPreset: {...}}`
     }
     
     console.log('[COMPANY PROFILE] Website scraping complete:', result.profile);
-
-    // Charge 1 credit for the scrape
-    try {
-      await awsManager.logApiUsage({
-        userId,
-        agentId: 'system',
-        service: 'openai',
-        operation: 'company_profile_scrape',
-        usage: 1,
-        cost: 0.05,
-        metadata: { url }
-      });
-    } catch (creditErr) {
-      console.error('[COMPANY PROFILE] Failed to log credit charge:', creditErr.message);
-    }
 
     res.json({
       success: true,
