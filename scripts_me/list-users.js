@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import AWSManager from './utils/awsManager.js';
+import AWSManager from '../utils/awsManager.js';
 
 const awsManager = new AWSManager();
 

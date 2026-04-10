@@ -229,7 +229,29 @@ class EmailScheduler {
           console.warn(`[EMAIL SCHEDULER] ⚠️ Batch notification failed for agent ${agentId}:`, err.message);
         }
       }
-      
+
+      // 15s after every batch: silently reconcile counters + purge orphaned scheduled jobs
+      // for every user who had emails in this tick. Non-blocking — never throws.
+      const affectedUserIds = [...new Set(scheduledEmails.map(e => e.userId).filter(Boolean))];
+      if (affectedUserIds.length > 0) {
+        setTimeout(async () => {
+          for (const userId of affectedUserIds) {
+            try {
+              await this.awsEmailQueue.reconcileCounters(userId);
+              // Belt-and-suspenders: delete scheduled jobs for every email we just processed
+              for (const email of scheduledEmails) {
+                if (email.userId === userId) {
+                  await this.scheduledEmailJobs.deleteScheduledEmail(userId, email.agentId, email.emailId || email.id).catch(() => {});
+                }
+              }
+              console.log(`🔄 [EMAIL SCHEDULER] Post-send reconcile done for ${userId}`);
+            } catch (err) {
+              console.warn(`[EMAIL SCHEDULER] ⚠️ Post-send reconcile failed for ${userId}:`, err.message);
+            }
+          }
+        }, 15_000);
+      }
+
       console.log('✅ [EMAIL SCHEDULER] Check complete');
     } catch (error) {
       console.error('❌ [EMAIL SCHEDULER] Error during check:', error);

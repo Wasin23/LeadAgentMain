@@ -1,5 +1,5 @@
 import dotenv from 'dotenv';
-import AWSManager from './utils/awsManager.js';
+import AWSManager from '../utils/awsManager.js';
 
 dotenv.config();
 
