@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { loadStripe } from "@stripe/stripe-js"
 import { Elements, CardElement, useStripe, useElements, PaymentRequestButtonElement } from "@stripe/react-stripe-js"
 import type { PaymentRequest } from "@stripe/stripe-js"
-import { Calendar, CreditCard, Plus, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, Zap, Mail, TrendingDown, AlertTriangle, Gift, Lock, Users, RefreshCcw, XCircle } from "lucide-react"
+import { X, Calendar, CreditCard, Plus, Loader2, Sparkles, ChevronDown, ChevronUp, TrendingDown, AlertTriangle, Gift, Lock, Users, RefreshCcw, XCircle } from "lucide-react"
 import api from "@/lib/api"
 import { fetchDisplayedCreditData } from "@/lib/credit-balance"
 import { useToast } from "@/hooks/use-toast"
@@ -167,34 +167,34 @@ function AddCardForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {/* Wallet Pay (Apple Pay / Google Pay) */}
       <WalletPayButton onSuccess={onSuccess} />
 
-      {/* Cardholder name */}
-      <div className="space-y-1.5">
-        <label className="block text-sm font-medium">Name on card</label>
-        <input
-          type="text"
-          value={cardholderName}
-          onChange={(e) => setCardholderName(e.target.value)}
-          placeholder="Full name"
-          required
-          className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition"
-        />
-      </div>
-
-      {/* Card element */}
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <label className="text-sm font-medium">Card details</label>
-          <div className="flex items-center gap-1.5">
-            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAzMiAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjIwIiByeD0iMiIgZmlsbD0iIzAwNTJGRiIvPgo8Y2lyY2xlIGN4PSIxMiIgY3k9IjEwIiByPSI1IiBmaWxsPSIjRUIwMDFCIi8+CjxjaXJjbGUgY3g9IjIwIiBjeT0iMTAiIHI9IjUiIGZpbGw9IiNGRjVGMDAiLz4KPC9zdmc+" alt="Mastercard" className="h-4 w-auto opacity-80" />
-            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAzMiAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjIwIiByeD0iMiIgZmlsbD0iIzFBMUY3MSIvPgo8dGV4dCB4PSI1IiB5PSIxNCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSI+VklTQTwvdGV4dD4KPC9zdmc+" alt="Visa" className="h-4 w-auto opacity-80" />
-            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAzMiAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjIwIiByeD0iMiIgZmlsbD0iIzAwNzlDMSIvPgo8dGV4dCB4PSI0IiB5PSIxNCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjciIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSI+QU1FWDwvdGV4dD4KPC9zdmc+" alt="Amex" className="h-4 w-auto opacity-80" />
-          </div>
+      {/* Grouped fields — Stripe-style bordered rows */}
+      <div className="rounded-xl border border-input overflow-hidden">
+        {/* Name row */}
+        <div className="px-4 py-3 border-b border-input">
+          <label className="block text-[11px] text-muted-foreground mb-1.5 font-medium uppercase tracking-wide">Name on card</label>
+          <input
+            type="text"
+            value={cardholderName}
+            onChange={(e) => setCardholderName(e.target.value)}
+            placeholder="Full name"
+            required
+            className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+          />
         </div>
-        <div className="px-3 py-3 rounded-lg border border-input bg-background focus-within:ring-2 focus-within:ring-ring transition">
+        {/* Card row */}
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-[11px] text-muted-foreground font-medium uppercase tracking-wide">Card</label>
+            <div className="flex items-center gap-1.5">
+              <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAzMiAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjIwIiByeD0iMiIgZmlsbD0iIzAwNTJGRiIvPgo8Y2lyY2xlIGN4PSIxMiIgY3k9IjEwIiByPSI1IiBmaWxsPSIjRUIwMDFCIi8+CjxjaXJjbGUgY3g9IjIwIiBjeT0iMTAiIHI9IjUiIGZpbGw9IiNGRjVGMDAiLz4KPC9zdmc+" alt="Mastercard" className="h-4 w-auto opacity-80" />
+              <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAzMiAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjIwIiByeD0iMiIgZmlsbD0iIzFBMUY3MSIvPgo8dGV4dCB4PSI1IiB5PSIxNCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSI+VklTQTwvdGV4dD4KPC9zdmc+" alt="Visa" className="h-4 w-auto opacity-80" />
+              <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAzMiAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjIwIiByeD0iMiIgZmlsbD0iIzAwNzlDMSIvPgo8dGV4dCB4PSI0IiB5PSIxNCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjciIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSI+QU1FWDwvdGV4dD4KPC9zdmc+" alt="Amex" className="h-4 w-auto opacity-80" />
+            </div>
+          </div>
           <CardElement
             onReady={() => setCardReady(true)}
             onChange={(e) => setError(e.error?.message ?? null)}
@@ -220,11 +220,10 @@ function AddCardForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
         </div>
       )}
 
-      {/* Submit */}
       <button
         type="submit"
         disabled={!stripe || !elements || loading || !cardholderName.trim() || !cardReady || !clientSecret}
-        className="w-full flex items-center justify-center gap-2 py-3 bg-primary text-primary-foreground rounded-lg font-semibold text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition"
+        className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center justify-center gap-2"
       >
         {loading ? (
           <><Loader2 className="w-4 h-4 animate-spin" />Processing...</>
@@ -235,7 +234,6 @@ function AddCardForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
         )}
       </button>
 
-      {/* Cancel */}
       <button
         type="button"
         onClick={onCancel}
@@ -245,10 +243,12 @@ function AddCardForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
         Cancel
       </button>
 
-      {/* Powered by Stripe */}
-      <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground pt-1">
-        <Lock className="w-3 h-3" />
-        <span>Secured by <strong>Stripe</strong></span>
+      <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground pt-1">
+        <span className="flex items-center gap-1"><Lock className="w-3 h-3" /> Powered by Stripe</span>
+        <span>·</span>
+        <span>Terms</span>
+        <span>·</span>
+        <span>Privacy</span>
       </div>
     </form>
   )
@@ -452,10 +452,16 @@ function BillingTabInner() {
     </div>
   )
 
-  return (
-    <div className="space-y-6">
+  const currentPlanIdx = PLAN_ORDER.indexOf(userPlan?.plan?.id ?? '')
+  const downgradePlans = currentPlanIdx > 1 ? PLAN_ORDER.slice(1, currentPlanIdx) : []
 
-      {/* ── Payment Failed Banner ───────────────────────────────────────── */}
+  return (
+    <div className="max-w-4xl space-y-8">
+
+      {/* ── Page Header ── */}
+      <h1 className="text-2xl font-bold">Billing Settings</h1>
+
+      {/* ── Payment Failed Banner ── */}
       {paymentStatus === 'payment_failed' && (
         <div className="flex items-start gap-3 rounded-xl bg-destructive/10 border border-destructive/30 px-4 py-3">
           <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
@@ -463,127 +469,202 @@ function BillingTabInner() {
             <p className="text-sm font-semibold text-destructive">Payment failed</p>
             <p className="text-xs text-muted-foreground mt-0.5">
               We couldn't process your last payment.
-              {gracePeriodEnd && ` You have until ${new Date(gracePeriodEnd).toLocaleDateString()} to update your payment method before your account is suspended.`}
+              {gracePeriodEnd && ` You have until ${new Date(gracePeriodEnd).toLocaleDateString()} to update your payment method.`}
             </p>
           </div>
           <button
             className="text-xs font-medium text-destructive underline underline-offset-2 flex-shrink-0"
-            onClick={() => document.getElementById('payment-methods-section')?.scrollIntoView({ behavior: 'smooth' })}
+            onClick={() => setShowAddCard(true)}
           >
             Fix now
           </button>
         </div>
       )}
 
-      {/* ── Credit Balance Card ─────────────────────────────────────────── */}
-      <div className="rounded-2xl bg-primary p-6 text-primary-foreground shadow-sm">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            {/* Plan badge */}
-            {userPlan?.plan && (
-              <div className="flex flex-wrap items-center gap-2 mb-3">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary-foreground/15 rounded-full text-xs font-medium">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  {userPlan.plan.name}
-                </div>
-                {nextPaymentDue && userPlan.plan.id !== 'free-trial' && (
-                  <div className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary-foreground/10 rounded-full text-xs text-primary-foreground/70">
-                    <Calendar className="w-3 h-3" />
-                    Next charge {new Date(nextPaymentDue).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Balance */}
-            <div className="mb-1">
-              {creditLoading ? (
-                <div className="flex items-center gap-2">
-                  <Loader2 className="w-6 h-6 animate-spin opacity-50" />
-                  <span className="text-2xl font-bold opacity-50">Loading...</span>
-                </div>
-              ) : (
-                <span className="text-5xl font-bold tabular-nums">
-                  {creditBalance.toLocaleString()}
-                </span>
-              )}
+      {/* ── Trial Credits Banner ── */}
+      {trialCredits && !trialCredits.paymentMethodAdded && (
+        <div className={`rounded-xl p-4 border ${trialCredits.limitReached ? "bg-destructive/8 border-destructive/30" : "bg-muted border-border"}`}>
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 flex-shrink-0">
+              {trialCredits.limitReached
+                ? <XCircle className="w-4 h-4 text-destructive" />
+                : trialCredits.warningThreshold
+                ? <AlertTriangle className="w-4 h-4 text-muted-foreground" />
+                : <Gift className="w-4 h-4 text-muted-foreground" />}
             </div>
-            <p className="text-sm text-primary-foreground/70 mb-1">credits remaining</p>
-            <p className="text-xs text-primary-foreground/50">1 credit = $0.05 in API costs</p>
-
-            {/* Email estimate */}
-            <div className="mt-3 flex items-center gap-1.5 text-sm text-primary-foreground/70">
-              <Mail className="w-4 h-4 text-primary-foreground/50" />
-              ≈ {estimatedEmailsAvailable.toLocaleString()} emails available
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold mb-1">
+                {trialCredits.limitReached ? "Trial Credits Exhausted" : trialCredits.warningThreshold ? "Trial Credits Running Low" : "Free Trial Active"}
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                {trialCredits.limitReached
+                  ? `You've used all ${Math.round(Number(trialCredits.creditsLimit)).toLocaleString()} trial credits.`
+                  : `${Math.round(Number(trialCredits.creditsUsed)).toLocaleString()} of ${Math.round(Number(trialCredits.creditsLimit)).toLocaleString()} credits used (${trialCredits.percentageUsed}%)`}
+              </p>
+              <div className="mt-2 bg-border rounded-full h-1 overflow-hidden">
+                <div
+                  className={`h-full ${trialCredits.limitReached ? "bg-destructive" : "bg-foreground"}`}
+                  style={{ width: `${Math.min(parseFloat(trialCredits.percentageUsed || "0"), 100)}%` }}
+                />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  onClick={() => { setCreditPurchaseMode("upgrade"); setShowCreditPurchaseModal(true) }}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-foreground px-3 py-1.5 text-xs font-semibold text-background hover:opacity-90"
+                >
+                  <Sparkles className="w-3 h-3" /> Upgrade Plan
+                </button>
+                <button
+                  onClick={() => setShowAddCard(true)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-input px-3 py-1.5 text-xs font-semibold hover:bg-accent"
+                >
+                  <Lock className="w-3 h-3" /> Add Card
+                </button>
+              </div>
             </div>
           </div>
+        </div>
+      )}
 
-          {/* Right column */}
-          <div className="ml-4 flex flex-col items-end gap-3">
-            {/* Credits spent */}
-            <div className="text-right">
-              <div className="text-xs text-primary-foreground/50 mb-0.5">Credits Spent This Month</div>
-              <div className="text-xl font-bold">{Math.round(creditsSpent).toLocaleString()}</div>
-              <div className="text-xs text-primary-foreground/50">${(creditsSpent * 0.05).toFixed(2)} in API costs</div>
+      {/* ── Top Grid: Current Plan + Credits ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+
+        {/* Current Plan */}
+        <div className="rounded-xl border border-border bg-card p-6">
+          <h2 className="text-base font-semibold mb-5">Current Plan</h2>
+          <div className="text-sm divide-y divide-border">
+            <div className="flex justify-between pb-3">
+              <span className="text-muted-foreground">Plan Type</span>
+              <span className="font-medium">{userPlan?.plan?.name ?? '—'}</span>
             </div>
-
-            {/* Upgrade plan */}
-            <button
-              onClick={() => {
-                setCreditPurchaseMode("upgrade")
-                setShowCreditPurchaseModal(true)
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-primary-foreground/20 hover:bg-primary-foreground/30 border border-primary-foreground/30 rounded-lg text-sm font-semibold transition-all"
-            >
-              <Sparkles className="w-4 h-4" />
-              Upgrade Plan
-            </button>
-            {/* Buy more credits */}
-            <button
-              onClick={() => {
-                setCreditPurchaseMode("topup")
-                setShowCreditPurchaseModal(true)
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-primary-foreground/10 hover:bg-primary-foreground/20 border border-primary-foreground/20 rounded-lg text-sm font-semibold transition-all"
-            >
-              <Plus className="w-4 h-4" />
-              Buy More Credits
-            </button>
+            <div className="flex justify-between py-3">
+              <span className="text-muted-foreground">Plan Pricing</span>
+              <span className="font-medium">
+                {userPlan?.plan?.id === 'free-trial' ? 'Free' : userPlan?.plan?.price ? `$${userPlan.plan.price}/mo` : '—'}
+              </span>
+            </div>
+            {nextPaymentDue && userPlan?.plan?.id !== 'free-trial' ? (
+              <div className="flex justify-between pt-3">
+                <span className="text-muted-foreground">Next Charge</span>
+                <span className="font-medium">{new Date(nextPaymentDue).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+              </div>
+            ) : <div />}
+          </div>
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            {userPlan?.plan?.id && userPlan.plan.id !== 'free-trial' && (
+              <>
+                {!cancelConfirm ? (
+                  <button
+                    onClick={() => setCancelConfirm(true)}
+                    className="px-3 py-1.5 text-sm border border-input rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  >
+                    Cancel Plan
+                  </button>
+                ) : (
+                  <div className="w-full rounded-lg bg-destructive/5 border border-destructive/20 p-3">
+                    <p className="text-xs text-muted-foreground mb-2">Your account moves to Free Trial. No further charges.</p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleCancelPlan}
+                        disabled={cancelLoading}
+                        className="px-3 py-1.5 text-xs font-medium rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 flex items-center gap-1"
+                      >
+                        {cancelLoading && <Loader2 className="w-3 h-3 animate-spin" />}
+                        Yes, cancel
+                      </button>
+                      <button onClick={() => setCancelConfirm(false)} className="px-3 py-1.5 text-xs font-medium rounded-lg border border-input hover:bg-muted">Keep plan</button>
+                    </div>
+                  </div>
+                )}
+                {!cancelConfirm && downgradePlans.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={downgradeTarget}
+                      onChange={e => setDowngradeTarget(e.target.value)}
+                      className="text-sm border border-input rounded-lg px-2.5 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    >
+                      <option value="">Downgrade to…</option>
+                      {downgradePlans.map(p => (
+                        <option key={p} value={p}>{PLAN_LABELS[p] ?? p}</option>
+                      ))}
+                    </select>
+                    {downgradeTarget && (
+                      <button
+                        onClick={handleDowngrade}
+                        disabled={downgradeLoading}
+                        className="text-sm px-3 py-1.5 border border-input rounded-lg hover:bg-muted transition-colors flex items-center gap-1.5 whitespace-nowrap"
+                      >
+                        {downgradeLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                        Confirm
+                      </button>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+            {!cancelConfirm && (
+              <button
+                onClick={() => { setCreditPurchaseMode('upgrade'); setShowCreditPurchaseModal(true) }}
+                className="text-sm text-primary hover:underline font-medium flex items-center gap-1"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                {userPlan?.plan?.id === 'free-trial' ? 'Upgrade Plan' : 'View Other Plans'}
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Low balance warning */}
-        {!creditLoading && creditBalance < 100 && creditBalance >= 0 && (
-          <div className="mt-4 flex items-center gap-2 bg-destructive/20 border border-destructive/30 rounded-lg px-3 py-2">
-            <AlertTriangle className="w-4 h-4 text-destructive-foreground flex-shrink-0" />
-            <p className="text-xs text-primary-foreground/80">
-              {creditBalance === 0
-                ? "You have no credits remaining. Add more to continue sending emails."
-                : `Low balance — only ${creditBalance} credits left. Buy more to avoid interruptions.`}
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* ── Email Capacity Estimates ────────────────────────────────────── */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { icon: Mail,     label: "emails / day",   value: estimatedEmailsPerDay },
-          { icon: Calendar, label: "emails / week",  value: estimatedEmailsPerWeek },
-          { icon: Zap,      label: "total available", value: estimatedEmailsAvailable },
-        ].map(({ icon: Icon, label, value }) => (
-          <div key={label} className="rounded-xl border bg-card p-4 text-center">
-            <div className="flex items-center justify-center w-9 h-9 rounded-full bg-muted mx-auto mb-2">
-              <Icon className="w-4 h-4 text-muted-foreground" />
+        {/* Credits & Usage */}
+        <div className="rounded-xl border border-border bg-card p-6">
+          <h2 className="text-base font-semibold mb-5">Credits & Usage</h2>
+          <div className="text-sm divide-y divide-border">
+            <div className="flex justify-between items-baseline pb-3">
+              <span className="text-muted-foreground">Balance</span>
+              {creditLoading
+                ? <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                : <span className="text-3xl font-bold tabular-nums">{creditBalance.toLocaleString()}</span>
+              }
             </div>
-            <p className="text-2xl font-bold">{value.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+            <div className="flex justify-between py-3">
+              <span className="text-muted-foreground">Spent This Month</span>
+              <span className="font-medium tabular-nums">{Math.round(creditsSpent).toLocaleString()} credits</span>
+            </div>
+            <div className="flex justify-between py-3">
+              <span className="text-muted-foreground">~Emails Available</span>
+              <span className="font-medium tabular-nums">{Math.floor(creditBalance / 0.7).toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between pt-3">
+              <span className="text-muted-foreground">Rate</span>
+              <span className="text-muted-foreground">1 credit = $0.05</span>
+            </div>
           </div>
-        ))}
+          {!creditLoading && creditBalance < 100 && creditBalance >= 0 && (
+            <div className="mt-4 flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
+              <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+              {creditBalance === 0 ? 'No credits remaining.' : `Low balance — ${creditBalance} credits left.`}
+            </div>
+          )}
+          <div className="mt-5 flex flex-wrap gap-2">
+            <button
+              onClick={() => { setCreditPurchaseMode('topup'); setShowCreditPurchaseModal(true) }}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-input rounded-lg hover:bg-accent transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Buy Credits
+            </button>
+            <button
+              onClick={() => { setCreditPurchaseMode('upgrade'); setShowCreditPurchaseModal(true) }}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-colors"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              Upgrade Plan
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* ── Auto Top-up ─────────────────────────────────────────────────── */}
-      <div className="rounded-xl border bg-card p-5">
+      {/* ── Auto Top-up ── */}
+      <div className="rounded-xl border border-border bg-card p-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
@@ -609,7 +690,6 @@ function BillingTabInner() {
             <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform duration-200 ${autoTopup.enabled ? 'translate-x-5' : 'translate-x-0'}`} />
           </button>
         </div>
-
         {autoTopup.enabled && (
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -641,11 +721,11 @@ function BillingTabInner() {
         )}
       </div>
 
-      {/* ── Cost Breakdown Accordion ────────────────────────────────────── */}
+      {/* ── Cost Breakdown Accordion ── */}
       <div className="rounded-xl border bg-card overflow-hidden">
         <button
           onClick={() => setShowCostBreakdown(!showCostBreakdown)}
-          className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/40 transition-colors"
+          className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/40 transition-colors text-left"
         >
           <div className="flex items-center gap-2">
             <TrendingDown className="w-4 h-4 text-muted-foreground" />
@@ -658,44 +738,40 @@ function BillingTabInner() {
           </div>
           {showCostBreakdown ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
         </button>
-
-          {showCostBreakdown && (
-            <div className="overflow-hidden">
-              <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {[
-                  { label: "Apollo (lead sourcing)",        cost: apiStats.apollo?.cost ?? 0,     detail: `${(apiStats.apollo?.calls ?? 0).toLocaleString()} lead lookups` },
-                  { label: "OpenAI (AI writing)",           cost: apiStats.openai?.cost ?? 0,     detail: `${((apiStats.openai?.tokens ?? 0) / 1000).toFixed(1)}k tokens` },
-                  { label: "Mailgun (email sending)",       cost: apiStats.mailgun?.cost ?? 0,    detail: `${(apiStats.mailgun?.sent ?? 0).toLocaleString()} emails sent` },
-                  { label: "Email Validation",              cost: apiStats.zerobounce?.cost ?? 0, detail: `${(apiStats.zerobounce?.validations ?? 0).toLocaleString()} addresses checked` },
-                  { label: "Web Research (Serper)",         cost: apiStats.serper?.cost ?? 0,     detail: `${(apiStats.serper?.searches ?? 0).toLocaleString()} searches` },
-                ].map((service) => (
-                  <div key={service.label} className="rounded-lg border bg-muted/50 p-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold">{service.label}</span>
-                      <span className="text-sm font-bold">${service.cost.toFixed(2)}</span>
-                    </div>
-                    <div className="text-xs mt-1 text-muted-foreground">{service.detail}</div>
-                    <div className="text-xs mt-0.5 text-muted-foreground">{Math.round(service.cost / 0.05)} credits</div>
-                  </div>
-                ))}
+        {showCostBreakdown && (
+          <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {[
+              { label: "Apollo (lead sourcing)",  cost: apiStats.apollo?.cost ?? 0,     detail: `${(apiStats.apollo?.calls ?? 0).toLocaleString()} lead lookups` },
+              { label: "OpenAI (AI writing)",     cost: apiStats.openai?.cost ?? 0,     detail: `${((apiStats.openai?.tokens ?? 0) / 1000).toFixed(1)}k tokens` },
+              { label: "Mailgun (email sending)", cost: apiStats.mailgun?.cost ?? 0,    detail: `${(apiStats.mailgun?.sent ?? 0).toLocaleString()} emails sent` },
+              { label: "Email Validation",        cost: apiStats.zerobounce?.cost ?? 0, detail: `${(apiStats.zerobounce?.validations ?? 0).toLocaleString()} addresses checked` },
+              { label: "Web Research (Serper)",   cost: apiStats.serper?.cost ?? 0,     detail: `${(apiStats.serper?.searches ?? 0).toLocaleString()} searches` },
+            ].map((service) => (
+              <div key={service.label} className="rounded-lg border bg-muted/50 p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold">{service.label}</span>
+                  <span className="text-sm font-bold">${service.cost.toFixed(2)}</span>
+                </div>
+                <div className="text-xs mt-1 text-muted-foreground">{service.detail}</div>
+                <div className="text-xs mt-0.5 text-muted-foreground">{Math.round(service.cost / 0.05)} credits</div>
               </div>
-            </div>
-          )}
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* ── Per-Agent Breakdown Accordion ───────────────────────────────── */}
+      {/* ── Per-Agent Breakdown Accordion ── */}
       <div className="rounded-xl border bg-card overflow-hidden">
         <button
           onClick={() => {
             setShowAgentBreakdown(v => !v)
             if (!showAgentBreakdown && agentUsage.length === 0) loadAgentUsage()
           }}
-          className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/40 transition-colors"
+          className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/40 transition-colors text-left"
         >
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-muted-foreground" />
             <span className="text-sm font-semibold">Credits by Agent</span>
-            <span className="text-xs text-muted-foreground ml-1">see which agent is spending the most</span>
           </div>
           {showAgentBreakdown ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
         </button>
@@ -730,88 +806,67 @@ function BillingTabInner() {
           </div>
         )}
       </div>
-      {/* ── Plan Management ─────────────────────────────────────────────── */}
-      {userPlan?.plan?.id && userPlan.plan.id !== 'free-trial' && (() => {
-        const currentIdx = PLAN_ORDER.indexOf(userPlan.plan.id)
-        const downgradePlans = PLAN_ORDER.slice(1, currentIdx)
-        return (
-          <div className="rounded-xl border bg-card p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-sm font-semibold">Manage Plan</h3>
-                {nextPaymentDue && (
-                  <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5" />
-                    Next renewal: {new Date(nextPaymentDue!).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                  </p>
-                )}
-              </div>
-            </div>
 
-            {/* Downgrade */}
-            {downgradePlans.length > 0 && (
-              <div className="mb-4">
-                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Downgrade to a lower plan</label>
-                <p className="text-xs text-muted-foreground mb-2">No charge — your existing credits are kept. New agent and speed limits apply immediately.</p>
-                <div className="flex items-center gap-2">
-                  <select
-                    value={downgradeTarget}
-                    onChange={e => setDowngradeTarget(e.target.value)}
-                    className="flex-1 text-sm border border-input rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  >
-                    <option value="">Select a plan…</option>
-                    {downgradePlans.map(p => (
-                      <option key={p} value={p}>{PLAN_LABELS[p] ?? p}</option>
-                    ))}
-                  </select>
-                  <button
-                    onClick={handleDowngrade}
-                    disabled={!downgradeTarget || downgradeLoading}
-                    className="px-4 py-2 text-sm font-medium rounded-lg border border-input bg-background hover:bg-muted disabled:opacity-40 transition-colors flex items-center gap-1.5"
-                  >
-                    {downgradeLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                    Confirm Downgrade
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Cancel plan */}
-            <div className="border-t pt-4">
-              {!cancelConfirm ? (
-                <button
-                  onClick={() => setCancelConfirm(true)}
-                  className="text-sm text-destructive/70 hover:text-destructive underline underline-offset-2 transition-colors"
-                >
-                  Cancel plan
-                </button>
-              ) : (
-                <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3">
-                  <p className="text-sm font-medium mb-1">Cancel your plan?</p>
-                  <p className="text-xs text-muted-foreground mb-3">Your account will be moved to Free Trial (1 agent, 5x speed). No further monthly charges will apply.</p>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleCancelPlan}
-                      disabled={cancelLoading}
-                      className="px-3 py-1.5 text-sm font-medium rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 transition-colors flex items-center gap-1.5"
-                    >
-                      {cancelLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                      Yes, cancel plan
-                    </button>
-                    <button
-                      onClick={() => setCancelConfirm(false)}
-                      className="px-3 py-1.5 text-sm font-medium rounded-lg border border-input hover:bg-muted transition-colors"
-                    >
-                      Keep plan
-                    </button>
+      {/* ── Payment Methods ── */}
+      <section id="payment-methods-section">
+        <h2 className="text-base font-semibold mb-4">Payment Methods</h2>
+        {error && (
+          <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive mb-4">{error}</div>
+        )}
+        <div className="flex flex-wrap gap-4 items-start">
+          {paymentMethods.map((pm) => {
+            const isExpired = pm.expYear < new Date().getFullYear() || (pm.expYear === new Date().getFullYear() && pm.expMonth < new Date().getMonth() + 1)
+            const brandBg: Record<string, string> = {
+              mastercard: 'bg-gradient-to-br from-gray-900 to-gray-700',
+              visa:       'bg-gradient-to-br from-[#1a1f71] to-[#2d35a8]',
+              amex:       'bg-gradient-to-br from-[#007ac1] to-[#005a8e]',
+              discover:   'bg-gradient-to-br from-[#f76f20] to-[#e55c00]',
+            }
+            const bg = brandBg[pm.brand?.toLowerCase()] ?? 'bg-gradient-to-br from-gray-600 to-gray-800'
+            return (
+              <div key={pm.id} className="flex flex-col gap-2">
+                <div className={`${bg} rounded-xl w-48 h-28 p-4 flex flex-col justify-between shadow-sm relative`}>
+                  {pm.isDefault && (
+                    <span className="absolute top-2 right-2 text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded-full font-medium">Default</span>
+                  )}
+                  <span className="text-white/70 text-xs font-medium capitalize">{pm.brand}</span>
+                  <div>
+                    <p className="text-white text-sm tracking-widest font-mono">•••• {pm.last4}</p>
+                    <p className="text-white/60 text-xs mt-0.5">
+                      {isExpired ? <span className="text-red-300">Expired</span> : `Expires ${pm.expMonth}/${pm.expYear}`}
+                    </p>
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
-        )
-      })()}
-      {/* ── CreditPurchaseModal ─────────────────────────────────────────── */}
+                <div className="flex items-center gap-3 px-1 text-xs">
+                  {pm.isDefault
+                    ? <span className="text-muted-foreground">✓ Default</span>
+                    : <button onClick={() => handleSetDefault(pm.id)} className="text-primary hover:underline font-medium">Make Default</button>
+                  }
+                  <span className="text-border select-none">|</span>
+                  <button onClick={() => handleRemoveCard(pm.id)} className="text-muted-foreground hover:text-destructive transition-colors">Remove</button>
+                </div>
+              </div>
+            )
+          })}
+          {/* Add new card tile */}
+          <button
+            onClick={() => setShowAddCard(true)}
+            className="w-48 h-28 rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-muted/40 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground transition-all"
+          >
+            <Plus className="w-6 h-6" />
+            <span className="text-xs font-medium">Add a new card</span>
+          </button>
+        </div>
+      </section>
+
+      {/* ── Order History ── */}
+      <section>
+        <h2 className="text-base font-semibold mb-1">Order History</h2>
+        <p className="text-xs text-muted-foreground mb-4">Your charges from plan upgrades and credit purchases.</p>
+        <PaymentHistorySection />
+      </section>
+
+      {/* ── Credit Purchase Modal ── */}
       {showCreditPurchaseModal && (
         <CreditPurchaseModal
           mode={creditPurchaseMode}
@@ -825,170 +880,42 @@ function BillingTabInner() {
         />
       )}
 
-      {/* Trial Credits Banner */}
-      {trialCredits && !trialCredits.paymentMethodAdded && (
-        <div className={`rounded-lg p-4 border ${
-          trialCredits.limitReached
-            ? "bg-destructive/8 border-destructive/30"
-            : trialCredits.warningThreshold
-            ? "bg-muted border-border"
-            : "bg-muted border-border"
-        }`}>
-          <div className="flex items-start gap-3">
-            <div className="mt-0.5 flex-shrink-0">
-              {trialCredits.limitReached
-                ? <XCircle className="w-4 h-4 text-destructive" />
-                : trialCredits.warningThreshold
-                ? <AlertTriangle className="w-4 h-4 text-muted-foreground" />
-                : <Gift className="w-4 h-4 text-muted-foreground" />}
-            </div>
-            <div className="flex-1">
-              <h3 className="text-sm font-semibold mb-1">
-                {trialCredits.limitReached ? "Trial Credits Exhausted" : trialCredits.warningThreshold ? "Trial Credits Running Low" : "Free Trial Active"}
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                {trialCredits.limitReached
-                  ? `You've used all ${Math.round(Number(trialCredits.creditsLimit)).toLocaleString()} trial credits. Add a payment method to upgrade your plan or buy more credits.`
-                  : `You've used ${Math.round(Number(trialCredits.creditsUsed)).toLocaleString()} of ${Math.round(Number(trialCredits.creditsLimit)).toLocaleString()} trial credits (${trialCredits.percentageUsed}%), equal to $${(Number(trialCredits.creditsUsed) * 0.05).toFixed(2)} in API costs.`}
-              </p>
-              <div className="mt-2 bg-border rounded-full h-1.5 overflow-hidden">
-                <div
-                  className={`h-full transition-all ${trialCredits.limitReached ? "bg-destructive" : "bg-foreground"}`}
-                  style={{ width: `${Math.min(parseFloat(trialCredits.percentageUsed || "0"), 100)}%` }}
-                />
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCreditPurchaseMode("upgrade")
-                    setShowCreditPurchaseModal(true)
-                  }}
-                  className="inline-flex items-center gap-2 rounded-lg bg-foreground px-3 py-2 text-xs font-semibold text-background transition-colors hover:opacity-90"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Upgrade Plan
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowAddCard(true)}
-                  className="inline-flex items-center gap-2 rounded-lg border border-input px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-accent"
-                >
-                  <Lock className="w-3.5 h-3.5" />
-                  Add Payment Method
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Header */}
-      <div id="payment-methods-section" className="flex items-center justify-between">
-        <div>
-          <h2 className="text-base font-semibold">Payment Methods</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">Manage cards used for plan upgrades and credit purchases</p>
-        </div>
-        {!showAddCard && (
-          <button
-            onClick={() => setShowAddCard(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Add Card
-          </button>
-        )}
-      </div>
-
-      {/* Info box */}
-      <div className="rounded-lg border bg-muted/50 p-4">
-        <h3 className="text-sm font-semibold mb-1 flex items-center gap-1.5">
-          <CreditCard className="w-3.5 h-3.5 text-muted-foreground" />
-          Prepaid Credit Billing
-        </h3>
-        <p className="text-xs text-muted-foreground">
-          Meridian uses prepaid credits. Add a card to upgrade your plan or buy more credits when your balance runs low.
-          Your card is securely stored with Stripe and only used when you make a purchase.
-        </p>
-      </div>
-
-      {error && (
-        <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">{error}</div>
-      )}
-
-      {/* Add card form */}
+      {/* ── Add Card Modal ── */}
       {showAddCard && (
-        <div className="rounded-xl border-2 bg-card p-6 shadow-sm">
-          <div className="flex items-center gap-3 mb-5">
-            <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
-              <CreditCard className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => setShowAddCard(false)}
+        >
+          <div
+            className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-md p-6"
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
+                  <CreditCard className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <h3 className="text-base font-semibold">Add Payment Method</h3>
+              </div>
+              <button
+                onClick={() => setShowAddCard(false)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
-            <h3 className="text-base font-bold">Add Payment Method</h3>
+            <AddCardForm
+              onSuccess={() => {
+                setShowAddCard(false)
+                loadPaymentMethods()
+                loadTrialCredits()
+                setTimeout(() => window.location.reload(), 800)
+              }}
+              onCancel={() => setShowAddCard(false)}
+            />
           </div>
-          <AddCardForm
-            onSuccess={() => {
-              setShowAddCard(false)
-              loadPaymentMethods()
-              loadTrialCredits()
-              setTimeout(() => window.location.reload(), 800)
-            }}
-            onCancel={() => setShowAddCard(false)}
-          />
         </div>
       )}
-
-      {/* Payment methods list */}
-      <div className="space-y-3">
-        {paymentMethods.length === 0 ? (
-          <div className="text-center py-12 rounded-lg border bg-muted/20">
-            <CreditCard className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-            <p className="text-sm font-medium">No payment methods added yet</p>
-            <p className="text-xs text-muted-foreground mt-1">Add a card to upgrade plans or buy more credits</p>
-          </div>
-        ) : (
-          paymentMethods.map((pm) => (
-            <div
-              key={pm.id}
-              className={`rounded-lg border p-4 flex items-center justify-between ${pm.isDefault ? "border-blue-400 bg-blue-50 dark:bg-blue-950/30" : "bg-card"}`}
-            >
-              <div className="flex items-center gap-4">
-                <div className={`w-11 h-11 rounded-lg flex items-center justify-center ${pm.isDefault ? "bg-blue-600" : "bg-muted"}`}>
-                  <CreditCard className={`w-5 h-5 ${pm.isDefault ? "text-white" : "text-muted-foreground"}`} />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium capitalize">{pm.brand} •••• {pm.last4}</p>
-                    {pm.isDefault && (
-                      <span className="px-2 py-0.5 bg-blue-600 text-white text-xs rounded-full font-medium">Default</span>
-                    )}
-                    {(pm.expYear < new Date().getFullYear() || (pm.expYear === new Date().getFullYear() && pm.expMonth < new Date().getMonth() + 1)) && (
-                      <span className="px-2 py-0.5 bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400 text-xs rounded-full font-medium border border-red-200 dark:border-red-800">Expired</span>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground">Expires {pm.expMonth}/{pm.expYear}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {!pm.isDefault && (
-                  <button
-                    onClick={() => handleSetDefault(pm.id)}
-                    className="px-3 py-1.5 text-xs border border-input rounded-lg hover:bg-accent font-medium transition-colors"
-                  >
-                    Set Default
-                  </button>
-                )}
-                <button
-                  onClick={() => handleRemoveCard(pm.id)}
-                  className="p-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-                  title="Remove card"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
 
     </div>
   )
