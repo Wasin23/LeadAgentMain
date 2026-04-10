@@ -33,10 +33,10 @@ export type HomeSectionId =
   | "notifications"
 
 const SECTION_META: Record<HomeSectionId, { label: string; span: 1 | 2 }> = {
-  "email-activity":     { label: "Email Activity",       span: 2 },
+  "email-activity":     { label: "Email Activity",       span: 1 },
   "scheduled-sends":    { label: "Scheduled Sends",      span: 1 },
   "credit-consumption": { label: "Credit Consumption",   span: 1 },
-  "agent-activity":     { label: "Agent Activity",       span: 2 },
+  "agent-activity":     { label: "Agent Activity",       span: 1 },
   "delivery-health":    { label: "Delivery Health",      span: 1 },
   "agent-progress":     { label: "Agent Progress",       span: 1 },
   "follow-ups":         { label: "Upcoming Follow-ups",  span: 1 },
