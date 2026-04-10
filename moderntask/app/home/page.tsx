@@ -201,9 +201,13 @@ export default function DashboardPage() {
           })
           .map((a) => {
             const agentSent = (sentEmails as Record<string, unknown>[]).filter(
-              (e) =>
-                e.agentId === a.agentId && emailDate(e) >= oneWeekAgo
+              (e) => e.agentId === a.agentId
             ).length
+            const agentQueued = queueRes.status === "fulfilled"
+              ? (normaliseArray(queueRes.value.data) as Record<string, unknown>[]).filter(
+                  (e) => e.agentId === a.agentId
+                ).length
+              : 0
             const settings = (a.settings as Record<string, unknown>) || {}
             const geo = (settings.geographicSettings as Record<string, unknown>) || {}
             const targeting = (settings.targeting as Record<string, unknown>) || {}
@@ -216,7 +220,7 @@ export default function DashboardPage() {
             return {
               agentId: a.agentId as string,
               name: (a.name as string) || "Agent",
-              current: agentSent,
+              current: agentSent + agentQueued,
               max: leadLimit,
             }
           })

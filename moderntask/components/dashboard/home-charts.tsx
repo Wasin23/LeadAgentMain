@@ -186,21 +186,17 @@ export function EmailActivityCard({ emailTimeSeries = [] }: { emailTimeSeries?: 
 
 export function CreditConsumptionCard({ monthlyCredits = [], creditBalance = null }: { monthlyCredits?: MonthlyPoint[]; creditBalance?: number | null }) {
   return (
-    <Card className="p-5">
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <CardTitle className="text-sm font-semibold">Credit Consumption Over Time</CardTitle>
-          {creditBalance !== null && (
-            <p className="text-[11px] text-muted-foreground mt-0.5">
-              Balance: <span className="font-semibold text-foreground">{creditBalance.toLocaleString()}</span> credits remaining
-            </p>
-          )}
-        </div>
+    <Card className="p-4">
+      <div className="flex items-start justify-between mb-2">
+        <CardTitle className="text-sm font-semibold">Credit Usage</CardTitle>
+        {creditBalance !== null && (
+          <span className="text-xs text-muted-foreground"><span className="font-semibold text-foreground">{creditBalance.toLocaleString()}</span> left</span>
+        )}
       </div>
       {monthlyCredits.every(m => m.Credits === 0) ? (
-        <div className="h-[160px] flex items-center justify-center text-xs text-muted-foreground">No usage data yet</div>
+        <p className="text-xs text-muted-foreground py-1">No usage data yet</p>
       ) : (
-        <ResponsiveContainer width="100%" height={160}>
+        <ResponsiveContainer width="100%" height={100}>
           <BarChart data={monthlyCredits} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
             <defs>
               <linearGradient id="cccCredit" x1="0" y1="0" x2="0" y2="1">
@@ -209,10 +205,10 @@ export function CreditConsumptionCard({ monthlyCredits = [], creditBalance = nul
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" strokeOpacity={0.4} vertical={false} />
-            <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
+            <XAxis dataKey="month" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} />
             <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={28} allowDecimals={false} />
             <Tooltip content={<ChartTooltip />} />
-            <Bar dataKey="Credits" name="Emails Sent" fill="url(#cccCredit)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="Credits" name="Credits Used" fill="url(#cccCredit)" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       )}
@@ -221,59 +217,27 @@ export function CreditConsumptionCard({ monthlyCredits = [], creditBalance = nul
 }
 
 export function DeliveryHealthCard({ sent = 0, bounced = 0, opened = 0 }: { sent?: number; bounced?: number; opened?: number }) {
-  const delivered = Math.max(sent - bounced, 0)
-  const notOpened = Math.max(delivered - opened, 0)
-  const donutData = [
-    { name: "Opened",     value: opened },
-    { name: "Not Opened", value: notOpened },
-    { name: "Bounced",    value: bounced },
-  ].filter(d => d.value > 0)
-
-  const totalEmails = sent + bounced
-  const openRate   = totalEmails > 0 ? ((opened  / totalEmails) * 100).toFixed(1) : "0"
-  const bounceRate = totalEmails > 0 ? ((bounced / totalEmails) * 100).toFixed(1) : "0"
+  const openRate   = sent > 0 ? ((opened  / sent) * 100).toFixed(1) : "—"
+  const bounceRate = sent > 0 ? ((bounced / sent) * 100).toFixed(1) : "—"
 
   return (
-    <Card className="p-5">
-      <CardTitle className="text-sm font-semibold mb-4">Delivery Health</CardTitle>
-      {totalEmails === 0 ? (
-        <div className="h-[200px] flex items-center justify-center text-xs text-muted-foreground">No emails sent yet</div>
+    <Card className="p-4">
+      <CardTitle className="text-sm font-semibold mb-3">Delivery Health</CardTitle>
+      {sent === 0 ? (
+        <p className="text-xs text-muted-foreground py-1">No emails sent yet</p>
       ) : (
-        <div className="flex flex-col items-center">
-          <ResponsiveContainer width="100%" height={160}>
-            <PieChart>
-              <Pie
-                data={donutData}
-                cx="50%"
-                cy="50%"
-                innerRadius={46}
-                outerRadius={70}
-                paddingAngle={3}
-                dataKey="value"
-              >
-                {donutData.map((_, i) => (
-                  <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]} strokeWidth={0} />
-                ))}
-              </Pie>
-              <Tooltip
-                content={({ active, payload }) => {
-                  if (!active || !payload?.length) return null
-                  const p = payload[0]
-                  const pct = totalEmails > 0 ? ((p.value as number / totalEmails) * 100).toFixed(1) : "0"
-                  return (
-                    <div className="bg-popover border border-border rounded-lg px-3 py-2 shadow-xl text-xs">
-                      <p style={{ color: p.payload.fill }} className="font-semibold">{p.name}</p>
-                      <p className="text-foreground">{p.value} <span className="text-muted-foreground">({pct}%)</span></p>
-                    </div>
-                  )
-                }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-          <div className="flex gap-4 text-xs mt-1">
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#a855f7] inline-block" />Open {openRate}%</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#f97316] inline-block" />Not opened</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#22c55e] inline-block" />Bounced {bounceRate}%</span>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="rounded-lg bg-muted/50 px-2 py-2.5 text-center">
+            <p className="text-lg font-bold tabular-nums">{sent.toLocaleString()}</p>
+            <p className="text-[11px] text-muted-foreground">Sent</p>
+          </div>
+          <div className="rounded-lg bg-muted/50 px-2 py-2.5 text-center">
+            <p className="text-lg font-bold text-purple-500 tabular-nums">{openRate}%</p>
+            <p className="text-[11px] text-muted-foreground">Open rate</p>
+          </div>
+          <div className="rounded-lg bg-muted/50 px-2 py-2.5 text-center">
+            <p className="text-lg font-bold tabular-nums">{bounceRate}%</p>
+            <p className="text-[11px] text-muted-foreground">Bounce rate</p>
           </div>
         </div>
       )}

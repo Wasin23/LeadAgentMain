@@ -47,33 +47,20 @@ export function TeamCollaboration({ agents = [] }: TeamCollaborationProps) {
   const router = useRouter()
 
   return (
-    <Card
-      className="p-6 transition-all duration-500 hover:shadow-xl animate-slide-in-up"
-      style={{ animationDelay: "600ms" }}
-    >
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-foreground">Agent Activity</h2>
-        <button
-          onClick={() => router.push("/operations")}
-          className="text-xs text-primary hover:underline transition-colors"
-        >
-          View operations →
-        </button>
+    <Card className="p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-semibold text-foreground">Agent Activity</h2>
+        <button onClick={() => router.push("/operations")} className="text-xs text-primary hover:underline">View operations →</button>
       </div>
 
       {agents.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-10 gap-3 text-muted-foreground">
-          <Bot className="w-8 h-8 text-muted-foreground/40" />
-          <p className="text-sm">No agents configured</p>
-          <button
-            onClick={() => router.push("/agents")}
-            className="text-xs text-primary hover:underline"
-          >
-            Set up an agent →
-          </button>
+        <div className="flex flex-col items-center justify-center py-5 gap-2 text-muted-foreground">
+          <Bot className="w-6 h-6 text-muted-foreground/40" />
+          <p className="text-xs">No agents configured</p>
+          <button onClick={() => router.push("/agents")} className="text-xs text-primary hover:underline">Set up an agent →</button>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-1">
           {agents.map((agent, index) => {
             const avatarFile = PERSONALITY_AVATAR[agent.personalityType ?? "hunter"] ?? "Hunter"
             const initials = agent.name
@@ -87,11 +74,10 @@ export function TeamCollaboration({ agents = [] }: TeamCollaborationProps) {
               <button
                 key={agent.agentId}
                 onClick={() => router.push("/operations")}
-                className="w-full flex items-center gap-4 p-3 rounded-lg hover:bg-secondary transition-all duration-300 cursor-pointer group text-left"
-                style={{ animationDelay: `${650 + index * 80}ms` }}
+                className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-secondary transition-colors cursor-pointer group text-left"
               >
                 {/* Avatar */}
-                <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-primary/20 group-hover:ring-primary/50 transition-all duration-300 group-hover:scale-105 bg-muted flex items-center justify-center">
+                <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 bg-muted flex items-center justify-center">
                   <img
                     src={`/avatars/${avatarFile}.png`}
                     alt={agent.name}
@@ -99,15 +85,15 @@ export function TeamCollaboration({ agents = [] }: TeamCollaborationProps) {
                     onError={(e) => {
                       const t = e.target as HTMLImageElement
                       t.style.display = "none"
-                      t.parentElement!.innerHTML = `<span class="text-xs font-bold text-primary">${initials}</span>`
+                      t.parentElement!.innerHTML = `<span class="text-[10px] font-bold text-primary">${initials}</span>`
                     }}
                   />
                 </div>
 
                 {/* Name + activity */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-foreground text-sm truncate">{agent.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">
+                  <p className="font-medium text-foreground text-xs truncate">{agent.name}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">
                     {agent.status === "running" && agent.currentActivity
                       ? agent.currentActivity
                       : agent.status === "running"
@@ -117,11 +103,9 @@ export function TeamCollaboration({ agents = [] }: TeamCollaborationProps) {
                 </div>
 
                 {/* Status pill */}
-                <span
-                  className={`${statusBadge(agent.status)} text-xs px-3 py-1.5 rounded-full font-medium transition-all duration-300 group-hover:scale-105 whitespace-nowrap flex-shrink-0`}
-                >
+                <span className={`${statusBadge(agent.status)} text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap flex-shrink-0`}>
                   {agent.status === "running" && (
-                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5 animate-pulse align-middle" />
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1 animate-pulse align-middle" />
                   )}
                   {statusLabel(agent.status)}
                 </span>
