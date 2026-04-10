@@ -534,7 +534,7 @@ function BillingTabInner() {
       )}
 
       {/* ── Main two-column layout ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
         {/* ── LEFT COLUMN ── */}
         <div className="lg:col-span-2 space-y-6">
