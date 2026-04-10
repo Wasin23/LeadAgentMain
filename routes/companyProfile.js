@@ -636,8 +636,13 @@ router.delete('/', async (req, res) => {
     const awsManager = new AWSManager();
     
     console.log(`[COMPANY PROFILE] Resetting ALL account data for user ${userId}`);
-    console.log('[COMPANY PROFILE] Step 1: Getting user settings...');
+    console.log('[COMPANY PROFILE] Step 1: Getting user record + settings...');
     
+    // Get user record first — activeAgents is the authoritative agent list
+    const userRecord = await awsManager.getUserById(userId);
+    const agentIds = (userRecord?.activeAgents || []).map(a => a.agentId).filter(Boolean);
+    console.log(`[COMPANY PROFILE] Found ${agentIds.length} agents to wipe:`, agentIds);
+
     // Get user settings
     const userSettings = await awsManager.getUserSettings(userId);
     console.log('[COMPANY PROFILE] Step 2: User settings retrieved:', !!userSettings);
@@ -647,18 +652,8 @@ router.delete('/', async (req, res) => {
       // Clear company profile
       delete userSettings.companyProfile;
       delete userSettings.recommendedAgentPreset;
-      
-      // Clear agents
-      if (userSettings.agents) {
-        userSettings.agents = [];
-      }
-      
-      // Clear email queue data
-      if (userSettings.emailQueue) {
-        userSettings.emailQueue = [];
-      }
-      
-      // Clear analytics and campaign data
+      delete userSettings.agents;
+      delete userSettings.emailQueue;
       delete userSettings.lastSyncTime;
       delete userSettings.analytics;
       delete userSettings.campaigns;
@@ -670,48 +665,49 @@ router.delete('/', async (req, res) => {
       // - userSettings.paymentMethod
       
       console.log('[COMPANY PROFILE] Step 4: Saving updated settings...');
-      // Save updated (cleared) settings
       await awsManager.saveUserSettings(userId, userSettings);
       
       console.log('[COMPANY PROFILE] Step 5: Updating user record...');
-      // Clear activeAgents from the user record (this is where agents are actually stored!)
       await awsManager.updateUser(userId, { 
         activeAgents: [],
-        hasCompletedOnboarding: false 
+        hasCompletedOnboarding: false,
+        auditorState: null,
       });
       
-      console.log('[COMPANY PROFILE] Step 6: Clearing AWS database tables...');
-      console.log('[COMPANY PROFILE] Step 6: Clearing AWS database tables...');
-      // Clear all AWS database tables for this user (except billing)
-      console.log(`[COMPANY PROFILE] Clearing AWS database tables for user ${userId}...`);
-      
+      console.log('[COMPANY PROFILE] Step 6: Clearing all DynamoDB tables...');
       try {
-        // Clear contacted leads database
+        // --- contacted leads ---
         const contactsResult = await awsManager.clearContactedLeads(userId);
         console.log(`[COMPANY PROFILE] Cleared ${contactsResult.deleted || 0} contacted leads`);
         
-        // Clear issues and alerts
+        // --- issues / alerts ---
         const issuesResult = await awsManager.clearAllIssues(userId);
         console.log(`[COMPANY PROFILE] Cleared ${issuesResult.deleted || 0} issues`);
         
-        // Clear cycle logs
+        // --- cycle logs ---
         const cyclesResult = await awsManager.clearAllCycleLogs(userId);
         console.log(`[COMPANY PROFILE] Cleared ${cyclesResult.deleted || 0} cycle logs`);
         
-        // Clear agent settings for all agents
-        if (userSettings.agents) {
-          for (const agent of userSettings.agents) {
-            if (agent.agentId) {
-              await awsManager.deleteAgentSettings(userId, agent.agentId);
-              await awsManager.deleteAgentState(userId, agent.agentId);
-              await awsManager.deleteSearchHistory(userId, agent.agentId);
-              await awsManager.deleteCycleLogs(userId, agent.agentId);
-            }
-          }
-          console.log(`[COMPANY PROFILE] Cleared agent-specific data for ${userSettings.agents.length} agents`);
+        // --- CRM contacts ---
+        await awsManager.clearCRMContacts(userId);
+        console.log('[COMPANY PROFILE] Cleared CRM contacts');
+
+        // --- bandit stats ---
+        await awsManager.clearBanditStats(userId);
+        console.log('[COMPANY PROFILE] Cleared lead source bandit stats');
+
+        // --- per-agent tables (agent settings, state, search history, cycle logs) ---
+        for (const agentId of agentIds) {
+          await Promise.allSettled([
+            awsManager.deleteAgentSettings(userId, agentId),
+            awsManager.deleteAgentState(userId, agentId),
+            awsManager.deleteSearchHistory(userId, agentId),
+            awsManager.deleteCycleLogs(userId, agentId),
+          ]);
         }
+        console.log(`[COMPANY PROFILE] Cleared per-agent data for ${agentIds.length} agents`);
         
-        // Clear email tracking events from DynamoDB
+        // --- email tracking events ---
         const emailTrackingEvents = await awsManager.getEmailTrackingByUser(userId);
         if (emailTrackingEvents && emailTrackingEvents.length > 0) {
           for (const event of emailTrackingEvents) {
@@ -719,10 +715,20 @@ router.delete('/', async (req, res) => {
           }
           console.log(`[COMPANY PROFILE] Cleared ${emailTrackingEvents.length} email tracking events`);
         }
+
+        // --- Zilliz lead memory (vector DB) ---
+        try {
+          const { ZillizLeadMemory } = await import('../utils/zillizLeadMemory.js');
+          const leadMemory = new ZillizLeadMemory();
+          await leadMemory.resetUserMemory(userId);
+          console.log('[COMPANY PROFILE] Cleared Zilliz lead memory');
+        } catch (zillizError) {
+          console.error('[COMPANY PROFILE] Zilliz clear failed (non-fatal):', zillizError.message);
+        }
         
       } catch (dbError) {
-        console.error('[COMPANY PROFILE] Error clearing AWS database tables:', dbError);
-        // Continue execution - don't fail the whole reset if database cleanup has issues
+        console.error('[COMPANY PROFILE] Error clearing database tables:', dbError);
+        // Continue — don't fail the whole reset if cleanup has issues
       }
       
       console.log('[COMPANY PROFILE] Step 7: Clearing email queue files...');

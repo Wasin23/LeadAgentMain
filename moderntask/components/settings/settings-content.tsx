@@ -148,6 +148,9 @@ export function SettingsContent() {
   const [pwSaving, setPwSaving] = useState(false)
   const [pwError, setPwError] = useState<string | null>(null)
   const [forgotSent, setForgotSent] = useState(false)
+  const [showResetModal, setShowResetModal] = useState(false)
+  const [resetConfirmText, setResetConfirmText] = useState('')
+  const [resetting, setResetting] = useState(false)
 
   // ── Notification prefs ────────────────────────────────────────────────────
   const [notifPrefs, setNotifPrefs] = useState({
@@ -773,24 +776,60 @@ export function SettingsContent() {
             <Card className="p-6 border-destructive/40">
               <h3 className="font-semibold text-lg text-destructive mb-2">Danger Zone</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Reset all account data and restart onboarding. Deletes all agents, emails, analytics, and company profile.{" "}
+                Reset all account data and restart onboarding. Deletes all agents, emails, leads, analytics, CRM contacts, and company profile.{" "}
                 <strong>This action is irreversible.</strong>
               </p>
-              <Button variant="destructive" onClick={async () => {
-                if (!confirm("Are you sure? This will delete ALL data. This cannot be undone.")) return
-                try {
-                  await api.delete("/api/company-profile")
-                  toast.success("Account reset. Redirecting to sign in...")
-                  localStorage.clear()
-                  sessionStorage.clear()
-                  setTimeout(() => { window.location.href = "/signin" }, 1500)
-                } catch (e: any) {
-                  toast.error(e.response?.data?.error || "Failed to reset account")
-                }
-              }}>
+              <Button variant="destructive" onClick={() => { setResetConfirmText(''); setShowResetModal(true) }}>
                 Reset Account Data
               </Button>
             </Card>
+
+            {/* Reset confirmation modal */}
+            {showResetModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                <div className="bg-background border border-destructive/40 rounded-xl shadow-2xl p-6 w-full max-w-md mx-4">
+                  <h3 className="font-bold text-lg text-destructive mb-1">Reset Account Data</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    This will permanently delete all agents, emails, leads, analytics, CRM contacts, memory, and company profile. Billing data is preserved.
+                  </p>
+                  <p className="text-sm font-medium mb-2">
+                    Type <span className="font-mono text-destructive">reset account</span> to confirm:
+                  </p>
+                  <Input
+                    value={resetConfirmText}
+                    onChange={e => setResetConfirmText(e.target.value)}
+                    placeholder="reset account"
+                    className="mb-4 border-destructive/40 focus-visible:ring-destructive"
+                    autoFocus
+                    onKeyDown={async e => { if (e.key === 'Enter' && resetConfirmText === 'reset account') { /* handled by button */ } }}
+                  />
+                  <div className="flex gap-3 justify-end">
+                    <Button variant="outline" onClick={() => setShowResetModal(false)} disabled={resetting}>
+                      Cancel
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      disabled={resetConfirmText !== 'reset account' || resetting}
+                      onClick={async () => {
+                        setResetting(true)
+                        try {
+                          await api.delete('/api/company-profile')
+                          toast.success('Account reset. Redirecting to sign in...')
+                          localStorage.clear()
+                          sessionStorage.clear()
+                          setTimeout(() => { window.location.href = '/signin' }, 1500)
+                        } catch (e: any) {
+                          toast.error(e.response?.data?.error || 'Failed to reset account')
+                          setResetting(false)
+                        }
+                      }}
+                    >
+                      {resetting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Resetting...</> : 'Yes, delete everything'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         )}
 

@@ -3766,6 +3766,23 @@ class AWSManager {
    * Each item must have: { userId, sk, keyword, sourceId, alpha, beta }.
    * Uses BatchWrite in chunks of 25 (DynamoDB limit).
    */
+  async clearBanditStats(userId) {
+    const rows = await this.getBanditStats(userId);
+    if (!rows.length) return { deleted: 0 };
+    const chunks = [];
+    for (let i = 0; i < rows.length; i += 25) chunks.push(rows.slice(i, i + 25));
+    for (const chunk of chunks) {
+      await this.dynamodb.send(new BatchWriteCommand({
+        RequestItems: {
+          [this.tables.leadSourceBandit]: chunk.map(r => ({
+            DeleteRequest: { Key: { userId: r.userId, sk: r.sk } }
+          }))
+        }
+      }));
+    }
+    return { deleted: rows.length };
+  }
+
   async putBanditStats(rows) {
     if (!rows || rows.length === 0) return;
 
