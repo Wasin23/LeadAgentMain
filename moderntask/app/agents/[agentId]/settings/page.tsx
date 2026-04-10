@@ -994,6 +994,22 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
             </div>
           </Section>
 
+          {/* Writing Rules */}
+          <Section title="Writing Rules" description="Extra instructions injected into every email the agent writes">
+            <div className="space-y-2 mt-4">
+              <Textarea
+                value={settings.emailBuilder.customPrompt}
+                onChange={e => updateEmail('customPrompt', e.target.value)}
+                rows={5}
+                className="resize-y bg-background text-sm"
+                placeholder="e.g. Always open with a specific observation about the company. Keep it under 100 words. Never use the word 'synergy'. End with a single low-friction ask."
+                maxLength={500}
+              />
+              <p className="text-right text-xs text-muted-foreground">{settings.emailBuilder.customPrompt.length}/500</p>
+              <p className="text-xs text-muted-foreground">These rules are appended to the AI prompt on every email build. You can also save rebuild instructions here from the email queue.</p>
+            </div>
+          </Section>
+
           {/* Email Templates */}
           <Section
             title="Email Templates"

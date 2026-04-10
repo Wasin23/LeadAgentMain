@@ -694,6 +694,7 @@ function RebuildModal({ email, onSave, onClose }: {
 }) {
   const fields = ef(email)
   const [instruction, setInstruction] = useState('')
+  const [saveAsRule, setSaveAsRule] = useState(false)
   const [rebuilding, setRebuilding] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const wordCount = instruction.trim() ? instruction.trim().split(/\s+/).length : 0
@@ -710,6 +711,15 @@ function RebuildModal({ email, onSave, onClose }: {
         currentBody: fields.body,
         aiReport: email.aiReport || null,
       })
+      if (saveAsRule && email.agentId) {
+        try {
+          const settingsRes = await api.get(`/api/lead-agent/settings?agentId=${email.agentId}`)
+          const s = settingsRes.data.settings || {}
+          const existing = s.customPrompt || s.emailBuilder?.customPrompt || ''
+          const merged = existing ? `${existing}\n${instruction.trim()}` : instruction.trim()
+          await api.post('/api/lead-agent/settings', { ...s, agentId: email.agentId, customPrompt: merged, emailBuilder: { ...(s.emailBuilder || {}), customPrompt: merged } })
+        } catch { /* non-fatal */ }
+      }
       await onSave(email.id, fields.to, fields.cc, fields.bcc, res.data.subject, res.data.body, email.agentId)
       onClose()
     } catch {
@@ -745,6 +755,10 @@ function RebuildModal({ email, onSave, onClose }: {
           />
           <p className={cn('text-[10px] text-right', wordCount > 30 ? 'text-destructive' : 'text-muted-foreground')}>{wordCount}/30 words</p>
         </div>
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <input type="checkbox" checked={saveAsRule} onChange={e => setSaveAsRule(e.target.checked)} className="rounded border-input" />
+          <span className="text-xs text-muted-foreground">Save as writing rule for this agent</span>
+        </label>
         {error && <p className="text-xs text-destructive">{error}</p>}
         <div className="flex justify-end gap-2">
           <Button size="sm" variant="outline" onClick={onClose} disabled={rebuilding}>Cancel</Button>

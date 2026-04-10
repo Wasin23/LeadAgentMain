@@ -4385,7 +4385,88 @@ Format as:
       const compactResearchFacts = this.summarizeResearchForEmail(researchData, companyName, 3);
       const companyProofPoints = this.summarizeCompanyProofPoints(this.memory.platformMetrics?.raw, 2);
       const ragFacts = (this.memory.industryFactsFromRAG || []).slice(0, 2).map(fact => this.truncateForPrompt(fact, 140));
-      
+
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // 📄 TEMPLATE MODE: Skip AI generation, fill merge tags
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      const agentTemplates = emailSettings.emailBuilder?.templates || emailSettings.templates || [];
+      if (agentTemplates.length > 0) {
+        // Pick template — rotate by a hash of the lead email so it's stable per lead
+        const hashIndex = leadData.email
+          ? leadData.email.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % agentTemplates.length
+          : Math.floor(Math.random() * agentTemplates.length);
+        const tpl = agentTemplates[hashIndex];
+
+        // Resolve merge tag values from available data
+        const tplSignatureName = emailSettings.emailBuilder?.useCustomSignature
+          ? (emailSettings.emailBuilder?.signatureName || 'Sales Representative')
+          : (emailSettings.companyBranding?.agentName || 'AI Assistant');
+
+        const painPoint = (() => {
+          const raw = qualification?.buyerMotivation || topEmailFacts[0] || compactResearchFacts[0] || '';
+          // Trim to a short phrase (first sentence, max 120 chars)
+          const sentence = raw.split('.')[0].trim();
+          return sentence.length > 120 ? sentence.substring(0, 120) + '…' : sentence;
+        })();
+
+        const recentNews = (() => {
+          const raw = topEmailFacts[0] || compactResearchFacts[0] || '';
+          const sentence = raw.split('.')[0].trim();
+          return sentence.length > 120 ? sentence.substring(0, 120) + '…' : sentence;
+        })();
+
+        const fillTags = (text) => (text || '')
+          .replace(/\{\{firstName\}\}/g, leadData.first_name || '')
+          .replace(/\{\{lastName\}\}/g, leadData.last_name || '')
+          .replace(/\{\{company\}\}/g, companyName || '')
+          .replace(/\{\{role\}\}/g, contactTitle || '')
+          .replace(/\{\{painPoint\}\}/g, painPoint)
+          .replace(/\{\{recentNews\}\}/g, recentNews)
+          .replace(/\{\{senderName\}\}/g, tplSignatureName);
+
+        let tplBody = fillTags(tpl.body);
+        let tplSubject = tpl.subject ? fillTags(tpl.subject) : null;
+
+        // If no subject on template, generate a cheap one
+        if (!tplSubject) {
+          try {
+            const subRes = await this.openai.chat.completions.create({
+              model: 'gpt-4o-mini',
+              messages: [{ role: 'user', content: `Write a subject line (max 8 words, no quotes) for this cold email:\n\n${tplBody}` }],
+              temperature: 0.6,
+              max_tokens: 20,
+            });
+            tplSubject = subRes.choices[0].message.content.trim().replace(/^["']|["']$/g, '');
+          } catch {
+            tplSubject = `Quick question for ${leadData.first_name || companyName}`;
+          }
+        }
+
+        // Append compliance footer
+        const { generateUnsubscribeToken } = await import('../routes/unsubscribe.js');
+        const unsubscribeToken = generateUnsubscribeToken(leadData.email);
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const unsubscribeUrl = `${frontendUrl}/unsubscribe?token=${unsubscribeToken}`;
+        const companyWebsite = emailSettings.companyBranding?.companyWebsite || '';
+        const footerParts = [emailSettings.companyBranding?.companyName || 'Our Company'];
+        if (companyWebsite) {
+          const displayHost = companyWebsite.replace(/^https?:\/\//, '').replace(/\/$/, '');
+          footerParts.push(`<a href="${companyWebsite}" style="color:#6b7280;text-decoration:none;">${displayHost}</a>`);
+        }
+        const tplFooter = `\n\n${footerParts.join(' | ')}\n<a href="${unsubscribeUrl}">Stop emails</a>`;
+
+        console.log(`📄 [TEMPLATE MODE] Using template "${tpl.name}" for ${leadData.first_name} ${leadData.last_name} @ ${companyName}`);
+        return {
+          success: true,
+          email: tplBody + tplFooter,
+          subject: tplSubject,
+          confidenceReport: `Template mode — skipped AI qualification analysis.`,
+          confidenceLevel: 'medium',
+          salesAngle: null,
+          templateUsed: tpl.name,
+        };
+      }
+
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       // 🧠 SALES STRATEGIST: Forced pre-write reasoning chain
       // Answers 6 questions before a single word of email is written.

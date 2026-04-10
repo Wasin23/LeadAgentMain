@@ -31,6 +31,8 @@ interface Preset {
   signatureName?: string
   signatureTitle?: string
   specialInstructions?: string
+  writingRules?: string
+  templates?: Array<{ id: string; name: string; subject: string; body: string }>
   createdAt?: string
   updatedAt?: string
 }
@@ -53,6 +55,8 @@ const EMPTY_FORM: Omit<Preset, 'id' | 'createdAt' | 'updatedAt'> = {
   signatureName: '',
   signatureTitle: '',
   specialInstructions: '',
+  writingRules: '',
+  templates: [],
 }
 
 // ── tag input helper ─────────────────────────────────────────────────────────
@@ -275,6 +279,17 @@ function PresetFormModal({
               placeholder="Any extra guidance for the agent when using this preset…"
               value={form.specialInstructions ?? ''}
               onChange={e => set('specialInstructions', e.target.value)}
+            />
+          </Field>
+
+          {/* writing rules */}
+          <Field label="Writing Rules">
+            <textarea
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring resize-none font-mono"
+              rows={3}
+              placeholder="e.g. Keep emails under 100 words. Never use 'synergy'. End with a single low-friction ask."
+              value={form.writingRules ?? ''}
+              onChange={e => set('writingRules', e.target.value)}
             />
           </Field>
 

@@ -1155,7 +1155,14 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
         signatureTitle: preset.signatureTitle || agentSettings.emailBuilder?.signatureTitle || '',
         useGmail: useGmail !== undefined ? useGmail : (userSettings?.preferences?.defaultUseGmail || agentSettings.emailBuilder?.useGmail || false),
         useOutlook: useOutlook !== undefined ? useOutlook : (userSettings?.preferences?.defaultUseOutlook || agentSettings.emailBuilder?.useOutlook || false),
-        templates: preset.templates || agentSettings.emailBuilder?.templates || []
+        templates: preset.templates || agentSettings.emailBuilder?.templates || [],
+        // Merge preset writingRules into customPrompt so the agent reads it every build
+        customPrompt: (() => {
+          const base = agentSettings.emailBuilder?.customPrompt || '';
+          const rules = preset.writingRules || '';
+          if (rules && base) return `${base}\n${rules}`;
+          return rules || base;
+        })(),
       };
       
       console.log(`[AUTH] 🔍 Gmail Setting Debug:`, {
