@@ -4712,17 +4712,23 @@ EMAIL LENGTH: 6-7 sentences`;
     - CONSULTANT: strategic peer. The opener sounds like something a trusted advisor in the room would say — slightly knowing, a reframe of how they see their own situation.
     - NETWORKER: socially aware. Reference a pattern seen across companies or people, making the reader feel part of a conversation already happening.
 
+    HUMAN OPENER PATTERNS — weave one of these into the opening sentence to make it feel unscripted. Adapt freely, do not copy verbatim. These are fabricated moments — that is intentional and fine:
+    - HUNTER: "Blunt question —", "Was debating whether to send this, but —", "Not a typical pitch, so bear with me —", "Was just arguing about [topic] and your name came up"
+    - RELATIONSHIP: "Randomly landed on [company] and spent longer than I should have reading about what you're doing", "Was telling my colleague about [specific thing] this morning", "Not sure what made me reach out today but —"
+    - ANALYST: "Was doing some research on [industry] and kept running into [company]", "Something about your setup stood out when I was looking into [topic]", "Was mapping out [trend] and your name kept coming up"
+    - CONSULTANT: "Was in a conversation earlier about exactly this", "A client brought up [topic] and honestly [company] was the first name I thought of", "Was reviewing some notes from last week and something clicked"
+    - NETWORKER: "A few people in [industry] have mentioned [topic] lately and I wanted to get your take", "Keep hearing [company] come up in conversations about [space]", "Was just on a call about [topic] and your name came up"
+
     Rules:
     - Write exactly 2 short paragraphs plus 1 CTA line. Under 120 words.
-    - Open with a take — an opinion, a provocation, a genuine curiosity. Not a fact. Not a diagnosis. The writer has looked at this company and formed a position. Lead with it.
+    - Paragraph 1: open with the human moment + your take on this specific company or person. Not a diagnosis. Not a market overview.
+    - Paragraph 2: one thing you do and why it is directly relevant to that specific take. One capability, no feature list.
     - One sentence must betray that the writer is human — a hedge, a parenthetical, a moment of self-awareness. Never sound certain of everything.
     - Vary sentence length deliberately. Mix short punchy sentences with longer ones. Never three consecutive sentences of similar length.
-    - Paragraph 1: the take — something specific to this person or company the writer has an opinion about.
-    - Paragraph 2: one thing you do and why it is directly relevant to that specific take. One capability, no feature list.
     - CTA: low friction, specific to the problem or timing. Not a generic demo ask.
     - No setup-conflict pivot. No "X is great, but Y is a problem" framing. Contrast lives inside sentences, not between them.
     - Banned words: mismatch, creates drag, operationally, streamline, cutting-edge, leverage, robust, revolutionize, game-changer, scalable.
-    - Use only facts provided. Never invent numbers, customers, case studies, or results.
+    - Use only facts provided for the company/solution claims. Never invent numbers, customers, case studies, or results.
     - No fluff, no bullets, no exclamation marks, no em dash.
     - If the opener could work for any company, rewrite it.
 
