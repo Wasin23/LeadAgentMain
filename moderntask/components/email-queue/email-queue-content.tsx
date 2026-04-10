@@ -694,10 +694,43 @@ function RebuildModal({ email, onSave, onClose }: {
 }) {
   const fields = ef(email)
   const [instruction, setInstruction] = useState('')
-  const [saveAsRule, setSaveAsRule] = useState(false)
   const [rebuilding, setRebuilding] = useState(false)
+  const [savingRule, setSavingRule] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [pendingSave, setPendingSave] = useState<{ subject: string; body: string } | null>(null)
   const wordCount = instruction.trim() ? instruction.trim().split(/\s+/).length : 0
+
+  const saveRule = async () => {
+    if (!email.agentId) return
+    setSavingRule(true)
+    try {
+      const settingsRes = await api.get(`/api/lead-agent/settings?agentId=${email.agentId}`)
+      const s = settingsRes.data.settings || {}
+      const e = (s.emailSettings || s.emailBuilder || s) as Record<string, any>
+      const existing = e.customPrompt || e.emailBuilder?.customPrompt || ''
+      const merged = existing ? `${existing}\n${instruction.trim()}` : instruction.trim()
+      await api.post('/api/lead-agent/settings', {
+        ...s,
+        agentId: email.agentId,
+        emailBuilder: { ...(s.emailBuilder || {}), customPrompt: merged },
+      })
+    } catch (err) {
+      console.error('[REBUILD] Failed to save writing rule:', err)
+    } finally {
+      setSavingRule(false)
+    }
+    if (pendingSave) {
+      await onSave(email.id, fields.to, fields.cc, fields.bcc, pendingSave.subject, pendingSave.body, email.agentId)
+    }
+    onClose()
+  }
+
+  const skipRule = async () => {
+    if (pendingSave) {
+      await onSave(email.id, fields.to, fields.cc, fields.bcc, pendingSave.subject, pendingSave.body, email.agentId)
+    }
+    onClose()
+  }
 
   const rebuild = async () => {
     setRebuilding(true)
@@ -711,31 +744,33 @@ function RebuildModal({ email, onSave, onClose }: {
         currentBody: fields.body,
         aiReport: email.aiReport || null,
       })
-      if (saveAsRule && email.agentId) {
-        try {
-          const settingsRes = await api.get(`/api/lead-agent/settings?agentId=${email.agentId}`)
-          const s = settingsRes.data.settings || {}
-          // Match the same read path the settings page uses
-          const e = (s.emailSettings || s.emailBuilder || s) as Record<string, any>
-          const existing = e.customPrompt || e.emailBuilder?.customPrompt || ''
-          const merged = existing ? `${existing}\n${instruction.trim()}` : instruction.trim()
-          await api.post('/api/lead-agent/settings', {
-            ...s,
-            agentId: email.agentId,
-            emailBuilder: { ...(s.emailBuilder || {}), customPrompt: merged },
-          })
-        } catch (err) {
-          console.error('[REBUILD] Failed to save writing rule:', err)
-          setError('Rebuild done, but failed to save writing rule.')
-        }
-      }
-      await onSave(email.id, fields.to, fields.cc, fields.bcc, res.data.subject, res.data.body, email.agentId)
-      onClose()
+      setPendingSave({ subject: res.data.subject, body: res.data.body })
     } catch {
       setError('Rebuild failed — try again.')
     } finally {
       setRebuilding(false)
     }
+  }
+
+  // ── post-rebuild: save prompt? ───────────────────────────────────────────
+  if (pendingSave) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <Card className="w-full max-w-sm p-5 space-y-4">
+          <div>
+            <h3 className="text-sm font-semibold">Save to agent settings?</h3>
+            <p className="text-xs text-muted-foreground mt-1">Add <span className="italic">&ldquo;{instruction.trim()}&rdquo;</span> to this agent&apos;s Writing Rules so future emails follow the same guidance.</p>
+          </div>
+          {error && <p className="text-xs text-destructive">{error}</p>}
+          <div className="flex justify-end gap-2">
+            <Button size="sm" variant="outline" onClick={skipRule} disabled={savingRule}>Skip</Button>
+            <Button size="sm" onClick={saveRule} disabled={savingRule}>
+              {savingRule ? <><Loader2 className="w-3 h-3 mr-1.5 animate-spin" />Saving…</> : 'Yes, save it'}
+            </Button>
+          </div>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -764,10 +799,6 @@ function RebuildModal({ email, onSave, onClose }: {
           />
           <p className={cn('text-[10px] text-right', wordCount > 30 ? 'text-destructive' : 'text-muted-foreground')}>{wordCount}/30 words</p>
         </div>
-        <label className="flex items-center gap-2 cursor-pointer select-none">
-          <input type="checkbox" checked={saveAsRule} onChange={e => setSaveAsRule(e.target.checked)} className="rounded border-input" />
-          <span className="text-xs text-muted-foreground">Save as writing rule for this agent</span>
-        </label>
         {error && <p className="text-xs text-destructive">{error}</p>}
         <div className="flex justify-end gap-2">
           <Button size="sm" variant="outline" onClick={onClose} disabled={rebuilding}>Cancel</Button>
