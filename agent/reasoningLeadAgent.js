@@ -4700,9 +4700,12 @@ EMAIL LENGTH: 6-7 sentences`;
         : 'No verified industry stats.';
 
       // ── SYSTEM PROMPT (rules — Claude treats these as inviolable constraints) ──────
+      const personalityType = (personality?.type || 'hunter').toUpperCase().replace('-', ' ').replace('RELATIONSHIP BUILDER', 'RELATIONSHIP');
       const claudeSystemPrompt = `You write B2B cold emails that sound like a real person sent them.
 
-    PERSONALITY DISPOSITIONS — the opening take must reflect this voice:
+    YOUR PERSONALITY: ${personalityType}
+
+    PERSONALITY DISPOSITIONS — apply the one matching YOUR PERSONALITY above:
     - HUNTER: blunt, willing to challenge. Lead with a provocation or direct observation implying the reader has a problem they haven't solved. No softening.
     - RELATIONSHIP: warm and perceptive. Lead with genuine curiosity or a specific compliment that earns the right to continue. The edge is in the specificity, not the tone.
     - ANALYST: inference-driven. Form a take from a specific data point or pattern in the research. The opinion sounds like a logical conclusion, not a feeling.
