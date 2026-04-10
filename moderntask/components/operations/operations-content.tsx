@@ -393,68 +393,59 @@ export function OperationsContent() {
   return (
     <div className="flex gap-4 h-[calc(100vh-160px)]">
 
-      {/* ── LEFT: Agent sidebar ──────────────────────────────────────────── */}
-      <div className="w-56 flex-shrink-0 flex flex-col gap-3">
-
-        {/* Start / Stop All */}
-        <Button
-          onClick={toggleAll}
-          disabled={agents.length === 0}
-          variant={allRunning ? 'destructive' : 'default'}
-          className="w-full h-9 text-sm font-semibold"
-        >
-          {allRunning
-            ? <><Square className="w-3.5 h-3.5 mr-1.5" />Stop All</>
-            : <><Play  className="w-3.5 h-3.5 mr-1.5" />Start All</>}
-        </Button>
-
-        {/* Agent list card */}
-        <Card className="flex-1 overflow-hidden">
-          <CardHeader className="px-3 py-2.5 border-b">
-            <div className="flex items-center justify-between">
+      {/* ── LEFT (merged): Agent panel ──────────────────────────────────── */}
+      <div className="w-80 flex-shrink-0 flex flex-col">
+        <Card className="flex-1 overflow-hidden flex flex-col">
+          <CardHeader className="px-3 py-2.5 border-b flex-shrink-0">
+            <div className="flex items-center gap-2">
               <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Agents
               </CardTitle>
-              <div className="flex items-center gap-1.5">
-                <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
-                  {agents.length}
-                </Badge>
-                <button onClick={fetchAgents} className="text-muted-foreground hover:text-foreground transition-colors">
-                  <RefreshCw className="w-3 h-3" />
-                </button>
-              </div>
+              <Badge variant="secondary" className="text-[10px] h-4 px-1.5">{agents.length}</Badge>
+              <button onClick={fetchAgents} className="text-muted-foreground hover:text-foreground transition-colors">
+                <RefreshCw className="w-3 h-3" />
+              </button>
+              <Button
+                onClick={toggleAll}
+                disabled={agents.length === 0}
+                variant={allRunning ? 'destructive' : 'default'}
+                size="sm"
+                className="ml-auto h-7 text-xs px-3 gap-1"
+              >
+                {allRunning
+                  ? <><Square className="w-3 h-3" />Stop All</>
+                  : <><Play className="w-3 h-3" />Start All</>}
+              </Button>
             </div>
           </CardHeader>
 
-          <ScrollArea className="flex-1 h-[calc(100%-40px)]">
-            <div className="p-1.5 space-y-0.5">
-              {/* All agents filter */}
-              <button
-                onClick={() => setSelectedAgent('all')}
-                className={cn(
-                  'w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm transition-all duration-200',
-                  selectedAgent === 'all'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                )}
-              >
-                <Bot className="w-3.5 h-3.5 flex-shrink-0" />
-                <span className="flex-1 text-left truncate text-xs font-medium">All Agents</span>
-                <Badge variant="secondary" className="text-[9px] h-3.5 px-1">
-                  {runningAgents.length}
-                </Badge>
-              </button>
+          <div className="px-2 py-1.5 border-b flex-shrink-0">
+            <button
+              onClick={() => setSelectedAgent('all')}
+              className={cn(
+                'w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-all',
+                selectedAgent === 'all'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+              )}
+            >
+              <Bot className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="flex-1 text-left font-medium">All Agents</span>
+              <Badge variant="secondary" className="text-[9px] h-3.5 px-1">{runningAgents.length} on</Badge>
+            </button>
+          </div>
 
-              <Separator className="my-1" />
-
+          <ScrollArea className="flex-1">
+            <div className="p-1.5 space-y-1.5">
               {loading && (
-                <div className="flex justify-center py-4">
+                <div className="flex justify-center py-8">
                   <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
                 </div>
               )}
 
               {!loading && agents.length === 0 && (
-                <div className="text-center py-4">
+                <div className="text-center py-8">
+                  <Bot className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
                   <p className="text-xs text-muted-foreground">No agents yet</p>
                   <button
                     onClick={() => router.push('/agents')}
@@ -467,97 +458,204 @@ export function OperationsContent() {
                 const isRunning = agent.status === 'running' || agent.status === 'active'
                 const isToggling = toggling[agent.agentId]
                 const selected = selectedAgent === agent.agentId
+                const activity = agentActivities[agent.agentId]
+                const displayName = agent.name || agent.agentName || 'Agent'
+                const leadLimit = agent.settings?.targeting?.leadLimit ?? agent.settings?.geographicSettings?.leadLimit ?? 0
+                const concurrencyLevel = agent.settings?.concurrencyLevel ?? 1
+                const isSavingLeadLimit = !!savingInline[`${agent.agentId}-leadLimit`]
+                const isSavingConcurrency = !!savingInline[`${agent.agentId}-concurrency`]
 
                 return (
                   <div
                     key={agent.agentId}
                     className={cn(
-                      'flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all duration-200 group',
+                      'rounded-lg border p-2.5 transition-all cursor-pointer',
                       selected
-                        ? 'bg-primary/10 border border-primary/30'
-                        : 'hover:bg-secondary border border-transparent'
-                    )}
-                  >
-                    {/* Avatar */}
-                    <button
-                      onClick={() => setSelectedAgent(agent.agentId)}
-                      className="relative flex-shrink-0"
-                    >
-                      <img
-                        src={avatarUrl(agent)}
-                        alt={agent.name}
-                        className="w-7 h-7 rounded-full object-cover"
-                        style={{ border: isRunning ? '2px solid hsl(var(--primary))' : '2px solid hsl(var(--border))' }}
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                      />
-                      <span className={cn(
-                        'absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-background',
-                        isRunning ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/40'
-                      )} />
-                    </button>
-
-                    {/* Name + countdown */}
-                    <button
-                      onClick={() => setSelectedAgent(agent.agentId)}
-                      className="flex-1 min-w-0 text-left"
-                    >
-                      <span className={cn(
-                        'text-xs font-medium truncate block',
-                        selected ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'
-                      )}>
-                        {agent.name}
-                        {agent.isCrmMode && (
-                          <span className="ml-1.5 text-[9px] px-1 py-0 rounded bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 font-medium align-middle">Auditor</span>
-                        )}
-                      </span>
-                      {isRunning && agent.nextCycleTime && (
-                        <Countdown target={agent.nextCycleTime} />
-                      )}
-                    </button>
-
-                    {/* Start / Stop */}
-                    <button
-                      onClick={() => toggleAgent(agent)}
-                      disabled={isToggling}
-                      className={cn(
-                        'flex-shrink-0 p-1 rounded transition-all',
-                        isRunning
-                          ? 'text-destructive hover:bg-destructive/10'
-                          : 'text-primary hover:bg-primary/10'
-                      )}
-                    >
-                      {isToggling
-                        ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        ? 'bg-primary/10 border-primary/30'
                         : isRunning
-                          ? <Square className="w-3.5 h-3.5" />
-                          : <Play  className="w-3.5 h-3.5" />}
-                    </button>
+                          ? 'bg-primary/5 border-primary/20 hover:border-primary/40'
+                          : 'bg-secondary/30 border-border/50 hover:bg-secondary hover:border-border'
+                    )}
+                    onClick={() => setSelectedAgent(agent.agentId)}
+                  >
+                    {/* Row 1: avatar + name + controls */}
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <div className="relative flex-shrink-0">
+                        <img
+                          src={avatarUrl(agent)}
+                          alt={displayName}
+                          className="w-7 h-7 rounded-full object-cover border border-border"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                        />
+                        <span className={cn(
+                          'absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-background',
+                          isRunning ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/40'
+                        )} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs font-semibold text-foreground truncate block">
+                          {displayName}
+                          {agent.isCrmMode && (
+                            <span className="ml-1.5 text-[9px] px-1 py-0 rounded bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 font-medium align-middle">Auditor</span>
+                          )}
+                        </span>
+                        {isRunning && agent.nextCycleTime && <Countdown target={agent.nextCycleTime} />}
+                      </div>
+                      {agent.settings?.emailBuilder?.useGmail ? (
+                        <span title="Gmail sending" className="inline-flex items-center p-0.5">
+                          <svg className="w-3.5 h-3.5" viewBox="0 0 256 193" fill="none">
+                            <path d="M58.182 192.05V93.768L27.507 65.158L0 49.504v125.091c0 9.658 7.825 17.455 17.455 17.455h40.727Z" fill="#4285F4"/>
+                            <path d="M197.818 192.05h40.727c9.659 0 17.455-7.854 17.455-17.455V49.504l-31.274 17.278-27.506 28.61Z" fill="#34A853"/>
+                            <path d="M197.818 49.504V93.768l58.182-44.264V34.91c0-21.585-24.641-33.89-41.89-20.945Z" fill="#FBBC04"/>
+                            <path d="M58.182 93.768V49.504L128 105.23l69.818-55.726v44.264L128 149.494Z" fill="#EA4335"/>
+                            <path d="M0 34.91v14.594l58.182 44.264V49.504L40.727 37.072C23.478 24.019-.001 36.324 0 34.91Z" fill="#C5221F"/>
+                          </svg>
+                        </span>
+                      ) : agent.settings?.emailBuilder?.useOutlook ? (
+                        <span title="Outlook sending" className="inline-flex items-center p-0.5">
+                          <svg className="w-3.5 h-3.5" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                              <linearGradient id="og1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#0364B8"/><stop offset="100%" stopColor="#0078D4"/></linearGradient>
+                              <linearGradient id="og2" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stopColor="#28A8EA"/><stop offset="100%" stopColor="#0078D4"/></linearGradient>
+                            </defs>
+                            <path fill="url(#og1)" d="M16,128V16h144v112H16z"/>
+                            <path fill="url(#og2)" d="M160,128h96v112H160V128z"/>
+                            <path fill="#0078D4" d="M160,16h96v96h-96V16z"/>
+                            <path fill="#50D9FF" d="M16,144h144v96H16V144z"/>
+                            <circle fill="#FFF" cx="88" cy="88" r="40"/>
+                            <path fill="#0078D4" d="M88,108c-11,0-20-9-20-20s9-20,20-20s20,9,20,20S99,108,88,108z M88,76c-6.6,0-12,5.4-12,12s5.4,12,12,12s12-5.4,12-12S94.6,76,88,76z"/>
+                          </svg>
+                        </span>
+                      ) : (
+                        <span title="Meridian domain sending" className="inline-flex items-center p-0.5">
+                          <svg className="w-3.5 h-3.5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                          </svg>
+                        </span>
+                      )}
+                      <button
+                        onClick={e => { e.stopPropagation(); router.push(`/agents/${agent.agentId}/settings`) }}
+                        className="text-muted-foreground hover:text-foreground p-1 rounded transition-colors"
+                        title="Agent settings"
+                      >
+                        <Settings className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={e => { e.stopPropagation(); toggleAgent(agent) }}
+                        disabled={isToggling}
+                        className={cn(
+                          'p-1 rounded transition-all flex-shrink-0',
+                          isRunning ? 'text-destructive hover:bg-destructive/10' : 'text-primary hover:bg-primary/10'
+                        )}
+                      >
+                        {isToggling ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : isRunning ? <Square className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
 
-                    {/* Settings */}
-                    <button
-                      onClick={() => router.push(`/agents/${agent.agentId}/settings`)}
-                      className="flex-shrink-0 p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
-                      title="Agent settings"
-                    >
-                      <Settings className="w-3 h-3" />
-                    </button>
+                    {/* Row 2: stats + lead limit + concurrency */}
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-2 flex-1">
+                        <div className="flex items-center gap-0.5" title="Built">
+                          <Mail className="w-3 h-3 text-muted-foreground/60" />
+                          <span className="text-[10px] text-muted-foreground">{agent.emailStats?.built ?? 0}</span>
+                        </div>
+                        <div className="flex items-center gap-0.5" title="Queued">
+                          <Clock className="w-3 h-3 text-amber-500" />
+                          <span className="text-[10px] text-amber-500">{agent.emailStats?.queued ?? 0}</span>
+                        </div>
+                        <div className="flex items-center gap-0.5" title="Sent">
+                          <Send className="w-3 h-3 text-green-500" />
+                          <span className="text-[10px] text-green-500">{agent.emailStats?.sent ?? 0}</span>
+                        </div>
+                      </div>
+                      {editingLeadLimit === agent.agentId ? (
+                        <form
+                          className="flex items-center gap-1"
+                          onClick={e => e.stopPropagation()}
+                          onSubmit={async e => {
+                            e.preventDefault()
+                            const nextValue = Math.max(1, Math.min(200, Math.floor(leadLimitDrafts[agent.agentId] ?? leadLimit ?? 1)))
+                            await saveAgentInlineSetting(agent.agentId, { leadLimit: nextValue })
+                            setEditingLeadLimit(null)
+                          }}
+                        >
+                          <RefreshCw className={cn('w-2.5 h-2.5 text-primary', isSavingLeadLimit && 'animate-spin')} />
+                          <input
+                            type="number" min={1} max={200}
+                            value={leadLimitDrafts[agent.agentId] ?? leadLimit ?? 1}
+                            onChange={e => setLeadLimitDrafts(prev => ({ ...prev, [agent.agentId]: parseInt(e.target.value) || 1 }))}
+                            onClick={e => e.stopPropagation()}
+                            className="h-5 w-14 rounded border border-primary/30 bg-background px-1 text-[10px] text-foreground"
+                            autoFocus
+                          />
+                        </form>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={e => { e.stopPropagation(); setLeadLimitDrafts(prev => ({ ...prev, [agent.agentId]: leadLimit || 1 })); setEditingLeadLimit(agent.agentId); setEditingConcurrency(null) }}
+                          className="flex items-center gap-0.5 text-[10px] text-primary font-medium rounded px-1 py-0.5 hover:bg-primary/10"
+                          title="Edit lead limit"
+                        >
+                          <RefreshCw className="w-2.5 h-2.5" />{leadLimit}/cycle
+                        </button>
+                      )}
+                      {editingConcurrency === agent.agentId ? (
+                        <form
+                          className="flex items-center gap-1"
+                          onClick={e => e.stopPropagation()}
+                          onSubmit={async e => {
+                            e.preventDefault()
+                            const nextValue = Math.max(1, Math.min(maxConcurrency, Math.floor(concurrencyDrafts[agent.agentId] ?? concurrencyLevel ?? 1)))
+                            await saveAgentInlineSetting(agent.agentId, { concurrencyLevel: nextValue })
+                            setEditingConcurrency(null)
+                          }}
+                        >
+                          <Cpu className={cn('w-2.5 h-2.5 text-muted-foreground', isSavingConcurrency && 'animate-pulse')} />
+                          <input
+                            type="number" min={1} max={maxConcurrency}
+                            value={concurrencyDrafts[agent.agentId] ?? concurrencyLevel ?? 1}
+                            onChange={e => setConcurrencyDrafts(prev => ({ ...prev, [agent.agentId]: Math.min(maxConcurrency, parseInt(e.target.value) || 1) }))}
+                            onClick={e => e.stopPropagation()}
+                            className="h-5 w-10 rounded border border-border bg-background px-1 text-[10px] text-foreground"
+                            autoFocus
+                          />
+                        </form>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={e => { e.stopPropagation(); setConcurrencyDrafts(prev => ({ ...prev, [agent.agentId]: Math.min(maxConcurrency, concurrencyLevel || 1) })); setEditingConcurrency(agent.agentId); setEditingLeadLimit(null) }}
+                          className="flex items-center gap-0.5 text-[10px] text-muted-foreground rounded px-1 py-0.5 hover:bg-muted"
+                          title="Edit concurrency"
+                        >
+                          <Cpu className="w-2.5 h-2.5" />{concurrencyLevel}×
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Row 3: current activity */}
+                    {activity?.status && (
+                      <div className="flex items-center gap-1.5 mt-1.5 min-w-0">
+                        <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse flex-shrink-0" />
+                        <span className="text-[10px] text-primary min-w-0" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' }}>{activity.status}</span>
+                      </div>
+                    )}
                   </div>
                 )
               })}
             </div>
           </ScrollArea>
+
+          <div className="p-2 border-t flex-shrink-0">
+            <Button
+              variant="secondary" size="sm"
+              className="w-full h-8 text-xs justify-center gap-1.5"
+              onClick={() => router.push('/agents')}
+            >
+              <Bot className="w-3.5 h-3.5" />Manage Agents
+            </Button>
+          </div>
         </Card>
-
-        {/* Manage agents link */}
-        <button
-          onClick={() => router.push('/agents')}
-          className="flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
-        >
-          <ChevronRight className="w-3 h-3" />
-          Manage agents
-        </button>
       </div>
-
       {/* ── RIGHT: Main content ──────────────────────────────────────────── */}
       <div className="flex-1 min-w-0 flex flex-col gap-4">
 
@@ -755,259 +853,6 @@ export function OperationsContent() {
 
       </div>
 
-      {/* ── FAR RIGHT: Agent cards panel ─────────────────────────────────── */}
-      <div className="w-64 flex-shrink-0 flex flex-col gap-3">
-
-        {/* Agent cards */}
-        <Card className="flex-1 overflow-hidden flex flex-col">
-          <CardHeader className="px-3 py-2 border-b flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                <Bot className="w-3.5 h-3.5" />Agent Overview
-              </CardTitle>
-              <span className="text-xs font-bold text-primary">{agents.length}</span>
-            </div>
-          </CardHeader>
-
-          <ScrollArea className="flex-1">
-            <div className="pt-1 px-2 pb-2 space-y-1.5">
-              {loading && (
-                <div className="flex justify-center py-8">
-                  <RefreshCw className="w-4 h-4 animate-spin text-muted-foreground" />
-                </div>
-              )}
-
-              {!loading && agents.length === 0 && (
-                <div className="text-center py-8">
-                  <Bot className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-                  <p className="text-xs text-muted-foreground">No agents yet</p>
-                </div>
-              )}
-
-              {agents.map(agent => {
-                const isRunning = agent.status === 'running' || agent.status === 'active'
-                const activity = agentActivities[agent.agentId]
-                const displayName = agent.name || agent.agentName || 'Agent'
-                const leadLimit = agent.settings?.targeting?.leadLimit ?? agent.settings?.geographicSettings?.leadLimit ?? 0
-                const concurrencyLevel = agent.settings?.concurrencyLevel ?? 1
-                const isSavingLeadLimit = !!savingInline[`${agent.agentId}-leadLimit`]
-                const isSavingConcurrency = !!savingInline[`${agent.agentId}-concurrency`]
-
-                return (
-                  <div
-                    key={agent.agentId}
-                    className={cn(
-                      'rounded-lg border p-2.5 transition-all cursor-pointer hover:border-primary/40',
-                      isRunning
-                        ? 'bg-primary/5 border-primary/20'
-                        : 'bg-secondary/30 border-border/50'
-                    )}
-                    onClick={() => router.push(`/agents?agent=${agent.agentId}`)}
-                  >
-                    {/* Top row: status dot + name + external link */}
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <span className={cn(
-                        'w-1.5 h-1.5 rounded-full flex-shrink-0',
-                        isRunning ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/40'
-                      )} />
-                      <span className="text-xs font-semibold text-foreground flex-1 truncate">
-                        {displayName}
-                        {agent.isCrmMode && (
-                          <span className="ml-1.5 text-[9px] px-1 py-0 rounded bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 font-medium align-middle">Auditor</span>
-                        )}
-                      </span>
-
-                      {/* Email provider icon */}
-                      {agent.settings?.emailBuilder?.useGmail ? (
-                        <span className="relative group/tip inline-flex items-center p-0.5">
-                          <svg className="w-3.5 h-3.5" viewBox="0 0 256 193" fill="none">
-                            <path d="M58.182 192.05V93.768L27.507 65.158L0 49.504v125.091c0 9.658 7.825 17.455 17.455 17.455h40.727Z" fill="#4285F4"/>
-                            <path d="M197.818 192.05h40.727c9.659 0 17.455-7.854 17.455-17.455V49.504l-31.274 17.278-27.506 28.61Z" fill="#34A853"/>
-                            <path d="M197.818 49.504V93.768l58.182-44.264V34.91c0-21.585-24.641-33.89-41.89-20.945Z" fill="#FBBC04"/>
-                            <path d="M58.182 93.768V49.504L128 105.23l69.818-55.726v44.264L128 149.494Z" fill="#EA4335"/>
-                            <path d="M0 34.91v14.594l58.182 44.264V49.504L40.727 37.072C23.478 24.019-.001 36.324 0 34.91Z" fill="#C5221F"/>
-                          </svg>
-                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-1.5 py-0.5 bg-popover border border-border text-foreground text-[10px] rounded whitespace-nowrap opacity-0 group-hover/tip:opacity-100 transition-opacity pointer-events-none z-50 shadow-md">
-                            Gmail sending
-                          </span>
-                        </span>
-                      ) : agent.settings?.emailBuilder?.useOutlook ? (
-                        <span className="relative group/tip inline-flex items-center p-0.5">
-                          <svg className="w-3.5 h-3.5" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
-                            <defs>
-                              <linearGradient id="og1" x1="0%" y1="0%" x2="100%" y2="100%">
-                                <stop offset="0%" stopColor="#0364B8"/>
-                                <stop offset="100%" stopColor="#0078D4"/>
-                              </linearGradient>
-                              <linearGradient id="og2" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" stopColor="#28A8EA"/>
-                                <stop offset="100%" stopColor="#0078D4"/>
-                              </linearGradient>
-                            </defs>
-                            <path fill="url(#og1)" d="M16,128V16h144v112H16z"/>
-                            <path fill="url(#og2)" d="M160,128h96v112H160V128z"/>
-                            <path fill="#0078D4" d="M160,16h96v96h-96V16z"/>
-                            <path fill="#50D9FF" d="M16,144h144v96H16V144z"/>
-                            <circle fill="#FFF" cx="88" cy="88" r="40"/>
-                            <path fill="#0078D4" d="M88,108c-11,0-20-9-20-20s9-20,20-20s20,9,20,20S99,108,88,108z M88,76c-6.6,0-12,5.4-12,12s5.4,12,12,12s12-5.4,12-12S94.6,76,88,76z"/>
-                          </svg>
-                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-1.5 py-0.5 bg-popover border border-border text-foreground text-[10px] rounded whitespace-nowrap opacity-0 group-hover/tip:opacity-100 transition-opacity pointer-events-none z-50 shadow-md">
-                            Outlook sending
-                          </span>
-                        </span>
-                      ) : (
-                        <span className="relative group/tip inline-flex items-center p-0.5">
-                          <svg className="w-3.5 h-3.5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-                          </svg>
-                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-1.5 py-0.5 bg-popover border border-border text-foreground text-[10px] rounded whitespace-nowrap opacity-0 group-hover/tip:opacity-100 transition-opacity pointer-events-none z-50 shadow-md">
-                            Meridian domain sending
-                          </span>
-                        </span>
-                      )}
-
-                      <ExternalLink className="w-3 h-3 text-muted-foreground/50 flex-shrink-0" />
-                    </div>
-
-                    {/* Targeting + lead limit */}
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      {(agent.targeting?.location || agent.targeting?.industry) && (
-                        <>
-                          <Target className="w-3 h-3 text-muted-foreground/60 flex-shrink-0" />
-                          <span className="text-[10px] text-muted-foreground truncate flex-1">
-                            {[agent.targeting?.location, agent.targeting?.industry].filter(Boolean).join(' · ')}
-                          </span>
-                        </>
-                      )}
-                      <div className="ml-auto flex items-center gap-1 flex-shrink-0">
-                        {editingLeadLimit === agent.agentId ? (
-                          <form
-                            className="flex items-center gap-1"
-                            onClick={e => e.stopPropagation()}
-                            onSubmit={async e => {
-                              e.preventDefault()
-                              const nextValue = Math.max(1, Math.min(200, Math.floor(leadLimitDrafts[agent.agentId] ?? leadLimit ?? 1)))
-                              await saveAgentInlineSetting(agent.agentId, { leadLimit: nextValue })
-                              setEditingLeadLimit(null)
-                            }}
-                          >
-                            <RefreshCw className={cn('w-2.5 h-2.5 text-primary', isSavingLeadLimit && 'animate-spin')} />
-                            <input
-                              type="number"
-                              min={1}
-                              max={200}
-                              value={leadLimitDrafts[agent.agentId] ?? leadLimit ?? 1}
-                              onChange={e => setLeadLimitDrafts(prev => ({ ...prev, [agent.agentId]: parseInt(e.target.value) || 1 }))}
-                              onClick={e => e.stopPropagation()}
-                              className="h-5 w-14 rounded border border-primary/30 bg-background px-1 text-[10px] text-foreground"
-                              autoFocus
-                            />
-                          </form>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={e => {
-                              e.stopPropagation()
-                              setLeadLimitDrafts(prev => ({ ...prev, [agent.agentId]: leadLimit || 1 }))
-                              setEditingLeadLimit(agent.agentId)
-                              setEditingConcurrency(null)
-                            }}
-                            className="flex items-center gap-0.5 text-[10px] text-primary font-medium rounded px-1 py-0.5 hover:bg-primary/10"
-                            title="Edit lead limit"
-                          >
-                            <RefreshCw className="w-2.5 h-2.5" />
-                            {leadLimit}/cycle
-                          </button>
-                        )}
-
-                        {editingConcurrency === agent.agentId ? (
-                          <form
-                            className="flex items-center gap-1"
-                            onClick={e => e.stopPropagation()}
-                            onSubmit={async e => {
-                              e.preventDefault()
-                              const nextValue = Math.max(1, Math.min(maxConcurrency, Math.floor(concurrencyDrafts[agent.agentId] ?? concurrencyLevel ?? 1)))
-                              await saveAgentInlineSetting(agent.agentId, { concurrencyLevel: nextValue })
-                              setEditingConcurrency(null)
-                            }}
-                          >
-                            <Cpu className={cn('w-2.5 h-2.5 text-muted-foreground', isSavingConcurrency && 'animate-pulse')} />
-                            <input
-                              type="number"
-                              min={1}
-                              max={maxConcurrency}
-                              value={concurrencyDrafts[agent.agentId] ?? concurrencyLevel ?? 1}
-                              onChange={e => setConcurrencyDrafts(prev => ({ ...prev, [agent.agentId]: Math.min(maxConcurrency, parseInt(e.target.value) || 1) }))}
-                              onClick={e => e.stopPropagation()}
-                              className="h-5 w-10 rounded border border-border bg-background px-1 text-[10px] text-foreground"
-                              autoFocus
-                            />
-                          </form>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={e => {
-                              e.stopPropagation()
-                              setConcurrencyDrafts(prev => ({ ...prev, [agent.agentId]: Math.min(maxConcurrency, concurrencyLevel || 1) }))
-                              setEditingConcurrency(agent.agentId)
-                              setEditingLeadLimit(null)
-                            }}
-                            className="flex items-center gap-0.5 text-[10px] text-muted-foreground rounded px-1 py-0.5 hover:bg-muted"
-                            title="Edit concurrency"
-                          >
-                            <Cpu className="w-2.5 h-2.5" />{concurrencyLevel}×
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Email stats */}
-                    <div className="flex items-center gap-3 mb-1.5">
-                      <div className="flex items-center gap-1" title="Built">
-                        <Mail className="w-3 h-3 text-muted-foreground/60" />
-                        <span className="text-[10px] text-muted-foreground">{agent.emailStats?.built ?? 0}</span>
-                      </div>
-                      <div className="flex items-center gap-1" title="Queued">
-                        <Clock className="w-3 h-3 text-amber-500" />
-                        <span className="text-[10px] text-amber-500">{agent.emailStats?.queued ?? 0}</span>
-                      </div>
-                      <div className="flex items-center gap-1" title="Sent">
-                        <Send className="w-3 h-3 text-green-500" />
-                        <span className="text-[10px] text-green-500">{agent.emailStats?.sent ?? 0}</span>
-                      </div>
-                    </div>
-
-                    {/* Current activity */}
-                    <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
-                      {activity?.status ? (
-                        <>
-                          <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse flex-shrink-0" />
-                          <span className="text-[10px] text-primary min-w-0 overflow-hidden" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' }}>{activity.status}</span>
-                        </>
-                      ) : (
-                        <span className="text-[10px] text-muted-foreground/60">Idle</span>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </ScrollArea>
-
-          {/* Bottom quick actions */}
-          <div className="p-3 border-t flex-shrink-0 space-y-1.5">
-            <Button
-              variant="secondary"
-              size="sm"
-              className="w-full h-8 text-xs justify-center gap-1.5"
-              onClick={() => router.push('/agents')}
-            >
-              <Bot className="w-3.5 h-3.5" />Manage Agents
-            </Button>
-          </div>
-        </Card>
-
-      </div>
     </div>
   )
 }
