@@ -28,6 +28,7 @@ interface PaymentMethod {
 interface ApiUsageStats {
   apollo?: { cost: number; calls: number }
   openai?: { cost: number; tokens: number }
+  anthropic?: { cost: number; usage: number }
   mailgun?: { cost: number; sent: number }
   zerobounce?: { cost: number; validations: number }
   serper?: { cost: number; searches: number }
@@ -405,6 +406,7 @@ function BillingTabInner() {
           const totalCost =
             (stats.apollo?.cost ?? 0) +
             (stats.openai?.cost ?? 0) +
+            (stats.anthropic?.cost ?? 0) +
             (stats.mailgun?.cost ?? 0) +
             (stats.zerobounce?.cost ?? 0) +
             (stats.serper?.cost ?? 0)
@@ -463,7 +465,7 @@ function BillingTabInner() {
   const downgradePlans = currentPlanIdx > 1 ? PLAN_ORDER.slice(1, currentPlanIdx) : []
 
   return (
-    <div className="max-w-4xl space-y-8">
+    <div className="max-w-6xl space-y-8">
 
       {/* ── Page Header ── */}
       <h1 className="text-2xl font-bold">Billing Settings</h1>
@@ -800,14 +802,15 @@ function BillingTabInner() {
             <h2 className="text-sm font-semibold">API Cost Breakdown</h2>
             {!creditLoading && (
               <span className="text-xs text-muted-foreground ml-auto">
-                ${((apiStats.apollo?.cost ?? 0) + (apiStats.openai?.cost ?? 0) + (apiStats.mailgun?.cost ?? 0) + (apiStats.zerobounce?.cost ?? 0) + (apiStats.serper?.cost ?? 0)).toFixed(2)} total
+                ${((apiStats.apollo?.cost ?? 0) + (apiStats.openai?.cost ?? 0) + (apiStats.anthropic?.cost ?? 0) + (apiStats.mailgun?.cost ?? 0) + (apiStats.zerobounce?.cost ?? 0) + (apiStats.serper?.cost ?? 0)).toFixed(2)} total
               </span>
             )}
           </div>
           <div className="divide-y divide-border text-sm">
             {[
-              { label: "Apollo",        cost: apiStats.apollo?.cost ?? 0,     detail: `${(apiStats.apollo?.calls ?? 0).toLocaleString()} lookups` },
-              { label: "OpenAI",        cost: apiStats.openai?.cost ?? 0,     detail: `${((apiStats.openai?.tokens ?? 0) / 1000).toFixed(1)}k tokens` },
+              { label: "Apollo",        cost: apiStats.apollo?.cost ?? 0,      detail: `${(apiStats.apollo?.calls ?? 0).toLocaleString()} lookups` },
+              { label: "OpenAI",        cost: apiStats.openai?.cost ?? 0,      detail: `${((apiStats.openai?.tokens ?? 0) / 1000).toFixed(1)}k tokens` },
+              { label: "Claude",        cost: apiStats.anthropic?.cost ?? 0,   detail: `${((apiStats.anthropic?.usage ?? 0) / 1000).toFixed(1)}k tokens` },
               { label: "Mailgun",       cost: apiStats.mailgun?.cost ?? 0,    detail: `${(apiStats.mailgun?.sent ?? 0).toLocaleString()} emails` },
               { label: "Email Validation", cost: apiStats.zerobounce?.cost ?? 0, detail: `${(apiStats.zerobounce?.validations ?? 0).toLocaleString()} checked` },
               { label: "Serper",        cost: apiStats.serper?.cost ?? 0,     detail: `${(apiStats.serper?.searches ?? 0).toLocaleString()} searches` },
