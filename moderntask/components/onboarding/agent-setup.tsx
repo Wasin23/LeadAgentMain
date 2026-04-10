@@ -280,9 +280,9 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
         bccEmails: settings.bccEmails,
         followupIntervalDays: settings.followupIntervalDays,
         enableAutoResponse: settings.enableAutoResponse,
-        useCustomSignature: true,
-        signatureName: '',
-        signatureTitle: '',
+        useCustomSignature: settings.useCustomSignature,
+        signatureName: settings.signatureName,
+        signatureTitle: settings.signatureTitle,
         templates: settings.useTemplate && settings.templateBody.trim()
           ? [{ id: `tpl_${Date.now()}`, name: 'Default', subject: settings.templateSubject.trim(), body: settings.templateBody.trim() }]
           : [],

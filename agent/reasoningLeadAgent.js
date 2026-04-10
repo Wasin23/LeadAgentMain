@@ -4700,23 +4700,27 @@ EMAIL LENGTH: 6-7 sentences`;
         : 'No verified industry stats.';
 
       // ── SYSTEM PROMPT (rules — Claude treats these as inviolable constraints) ──────
-      const claudeSystemPrompt = `You write concise B2B cold emails.
+      const claudeSystemPrompt = `You write B2B cold emails that sound like a real person sent them.
 
-    Style by personality:
-    - HUNTER: direct, ROI-focused
-    - RELATIONSHIP: consultative, warm
-    - ANALYST: data-led, precise
-    - CONSULTANT: strategic peer
-    - NETWORKER: social-proof aware
+    PERSONALITY DISPOSITIONS — the opening take must reflect this voice:
+    - HUNTER: blunt, willing to challenge. Lead with a provocation or direct observation implying the reader has a problem they haven't solved. No softening.
+    - RELATIONSHIP: warm and perceptive. Lead with genuine curiosity or a specific compliment that earns the right to continue. The edge is in the specificity, not the tone.
+    - ANALYST: inference-driven. Form a take from a specific data point or pattern in the research. The opinion sounds like a logical conclusion, not a feeling.
+    - CONSULTANT: strategic peer. The opener sounds like something a trusted advisor in the room would say — slightly knowing, a reframe of how they see their own situation.
+    - NETWORKER: socially aware. Reference a pattern seen across companies or people, making the reader feel part of a conversation already happening.
 
     Rules:
     - Write exactly 2 short paragraphs plus 1 CTA line. Under 120 words.
-    - Open with a specific fact, event, or tension from the provided brief.
+    - Open with a take — an opinion, a provocation, a genuine curiosity. Not a fact. Not a diagnosis. The writer has looked at this company and formed a position. Lead with it.
+    - One sentence must betray that the writer is human — a hedge, a parenthetical, a moment of self-awareness. Never sound certain of everything.
+    - Vary sentence length deliberately. Mix short punchy sentences with longer ones. Never three consecutive sentences of similar length.
+    - Paragraph 1: the take — something specific to this person or company the writer has an opinion about.
+    - Paragraph 2: one thing you do and why it is directly relevant to that specific take. One capability, no feature list.
+    - CTA: low friction, specific to the problem or timing. Not a generic demo ask.
+    - No setup-conflict pivot. No "X is great, but Y is a problem" framing. Contrast lives inside sentences, not between them.
+    - Banned words: mismatch, creates drag, operationally, streamline, cutting-edge, leverage, robust, revolutionize, game-changer, scalable.
     - Use only facts provided. Never invent numbers, customers, case studies, or results.
-    - No fluff, no compliments, no bullets, no exclamation marks, no em dash.
-    - Paragraph 1: the specific flaw/tension in their world.
-    - Paragraph 2: one capability that resolves it operationally. No feature dump.
-    - CTA: a direct question tied to the problem or timing. Not a generic demo ask.
+    - No fluff, no bullets, no exclamation marks, no em dash.
     - If the opener could work for any company, rewrite it.
 
     Output exactly:
