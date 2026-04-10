@@ -158,7 +158,8 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
     leadsPerCycle: 10, emailLength: 'medium', callToAction: 'schedule-meeting',
     personalizationLevel: 'high', ccEmails: '', bccEmails: '',
     followupIntervalDays: 7, enableAutoResponse: true, concurrencyLevel: 1,
-    useCustomSignature: true, signatureName: '', signatureTitle: ''
+    useCustomSignature: true, signatureName: '', signatureTitle: '',
+    useTemplate: false, templateBody: '', templateSubject: ''
   })
   const [presetJson, setPresetJson] = useState('')
   const [useGmail, setUseGmail] = useState(false)
@@ -282,6 +283,9 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
         useCustomSignature: true,
         signatureName: '',
         signatureTitle: '',
+        templates: settings.useTemplate && settings.templateBody.trim()
+          ? [{ id: `tpl_${Date.now()}`, name: 'Default', subject: settings.templateSubject.trim(), body: settings.templateBody.trim() }]
+          : [],
         specialInstructions
       })
       if (!presetRes.data.success) throw new Error('Failed to create preset')
@@ -307,7 +311,8 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
           callToAction: cp.callToAction, personalizationLevel: cp.personalizationLevel,
           ccEmails: cp.ccEmails, bccEmails: cp.bccEmails,
           followupIntervalDays: cp.followupIntervalDays, enableAutoResponse: cp.enableAutoResponse,
-          useCustomSignature: cp.useCustomSignature, signatureName: cp.signatureName, signatureTitle: cp.signatureTitle
+          useCustomSignature: cp.useCustomSignature, signatureName: cp.signatureName, signatureTitle: cp.signatureTitle,
+          templates: cp.templates || []
         }
       })
       if (agentRes.data.success) {
@@ -896,6 +901,43 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                           placeholder="VP of Sales"
                           className="w-full px-3 py-2 rounded-lg bg-white border border-blue-200 text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:outline-none transition-all text-sm"
                         />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Email Template */}
+                <div className="mt-5 rounded-xl border border-gray-200 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-gray-900 font-semibold text-sm">Start with a template <span className="ml-1.5 text-xs font-normal text-gray-500">optional</span></p>
+                      <p className="text-gray-500 text-xs mt-0.5">Write a static email body using merge tags. The agent fills them in using research instead of generating the whole email.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSettings(s => ({ ...s, useTemplate: !s.useTemplate }))}
+                      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${settings.useTemplate ? 'bg-blue-500' : 'bg-gray-300'}`}
+                    >
+                      <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform duration-200 ${settings.useTemplate ? 'translate-x-5' : 'translate-x-0'}`} />
+                    </button>
+                  </div>
+                  {settings.useTemplate && (
+                    <div className="mt-4 space-y-3">
+                      <div>
+                        <label className="block text-gray-700 font-semibold text-xs mb-1">Subject Line <span className="font-normal text-gray-400">(optional)</span></label>
+                        <input type="text" value={settings.templateSubject} onChange={e => setSettings(s => ({ ...s, templateSubject: e.target.value }))} placeholder="Quick question for {{firstName}}" className="w-full px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:outline-none transition-all text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-gray-700 font-semibold text-xs mb-1">Email Body</label>
+                        <textarea rows={7} value={settings.templateBody} onChange={e => setSettings(s => ({ ...s, templateBody: e.target.value }))} placeholder={`Hi {{firstName}},\n\nI noticed {{company}} recently...\n\n{{painPoint}}\n\nBest,\n{{senderName}}`} className="w-full px-3 py-2 rounded-lg bg-white border border-gray-200 text-gray-900 placeholder-gray-400 focus:border-blue-400 focus:outline-none transition-all text-sm font-mono resize-y" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 font-medium mb-1.5">Merge tags (click to insert):</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {['{{firstName}}', '{{lastName}}', '{{company}}', '{{role}}', '{{painPoint}}', '{{recentNews}}', '{{senderName}}'].map(tag => (
+                            <button key={tag} type="button" onClick={() => setSettings(s => ({ ...s, templateBody: s.templateBody + tag }))} className="text-[11px] font-mono px-2 py-0.5 bg-gray-100 rounded border border-gray-200 hover:bg-blue-50 hover:border-blue-200 transition-colors text-gray-700">{tag}</button>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}

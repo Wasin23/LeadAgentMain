@@ -81,6 +81,7 @@ interface AgentSettings {
     rebumpIntervalDays: number; useCustomSignature: boolean;
     signatureName: string; signatureTitle: string;
     useGmail: boolean; useOutlook: boolean;
+    templates: Array<{ id: string; name: string; subject: string; body: string }>;
   };
 }
 
@@ -103,7 +104,7 @@ const defaultSettings: AgentSettings = {
   geographicSettings: { targetLocations: ['United States'], excludedLocations: [], leadLimit: 50, timezone: 'America/New_York' },
   concurrencyLevel: 1,
   researchFocus: { focusAreas: [], researchDepth: 'standard', includeCompanyNews: true, includePersonalInfo: false, includeSocialMedia: false },
-  emailBuilder: { emailTemplate: 'professional', customPrompt: '', emailResponsePrompt: '', tone: 'professional', length: 'medium', callToAction: 'meeting', personalization: 'high', ccEmails: '', bccEmails: '', enableAutoResponse: false, rebumpIntervalDays: 3, useCustomSignature: false, signatureName: '', signatureTitle: '', useGmail: false, useOutlook: false }
+  emailBuilder: { emailTemplate: 'professional', customPrompt: '', emailResponsePrompt: '', tone: 'professional', length: 'medium', callToAction: 'meeting', personalization: 'high', ccEmails: '', bccEmails: '', enableAutoResponse: false, rebumpIntervalDays: 3, useCustomSignature: false, signatureName: '', signatureTitle: '', useGmail: false, useOutlook: false, templates: [] }
 };
 
 // ─────────────────────────────────────────────────────
@@ -224,6 +225,115 @@ function Section({ title, description, children, defaultOpen = false, badge }: {
         <div className="px-6 pb-6 pt-2 border-t border-border">
           {children}
         </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────
+// Template Editor sub-component
+// ─────────────────────────────────────────────────────
+type EmailTemplate = { id: string; name: string; subject: string; body: string };
+
+const MERGE_TAGS = ['{{firstName}}', '{{lastName}}', '{{company}}', '{{role}}', '{{painPoint}}', '{{recentNews}}', '{{senderName}}'];
+
+function TemplateEditor({ templates, onChange }: {
+  templates: EmailTemplate[];
+  onChange: (tpls: EmailTemplate[]) => void;
+}) {
+  const [editing, setEditing] = React.useState<number | null>(null); // null = none, -1 = new
+  const [form, setForm] = React.useState({ name: '', subject: '', body: '' });
+
+  const openNew = () => { setForm({ name: '', subject: '', body: '' }); setEditing(-1); };
+  const openEdit = (idx: number) => { setForm({ name: templates[idx].name, subject: templates[idx].subject, body: templates[idx].body }); setEditing(idx); };
+  const cancel = () => { setEditing(null); setForm({ name: '', subject: '', body: '' }); };
+
+  const save = () => {
+    if (!form.name.trim() || !form.body.trim()) return;
+    if (editing === -1) {
+      onChange([...templates, { id: `tpl_${Date.now()}`, name: form.name.trim(), subject: form.subject.trim(), body: form.body.trim() }]);
+    } else if (editing !== null) {
+      const next = [...templates];
+      next[editing] = { ...next[editing], name: form.name.trim(), subject: form.subject.trim(), body: form.body.trim() };
+      onChange(next);
+    }
+    cancel();
+  };
+
+  const remove = (idx: number) => onChange(templates.filter((_, i) => i !== idx));
+  const insertTag = (tag: string) => setForm(f => ({ ...f, body: f.body + tag }));
+
+  return (
+    <div className="mt-4 space-y-3">
+      {templates.length === 0 && editing === null && (
+        <p className="text-sm text-muted-foreground">No templates yet. A template lets you write a static email body with merge tags — the agent fills them in using research instead of generating the whole email from scratch.</p>
+      )}
+
+      {/* Saved templates list */}
+      {templates.map((tpl, idx) => (
+        <div key={tpl.id} className="border border-border rounded-lg p-3 space-y-1.5 bg-muted/20">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-medium">{tpl.name}</p>
+            <div className="flex gap-3">
+              <button type="button" onClick={() => openEdit(idx)} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Edit</button>
+              <button type="button" onClick={() => remove(idx)} className="text-xs text-destructive/70 hover:text-destructive transition-colors">Delete</button>
+            </div>
+          </div>
+          {tpl.subject && <p className="text-xs text-muted-foreground">Subject: <span className="font-mono">{tpl.subject}</span></p>}
+          <p className="text-xs text-muted-foreground font-mono line-clamp-2 whitespace-pre-wrap">{tpl.body}</p>
+        </div>
+      ))}
+
+      {/* Inline add / edit form */}
+      {editing !== null && (
+        <div className="border border-primary/30 rounded-lg p-4 space-y-3 bg-primary/5">
+          <p className="text-sm font-semibold">{editing === -1 ? 'New Template' : 'Edit Template'}</p>
+          <div className="space-y-1.5">
+            <Label>Template Name</Label>
+            <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Cold Outreach v1" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Subject Line <span className="text-muted-foreground font-normal">(optional — overrides AI subject)</span></Label>
+            <Input value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} placeholder="Quick question for {{firstName}}" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Email Body</Label>
+            <Textarea
+              value={form.body}
+              onChange={e => setForm(f => ({ ...f, body: e.target.value }))}
+              rows={9}
+              className="font-mono text-sm resize-y bg-background"
+              placeholder={"Hi {{firstName}},\n\nI noticed {{company}} recently...\n\n{{painPoint}}\n\nWould love to connect.\n\nBest,\n{{senderName}}"}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <p className="text-xs text-muted-foreground font-medium">Merge tags (click to insert — agent fills these in):</p>
+            <div className="flex flex-wrap gap-1.5">
+              {MERGE_TAGS.map(tag => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => insertTag(tag)}
+                  className="text-[11px] font-mono px-2 py-0.5 bg-muted rounded border border-border hover:bg-primary/10 hover:border-primary/30 transition-colors"
+                >{tag}</button>
+              ))}
+            </div>
+          </div>
+          <div className="flex gap-2 pt-1">
+            <Button size="sm" onClick={save} disabled={!form.name.trim() || !form.body.trim()}>Save Template</Button>
+            <Button size="sm" variant="outline" onClick={cancel}>Cancel</Button>
+          </div>
+        </div>
+      )}
+
+      {editing === null && (
+        <button
+          type="button"
+          onClick={openNew}
+          className="flex items-center gap-1.5 text-sm text-primary hover:underline transition-colors"
+        >
+          <Plus className="w-4 h-4" /> Add Template
+        </button>
       )}
     </div>
   );
@@ -472,6 +582,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
             signatureTitle: e.signatureTitle || e.emailBuilder?.signatureTitle || '',
             useGmail: e.useGmail ?? e.emailBuilder?.useGmail ?? false,
             useOutlook: e.useOutlook ?? e.emailBuilder?.useOutlook ?? false,
+            templates: e.templates || e.emailBuilder?.templates || [],
           },
         };
         setSettings(loaded);
@@ -881,6 +992,18 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                 </select>
               </div>
             </div>
+          </Section>
+
+          {/* Email Templates */}
+          <Section
+            title="Email Templates"
+            description="Pre-written email bodies the agent uses instead of generating from scratch"
+            badge={settings.emailBuilder.templates?.length ? `${settings.emailBuilder.templates.length} template${settings.emailBuilder.templates.length === 1 ? '' : 's'}` : undefined}
+          >
+            <TemplateEditor
+              templates={settings.emailBuilder.templates || []}
+              onChange={tpls => updateEmail('templates', tpls)}
+            />
           </Section>
 
           {/* Email Settings */}
