@@ -454,7 +454,30 @@ router.post('/disconnect', authenticateToken, async (req, res) => {
       activeGmailIndex: gmailAccounts.findIndex(acc => acc.isActive)
     });
 
-    res.json({ success: true, message: 'Gmail disconnected successfully' });
+    // Revert any agents that were using Gmail back to Mailgun
+    const revertedAgents = [];
+    try {
+      const userData = await awsManager.getUserById(userId);
+      const agents = userData?.activeAgents || [];
+      for (const agent of agents) {
+        try {
+          const agentSettings = await awsManager.getLeadAgentSettings(userId, agent.agentId);
+          if (agentSettings?.emailBuilder?.useGmail === true) {
+            await awsManager.saveLeadAgentSettings(userId, agent.agentId, {
+              ...agentSettings,
+              emailBuilder: { ...agentSettings.emailBuilder, useGmail: false }
+            });
+            revertedAgents.push({ agentId: agent.agentId, name: agentSettings.name || agentSettings.agentName || agent.agentId });
+          }
+        } catch (e) {
+          console.error(`[GMAIL AUTH] Failed to revert agent ${agent.agentId}:`, e.message);
+        }
+      }
+    } catch (e) {
+      console.error('[GMAIL AUTH] Failed to revert agents:', e.message);
+    }
+
+    res.json({ success: true, message: 'Gmail disconnected successfully', revertedAgents });
   } catch (error) {
     console.error('❌ [GMAIL AUTH] Error disconnecting:', error);
     res.status(500).json({ error: 'Failed to disconnect Gmail' });

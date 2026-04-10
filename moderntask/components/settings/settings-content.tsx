@@ -162,6 +162,9 @@ export function SettingsContent() {
   const [outlookAccounts, setOutlookAccounts] = useState<EmailAccount[]>([])
   const [defaultUseGmail, setDefaultUseGmail] = useState(false)
   const [defaultUseOutlook, setDefaultUseOutlook] = useState(false)
+  const [revertedAgents, setRevertedAgents] = useState<{ agentId: string; name: string }[]>([])
+  const [reassigning, setReassigning] = useState(false)
+  const [reassignProvider, setReassignProvider] = useState<'gmail' | 'outlook' | 'mailgun'>('mailgun')
 
   // ── Domain health ─────────────────────────────────────────────────────────
   const [customDomain, setCustomDomain] = useState("")
@@ -477,19 +480,48 @@ export function SettingsContent() {
   const disconnectGmail = async (email: string) => {
     if (!confirm(`Disconnect ${email}?`)) return
     try {
-      await api.post("/api/auth/gmail/disconnect", { email })
+      const r = await api.post("/api/auth/gmail/disconnect", { email })
       setGmailAccounts(a => a.filter(x => x.email !== email))
-      toast.success("Disconnected")
+      const reverted = r.data?.revertedAgents || []
+      if (reverted.length > 0) {
+        setRevertedAgents(reverted)
+        setReassignProvider(outlookAccounts.length > 0 ? 'outlook' : 'mailgun')
+        toast.warning(`${reverted.length} agent${reverted.length !== 1 ? 's' : ''} reverted to Mailgun`)
+      } else {
+        toast.success("Disconnected")
+      }
     } catch { toast.error("Failed to disconnect") }
   }
 
   const disconnectOutlook = async (email: string) => {
     if (!confirm(`Disconnect ${email}?`)) return
     try {
-      await api.post("/api/auth/outlook/disconnect", { email })
+      const r = await api.post("/api/auth/outlook/disconnect", { email })
       setOutlookAccounts(a => a.filter(x => x.email !== email))
-      toast.success("Disconnected")
+      const reverted = r.data?.revertedAgents || []
+      if (reverted.length > 0) {
+        setRevertedAgents(reverted)
+        setReassignProvider(gmailAccounts.length > 0 ? 'gmail' : 'mailgun')
+        toast.warning(`${reverted.length} agent${reverted.length !== 1 ? 's' : ''} reverted to Mailgun`)
+      } else {
+        toast.success("Disconnected")
+      }
     } catch { toast.error("Failed to disconnect") }
+  }
+
+  const reassignAgents = async () => {
+    if (revertedAgents.length === 0) return
+    setReassigning(true)
+    try {
+      await api.post("/api/settings/reassign-agents", {
+        agentIds: revertedAgents.map(a => a.agentId),
+        provider: reassignProvider,
+      })
+      setRevertedAgents([])
+      const label = reassignProvider === 'gmail' ? 'Gmail' : reassignProvider === 'outlook' ? 'Outlook' : 'Mailgun'
+      toast.success(`Agents updated to use ${label}`)
+    } catch { toast.error("Failed to update agents") }
+    finally { setReassigning(false) }
   }
 
   const checkDomainHealth = async () => {
@@ -1065,6 +1097,37 @@ export function SettingsContent() {
                 </Button>
               </div>
             </div>
+
+            {/* Reverted agents banner */}
+            {revertedAgents.length > 0 && (
+              <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">{revertedAgents.length} agent{revertedAgents.length !== 1 ? 's' : ''} reverted to Mailgun</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{revertedAgents.map(a => a.name).join(', ')}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 ml-7">
+                  <p className="text-xs text-muted-foreground">Reassign to:</p>
+                  <select
+                    value={reassignProvider}
+                    onChange={e => setReassignProvider(e.target.value as 'gmail' | 'outlook' | 'mailgun')}
+                    className="text-xs rounded-md border border-border bg-background px-2 py-1 focus:outline-none"
+                  >
+                    {gmailAccounts.length > 0 && <option value="gmail">Gmail</option>}
+                    {outlookAccounts.length > 0 && <option value="outlook">Outlook</option>}
+                    <option value="mailgun">Mailgun (keep as-is)</option>
+                  </select>
+                  <Button size="sm" className="h-7 text-xs" onClick={reassignAgents} disabled={reassigning}>
+                    {reassigning ? <Loader2 className="w-3 h-3 animate-spin" /> : "Update Agents"}
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground" onClick={() => setRevertedAgents([])}>
+                    Dismiss
+                  </Button>
+                </div>
+              </div>
+            )}
 
             <Separator />
 

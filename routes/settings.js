@@ -316,4 +316,49 @@ router.put('/auto-topup', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/settings/reassign-agents
+ * Reassign a list of agents to use a specific email provider (gmail, outlook, or mailgun).
+ * Body: { agentIds: string[], provider: 'gmail' | 'outlook' | 'mailgun' }
+ */
+router.post('/reassign-agents', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { agentIds, provider } = req.body;
+
+    if (!Array.isArray(agentIds) || agentIds.length === 0) {
+      return res.status(400).json({ success: false, error: 'agentIds is required' });
+    }
+    if (!['gmail', 'outlook', 'mailgun'].includes(provider)) {
+      return res.status(400).json({ success: false, error: 'provider must be gmail, outlook, or mailgun' });
+    }
+
+    const awsManager = new AWSManager();
+    const updated = [];
+
+    for (const agentId of agentIds) {
+      try {
+        const agentSettings = await awsManager.getLeadAgentSettings(userId, agentId);
+        if (!agentSettings) continue;
+        await awsManager.saveLeadAgentSettings(userId, agentId, {
+          ...agentSettings,
+          emailBuilder: {
+            ...agentSettings.emailBuilder,
+            useGmail:   provider === 'gmail',
+            useOutlook: provider === 'outlook',
+          }
+        });
+        updated.push(agentId);
+      } catch (e) {
+        console.error(`[SETTINGS] Failed to reassign agent ${agentId}:`, e.message);
+      }
+    }
+
+    res.json({ success: true, updated });
+  } catch (error) {
+    console.error('Error reassigning agents:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 export default router;

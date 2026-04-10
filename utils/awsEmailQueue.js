@@ -760,6 +760,25 @@ class AWSEmailQueue {
         }));
 
         if (!response.Items || response.Items.length === 0) {
+          // Idempotency check: if the email is already in the target status, a previous attempt
+          // likely succeeded but the DynamoDB response was lost (throttle + retry scenario).
+          // Return the existing item rather than failing, so the email counts as sent.
+          const alreadyDoneResponse = await this.dynamodb.send(new QueryCommand({
+            TableName: this.tableName,
+            KeyConditionExpression: 'PK = :pk AND begins_with(SK, :status)',
+            FilterExpression: 'id = :emailId',
+            ExpressionAttributeValues: {
+              ':pk': this._getPK(userId, agentId),
+              ':status': `${newStatus}#`,
+              ':emailId': emailId
+            }
+          }));
+
+          if (alreadyDoneResponse.Items && alreadyDoneResponse.Items.length > 0) {
+            console.log(`✅ [UPDATE EMAIL STATUS] Email ${emailId} already in ${newStatus} status (idempotent retry) — returning existing record`);
+            return alreadyDoneResponse.Items[0];
+          }
+
           console.error(`❌ [UPDATE EMAIL STATUS] Email ${emailId} not found with status ${oldStatus}`);
           throw new Error(`Email ${emailId} not found with status ${oldStatus}`);
         }

@@ -102,6 +102,50 @@ function buildScheduledSendEmailHTML({ agentName, recipient, subject, scheduledA
 </body></html>`;
 }
 
+function buildBatchScheduledHTML({ agentName, sentResults, appUrl }) {
+  const count = sentResults.length;
+  const rows = sentResults.slice(0, 5).map(r => {
+    const name = r.approvedEmail?.leadDetails?.personInfo?.fullName || r.approvedEmail?.leadData?.name || '';
+    const company = r.approvedEmail?.leadDetails?.companyName || r.approvedEmail?.leadData?.company || '';
+    return `<tr>
+      <td style="padding:10px 16px;border-bottom:1px solid #27272a;">
+        <span style="color:#e4e4e7;font-size:13px;font-weight:500;">${name}</span>
+        ${company ? `<span style="color:#71717a;font-size:12px;"> &middot; ${company}</span>` : ''}
+      </td>
+      <td style="padding:10px 16px;border-bottom:1px solid #27272a;text-align:right;">
+        <span style="color:#71717a;font-size:12px;">${r.to}</span>
+      </td>
+    </tr>`;
+  }).join('');
+  const overflow = sentResults.length > 5
+    ? `<tr><td colspan="2" style="padding:10px 16px;color:#71717a;font-size:12px;text-align:center;">+ ${sentResults.length - 5} more</td></tr>`
+    : '';
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#09090b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 20px;">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#18181b;border-radius:16px;overflow:hidden;border:1px solid #27272a;">
+  <tr><td style="background:linear-gradient(90deg,#6366f1,#8b5cf6,#a855f7);height:3px;font-size:0;">&nbsp;</td></tr>
+  <tr><td style="padding:32px 40px 20px;">
+    <table width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td><span style="color:#71717a;font-size:13px;font-weight:600;letter-spacing:0.06em;">MERIDIAN</span></td>
+      <td align="right"><span style="background:#16a34a22;color:#4ade80;font-size:11px;font-weight:700;padding:5px 12px;border-radius:999px;border:1px solid #4ade8044;">&#x2713; SCHEDULED SENT</span></td>
+    </tr></table>
+  </td></tr>
+  <tr><td style="padding:0 40px 24px;">
+    <h1 style="margin:0 0 8px;font-size:30px;font-weight:700;color:#fafafa;">&#x1F4C5; ${count} emails sent</h1>
+    <p style="margin:0;color:#71717a;font-size:15px;">Your agent <strong style="color:#a1a1aa;">${agentName}</strong> sent ${count} scheduled emails.</p>
+  </td></tr>
+  <tr><td style="padding:0 40px 28px;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #27272a;border-radius:10px;border-collapse:collapse;overflow:hidden;">
+      ${rows}${overflow}
+    </table>
+  </td></tr>
+  <tr><td style="padding:4px 40px 32px;">
+    <a href="${appUrl}/email-queue" style="display:inline-block;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;text-decoration:none;font-size:14px;font-weight:600;padding:13px 28px;border-radius:10px;">View Email Queue &rarr;</a>
+  </td></tr>
+</table></td></tr></table></body></html>`;
+}
+
 class EmailScheduler {
   constructor() {
     this.checkInterval = null;
@@ -162,8 +206,28 @@ class EmailScheduler {
         console.log(`   → id=${e.emailId || e.id} scheduledAt=${e.scheduledAt} userId=${e.userId} agentId=${e.agentId}`);
       }
 
+      // Group by userId+agentId so we can batch notifications
+      const sentByAgent = {}; // key: `${userId}#${agentId}`
+
       for (const email of scheduledEmails) {
-        await this.sendScheduledEmail(email);
+        const result = await this.sendScheduledEmail(email);
+        if (result?.success) {
+          const key = `${email.userId}#${email.agentId}`;
+          if (!sentByAgent[key]) sentByAgent[key] = { userId: email.userId, agentId: email.agentId, emails: [] };
+          sentByAgent[key].emails.push(result);
+        }
+        // Stagger DynamoDB writes to avoid ProvisionedThroughputExceededException when many
+        // emails fire at the same scheduled time (e.g. 9 emails all due at 5:15 PM)
+        await new Promise(r => setTimeout(r, 350));
+      }
+
+      // Send one batched notification per agent
+      for (const { userId, agentId, emails } of Object.values(sentByAgent)) {
+        try {
+          await this.notifyBatchScheduled(userId, agentId, emails);
+        } catch (err) {
+          console.warn(`[EMAIL SCHEDULER] ⚠️ Batch notification failed for agent ${agentId}:`, err.message);
+        }
       }
       
       console.log('✅ [EMAIL SCHEDULER] Check complete');
@@ -254,58 +318,17 @@ class EmailScheduler {
           threadId:   sendResult.result?.threadId  || null,
         });
         console.log(`✅ [EMAIL SCHEDULER] Sent ${emailId} → ${finalRecipient}`);
-
-        // Fire notification (non-fatal)
-        try {
-          const agentSettings = await this.awsManager.getLeadAgentSettings(userId, agentId).catch(() => null);
-          const agentName = agentSettings?.name || approvedEmail.agentName || 'Agent';
-          const userSettings = await this.awsManager.getUserSettings(userId).catch(() => null);
-          const user = await this.awsManager.getUserById(userId).catch(() => null);
-          const toEmail = user?.email || userSettings?.email || null;
-          const notifPrefs = userSettings?.preferences?.notifPrefs || {};
-
-          // In-app notification
-          await this.awsManager.addIssue(
-            userId, 'scheduled_send',
-            `📅 ${agentName}: 1 email sent (scheduled)`,
-            `Agent "${agentName}" sent a manually-scheduled email to ${finalRecipient}.`,
-            { severity: 'low', agentId, agentName, emailCount: 1 }
-          );
-
-          // Email notification (unless explicitly disabled)
-          if (notifPrefs.emailNotifications !== false && toEmail) {
-            const appUrl = process.env.FRONTEND_URL || 'https://app.meridianai.co';
-            const html = buildScheduledSendEmailHTML({
-              agentName,
-              recipient: {
-                name: approvedEmail.leadDetails?.personInfo?.fullName || approvedEmail.leadData?.name || '',
-                company: approvedEmail.leadDetails?.companyName || approvedEmail.leadData?.company || '',
-                to: finalRecipient,
-              },
-              subject: finalSubject,
-              scheduledAt,
-              appUrl,
-            });
-            await sendSystemEmail(
-              toEmail,
-              `📅 ${agentName}: scheduled email sent`,
-              html
-            );
-          }
-
-          // SMS notification (opt-in: only fires when phone + smsEnabled set)
-          if (notifPrefs.smsEnabled && notifPrefs.phone) {
-            const appUrl = process.env.FRONTEND_URL || 'https://app.meridianai.co';
-            await sendSMS(
-              notifPrefs.phone,
-              `Meridian: "${agentName}" sent a scheduled email to ${finalRecipient}. ${appUrl}/email-queue`
-            );
-          }
-        } catch (notifErr) {
-          console.warn(`[EMAIL SCHEDULER] ⚠️ Notification failed (non-fatal):`, notifErr.message);
-        }
+        return {
+          success: true,
+          emailId,
+          to: finalRecipient,
+          subject: finalSubject,
+          scheduledAt,
+          approvedEmail,
+        };
       } else {
         console.error(`❌ [EMAIL SCHEDULER] Send failed for ${emailId}:`, sendResult.error);
+        return { success: false };
       }
 
     } catch (error) {
@@ -321,6 +344,70 @@ class EmailScheduler {
       console.error(`❌ [EMAIL SCHEDULER] Stack:`, error.stack);
     } finally {
       this.processingEmails.delete(emailId);
+    }
+    return { success: false };
+  }
+
+  // Send one batched notification for all scheduled emails that fired in this tick for a single agent
+  async notifyBatchScheduled(userId, agentId, sentResults) {
+    const count = sentResults.length;
+    const agentSettings = await this.awsManager.getLeadAgentSettings(userId, agentId).catch(() => null);
+    const agentName = agentSettings?.name || 'Agent';
+    const userSettings = await this.awsManager.getUserSettings(userId).catch(() => null);
+    const user = await this.awsManager.getUserById(userId).catch(() => null);
+    const toEmail = user?.email || userSettings?.email || null;
+    const notifPrefs = userSettings?.preferences?.notifPrefs || {};
+    const appUrl = process.env.FRONTEND_URL || 'https://app.meridianai.co';
+
+    // In-app notification (one entry)
+    await this.awsManager.addIssue(
+      userId, 'scheduled_send',
+      `\u{1F4C5} ${agentName}: ${count} scheduled email${count !== 1 ? 's' : ''} sent`,
+      `Agent \u201C${agentName}\u201D sent ${count} scheduled email${count !== 1 ? 's' : ''}.`,
+      { severity: 'low', agentId, agentName, emailCount: count }
+    );
+
+    // SSE broadcast
+    try {
+      const { broadcastNotification } = await import('../routes/monitoring.js');
+      broadcastNotification(userId, {
+        title:   `\u{1F4C5} ${agentName}: ${count} scheduled email${count !== 1 ? 's' : ''} sent`,
+        message: `${count} scheduled email${count !== 1 ? 's' : ''} delivered`,
+        agentName, agentId,
+      });
+    } catch { /* non-fatal */ }
+
+    // Email notification (one email, lists all recipients)
+    if (notifPrefs.emailNotifications !== false && toEmail) {
+      // Use first email's scheduledAt for the timestamp; list all recipients
+      const first = sentResults[0];
+      const html = count === 1
+        ? buildScheduledSendEmailHTML({
+            agentName,
+            recipient: {
+              name: first.approvedEmail?.leadDetails?.personInfo?.fullName || first.approvedEmail?.leadData?.name || '',
+              company: first.approvedEmail?.leadDetails?.companyName || first.approvedEmail?.leadData?.company || '',
+              to: first.to,
+            },
+            subject: first.subject,
+            scheduledAt: first.scheduledAt,
+            appUrl,
+          })
+        : buildBatchScheduledHTML({ agentName, sentResults, appUrl });
+
+      await sendSystemEmail(
+        toEmail,
+        `\u{1F4C5} ${agentName}: ${count} scheduled email${count !== 1 ? 's' : ''} sent`,
+        html
+      );
+    }
+
+    // SMS
+    if (notifPrefs.smsEnabled && notifPrefs.phone) {
+      await sendSMS(
+        notifPrefs.phone,
+        `Meridian: \u201C${agentName}\u201D sent ${count} scheduled email${count !== 1 ? 's' : ''}. ${appUrl}/email-queue`
+      );
     }
   }
   

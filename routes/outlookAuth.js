@@ -415,8 +415,31 @@ router.post('/disconnect', authenticateToken, async (req, res) => {
       activeOutlookIndex: activeIndex
     });
 
+    // Revert any agents that were using Outlook back to Mailgun
+    const revertedAgents = [];
+    try {
+      const userData = await awsManager.getUserById(userId);
+      const agents = userData?.activeAgents || [];
+      for (const agent of agents) {
+        try {
+          const agentSettings = await awsManager.getLeadAgentSettings(userId, agent.agentId);
+          if (agentSettings?.emailBuilder?.useOutlook === true) {
+            await awsManager.saveLeadAgentSettings(userId, agent.agentId, {
+              ...agentSettings,
+              emailBuilder: { ...agentSettings.emailBuilder, useOutlook: false }
+            });
+            revertedAgents.push({ agentId: agent.agentId, name: agentSettings.name || agentSettings.agentName || agent.agentId });
+          }
+        } catch (e) {
+          console.error(`[OUTLOOK AUTH] Failed to revert agent ${agent.agentId}:`, e.message);
+        }
+      }
+    } catch (e) {
+      console.error('[OUTLOOK AUTH] Failed to revert agents:', e.message);
+    }
+
     console.log(`✅ [OUTLOOK AUTH] Disconnected ${email} for user ${userId}`);
-    res.json({ success: true });
+    res.json({ success: true, revertedAgents });
   } catch (error) {
     console.error('❌ [OUTLOOK AUTH] Disconnect error:', error);
     res.status(500).json({ error: 'Failed to disconnect Outlook account' });
