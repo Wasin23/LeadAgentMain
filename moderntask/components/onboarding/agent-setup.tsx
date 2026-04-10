@@ -286,6 +286,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
         templates: settings.useTemplate && settings.templateBody.trim()
           ? [{ id: `tpl_${Date.now()}`, name: 'Default', subject: settings.templateSubject.trim(), body: settings.templateBody.trim() }]
           : [],
+        useTemplates: !!(settings.useTemplate && settings.templateBody.trim()),
         specialInstructions
       })
       if (!presetRes.data.success) throw new Error('Failed to create preset')
@@ -312,7 +313,8 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
           ccEmails: cp.ccEmails, bccEmails: cp.bccEmails,
           followupIntervalDays: cp.followupIntervalDays, enableAutoResponse: cp.enableAutoResponse,
           useCustomSignature: cp.useCustomSignature, signatureName: cp.signatureName, signatureTitle: cp.signatureTitle,
-          templates: cp.templates || []
+          templates: cp.templates || [],
+          useTemplates: cp.useTemplates ?? false
         }
       })
       if (agentRes.data.success) {

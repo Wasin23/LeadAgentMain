@@ -715,10 +715,19 @@ function RebuildModal({ email, onSave, onClose }: {
         try {
           const settingsRes = await api.get(`/api/lead-agent/settings?agentId=${email.agentId}`)
           const s = settingsRes.data.settings || {}
-          const existing = s.customPrompt || s.emailBuilder?.customPrompt || ''
+          // Match the same read path the settings page uses
+          const e = (s.emailSettings || s.emailBuilder || s) as Record<string, any>
+          const existing = e.customPrompt || e.emailBuilder?.customPrompt || ''
           const merged = existing ? `${existing}\n${instruction.trim()}` : instruction.trim()
-          await api.post('/api/lead-agent/settings', { ...s, agentId: email.agentId, customPrompt: merged, emailBuilder: { ...(s.emailBuilder || {}), customPrompt: merged } })
-        } catch { /* non-fatal */ }
+          await api.post('/api/lead-agent/settings', {
+            ...s,
+            agentId: email.agentId,
+            emailBuilder: { ...(s.emailBuilder || {}), customPrompt: merged },
+          })
+        } catch (err) {
+          console.error('[REBUILD] Failed to save writing rule:', err)
+          setError('Rebuild done, but failed to save writing rule.')
+        }
       }
       await onSave(email.id, fields.to, fields.cc, fields.bcc, res.data.subject, res.data.body, email.agentId)
       onClose()

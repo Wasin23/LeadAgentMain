@@ -4390,7 +4390,8 @@ Format as:
       // 📄 TEMPLATE MODE: Skip AI generation, fill merge tags
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       const agentTemplates = emailSettings.emailBuilder?.templates || emailSettings.templates || [];
-      if (agentTemplates.length > 0) {
+      const useTemplates = emailSettings.emailBuilder?.useTemplates ?? emailSettings.useTemplates ?? false;
+      if (useTemplates && agentTemplates.length > 0) {
         // Pick template — rotate by a hash of the lead email so it's stable per lead
         const hashIndex = leadData.email
           ? leadData.email.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) % agentTemplates.length

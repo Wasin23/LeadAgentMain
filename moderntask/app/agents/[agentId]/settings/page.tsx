@@ -82,6 +82,7 @@ interface AgentSettings {
     signatureName: string; signatureTitle: string;
     useGmail: boolean; useOutlook: boolean;
     templates: Array<{ id: string; name: string; subject: string; body: string }>;
+    useTemplates: boolean;
   };
 }
 
@@ -104,7 +105,7 @@ const defaultSettings: AgentSettings = {
   geographicSettings: { targetLocations: ['United States'], excludedLocations: [], leadLimit: 50, timezone: 'America/New_York' },
   concurrencyLevel: 1,
   researchFocus: { focusAreas: [], researchDepth: 'standard', includeCompanyNews: true, includePersonalInfo: false, includeSocialMedia: false },
-  emailBuilder: { emailTemplate: 'professional', customPrompt: '', emailResponsePrompt: '', tone: 'professional', length: 'medium', callToAction: 'meeting', personalization: 'high', ccEmails: '', bccEmails: '', enableAutoResponse: false, rebumpIntervalDays: 3, useCustomSignature: false, signatureName: '', signatureTitle: '', useGmail: false, useOutlook: false, templates: [] }
+  emailBuilder: { emailTemplate: 'professional', customPrompt: '', emailResponsePrompt: '', tone: 'professional', length: 'medium', callToAction: 'meeting', personalization: 'high', ccEmails: '', bccEmails: '', enableAutoResponse: false, rebumpIntervalDays: 3, useCustomSignature: false, signatureName: '', signatureTitle: '', useGmail: false, useOutlook: false, templates: [], useTemplates: false }
 };
 
 // ─────────────────────────────────────────────────────
@@ -583,6 +584,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
             useGmail: e.useGmail ?? e.emailBuilder?.useGmail ?? false,
             useOutlook: e.useOutlook ?? e.emailBuilder?.useOutlook ?? false,
             templates: e.templates || e.emailBuilder?.templates || [],
+            useTemplates: e.useTemplates ?? e.emailBuilder?.useTemplates ?? false,
           },
         };
         setSettings(loaded);
@@ -1014,12 +1016,20 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
           <Section
             title="Email Templates"
             description="Pre-written email bodies the agent uses instead of generating from scratch"
-            badge={settings.emailBuilder.templates?.length ? `${settings.emailBuilder.templates.length} template${settings.emailBuilder.templates.length === 1 ? '' : 's'}` : undefined}
+            badge={settings.emailBuilder.useTemplates ? (settings.emailBuilder.templates?.length ? `${settings.emailBuilder.templates.length} active` : 'on — no templates') : (settings.emailBuilder.templates?.length ? `${settings.emailBuilder.templates.length} saved (off)` : undefined)}
           >
-            <TemplateEditor
-              templates={settings.emailBuilder.templates || []}
-              onChange={tpls => updateEmail('templates', tpls)}
-            />
+            <div className="mt-4 space-y-4">
+              <ToggleRow
+                label="Use templates instead of AI generation"
+                checked={!!settings.emailBuilder.useTemplates}
+                onChange={v => updateEmail('useTemplates', v)}
+                description="When on, the agent fills your template bodies instead of writing emails from scratch. Writing Rules are ignored in template mode."
+              />
+              <TemplateEditor
+                templates={settings.emailBuilder.templates || []}
+                onChange={tpls => updateEmail('templates', tpls)}
+              />
+            </div>
           </Section>
 
           {/* Email Settings */}

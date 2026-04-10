@@ -1156,6 +1156,7 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
         useGmail: useGmail !== undefined ? useGmail : (userSettings?.preferences?.defaultUseGmail || agentSettings.emailBuilder?.useGmail || false),
         useOutlook: useOutlook !== undefined ? useOutlook : (userSettings?.preferences?.defaultUseOutlook || agentSettings.emailBuilder?.useOutlook || false),
         templates: preset.templates || agentSettings.emailBuilder?.templates || [],
+        useTemplates: preset.useTemplates ?? agentSettings.emailBuilder?.useTemplates ?? false,
         // Merge preset writingRules into customPrompt so the agent reads it every build
         customPrompt: (() => {
           const base = agentSettings.emailBuilder?.customPrompt || '';
