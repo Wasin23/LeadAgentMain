@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react"
 import { X, Sparkles, Check, Plus, Loader2 } from "lucide-react"
 import api from "@/lib/api"
+import { PaymentHistorySection } from "./payment-history-section"
 
 interface CreditPurchaseModalProps {
   onClose: () => void
@@ -329,6 +330,11 @@ export function CreditPurchaseModal({
           <p className="text-center text-xs text-muted-foreground mt-3">
             Secure payment processed by Stripe. Credits added instantly to your account.
           </p>
+
+          {/* Payment History */}
+          <div className="mt-8 border-t pt-6">
+            <PaymentHistorySection />
+          </div>
         </div>
       </div>
     </div>

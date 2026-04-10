@@ -5,11 +5,12 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { loadStripe } from "@stripe/stripe-js"
 import { Elements, CardElement, useStripe, useElements, PaymentRequestButtonElement } from "@stripe/react-stripe-js"
 import type { PaymentRequest } from "@stripe/stripe-js"
-import { DollarSign, CheckCircle, XCircle, RefreshCw, Calendar, CreditCard, Plus, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, Zap, Mail, TrendingDown, AlertTriangle, Gift, Lock, Bot, Users, RefreshCcw } from "lucide-react"
+import { Calendar, CreditCard, Plus, Trash2, Loader2, Sparkles, ChevronDown, ChevronUp, Zap, Mail, TrendingDown, AlertTriangle, Gift, Lock, Users, RefreshCcw } from "lucide-react"
 import api from "@/lib/api"
 import { fetchDisplayedCreditData } from "@/lib/credit-balance"
 import { useToast } from "@/hooks/use-toast"
 import { CreditPurchaseModal } from "./credit-purchase-modal"
+import { PaymentHistorySection } from "./payment-history-section"
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "")
 
@@ -22,18 +23,6 @@ interface PaymentMethod {
   expMonth: number
   expYear: number
   isDefault: boolean
-}
-
-interface Payment {
-  paymentId: string
-  timestamp: string
-  amount: number
-  status: "success" | "failed" | "refunded"
-  currency: string
-  stripePaymentIntentId?: string
-  billingPeriod: string
-  description: string
-  errorMessage?: string
 }
 
 interface ApiUsageStats {
@@ -178,42 +167,34 @@ function AddCardForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4">
       {/* Wallet Pay (Apple Pay / Google Pay) */}
       <WalletPayButton onSuccess={onSuccess} />
 
-      {/* Secure badge */}
-      <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground bg-muted rounded-lg py-2 px-4 border">
-        <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-        </svg>
-        <span>Secure payment powered by <strong>Stripe</strong></span>
-      </div>
-
       {/* Cardholder name */}
-      <div>
-        <label className="block text-sm font-medium mb-2">Cardholder Name</label>
+      <div className="space-y-1.5">
+        <label className="block text-sm font-medium">Name on card</label>
         <input
           type="text"
           value={cardholderName}
           onChange={(e) => setCardholderName(e.target.value)}
-          placeholder="John Doe"
+          placeholder="Full name"
           required
-          className="w-full px-3 py-2.5 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          className="w-full px-3 py-2.5 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring transition"
         />
       </div>
 
       {/* Card element */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <label className="text-sm font-medium">Card Information</label>
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-medium">Card details</label>
           <div className="flex items-center gap-1.5">
-            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAzMiAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjIwIiByeD0iMiIgZmlsbD0iIzAwNTJGRiIvPgo8Y2lyY2xlIGN4PSIxMiIgY3k9IjEwIiByPSI1IiBmaWxsPSIjRUIwMDFCIi8+CjxjaXJjbGUgY3g9IjIwIiBjeT0iMTAiIHI9IjUiIGZpbGw9IiNGRjVGMDAiLz4KPC9zdmc+" alt="Mastercard" className="h-5 w-auto" />
-            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAzMiAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjIwIiByeD0iMiIgZmlsbD0iIzFBMUY3MSIvPgo8dGV4dCB4PSI1IiB5PSIxNCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSI+VklTQTwvdGV4dD4KPC9zdmc+" alt="Visa" className="h-5 w-auto" />
-            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAzMiAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjIwIiByeD0iMiIgZmlsbD0iIzAwNzlDMSIvPgo8dGV4dCB4PSI0IiB5PSIxNCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjciIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSI+QU1FWDwvdGV4dD4KPC9zdmc+" alt="Amex" className="h-5 w-auto" />
+            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAzMiAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjIwIiByeD0iMiIgZmlsbD0iIzAwNTJGRiIvPgo8Y2lyY2xlIGN4PSIxMiIgY3k9IjEwIiByPSI1IiBmaWxsPSIjRUIwMDFCIi8+CjxjaXJjbGUgY3g9IjIwIiBjeT0iMTAiIHI9IjUiIGZpbGw9IiNGRjVGMDAiLz4KPC9zdmc+" alt="Mastercard" className="h-4 w-auto opacity-80" />
+            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAzMiAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjIwIiByeD0iMiIgZmlsbD0iIzFBMUY3MSIvPgo8dGV4dCB4PSI1IiB5PSIxNCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjgiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSI+VklTQTwvdGV4dD4KPC9zdmc+" alt="Visa" className="h-4 w-auto opacity-80" />
+            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAzMiAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjIwIiByeD0iMiIgZmlsbD0iIzAwNzlDMSIvPgo8dGV4dCB4PSI0IiB5PSIxNCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjciIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSJ3aGl0ZSI+QU1FWDwvdGV4dD4KPC9zdmc+" alt="Amex" className="h-4 w-auto opacity-80" />
           </div>
         </div>
-        <div className="p-3.5 rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring">
+        <div className="px-3 py-3 rounded-lg border border-input bg-background focus-within:ring-2 focus-within:ring-ring transition">
           <CardElement
             onReady={() => setCardReady(true)}
             onChange={(e) => setError(e.error?.message ?? null)}
@@ -230,180 +211,46 @@ function AddCardForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
             }}
           />
         </div>
-        <p className="text-xs text-muted-foreground mt-1.5">Card number, expiration date, and CVC all appear in this field</p>
       </div>
 
       {error && (
-        <div className="flex items-start gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/30">
+        <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30">
           <XCircle className="w-4 h-4 text-destructive flex-shrink-0 mt-0.5" />
           <p className="text-sm text-destructive">{error}</p>
         </div>
       )}
 
-      <div className="flex gap-3 pt-1">
-        <button
-          type="submit"
-          disabled={!stripe || !elements || loading || !cardholderName.trim() || !cardReady || !clientSecret}
-          className="flex-1 flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-sm transition-colors"
-        >
-          {loading ? (
-            <><Loader2 className="w-4 h-4 animate-spin" />Processing...</>
-          ) : !clientSecret ? (
-            <><Loader2 className="w-4 h-4 animate-spin" />Loading...</>
-          ) : (
-            <><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>Add Card Securely</>
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={loading}
-          className="px-5 py-2.5 border border-input rounded-lg text-sm font-medium hover:bg-accent transition-colors disabled:opacity-50"
-        >
-          Cancel
-        </button>
-      </div>
+      {/* Submit */}
+      <button
+        type="submit"
+        disabled={!stripe || !elements || loading || !cardholderName.trim() || !cardReady || !clientSecret}
+        className="w-full flex items-center justify-center gap-2 py-3 bg-primary text-primary-foreground rounded-lg font-semibold text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition"
+      >
+        {loading ? (
+          <><Loader2 className="w-4 h-4 animate-spin" />Processing...</>
+        ) : !clientSecret ? (
+          <><Loader2 className="w-4 h-4 animate-spin" />Loading...</>
+        ) : (
+          "Save Card"
+        )}
+      </button>
 
-      <div className="rounded-md border bg-muted/40 p-4">
-        <div className="flex items-start gap-3">
-          <svg className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-          </svg>
-          <div className="text-xs text-muted-foreground space-y-1">
-            <p className="font-medium text-foreground">Your payment is secure</p>
-            <p>• Industry-standard encryption</p>
-            <p>• Stripe handles all card data securely</p>
-            <p>• We never store your full card number</p>
-            <p>• PCI DSS Level 1 certified</p>
-          </div>
-        </div>
+      {/* Cancel */}
+      <button
+        type="button"
+        onClick={onCancel}
+        disabled={loading}
+        className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition disabled:opacity-50"
+      >
+        Cancel
+      </button>
+
+      {/* Powered by Stripe */}
+      <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground pt-1">
+        <Lock className="w-3 h-3" />
+        <span>Secured by <strong>Stripe</strong></span>
       </div>
     </form>
-  )
-}
-
-// ── Payment History ───────────────────────────────────────────────────────────
-
-function PaymentHistorySection() {
-  const [payments, setPayments] = useState<Payment[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [filter, setFilter] = useState<"all" | "success" | "failed">("all")
-
-  useEffect(() => {
-    fetchPaymentData()
-  }, [])
-
-  const fetchPaymentData = async () => {
-    setLoading(true); setError(null)
-    try {
-      const { data } = await api.get("/api/billing/payment-history?limit=50")
-      setPayments(data.payments || [])
-    } catch (err: any) {
-      setError(err.response?.data?.error || err.message || "Failed to load payment data")
-    } finally { setLoading(false) }
-  }
-
-  const fmt = (amount: number, currency = "USD") =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency }).format(amount)
-
-  const fmtDate = (d: string) => new Date(d).toLocaleDateString("en-US", {
-    year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
-  })
-
-  const filteredPayments = payments.filter(p => filter === "all" || p.status === filter)
-
-  if (loading) return (
-    <div className="flex items-center justify-center py-12">
-      <Loader2 className="w-7 h-7 animate-spin text-muted-foreground" />
-    </div>
-  )
-
-  if (error) return (
-    <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4">
-      <p className="text-sm text-destructive">{error}</p>
-      <button onClick={fetchPaymentData} className="mt-2 text-xs text-destructive underline">Try again</button>
-    </div>
-  )
-
-  return (
-    <div className="space-y-6 mt-8">
-      {/* Filter buttons */}
-      <div className="flex items-center gap-2">
-        {([["all", "All"], ["success", "Successful"], ["failed", "Failed"]] as const).map(([val, label]) => (
-          <button
-            key={val}
-            onClick={() => setFilter(val)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-              filter === val
-                ? val === "success" ? "bg-green-600 text-white" : val === "failed" ? "bg-red-600 text-white" : "bg-purple-600 text-white"
-                : "bg-muted text-muted-foreground hover:bg-accent"
-            }`}
-          >
-            {label} ({val === "all" ? payments.length : payments.filter(p => p.status === val).length})
-          </button>
-        ))}
-      </div>
-
-      {/* Payment table */}
-      {filteredPayments.length === 0 ? (
-        <div className="text-center py-12 rounded-lg border bg-muted/30">
-          <DollarSign className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">No purchases or payment attempts found</p>
-        </div>
-      ) : (
-        <div className="rounded-lg border overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-border">
-              <thead className="bg-muted/40">
-                <tr>
-                  {["Date", "Description", "Status", "Amount", "Details"].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {filteredPayments.map((p) => (
-                  <tr key={p.paymentId} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{fmtDate(p.timestamp)}</td>
-                    <td className="px-4 py-3 text-sm">
-                      <div className="flex items-center gap-2">
-                        {p.status === "success" ? <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" /> :
-                         p.status === "failed"  ? <XCircle className="w-4 h-4 text-red-500 flex-shrink-0" /> :
-                                                  <RefreshCw className="w-4 h-4 text-blue-500 flex-shrink-0" />}
-                        <div>
-                          <div className="text-sm">{p.description}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {new Date(p.billingPeriod).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                        p.status === "success" ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300" :
-                        p.status === "failed"  ? "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300" :
-                                                 "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
-                      }`}>
-                        {p.status.charAt(0).toUpperCase() + p.status.slice(1)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm font-medium whitespace-nowrap">{fmt(p.amount, p.currency)}</td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">
-                      {p.status === "failed" && p.errorMessage ? (
-                        <span className="text-red-500 max-w-xs truncate block" title={p.errorMessage}>{p.errorMessage}</span>
-                      ) : p.stripePaymentIntentId ? (
-                        <code className="bg-muted px-1.5 py-0.5 rounded text-xs">{p.stripePaymentIntentId.substring(0, 20)}…</code>
-                      ) : "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-    </div>
   )
 }
 
@@ -1143,8 +990,6 @@ function BillingTabInner() {
         )}
       </div>
 
-      {/* Payment History */}
-      <PaymentHistorySection />
     </div>
   )
 }
