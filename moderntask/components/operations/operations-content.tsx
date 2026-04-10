@@ -532,6 +532,15 @@ export function OperationsContent() {
                           ? <Square className="w-3.5 h-3.5" />
                           : <Play  className="w-3.5 h-3.5" />}
                     </button>
+
+                    {/* Settings */}
+                    <button
+                      onClick={() => router.push(`/agents/${agent.agentId}/settings`)}
+                      className="flex-shrink-0 p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+                      title="Agent settings"
+                    >
+                      <Settings className="w-3 h-3" />
+                    </button>
                   </div>
                 )
               })}

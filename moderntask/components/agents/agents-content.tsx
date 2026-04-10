@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import {
   Bot, Play, Square, Zap, Mail, MessageSquare, Clock, Cpu,
   ExternalLink, Trash2, Send, TrendingUp,
-  AlertCircle, CheckCircle2, PauseCircle, Plus, X
+  AlertCircle, CheckCircle2, PauseCircle, Plus, X, Settings
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -314,6 +314,17 @@ function AgentCard({
         >
           <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground">
             <ExternalLink className="w-3 h-3" /> Dashboard
+          </Button>
+        </a>
+
+        <a href={`/agents/${agent.agentId}/settings`}>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+            title="Agent settings"
+          >
+            <Settings className="w-3.5 h-3.5" />
           </Button>
         </a>
 
