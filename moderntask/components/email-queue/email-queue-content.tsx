@@ -706,13 +706,15 @@ function RebuildModal({ email, onSave, onClose }: {
     try {
       const settingsRes = await api.get(`/api/lead-agent/settings?agentId=${email.agentId}`)
       const s = settingsRes.data.settings || {}
-      const e = (s.emailSettings || s.emailBuilder || s) as Record<string, any>
+      // Strip GET-response wrapper keys to avoid polluting DynamoDB
+      const { userSettings: _us, emailSettings: _es, leadGeneration: _lg, ...cleanS } = s as Record<string, any>
+      const e = (s.emailSettings || s.emailBuilder || cleanS) as Record<string, any>
       const existing = e.customPrompt || e.emailBuilder?.customPrompt || ''
       const merged = existing ? `${existing}\n${instruction.trim()}` : instruction.trim()
       await api.post('/api/lead-agent/settings', {
-        ...s,
+        ...cleanS,
         agentId: email.agentId,
-        emailBuilder: { ...(s.emailBuilder || {}), customPrompt: merged },
+        emailBuilder: { ...(cleanS.emailBuilder || {}), customPrompt: merged },
       })
     } catch (err) {
       console.error('[REBUILD] Failed to save writing rule:', err)

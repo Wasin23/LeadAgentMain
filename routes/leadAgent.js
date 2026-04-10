@@ -519,13 +519,13 @@ router.get('/settings', async (req, res) => {
     res.json({
       success: true,
       settings: {
+        ...agentSettings,
         agentId,
         personality: agentSettings.personality, // Include personality data
         userSettings: agentSettings,
         emailSettings: agentSettings.emailBuilder || agentSettings,
         leadGeneration: agentSettings,
         emailBuilder: agentSettings.emailBuilder || agentSettings,
-        ...agentSettings
       },
       message: 'Agent settings loaded successfully'
     });
