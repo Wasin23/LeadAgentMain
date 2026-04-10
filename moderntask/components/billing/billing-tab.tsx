@@ -275,6 +275,13 @@ function BillingTabInner() {
   const [showAgentBreakdown, setShowAgentBreakdown] = useState(false)
   const [showCreditPurchaseModal, setShowCreditPurchaseModal] = useState(false)
   const [creditPurchaseMode, setCreditPurchaseMode] = useState<"upgrade" | "topup">("topup")
+
+  // Lock body scroll when any modal is open
+  useEffect(() => {
+    const anyOpen = showAddCard || showCreditPurchaseModal
+    document.body.style.overflow = anyOpen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [showAddCard, showCreditPurchaseModal])
   const [creditLoading, setCreditLoading] = useState(true)
 
   // Auto top-up
@@ -526,8 +533,11 @@ function BillingTabInner() {
         </div>
       )}
 
-      {/* ── Top Grid: Current Plan + Credits ── */}
+      {/* ── Main two-column layout ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+
+        {/* ── LEFT COLUMN ── */}
+        <div className="lg:col-span-2 space-y-6">
 
         {/* Current Plan */}
         <div className="rounded-xl border border-border bg-card p-6">
@@ -614,6 +624,127 @@ function BillingTabInner() {
           </div>
         </div>
 
+        {/* ── Auto Top-up ── */}
+        <div className="rounded-xl border border-border bg-card p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <RefreshCcw className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-semibold">Auto Top-up</span>
+                {autoTopupSaving && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />}
+              </div>
+              <p className="text-xs text-muted-foreground">Automatically buy more credits when your balance drops below a threshold. Prevents agents from going idle.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (!autoTopup.enabled && paymentMethods.length === 0) {
+                  toast({ title: 'No payment method', description: 'Add a card before enabling auto top-up.', variant: 'destructive', duration: 4000 })
+                  return
+                }
+                const updated = { ...autoTopup, enabled: !autoTopup.enabled }
+                setAutoTopup(updated)
+                saveAutoTopup(updated)
+              }}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none mt-0.5 ${autoTopup.enabled ? 'bg-primary' : paymentMethods.length === 0 ? 'bg-muted-foreground/15 cursor-not-allowed' : 'bg-muted-foreground/30'}`}
+            >
+              <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform duration-200 ${autoTopup.enabled ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
+          </div>
+          {autoTopup.enabled && (
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Trigger when balance falls below</label>
+                <select
+                  value={autoTopup.threshold}
+                  onChange={e => { const updated = { ...autoTopup, threshold: Number(e.target.value) }; setAutoTopup(updated); saveAutoTopup(updated) }}
+                  className="w-full text-sm border border-input rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+                >
+                  {[25, 50, 100, 200, 500].map(v => (
+                    <option key={v} value={v}>{v} credits</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Top-up amount</label>
+                <select
+                  value={autoTopup.tierId}
+                  onChange={e => { const updated = { ...autoTopup, tierId: e.target.value }; setAutoTopup(updated); saveAutoTopup(updated) }}
+                  className="w-full text-sm border border-input rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+                >
+                  <option value="mini">Mini — 100 credits ($10)</option>
+                  <option value="small">Small — 550 credits ($50)</option>
+                  <option value="medium">Medium — 1,150 credits ($100)</option>
+                  <option value="bulk">Bulk — 3,000 credits ($250)</option>
+                </select>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Payment Methods ── */}
+        <section id="payment-methods-section">
+          <h2 className="text-base font-semibold mb-4">Payment Methods</h2>
+          {error && (
+            <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive mb-4">{error}</div>
+          )}
+          <div className="flex flex-wrap gap-4 items-start">
+            {paymentMethods.map((pm) => {
+              const isExpired = pm.expYear < new Date().getFullYear() || (pm.expYear === new Date().getFullYear() && pm.expMonth < new Date().getMonth() + 1)
+              const brandBg: Record<string, string> = {
+                mastercard: 'bg-gradient-to-br from-gray-900 to-gray-700',
+                visa:       'bg-gradient-to-br from-[#1a1f71] to-[#2d35a8]',
+                amex:       'bg-gradient-to-br from-[#007ac1] to-[#005a8e]',
+                discover:   'bg-gradient-to-br from-[#f76f20] to-[#e55c00]',
+              }
+              const bg = brandBg[pm.brand?.toLowerCase()] ?? 'bg-gradient-to-br from-gray-600 to-gray-800'
+              return (
+                <div key={pm.id} className="flex flex-col gap-2">
+                  <div className={`${bg} rounded-xl w-48 h-28 p-4 flex flex-col justify-between shadow-sm relative`}>
+                    {pm.isDefault && (
+                      <span className="absolute top-2 right-2 text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded-full font-medium">Default</span>
+                    )}
+                    <span className="text-white/70 text-xs font-medium capitalize">{pm.brand}</span>
+                    <div>
+                      <p className="text-white text-sm tracking-widest font-mono">•••• {pm.last4}</p>
+                      <p className="text-white/60 text-xs mt-0.5">
+                        {isExpired ? <span className="text-red-300">Expired</span> : `Expires ${pm.expMonth}/${pm.expYear}`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 px-1 text-xs">
+                    {pm.isDefault
+                      ? <span className="text-muted-foreground">✓ Default</span>
+                      : <button onClick={() => handleSetDefault(pm.id)} className="text-primary hover:underline font-medium">Make Default</button>
+                    }
+                    <span className="text-border select-none">|</span>
+                    <button onClick={() => handleRemoveCard(pm.id)} className="text-muted-foreground hover:text-destructive transition-colors">Remove</button>
+                  </div>
+                </div>
+              )
+            })}
+            <button
+              onClick={() => setShowAddCard(true)}
+              className="w-48 h-28 rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-muted/40 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground transition-all"
+            >
+              <Plus className="w-6 h-6" />
+              <span className="text-xs font-medium">Add a new card</span>
+            </button>
+          </div>
+        </section>
+
+        {/* ── Order History ── */}
+        <section>
+          <h2 className="text-base font-semibold mb-1">Order History</h2>
+          <p className="text-xs text-muted-foreground mb-4">Your charges from plan upgrades and credit purchases.</p>
+          <PaymentHistorySection />
+        </section>
+
+</div> {/* end left column */}
+
+        {/* ── RIGHT COLUMN ── */}
+        <div className="space-y-6">
+
         {/* Credits & Usage */}
         <div className="rounded-xl border border-border bg-card p-6">
           <h2 className="text-base font-semibold mb-5">Credits & Usage</h2>
@@ -661,210 +792,76 @@ function BillingTabInner() {
             </button>
           </div>
         </div>
-      </div>
 
-      {/* ── Auto Top-up ── */}
-      <div className="rounded-xl border border-border bg-card p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <RefreshCcw className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm font-semibold">Auto Top-up</span>
-              {autoTopupSaving && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />}
-            </div>
-            <p className="text-xs text-muted-foreground">Automatically buy more credits when your balance drops below a threshold. Prevents agents from going idle.</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              if (!autoTopup.enabled && paymentMethods.length === 0) {
-                toast({ title: 'No payment method', description: 'Add a card before enabling auto top-up.', variant: 'destructive', duration: 4000 })
-                return
-              }
-              const updated = { ...autoTopup, enabled: !autoTopup.enabled }
-              setAutoTopup(updated)
-              saveAutoTopup(updated)
-            }}
-            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none mt-0.5 ${autoTopup.enabled ? 'bg-primary' : paymentMethods.length === 0 ? 'bg-muted-foreground/15 cursor-not-allowed' : 'bg-muted-foreground/30'}`}
-          >
-            <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-transform duration-200 ${autoTopup.enabled ? 'translate-x-5' : 'translate-x-0'}`} />
-          </button>
-        </div>
-        {autoTopup.enabled && (
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Trigger when balance falls below</label>
-              <select
-                value={autoTopup.threshold}
-                onChange={e => { const updated = { ...autoTopup, threshold: Number(e.target.value) }; setAutoTopup(updated); saveAutoTopup(updated) }}
-                className="w-full text-sm border border-input rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
-              >
-                {[25, 50, 100, 200, 500].map(v => (
-                  <option key={v} value={v}>{v} credits</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Top-up amount</label>
-              <select
-                value={autoTopup.tierId}
-                onChange={e => { const updated = { ...autoTopup, tierId: e.target.value }; setAutoTopup(updated); saveAutoTopup(updated) }}
-                className="w-full text-sm border border-input rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
-              >
-                <option value="mini">Mini — 100 credits ($10)</option>
-                <option value="small">Small — 550 credits ($50)</option>
-                <option value="medium">Medium — 1,150 credits ($100)</option>
-                <option value="bulk">Bulk — 3,000 credits ($250)</option>
-              </select>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── Cost Breakdown Accordion ── */}
-      <div className="rounded-xl border bg-card overflow-hidden">
-        <button
-          onClick={() => setShowCostBreakdown(!showCostBreakdown)}
-          className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/40 transition-colors text-left"
-        >
-          <div className="flex items-center gap-2">
+        {/* ── API Cost Breakdown (static) ── */}
+        <div className="rounded-xl border bg-card p-5">
+          <div className="flex items-center gap-2 mb-4">
             <TrendingDown className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-semibold">API Cost Breakdown</span>
+            <h2 className="text-sm font-semibold">API Cost Breakdown</h2>
             {!creditLoading && (
-              <span className="text-xs text-muted-foreground ml-1">
+              <span className="text-xs text-muted-foreground ml-auto">
                 ${((apiStats.apollo?.cost ?? 0) + (apiStats.openai?.cost ?? 0) + (apiStats.mailgun?.cost ?? 0) + (apiStats.zerobounce?.cost ?? 0) + (apiStats.serper?.cost ?? 0)).toFixed(2)} total
               </span>
             )}
           </div>
-          {showCostBreakdown ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-        </button>
-        {showCostBreakdown && (
-          <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="divide-y divide-border text-sm">
             {[
-              { label: "Apollo (lead sourcing)",  cost: apiStats.apollo?.cost ?? 0,     detail: `${(apiStats.apollo?.calls ?? 0).toLocaleString()} lead lookups` },
-              { label: "OpenAI (AI writing)",     cost: apiStats.openai?.cost ?? 0,     detail: `${((apiStats.openai?.tokens ?? 0) / 1000).toFixed(1)}k tokens` },
-              { label: "Mailgun (email sending)", cost: apiStats.mailgun?.cost ?? 0,    detail: `${(apiStats.mailgun?.sent ?? 0).toLocaleString()} emails sent` },
-              { label: "Email Validation",        cost: apiStats.zerobounce?.cost ?? 0, detail: `${(apiStats.zerobounce?.validations ?? 0).toLocaleString()} addresses checked` },
-              { label: "Web Research (Serper)",   cost: apiStats.serper?.cost ?? 0,     detail: `${(apiStats.serper?.searches ?? 0).toLocaleString()} searches` },
-            ].map((service) => (
-              <div key={service.label} className="rounded-lg border bg-muted/50 p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold">{service.label}</span>
-                  <span className="text-sm font-bold">${service.cost.toFixed(2)}</span>
+              { label: "Apollo",        cost: apiStats.apollo?.cost ?? 0,     detail: `${(apiStats.apollo?.calls ?? 0).toLocaleString()} lookups` },
+              { label: "OpenAI",        cost: apiStats.openai?.cost ?? 0,     detail: `${((apiStats.openai?.tokens ?? 0) / 1000).toFixed(1)}k tokens` },
+              { label: "Mailgun",       cost: apiStats.mailgun?.cost ?? 0,    detail: `${(apiStats.mailgun?.sent ?? 0).toLocaleString()} emails` },
+              { label: "Email Validation", cost: apiStats.zerobounce?.cost ?? 0, detail: `${(apiStats.zerobounce?.validations ?? 0).toLocaleString()} checked` },
+              { label: "Serper",        cost: apiStats.serper?.cost ?? 0,     detail: `${(apiStats.serper?.searches ?? 0).toLocaleString()} searches` },
+            ].map((s) => (
+              <div key={s.label} className="flex items-center justify-between py-2.5">
+                <div>
+                  <span className="font-medium">{s.label}</span>
+                  <span className="text-xs text-muted-foreground ml-2">{s.detail}</span>
                 </div>
-                <div className="text-xs mt-1 text-muted-foreground">{service.detail}</div>
-                <div className="text-xs mt-0.5 text-muted-foreground">{Math.round(service.cost / 0.05)} credits</div>
+                <span className="font-semibold tabular-nums">${s.cost.toFixed(2)}</span>
               </div>
             ))}
           </div>
-        )}
-      </div>
+        </div>
 
-      {/* ── Per-Agent Breakdown Accordion ── */}
-      <div className="rounded-xl border bg-card overflow-hidden">
-        <button
-          onClick={() => {
-            setShowAgentBreakdown(v => !v)
-            if (!showAgentBreakdown && agentUsage.length === 0) loadAgentUsage()
-          }}
-          className="w-full flex items-center justify-between px-5 py-4 hover:bg-muted/40 transition-colors text-left"
-        >
-          <div className="flex items-center gap-2">
+        {/* ── Credits by Agent (static) ── */}
+        <div className="rounded-xl border bg-card p-5">
+          <div className="flex items-center gap-2 mb-4">
             <Users className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-semibold">Credits by Agent</span>
-          </div>
-          {showAgentBreakdown ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-        </button>
-        {showAgentBreakdown && (
-          <div className="px-5 pb-5">
-            {agentUsageLoading ? (
-              <div className="flex items-center justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
-            ) : agentUsage.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">No agent usage data yet.</p>
-            ) : (
-              <div className="space-y-3">
-                {agentUsage
-                  .sort((a, b) => b.credits - a.credits)
-                  .map(agent => {
-                    const total = agentUsage.reduce((s, a) => s + a.credits, 0)
-                    const pct = total > 0 ? Math.round((agent.credits / total) * 100) : 0
-                    return (
-                      <div key={agent.agentId}>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm font-medium">{agent.name}</span>
-                          <span className="text-sm font-semibold tabular-nums">{agent.credits.toLocaleString()} credits</span>
-                        </div>
-                        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                          <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">{pct}% of total · ${agent.totalCost.toFixed(2)} in API costs</p>
-                      </div>
-                    )
-                  })}
-              </div>
+            <h2 className="text-sm font-semibold">Credits by Agent</h2>
+            {!agentUsageLoading && agentUsage.length === 0 && (
+              <button onClick={loadAgentUsage} className="ml-auto text-xs text-primary hover:underline">Load</button>
             )}
           </div>
-        )}
-      </div>
-
-      {/* ── Payment Methods ── */}
-      <section id="payment-methods-section">
-        <h2 className="text-base font-semibold mb-4">Payment Methods</h2>
-        {error && (
-          <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive mb-4">{error}</div>
-        )}
-        <div className="flex flex-wrap gap-4 items-start">
-          {paymentMethods.map((pm) => {
-            const isExpired = pm.expYear < new Date().getFullYear() || (pm.expYear === new Date().getFullYear() && pm.expMonth < new Date().getMonth() + 1)
-            const brandBg: Record<string, string> = {
-              mastercard: 'bg-gradient-to-br from-gray-900 to-gray-700',
-              visa:       'bg-gradient-to-br from-[#1a1f71] to-[#2d35a8]',
-              amex:       'bg-gradient-to-br from-[#007ac1] to-[#005a8e]',
-              discover:   'bg-gradient-to-br from-[#f76f20] to-[#e55c00]',
-            }
-            const bg = brandBg[pm.brand?.toLowerCase()] ?? 'bg-gradient-to-br from-gray-600 to-gray-800'
-            return (
-              <div key={pm.id} className="flex flex-col gap-2">
-                <div className={`${bg} rounded-xl w-48 h-28 p-4 flex flex-col justify-between shadow-sm relative`}>
-                  {pm.isDefault && (
-                    <span className="absolute top-2 right-2 text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded-full font-medium">Default</span>
-                  )}
-                  <span className="text-white/70 text-xs font-medium capitalize">{pm.brand}</span>
-                  <div>
-                    <p className="text-white text-sm tracking-widest font-mono">•••• {pm.last4}</p>
-                    <p className="text-white/60 text-xs mt-0.5">
-                      {isExpired ? <span className="text-red-300">Expired</span> : `Expires ${pm.expMonth}/${pm.expYear}`}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 px-1 text-xs">
-                  {pm.isDefault
-                    ? <span className="text-muted-foreground">✓ Default</span>
-                    : <button onClick={() => handleSetDefault(pm.id)} className="text-primary hover:underline font-medium">Make Default</button>
-                  }
-                  <span className="text-border select-none">|</span>
-                  <button onClick={() => handleRemoveCard(pm.id)} className="text-muted-foreground hover:text-destructive transition-colors">Remove</button>
-                </div>
-              </div>
-            )
-          })}
-          {/* Add new card tile */}
-          <button
-            onClick={() => setShowAddCard(true)}
-            className="w-48 h-28 rounded-xl border-2 border-dashed border-border hover:border-primary/50 hover:bg-muted/40 flex flex-col items-center justify-center gap-2 text-muted-foreground hover:text-foreground transition-all"
-          >
-            <Plus className="w-6 h-6" />
-            <span className="text-xs font-medium">Add a new card</span>
-          </button>
+          {agentUsageLoading ? (
+            <div className="flex items-center justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+          ) : agentUsage.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-2">No agent usage data yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {agentUsage
+                .sort((a, b) => b.credits - a.credits)
+                .map(agent => {
+                  const total = agentUsage.reduce((s, a) => s + a.credits, 0)
+                  const pct = total > 0 ? Math.round((agent.credits / total) * 100) : 0
+                  return (
+                    <div key={agent.agentId}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium">{agent.name}</span>
+                        <span className="text-sm font-semibold tabular-nums">{agent.credits.toLocaleString()} credits</span>
+                      </div>
+                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">{pct}% · ${agent.totalCost.toFixed(2)}</p>
+                    </div>
+                  )
+                })}
+            </div>
+          )}
         </div>
-      </section>
 
-      {/* ── Order History ── */}
-      <section>
-        <h2 className="text-base font-semibold mb-1">Order History</h2>
-        <p className="text-xs text-muted-foreground mb-4">Your charges from plan upgrades and credit purchases.</p>
-        <PaymentHistorySection />
-      </section>
+        </div> {/* end right column */}
+      </div> {/* end main grid */}
 
       {/* ── Credit Purchase Modal ── */}
       {showCreditPurchaseModal && (

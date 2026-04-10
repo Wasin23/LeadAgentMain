@@ -87,6 +87,11 @@ export function CreditPurchaseModal({
   ]
 
   useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
+  useEffect(() => {
     api.get("/api/plans/status")
       .then(({ data }) => { if (data.success) setUserPlanInfo(data) })
       .catch(() => {})
