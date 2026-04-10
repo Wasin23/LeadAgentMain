@@ -3571,6 +3571,29 @@ class AWSManager {
       }
 
       const planConfig = this.getPlanConfig(user.plan || 'free-trial');
+
+      // New credit balance system takes priority
+      if (user.creditBalance !== undefined) {
+        const remainingCredits = Math.max(0, user.creditBalance);
+        return {
+          plan: {
+            id: user.plan || 'free-trial',
+            remainingCredits,
+            ...planConfig
+          },
+          credits: {
+            used: null,
+            limit: null,
+            remaining: remainingCredits,
+            percentageUsed: null
+          },
+          canPurchaseMore: planConfig.canPurchaseMore,
+          purchaseOptions: planConfig.canPurchaseMore ? planConfig.creditPackages : [],
+          maxAdditionalCredits: planConfig.canPurchaseMore ? planConfig.maxCredits : 0
+        };
+      }
+
+      // Legacy trial credits system
       const creditsUsed = user.trialCreditsUsed ?? 0;
       const creditsLimit = this.isTrialBlockedUser(user)
         ? 0
