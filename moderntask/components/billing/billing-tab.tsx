@@ -794,9 +794,9 @@ function BillingTabInner() {
           </div>
         </section>
 
-        {/* ── Order History ── */}
+        {/* ── Payment History ── */}
         <section>
-          <h2 className="text-base font-semibold mb-1">Order History</h2>
+          <h2 className="text-base font-semibold mb-1">Payment History</h2>
           <p className="text-xs text-muted-foreground mb-4">Your charges from plan upgrades and credit purchases.</p>
           <PaymentHistorySection />
         </section>
