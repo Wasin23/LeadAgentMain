@@ -1,7 +1,8 @@
 import { DynamoDBClient, ScanCommand } from '@aws-sdk/client-dynamodb';
 import dotenv from 'dotenv';
-
-dotenv.config();
+import { fileURLToPath } from 'url';
+import path from 'path';
+dotenv.config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.env') });
 
 async function checkDatabase() {
   const client = new DynamoDBClient({ 

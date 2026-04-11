@@ -8,7 +8,10 @@
  *   node scripts_me/reimburse-credits.js             # apply
  */
 
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import path from 'path';
+dotenv.config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.env') });
 import AWSManager from '../utils/awsManager.js';
 
 const dryRun = process.argv.includes('--dry-run');

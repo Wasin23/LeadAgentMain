@@ -166,6 +166,8 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
   const [useOutlook, setUseOutlook] = useState(false)
   const [gmailConnected, setGmailConnected] = useState(false)
   const [outlookConnected, setOutlookConnected] = useState(false)
+  const [linkedinConnected, setLinkedinConnected] = useState(false)
+  const [linkedinConnecting, setLinkedinConnecting] = useState(false)
   const [crmConnected, setCrmConnected] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState('free-trial')
   const [paymentAdded, setPaymentAdded] = useState(false)
@@ -197,6 +199,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
   useEffect(() => {
     api.get('/api/auth/gmail/status').then(r => { if (r.data?.connected) setGmailConnected(true) }).catch(() => {})
     api.get('/api/auth/outlook/status').then(r => { if (r.data?.connected) setOutlookConnected(true) }).catch(() => {})
+    api.get('/api/auth/linkedin/status').then(r => { if (r.data?.connected) setLinkedinConnected(true) }).catch(() => {})
     api.get('/api/auth/profile').then(r => { if (r.data?.user?.paymentMethodAdded) setPaymentAdded(true) }).catch(() => {})
     api.get('/api/auth/settings').then(r => {
       if (r.data?.preferences?.defaultUseGmail) setUseGmail(true)
@@ -379,6 +382,25 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
         }
       }, 500)
     } catch { }
+  }
+
+  const connectLinkedIn = async () => {
+    try {
+      setLinkedinConnecting(true)
+      const r = await api.get('/api/auth/linkedin/oauth-url')
+      const w = window.open(r.data.authUrl, 'LinkedIn OAuth', 'width=600,height=700')
+      const onMsg = (e: MessageEvent) => {
+        if (e.data?.type === 'LINKEDIN_CONNECTED') {
+          setLinkedinConnected(true)
+          window.removeEventListener('message', onMsg)
+          setLinkedinConnecting(false)
+        }
+      }
+      window.addEventListener('message', onMsg)
+      const check = setInterval(() => {
+        if (w?.closed) { clearInterval(check); window.removeEventListener('message', onMsg); setLinkedinConnecting(false) }
+      }, 500)
+    } catch { setLinkedinConnecting(false) }
   }
 
   const filteredIndustries = industrySearch
@@ -1068,6 +1090,27 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                   className={`px-4 py-2 text-sm rounded-lg font-medium transition-all ${!useGmail && !useOutlook ? 'bg-green-500/20 text-green-400 border border-green-500/30 cursor-default' : 'bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:scale-105'}`}
                 >
                   {!useGmail && !useOutlook ? '✓ Selected' : 'Use Mailgun'}
+                </button>
+              </div>
+
+              {/* LinkedIn */}
+              <div className="bg-white/95 backdrop-blur-md border border-gray-200 rounded-2xl p-6 shadow-sm transition-all hover:shadow-md">
+                <h3 className="font-semibold text-gray-900 mb-1 flex items-center gap-2">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                    <rect width="24" height="24" rx="4" fill="#0A66C2"/>
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452z" fill="white"/>
+                  </svg>
+                  LinkedIn
+                  {linkedinConnected && <span className="text-xs text-green-400 font-semibold bg-green-500/20 px-2 py-0.5 rounded">CONNECTED</span>}
+                  <span className="ml-auto text-xs text-gray-400 font-normal">Optional</span>
+                </h3>
+                <p className="text-sm text-gray-500 mb-3">Send InMail or connection requests to highly qualified leads in addition to email.</p>
+                <button
+                  onClick={() => { if (!linkedinConnected) connectLinkedIn() }}
+                  disabled={linkedinConnected || linkedinConnecting}
+                  className={`px-4 py-2 text-sm rounded-lg font-medium transition-all ${linkedinConnected ? 'bg-green-500/20 text-green-400 border border-green-500/30 cursor-default' : 'bg-gradient-to-r from-[#0A66C2] to-[#0077B5] text-white hover:scale-105'}`}
+                >
+                  {linkedinConnecting ? 'Connecting…' : linkedinConnected ? '✓ Connected' : 'Connect LinkedIn'}
                 </button>
               </div>
             </div>

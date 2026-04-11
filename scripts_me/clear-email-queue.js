@@ -5,8 +5,9 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import dotenv from 'dotenv';
-
-dotenv.config();
+import { fileURLToPath } from 'url';
+import path from 'path';
+dotenv.config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.env') });
 
 const TARGET_USER = 'efbb02d8-3a6c-45f9-82f9-a5c21e857913';
 

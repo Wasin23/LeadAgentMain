@@ -12,7 +12,10 @@
  *   node scripts_me/reconcile-counts.js --dry-run  # inspect only, no writes
  */
 
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import path from 'path';
+dotenv.config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.env') });
 import { QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { getAWSEmailQueue } from '../utils/awsEmailQueue.js';
 import { getScheduledEmailJobs } from '../utils/scheduledEmailJobs.js';

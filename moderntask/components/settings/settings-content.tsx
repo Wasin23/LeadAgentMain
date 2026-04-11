@@ -163,6 +163,9 @@ export function SettingsContent() {
   // ── Email connections ─────────────────────────────────────────────────────
   const [gmailAccounts, setGmailAccounts] = useState<EmailAccount[]>([])
   const [outlookAccounts, setOutlookAccounts] = useState<EmailAccount[]>([])
+  const [linkedinConnected, setLinkedinConnected] = useState(false)
+  const [linkedinAccountId, setLinkedinAccountId] = useState<string | null>(null)
+  const [linkedinConnecting, setLinkedinConnecting] = useState(false)
   const [defaultUseGmail, setDefaultUseGmail] = useState(false)
   const [defaultUseOutlook, setDefaultUseOutlook] = useState(false)
   const [revertedAgents, setRevertedAgents] = useState<{ agentId: string; name: string }[]>([])
@@ -387,14 +390,19 @@ export function SettingsContent() {
           if (s.emailSettings.domainHealth) setDomainHealth(s.emailSettings.domainHealth)
         }
       }
-      const [gmailRes, outlookRes, cpRes, crmRes] = await Promise.allSettled([
+      const [gmailRes, outlookRes, linkedinRes, cpRes, crmRes] = await Promise.allSettled([
         api.get("/api/auth/gmail/status"),
         api.get("/api/auth/outlook/status"),
+        api.get("/api/auth/linkedin/status"),
         api.get("/api/company-profile/profile"),
         api.get("/api/crm/status"),
       ])
-      if (gmailRes.status === "fulfilled")   setGmailAccounts(gmailRes.value.data.accounts || [])
-      if (outlookRes.status === "fulfilled") setOutlookAccounts(outlookRes.value.data.accounts || [])
+      if (gmailRes.status === "fulfilled")    setGmailAccounts(gmailRes.value.data.accounts || [])
+      if (outlookRes.status === "fulfilled")  setOutlookAccounts(outlookRes.value.data.accounts || [])
+      if (linkedinRes.status === "fulfilled") {
+        setLinkedinConnected(linkedinRes.value.data.connected ?? false)
+        setLinkedinAccountId(linkedinRes.value.data.accountId ?? null)
+      }
       if (cpRes.status === "fulfilled" && cpRes.value.data.profile) {
         setCompanyProfile(prev => ({ ...prev, ...cpRes.value.data.profile }))
         setAnalyzeWebsiteUrl(cpRes.value.data.profile.website || "")
@@ -510,6 +518,45 @@ export function SettingsContent() {
         toast.success("Disconnected")
       }
     } catch { toast.error("Failed to disconnect") }
+  }
+
+  const connectLinkedIn = async () => {
+    try {
+      setLinkedinConnecting(true)
+      const r = await api.get("/api/auth/linkedin/oauth-url")
+      const w = window.open(r.data.authUrl, "LinkedIn", "width=600,height=700,left=400,top=100")
+      const onMsg = (e: MessageEvent) => {
+        if (e.data?.type === "LINKEDIN_CONNECTED") {
+          setLinkedinConnected(true)
+          setLinkedinAccountId(e.data.accountId)
+          toast.success("LinkedIn connected")
+          window.removeEventListener("message", onMsg)
+        } else if (e.data?.type === "LINKEDIN_ERROR") {
+          toast.error("LinkedIn connection failed")
+          window.removeEventListener("message", onMsg)
+        }
+      }
+      window.addEventListener("message", onMsg)
+      const poll = setInterval(() => {
+        if (!w?.closed) return
+        clearInterval(poll)
+        window.removeEventListener("message", onMsg)
+        setLinkedinConnecting(false)
+      }, 800)
+    } catch {
+      toast.error("Failed to connect LinkedIn")
+      setLinkedinConnecting(false)
+    }
+  }
+
+  const disconnectLinkedIn = async () => {
+    if (!confirm("Disconnect LinkedIn?")) return
+    try {
+      await api.post("/api/auth/linkedin/disconnect")
+      setLinkedinConnected(false)
+      setLinkedinAccountId(null)
+      toast.success("LinkedIn disconnected")
+    } catch { toast.error("Failed to disconnect LinkedIn") }
   }
 
   const reassignAgents = async () => {
@@ -1135,6 +1182,50 @@ export function SettingsContent() {
                   {outlookAccounts.length > 0 ? "Add Another Account" : "Connect Outlook"}
                 </Button>
               </div>
+            </div>
+
+            <Separator />
+
+            {/* Step 3: LinkedIn */}
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-xs font-bold flex-shrink-0">3</div>
+                <div>
+                  <p className="text-sm font-semibold">Connect LinkedIn <span className="text-muted-foreground font-normal">(Optional)</span></p>
+                  <p className="text-xs text-muted-foreground">Let agents send InMail or connection requests to highly qualified leads</p>
+                </div>
+                {linkedinConnected && <Badge variant="secondary" className="ml-auto bg-[#0A66C2]/15 text-[#0A66C2] border-[#0A66C2]/30">Connected</Badge>}
+              </div>
+              {linkedinConnected && linkedinAccountId && (
+                <div className="flex items-center gap-3 p-3 rounded-lg border border-[#0A66C2]/30 bg-[#0A66C2]/5 mb-4 ml-10">
+                  <svg className="w-7 h-7 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+                    <rect width="24" height="24" rx="4" fill="#0A66C2"/>
+                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452z" fill="white"/>
+                  </svg>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">LinkedIn account connected</p>
+                    <p className="text-xs text-muted-foreground font-mono">ID: {linkedinAccountId}</p>
+                  </div>
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive" onClick={disconnectLinkedIn}>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              )}
+              {!linkedinConnected && (
+                <div className="ml-10">
+                  <Button variant="outline" onClick={connectLinkedIn} disabled={linkedinConnecting} className="gap-2">
+                    {linkedinConnecting ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                        <rect width="24" height="24" rx="4" fill="#0A66C2"/>
+                        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452z" fill="white"/>
+                      </svg>
+                    )}
+                    Connect LinkedIn
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* Reverted agents banner */}

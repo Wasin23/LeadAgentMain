@@ -17,7 +17,10 @@
  *   node test-linkedin.js accounts
  */
 
-import 'dotenv/config'
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import path from 'path';
+dotenv.config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.env') });
 
 const ENRICHLAYER_KEY = process.env.ENRICHLAYER_API_KEY
 const UNIPILE_KEY     = process.env.UNIPILE_API_KEY

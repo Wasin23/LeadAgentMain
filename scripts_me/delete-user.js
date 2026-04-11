@@ -1,9 +1,11 @@
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import path from 'path';
 import AWSManager from '../utils/awsManager.js';
 
-dotenv.config();
+dotenv.config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.env') });
 
-const userEmail = 'coltonfidelman@g.ucla.edu'; // Match exact case from registration
+const userEmail = 'colton.fidd@gmail.com'; // Match exact case from registration
 
 async function deleteUser() {
   const awsManager = new AWSManager();

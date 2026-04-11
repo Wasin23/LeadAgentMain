@@ -94,6 +94,15 @@ try {
   outlookAuthRoutes = (req, res, next) => next(); // No-op if not present
 }
 
+// Import LinkedIn authentication routes
+let linkedinAuthRoutes;
+try {
+  linkedinAuthRoutes = (await import('./routes/linkedinAuth.js')).default;
+} catch (e) {
+  console.error('[LINKEDIN AUTH] Routes not available:', e.message);
+  linkedinAuthRoutes = (req, res, next) => next(); // No-op if not present
+}
+
 // Import lead agent routes
 let leadAgentRoutes;
 try {
@@ -501,6 +510,9 @@ app.get('/ready', (req, res) => {
 // Mount Outlook auth/router before global JWT gating so Microsoft Graph validation
 // requests can always reach the public callback and webhook handlers.
 app.use('/api/auth/outlook', outlookAuthRoutes);
+
+// LinkedIn OAuth routes (callback must be public — Unipile redirects without JWT)
+app.use('/api/auth/linkedin', linkedinAuthRoutes);
 
 // Public endpoints that don't require authentication (for emails)
 const publicEmailEndpoints = [
