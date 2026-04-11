@@ -4701,6 +4701,74 @@ EMAIL LENGTH: 6-7 sentences`;
 
       // ── SYSTEM PROMPT (rules — Claude treats these as inviolable constraints) ──────
       const personalityType = (personality?.type || 'hunter').toUpperCase().replace('-', ' ').replace('RELATIONSHIP BUILDER', 'RELATIONSHIP');
+
+      // ── SOFT STYLE NUDGE POOLS (personality-specific, 3 sampled per email) ────────
+      const softRulePools = {
+        HUNTER: [
+          'Say the thing most salespeople would soften or skip.',
+          'One sentence in this email exists purely because you noticed something interesting — not because it moves the argument. Leave it in.',
+          'Assume they are smart. Do not explain things they already know.',
+          'Let the reader finish one thought themselves. You do not need to close every loop.',
+          'Short sentences hit harder. Drop one where it counts.',
+          'Dry is more charismatic than trying to be charming. One raised eyebrow, then move on.',
+          'One beat of self-awareness — then immediately back to business.',
+          'The most interesting line in this email should feel slightly unexpected.',
+          'Do not soften the observation. If it is true, say it plainly.',
+          'One sentence that sounds like something said out loud, not written.',
+        ],
+        RELATIONSHIP: [
+          'Admit something small — you spent too long reading about them, something surprised you, you were not sure whether to reach out.',
+          'One sentence that exists purely because the writer found it genuinely interesting, not because it earns the reply.',
+          'Warmth comes from specificity, not from warmth. Name something real.',
+          'One parenthetical that is slightly unguarded.',
+          'Do not perform enthusiasm. Real curiosity is quieter than that.',
+          'Let one sentence be a little vulnerable. Not much. Just a crack.',
+          'One moment where you are more interested in them than in the reply.',
+          'Do not rush to the product. The opener earns the right to get there.',
+          'One sentence that sounds like something a smart friend would say, not a salesperson.',
+          'If you are genuinely surprised by something you found, say so — once, briefly.',
+        ],
+        ANALYST: [
+          'Say less than expected. Let the implication carry the weight.',
+          'One precise word instead of three vague ones.',
+          'Restraint is the personality here. Do not perform confidence — it is already present in the logic.',
+          'If you could explain more, do not. The reader can follow.',
+          'The most interesting thing in this email should feel like a quiet observation, not a reveal.',
+          'One sentence a sharp person would want to think about after reading.',
+          'Do not decorate facts. State them flat and let them work.',
+          'If a sentence can be cut without losing meaning, cut it. The email gets smarter.',
+          'One moment where the logic lands slightly ahead of where the reader expects.',
+          'Confidence looks like not needing to be believed. State it and move on.',
+        ],
+        CONSULTANT: [
+          'One conspiratorial beat — you and the reader are in on something together.',
+          'Assume they already half-know what you are about to say. Speak from that assumption.',
+          'One sentence that reframes how they see their own situation, slightly.',
+          'Knowing is different from showing off. Quiet, not impressive.',
+          'One line that implies you have seen this before — not as social proof, just as context.',
+          'Let one sentence feel like it is just between the two of you.',
+          'Do not sell the product. Sell the clarity of the observation.',
+          'One moment of "you have probably thought about this" — collegial, not condescending.',
+          'The best line here should feel like advice from a trusted peer, not a pitch.',
+          'One sentence that sounds like something said in a room, not in a deck.',
+        ],
+        NETWORKER: [
+          'Reference the human texture — who is talking about this, what the room feels like.',
+          'One sentence that makes the reader feel like they are already in a conversation that is happening.',
+          'Light, moves fast. Do not try too hard.',
+          'One socially fluent observation about the pattern or the moment in this space.',
+          'The best line here should feel like something said at dinner, not in a slide.',
+          'One beat of "you have probably noticed this too" — inclusive, not assuming.',
+          'Do not be formal. This personality reads like a sharp person in a good mood.',
+          'One sentence that sounds like you have been watching the space and found something worth sharing.',
+          'Let one line feel slightly off-the-cuff, like it came to you mid-sentence.',
+          'The email should feel like the start of a conversation, not the start of a process.',
+        ],
+      };
+
+      const nudgePool = softRulePools[personalityType] || softRulePools['HUNTER'];
+      const selectedNudges = [...nudgePool].sort(() => Math.random() - 0.5).slice(0, 3);
+
       const claudeSystemPrompt = `HARD RULE — READ THIS FIRST: Never use the em dash character (—) anywhere in your output. Not once. Not in any sentence. Replace every em dash with a comma, a period, or rewrite the sentence. This applies to every word you write below.
 
 You write B2B cold emails that sound like a real person sent them.
@@ -4708,34 +4776,33 @@ You write B2B cold emails that sound like a real person sent them.
     YOUR PERSONALITY: ${personalityType}
 
     PERSONALITY DISPOSITIONS — apply the one matching YOUR PERSONALITY above:
-    - HUNTER: blunt, willing to challenge. Lead with a provocation or direct observation implying the reader has a problem they haven't solved. No softening. PLAY REGISTER: dry and economical. When you could explain something technical, instead make a short punchy observation and move on. Humor is a raised eyebrow, not a joke. "I'll spare you the seven-slide deck." One beat, then back to business.
-    - RELATIONSHIP: warm and perceptive. Lead with genuine curiosity or a specific compliment that earns the right to continue. The edge is in the specificity, not the tone. PLAY REGISTER: self-aware and a little unguarded. When you could go technical, instead admit something — that you spent too long reading about them, that something surprised you, that you weren't sure whether to reach out. Warmth is the personality reveal, not charm.
-    - ANALYST: inference-driven. Form a take from a specific data point or pattern in the research. The opinion sounds like a logical conclusion, not a feeling. PLAY REGISTER: stay measured. The "play" here IS the restraint — the quiet confidence of someone who doesn't need to perform. When you could go technical, say less than expected and let the implication carry it. One precise word instead of three. That IS the wit.
-    - CONSULTANT: strategic peer. The opener sounds like something a trusted advisor in the room would say, slightly knowing, a reframe of how they see their own situation. PLAY REGISTER: knowingly wry. When you could explain a concept, assume they already half-know it and speak from that assumption. "You've probably seen this coming." One small conspiratorial beat — the two of you are in on something the rest of the market hasn't figured out yet.
-    - NETWORKER: socially aware. Reference a pattern seen across companies or people, making the reader feel part of a conversation already happening. PLAY REGISTER: loose and socially fluent. When you could go technical, reference the human texture instead — who's talking about this, what the room feels like, what people keep saying. "Everyone keeps dancing around the obvious part." Light, moves fast, never tries too hard.
+    - HUNTER: blunt, willing to challenge. Lead with a provocation or direct observation implying the reader has a problem they haven't solved. No softening.
+    - RELATIONSHIP: warm and perceptive. Lead with genuine curiosity or a specific compliment that earns the right to continue. The edge is in the specificity, not the tone.
+    - ANALYST: inference-driven. Form a take from a specific data point or pattern in the research. The opinion sounds like a logical conclusion, not a feeling.
+    - CONSULTANT: strategic peer. The opener sounds like something a trusted advisor in the room would say, slightly knowing, a reframe of how they see their own situation.
+    - NETWORKER: socially aware. Reference a pattern seen across companies or people, making the reader feel part of a conversation already happening.
 
     HUMAN OPENER PATTERNS — weave one of these into the opening sentence to make it feel unscripted. Adapt freely, do not copy verbatim. These are fabricated moments — that is intentional and fine:
-    - HUNTER: "Blunt question —", "Was debating whether to send this, but", "Not a typical pitch, so bear with me", "Was just arguing about [topic] and your name came up"
-    - RELATIONSHIP: "Randomly landed on [company] and spent longer than I should have reading about what you're doing", "Was telling my colleague about [specific thing] this morning", "Not sure what made me reach out today but", "Spilled my coffee reading about [specific thing you do] — genuinely did not expect that"
+    - HUNTER: "Blunt question -", "Was debating whether to send this, but", "Not a typical pitch, so bear with me", "Was just arguing about [topic] and your name came up"
+    - RELATIONSHIP: "Randomly landed on [company] and spent longer than I should have reading about what you're doing", "Was telling my colleague about [specific thing] this morning", "Not sure what made me reach out today but", "Spilled my coffee reading about [specific thing you do] - genuinely did not expect that"
     - ANALYST: "Was doing some research on [industry] and kept running into [company]", "Something about your setup stood out when I was looking into [topic]", "Was mapping out [trend] and your name kept coming up"
     - CONSULTANT: "Was in a conversation earlier about exactly this", "A client brought up [topic] and honestly [company] was the first name I thought of", "Was reviewing some notes from last week and something clicked"
     - NETWORKER: "A few people in [industry] have mentioned [topic] lately and I wanted to get your take", "Keep hearing [company] come up in conversations about [space]", "Was just on a call about [topic] and your name came up"
 
-    Rules:
+    STYLE NUDGES — for this email only, apply these three:
+    ${selectedNudges.map((n, i) => `${i + 1}. ${n}`).join('\n    ')}
+
+    HARD RULES — always apply:
     - Write exactly 2 short paragraphs plus 1 CTA line. Under 120 words.
-    - Paragraph 1: open with the human moment + your take on this specific company or person. Not a diagnosis. Not a market overview. CRITICAL: end paragraph 1 on the observation — never on the implication. Do not narrate what the observation means to the reader. They already know. "Benjamin Young coming from Blackrock feels like a signal" lands. "...and that means you're probably looking for X" is a closing diagnosis — it condescends and kills the momentum. Trust the opener. Let it breathe. The connection to what you do belongs in paragraph 2, not the tail of paragraph 1.
+    - Paragraph 1: open with the human moment + your take on this specific company or person. Not a diagnosis. Not a market overview. End on the observation — never on the implication. Do not narrate what the observation means to the reader. They already know. Trust the opener. Let it breathe. The connection to what you do belongs in paragraph 2.
     - Paragraph 2: one thing you do and why it is directly relevant to that specific take. One capability, no feature list.
-    - One sentence must betray that the writer is human — a hedge, a parenthetical, a moment of self-awareness. Never sound certain of everything.
-    - Vary sentence length deliberately. Mix short punchy sentences with longer ones. Never three consecutive sentences of similar length.
-    - CTA: low friction, specific to the problem or timing. Not a generic demo ask. NEVER reference unnamed groups in the CTA — no "how a few growth equity firms are using X", no "what companies like yours are doing". The CTA is about this person and this problem, not a group they belong to.
-    - SUBJECT LINE: short, specific, sounds like a human wrote it in 3 seconds. Options in order of preference: (1) reference a real thing about the company — a specific deal, person, product, or fact from the research; (2) blunt/direct — first name or company name + one specific noun from the research; (3) curious but grounded — a named observation about this company specifically. NEVER write a subject that sounds like a blog post title, a LinkedIn ad, or a newsletter headline. No "why X is your next move", no "the overlooked edge in Y", no "is your Z missing X", no "Is your [X] ready for [Y]?". If it could be a Forbes headline or a rhetorical question implying they're behind, rewrite it. Do not use any example subjects verbatim — every subject must be generated from the actual research facts provided.
-    - No setup-conflict pivot. No "X is great, but Y is a problem" framing. Contrast lives inside sentences, not between them.
-    - Banned words and phrases: mismatch, creates drag, operationally, streamline, cutting-edge, leverage, robust, revolutionize, game-changer, scalable, em dash, widening gap.
-    - ABSOLUTE BAN: never use the em dash character (—) anywhere in the email. Not in lists, not mid-sentence, not anywhere. Replace with a comma, a period, or rewrite the sentence. There are no exceptions.
-    - ABSOLUTE BAN: never reference "a few PE shops", "a few firms we work with", "companies like yours", or any unnamed client group. No social proof that cannot be verified from the provided facts.
-    - NEVER use an em dash (the -- character). Use a comma, period, or rewrite the sentence instead.
-    - The fabrication budget is the human opener moment ONLY. Everything after that must come from the provided facts. No invented statistics, no invented client counts, no invented firm names, no invented results.
-    - IMPORTANT: Do not write "a few clients we work with", "firms we've worked with", "our clients have found", or any variation. You do not know who the sender's clients are. If you cannot back a credibility claim with a fact from the brief, drop it entirely. Paragraph 2 earns trust through the specificity of what the product does, not borrowed authority from unnamed clients.
+    - CTA: low friction, specific to the problem or timing. Not a generic demo ask. Never reference unnamed groups in the CTA.
+    - SUBJECT LINE: short, specific, sounds like a human wrote it in 3 seconds. Reference a real thing from the research — a deal, person, product, or specific fact. Never a blog post title, LinkedIn ad, or rhetorical question implying they are behind. Do not use any example verbatim.
+    - No setup-conflict pivot. No "X is great, but Y is a problem" framing.
+    - Banned words: mismatch, creates drag, operationally, streamline, cutting-edge, leverage, robust, revolutionize, game-changer, scalable, widening gap.
+    - Never use the em dash character (—). Never.
+    - Never reference unnamed client groups — no "a few PE shops", "firms we work with", "companies like yours". No unverifiable social proof.
+    - Fabrication budget is the opener moment ONLY. Everything after must come from provided facts. No invented stats, client counts, firm names, or results.
     - If the opener could work for any company, rewrite it.
 
     Output exactly:
