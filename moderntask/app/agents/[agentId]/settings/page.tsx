@@ -962,7 +962,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                   criteriaUnlocked ? 'bg-amber-600 text-white hover:bg-amber-700' : 'bg-white border border-amber-400 text-amber-700 hover:bg-amber-100'
                 }`}
               >
-                {criteriaUnlocked ? '🔓 Locked' : '🔒 Unlock to edit'}
+                {criteriaUnlocked ? 'Lock' : 'Unlock to edit'}
               </button>
             </div>
             <div className={`grid grid-cols-1 gap-4 mt-2 transition-opacity ${criteriaUnlocked ? 'opacity-100' : 'opacity-40 pointer-events-none select-none'}`}>
