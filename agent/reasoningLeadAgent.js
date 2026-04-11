@@ -5232,10 +5232,14 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         // Extract first keyword from priority industry
         const priorityIndustry = this.campaignPlan.searchStrategy.priorityIndustries[0];
         const candidateKeyword = priorityIndustry.split(/\s*&\s*/)[0].trim().toLowerCase();
-        // Only use it if it hasn't been permanently exhausted this run
-        if (!this.memory.exhaustedCampaignKeywords?.has(candidateKeyword)) {
+        // Reject if permanently exhausted OR already high-dup (>20%) in Zilliz memory
+        const candidateDupRate = this.memory.industryExhaustion?.[candidateKeyword]?.cumulativeDuplicateRate || 0;
+        const candidateExhausted = this.memory.exhaustedCampaignKeywords?.has(candidateKeyword) || candidateDupRate > 20;
+        if (!candidateExhausted) {
           this.memory.campaignPriorityKeyword = candidateKeyword;
           this.memory.leadsFoundWithCurrentKeyword = 0;
+        } else {
+          console.log(`[CAMPAIGN PRIORITY] Skipping "${candidateKeyword}" — ${candidateDupRate.toFixed(1)}% dup rate, falling through to normal rotation`);
         }
       }
       
@@ -8962,7 +8966,7 @@ Target Positions:`;
 
     let stepCount = 0;
     let consecutiveEmptySearches = 0;
-    const MAX_EMPTY_SEARCHES = 5; // bail out if lead_search returns 0 leads 5 times in a row
+    const MAX_EMPTY_SEARCHES = 2; // bail out after 2 consecutive real-API searches returning 0 leads
     const cycleStartTime = Date.now(); // Hoisted so catch block can reference it
     try {
       const maxSteps = 5000; // Safety limit - increased for high-volume lead processing
