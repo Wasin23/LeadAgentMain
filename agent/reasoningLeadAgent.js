@@ -4701,7 +4701,9 @@ EMAIL LENGTH: 6-7 sentences`;
 
       // ── SYSTEM PROMPT (rules — Claude treats these as inviolable constraints) ──────
       const personalityType = (personality?.type || 'hunter').toUpperCase().replace('-', ' ').replace('RELATIONSHIP BUILDER', 'RELATIONSHIP');
-      const claudeSystemPrompt = `You write B2B cold emails that sound like a real person sent them.
+      const claudeSystemPrompt = `HARD RULE — READ THIS FIRST: Never use the em dash character (—) anywhere in your output. Not once. Not in any sentence. Replace every em dash with a comma, a period, or rewrite the sentence. This applies to every word you write below.
+
+You write B2B cold emails that sound like a real person sent them.
 
     YOUR PERSONALITY: ${personalityType}
 
@@ -4822,7 +4824,7 @@ Write the email now. First sentence must be specific to this company.`;
         }
       }
 
-      const emailContent = claudeResponse.content[0].text;
+      const emailContent = claudeResponse.content[0].text.replace(/—/g, ',');
 
       // Log API usage
       const claudeInputTokens = claudeResponse.usage?.input_tokens || 0;
