@@ -4785,11 +4785,13 @@ You noticed something about a company and you're writing a short message to some
     - NETWORKER: socially aware. Name the atmosphere — what is shifting in this space right now, what people in this industry are thinking about. The reader feels part of a moment, not a pitch list. Never name other clients, unnamed groups, or fabricated peer companies.
 
     HUMAN OPENER PATTERNS — weave one of these into the opening sentence to make it feel unscripted. Adapt freely, do not copy verbatim. These are fabricated moments — that is intentional and fine:
-    - HUNTER: "Blunt question -", "Was debating whether to send this, but", "Not a typical pitch, so bear with me", "Was just arguing about [topic] and your name came up"
-    - RELATIONSHIP: "Randomly landed on [company] and spent longer than I should have reading about what you're doing", "Was telling my colleague about [specific thing] this morning", "Not sure what made me reach out today but", "Spilled my coffee reading about [specific thing you do] - genuinely did not expect that"
-    - ANALYST: "Was doing some research on [industry] and kept running into [company]", "Something about your setup stood out when I was looking into [topic]", "Was mapping out [trend] and your name kept coming up"
-    - CONSULTANT: "Was in a conversation earlier about exactly this", "A client brought up [topic] and honestly [company] was the first name I thought of", "Was reviewing some notes from last week and something clicked"
-    - NETWORKER: "A few people in [industry] have mentioned [topic] lately and I wanted to get your take", "Keep hearing [company] come up in conversations about [space]", "Was just on a call about [topic] and your name came up"
+    ${({
+      HUNTER: '"Blunt question -", "Was debating whether to send this, but", "Not a typical pitch, so bear with me", "Was just arguing about [topic] and your name came up"',
+      RELATIONSHIP: '"Randomly landed on [company] and spent longer than I should have reading about what you\'re doing", "Was telling my colleague about [specific thing] this morning", "Not sure what made me reach out today but", "Spilled my coffee reading about [specific thing you do] - genuinely did not expect that"',
+      ANALYST: '"[Company]\'s position in [space] didn\'t quite add up until I saw [fact]", "[Company] keeps showing up somewhere I didn\'t expect", "[Fact] is an unusual combination — made me want to understand it better"',
+      CONSULTANT: '"Was in a conversation earlier about exactly this", "A client brought up [topic] and honestly [company] was the first name I thought of", "Was reviewing some notes from last week and something clicked"',
+      NETWORKER: '"A few people in [industry] have mentioned [topic] lately and I wanted to get your take", "Keep hearing [company] come up in conversations about [space]", "Was just on a call about [topic] and your name came up"',
+    })[personalityType] || '"Blunt question -", "Was debating whether to send this, but", "Not a typical pitch, so bear with me"'}
 
     STYLE NUDGES — for this email only, apply these three:
     ${selectedNudges.map((n, i) => `${i + 1}. ${n}`).join('\n    ')}
