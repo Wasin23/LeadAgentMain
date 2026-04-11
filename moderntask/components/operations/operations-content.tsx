@@ -523,9 +523,9 @@ export function OperationsContent() {
                         title={agent.settings?.emailBuilder?.useLinkedIn ? 'LinkedIn enabled' : 'LinkedIn not connected'}
                         className={cn('inline-flex items-center p-0.5', !agent.settings?.emailBuilder?.useLinkedIn && 'opacity-25')}
                       >
-                        <svg className="w-3.5 h-3.5" viewBox="0 0 256 256" fill="none">
-                          <rect width="256" height="256" rx="24" fill="#0077B5"/>
-                          <path d="M75 195V107H48v88h27zm-13.5-100c9.4 0 15.3-6.2 15.3-13.9-.2-7.9-5.8-13.9-15-13.9S46 73.2 46 81.1c0 7.8 5.6 13.9 14.7 13.9h.8zM210 195v-50.5c0-27.2-14.5-39.9-33.9-39.9-15.6 0-22.6 8.6-26.5 14.6V107h-27v88h27v-49.1c0-2.4.2-4.8.9-6.5 2-4.8 6.5-9.8 14-9.8 9.9 0 13.8 7.5 13.8 18.5V195h27z" fill="white"/>
+                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none">
+                          <rect width="24" height="24" rx="4" fill="#0A66C2"/>
+                          <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452z" fill="white"/>
                         </svg>
                       </span>
                       <button
