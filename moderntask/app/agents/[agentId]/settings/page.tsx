@@ -440,6 +440,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
   const [resetWebsiteUrl, setResetWebsiteUrl] = useState('');
   const [resetScraping, setResetScraping] = useState(false);
   const [showResetWebsite, setShowResetWebsite] = useState(false);
+  const [swapLog, setSwapLog] = useState<{ removedAt: string; removed: string; added: string[]; reason: string }[]>([]);
 
   const handleResetFromWebsite = async () => {
     if (!resetWebsiteUrl.trim()) return;
@@ -589,6 +590,9 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
         };
         setSettings(loaded);
         setLastSavedSettings(loaded);
+        if (Array.isArray(s._industrySwapLog) && s._industrySwapLog.length > 0) {
+          setSwapLog(s._industrySwapLog);
+        }
       }
     } catch { /* ignore */ } finally { setIsLoading(false); }
   };
@@ -857,15 +861,33 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
               </div>
 
               {!settings.agentDecideIndustries && (
-                <TagInput
-                  label="Industries"
-                  tags={settings.companyCriteria.companyIndustries}
-                  onAdd={t => updateCompany('companyIndustries', [...settings.companyCriteria.companyIndustries, t])}
-                  onRemove={t => updateCompany('companyIndustries', settings.companyCriteria.companyIndustries.filter((x: string) => x !== t))}
-                  suggestions={INDUSTRIES}
-                  placeholder="Search or type an industry…"
-                  helpText="Not in the list? Type it and press Enter to add."
-                />
+                <>
+                  {swapLog.length > 0 && (
+                    <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 flex items-start gap-3">
+                      <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-amber-600">Industries updated by agent</p>
+                        <div className="mt-1 space-y-1">
+                          {swapLog.map((entry, i) => (
+                            <p key={i} className="text-xs text-muted-foreground">
+                              Removed <span className="font-medium text-foreground">&ldquo;{entry.removed}&rdquo;</span>{entry.added.length > 0 && <> → added <span className="font-medium text-foreground">{entry.added.join(', ')}</span></>} &mdash; {entry.reason}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                      <button onClick={() => setSwapLog([])} className="text-muted-foreground hover:text-foreground shrink-0"><X className="w-3.5 h-3.5" /></button>
+                    </div>
+                  )}
+                  <TagInput
+                    label="Industries"
+                    tags={settings.companyCriteria.companyIndustries}
+                    onAdd={t => updateCompany('companyIndustries', [...settings.companyCriteria.companyIndustries, t])}
+                    onRemove={t => updateCompany('companyIndustries', settings.companyCriteria.companyIndustries.filter((x: string) => x !== t))}
+                    suggestions={INDUSTRIES}
+                    placeholder="Search or type an industry…"
+                    helpText="Not in the list? Type it and press Enter to add."
+                  />
+                </>
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">

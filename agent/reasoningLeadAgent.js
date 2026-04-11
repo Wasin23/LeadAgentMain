@@ -5485,6 +5485,48 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
               `Switching from "${selectedKeyword}" to fresh target industries: ${newKws || 'newly generated'}`,
               'info'
             );
+
+            // ── Settings swap ─────────────────────────────────────────────
+            // Replace the exhausted keyword in the agent settings DB so on the
+            // next start the base list is already clean. Old keyword stays in
+            // Zilliz memory (high dup rate keeps it from being re-added).
+            try {
+              const freshSettings = await this.awsManager.getLeadAgentSettings(this.userId, this.agentId);
+              if (freshSettings?.companyCriteria?.companyIndustries) {
+                const oldIndustries = freshSettings.companyCriteria.companyIndustries;
+                // Remove the exhausted keyword (case-insensitive match)
+                const filtered = oldIndustries.filter(ind =>
+                  ind.toLowerCase().replace(/\s+/g, '_') !== selectedKeyword.replace(/\s+/g, '_') &&
+                  ind.toLowerCase() !== selectedKeyword
+                );
+                // Add new AI keywords (title-cased, no duplicates)
+                const toAdd = (this.memory.aiGeneratedKeywords || []).filter(kw =>
+                  !filtered.some(ind => ind.toLowerCase() === kw.toLowerCase())
+                ).map(kw => kw.charAt(0).toUpperCase() + kw.slice(1));
+                const updatedIndustries = [...filtered, ...toAdd];
+                const updatedSettings = {
+                  ...freshSettings,
+                  companyCriteria: {
+                    ...freshSettings.companyCriteria,
+                    companyIndustries: updatedIndustries
+                  },
+                  _industrySwapLog: [
+                    ...(freshSettings._industrySwapLog || []),
+                    {
+                      removedAt: new Date().toISOString(),
+                      removed: selectedKeyword,
+                      added: toAdd,
+                      reason: `${tracker.cumulativeDuplicateRate.toFixed(1)}% duplicate rate after ${tracker.totalAttempts} searches`
+                    }
+                  ]
+                };
+                await this.awsManager.saveLeadAgentSettings(this.userId, this.agentId, updatedSettings);
+                console.log(`[INDUSTRY SWAP] Removed "${selectedKeyword}" → added [${toAdd.join(', ')}] to agent settings`);
+              }
+            } catch (swapErr) {
+              console.error('[INDUSTRY SWAP] Failed to update settings, continuing anyway:', swapErr.message);
+            }
+
             this.memory.leadsFoundWithCurrentKeyword = 999;
             return {
               success: true,
