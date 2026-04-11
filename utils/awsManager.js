@@ -3599,9 +3599,12 @@ class AWSManager {
 
       // Legacy trial credits system
       const creditsUsed = user.trialCreditsUsed ?? 0;
-      const creditsLimit = this.isTrialBlockedUser(user)
+      // Only block if trialEligible is false AND no explicit limit has been set above the plan default.
+      // If an admin or purchase explicitly raised trialCreditsLimit, honour it regardless of eligibility.
+      const explicitLimit = Number(user.trialCreditsLimit ?? 0);
+      const creditsLimit = (this.isTrialBlockedUser(user) && explicitLimit <= 0)
         ? 0
-        : Math.max(Number(user.trialCreditsLimit ?? 0), planConfig.initialCredits);
+        : Math.max(explicitLimit, planConfig.initialCredits);
       const remainingCredits = creditsLimit - creditsUsed;
 
       return {
