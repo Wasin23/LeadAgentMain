@@ -1999,7 +1999,7 @@ Call the appropriate function to continue the workflow.`;
       const idx     = this.memory.currentKeywordIndex % total;
       const kw      = allKeywords[idx];
       const tracker = this.memory.industryExhaustion?.[kw];
-      if (tracker && tracker.cumulativeDuplicateRate > 20 && tracker.totalAttempts >= 5) {
+      if (tracker && tracker.cumulativeDuplicateRate > 40 && tracker.totalAttempts >= 5) {
         this.logOperation(
           '⏭️ DISQ Rotate Skip',
           `Skipping "${kw}" (${tracker.cumulativeDuplicateRate.toFixed(1)}% dup rate in Zilliz memory, ${tracker.totalAttempts} attempts)`,
@@ -3063,7 +3063,7 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
               const snippets = organicResults
                 .slice(0, 5)
                 .map(r => `[${r.title}] ${r.snippet}`)
-                .filter(s => s.length > 20)
+                .filter(s => s.length > 40)
                 .join('\n');
               
               const webpageInsights = [];
@@ -5234,7 +5234,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         const candidateKeyword = priorityIndustry.split(/\s*&\s*/)[0].trim().toLowerCase();
         // Reject if permanently exhausted OR already high-dup (>20%) in Zilliz memory
         const candidateDupRate = this.memory.industryExhaustion?.[candidateKeyword]?.cumulativeDuplicateRate || 0;
-        const candidateExhausted = this.memory.exhaustedCampaignKeywords?.has(candidateKeyword) || candidateDupRate > 20;
+        const candidateExhausted = this.memory.exhaustedCampaignKeywords?.has(candidateKeyword) || candidateDupRate > 40;
         if (!candidateExhausted) {
           this.memory.campaignPriorityKeyword = candidateKeyword;
           this.memory.leadsFoundWithCurrentKeyword = 0;
@@ -5298,7 +5298,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
             ? baseKeywords[_idx]
             : aiKeywords[_idx - totalBaseKeywords];
           const _dup = this.memory.industryExhaustion[_kw]?.cumulativeDuplicateRate || 0;
-          if (_dup > 20) {
+          if (_dup > 40) {
             console.log(`[KEYWORD FAST-FORWARD] Skipping exhausted keyword "${_kw}" (${_dup.toFixed(1)}% dup) — advancing index`);
             this.memory.currentKeywordIndex++;
           } else {
@@ -5425,7 +5425,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       // trust this number immediately.
       //
       // Requirements: >= 5 total attempts (to avoid skipping on noise from tiny samples).
-      if (tracker.cumulativeDuplicateRate > 20 && tracker.totalAttempts >= 5) {
+      if (tracker.cumulativeDuplicateRate > 40 && tracker.totalAttempts >= 5) {
         // Check if there are ANY other keywords to rotate to. If this is the only
         // keyword (or all keywords are exhausted), rotating is a no-op and the agent
         // will loop forever burning API credits. In that case, return shouldStop=true
@@ -5442,7 +5442,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         const viableAlternatives = [...baseKws, ...aiKws].filter(kw =>
           kw !== selectedKeyword &&
           (!this.memory.industryExhaustion[kw] ||
-           (this.memory.industryExhaustion[kw]?.cumulativeDuplicateRate || 0) <= 20)
+           (this.memory.industryExhaustion[kw]?.cumulativeDuplicateRate || 0) <= 40)
         ).length;
         const allExhausted = viableAlternatives === 0;
 
@@ -5474,7 +5474,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
           const hasNewKeywords = freshAiKws.filter(kw =>
             kw !== selectedKeyword &&
             (!this.memory.industryExhaustion[kw] ||
-             (this.memory.industryExhaustion[kw]?.cumulativeDuplicateRate || 0) <= 20)
+             (this.memory.industryExhaustion[kw]?.cumulativeDuplicateRate || 0) <= 40)
           ).length > 0;
 
           if (hasNewKeywords) {
@@ -5613,7 +5613,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         
         // Check if this keyword has high cumulative duplicate rate - if so, skip it entirely
         const tracker = this.memory.industryExhaustion[selectedKeyword];
-        if (tracker && tracker.cumulativeDuplicateRate > 20 && tracker.totalAttempts >= 5) {
+        if (tracker && tracker.cumulativeDuplicateRate > 40 && tracker.totalAttempts >= 5) {
           console.log(`[EXHAUST HISTORY-SKIP] "${selectedKeyword}" + "${targetPosition}": already in 30-day history AND ${tracker.cumulativeDuplicateRate.toFixed(1)}% dup rate. Force-rotating keyword.`);
           this.logOperation(
             '⏭ Keyword Exhausted (History)',
@@ -6084,7 +6084,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
               // ─────────────────────────────────────────────────────────────
               // DUP-RATE TRIGGER: SOURCE SWITCH BEFORE KEYWORD ROTATION
               // ─────────────────────────────────────────────────────────────
-              // When cumulative dup rate > 20%, the old behaviour was to
+              // When cumulative dup rate > 40%, the old behaviour was to
               // immediately rotate to the next keyword. Instead, we now first
               // try switching to a different source on the SAME keyword.
               //
@@ -6099,7 +6099,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
               //      (its bandit mean is below 0.2, meaning it has a history of
               //       failures too). In that case, the keyword itself is done.
               // ─────────────────────────────────────────────────────────────
-              if (tracker.cumulativeDuplicateRate > 20 && tracker.totalAttempts >= 5) {
+              if (tracker.cumulativeDuplicateRate > 40 && tracker.totalAttempts >= 5) {
 
                 await this.awsManager.recordSearchHistory(
                   this.userId,
@@ -8058,13 +8058,13 @@ Target Positions:`;
                 cumulativeDuplicateRate: agg.cumulativeDuplicateRate
               };
               const rate = agg.cumulativeDuplicateRate;
-              const flag = agg.exhausted ? '🔴 EXHAUSTED' : rate > 20 ? '🟠 HIGH-DUP' : rate > 10 ? '🟡 WARNING' : '🟢 OK';
+              const flag = agg.exhausted ? '🔴 EXHAUSTED' : rate > 40 ? '🟠 HIGH-DUP' : rate > 10 ? '🟡 WARNING' : '🟢 OK';
               console.log(`[MEMORY RESTORE] ${flag} "${keyword}": ${rate.toFixed(1)}% dup rate (${agg.totalAttempts} attempts across ${agg.combos.length} position(s): ${agg.combos.join(', ')})`);
-              if (rate > 20 && agg.totalAttempts >= 5) preSkippedCount++;
+              if (rate > 40 && agg.totalAttempts >= 5) preSkippedCount++;
             });
 
             const exhaustedCount = Object.values(keywordAggMap).filter(a => a.exhausted).length;
-            const highDupCount = Object.values(keywordAggMap).filter(a => !a.exhausted && a.cumulativeDuplicateRate > 20).length;
+            const highDupCount = Object.values(keywordAggMap).filter(a => !a.exhausted && a.cumulativeDuplicateRate > 40).length;
 
             // Any keyword Zilliz knows about that is VIABLE (<=20% dup) but not in the
             // base industry list should be injected into aiGeneratedKeywords so the
@@ -8076,7 +8076,7 @@ Target Positions:`;
               const agg = keywordAggMap[kw];
               const kwNorm = kw.toLowerCase();
               if (
-                agg.cumulativeDuplicateRate <= 20 &&
+                agg.cumulativeDuplicateRate <= 40 &&
                 !baseKwsNorm.includes(kwNorm) &&
                 !existingAiKws.has(kwNorm)
               ) {
