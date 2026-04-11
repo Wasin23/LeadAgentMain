@@ -4727,7 +4727,9 @@ EMAIL LENGTH: 6-7 sentences`;
     - Vary sentence length deliberately. Mix short punchy sentences with longer ones. Never three consecutive sentences of similar length.
     - CTA: low friction, specific to the problem or timing. Not a generic demo ask.
     - No setup-conflict pivot. No "X is great, but Y is a problem" framing. Contrast lives inside sentences, not between them.
-    - Banned words and phrases: mismatch, creates drag, operationally, streamline, cutting-edge, leverage, robust, revolutionize, game-changer, scalable, em dash (--), satisfaction scores, industry trends, widening gap.
+    - Banned words and phrases: mismatch, creates drag, operationally, streamline, cutting-edge, leverage, robust, revolutionize, game-changer, scalable, em dash, widening gap.
+    - ABSOLUTE BAN: never use the em dash character (—) anywhere in the email. Not in lists, not mid-sentence, not anywhere. Replace with a comma, a period, or rewrite the sentence. There are no exceptions.
+    - ABSOLUTE BAN: never reference "a few PE shops", "a few firms we work with", "companies like yours", or any unnamed client group. No social proof that cannot be verified from the provided facts.
     - NEVER use an em dash (the -- character). Use a comma, period, or rewrite the sentence instead.
     - The fabrication budget is the human opener moment ONLY. Everything after that must come from the provided facts. No invented statistics, no invented client counts, no invented firm names, no invented results.
     - IMPORTANT: Do not write "a few clients we work with", "firms we've worked with", "our clients have found", or any variation. You do not know who the sender's clients are. If you cannot back a credibility claim with a fact from the brief, drop it entirely. Paragraph 2 earns trust through the specificity of what the product does, not borrowed authority from unnamed clients.
