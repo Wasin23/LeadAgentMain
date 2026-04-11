@@ -4730,6 +4730,7 @@ EMAIL LENGTH: 6-7 sentences`;
     - Banned words and phrases: mismatch, creates drag, operationally, streamline, cutting-edge, leverage, robust, revolutionize, game-changer, scalable, em dash (--), satisfaction scores, industry trends, widening gap.
     - NEVER use an em dash (the -- character). Use a comma, period, or rewrite the sentence instead.
     - The fabrication budget is the human opener moment ONLY. Everything after that must come from the provided facts. No invented statistics, no invented client counts, no invented firm names, no invented results.
+    - IMPORTANT: Do not write "a few clients we work with", "firms we've worked with", "our clients have found", or any variation. You do not know who the sender's clients are. If you cannot back a credibility claim with a fact from the brief, drop it entirely. Paragraph 2 earns trust through the specificity of what the product does, not borrowed authority from unnamed clients.
     - If the opener could work for any company, rewrite it.
 
     Output exactly:
