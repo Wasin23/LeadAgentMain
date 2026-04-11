@@ -347,17 +347,18 @@ const JUNK_KEYWORDS = new Set([
   'any company', 'all industries', 'all roles', 'any title', 'n/a', 'na', 'none', 'other',
 ]);
 
-function TagInput({ label, tags, onAdd, onRemove, suggestions, placeholder, helpText }: {
+function TagInput({ label, tags, onAdd, onRemove, suggestions = [], placeholder, helpText }: {
   label: string; tags: string[]; onAdd: (tag: string) => void; onRemove: (tag: string) => void;
-  suggestions: string[]; placeholder: string; helpText?: string;
+  suggestions?: string[]; placeholder: string; helpText?: string;
 }) {
   const [search, setSearch] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
-  const filtered = suggestions.filter(s => s.toLowerCase().includes(search.toLowerCase()) && !tags.includes(s)).slice(0, 10);
+  const safeTags = tags ?? [];
+  const filtered = suggestions.filter(s => s.toLowerCase().includes(search.toLowerCase()) && !safeTags.includes(s)).slice(0, 10);
 
   const handleAdd = (value: string) => {
     const trimmed = value.trim();
-    if (!trimmed || tags.includes(trimmed)) return;
+    if (!trimmed || safeTags.includes(trimmed)) return;
     if (JUNK_KEYWORDS.has(trimmed.toLowerCase())) return; // silently ignore junk
     onAdd(trimmed); setSearch(''); setShowDropdown(false);
   };
@@ -365,9 +366,9 @@ function TagInput({ label, tags, onAdd, onRemove, suggestions, placeholder, help
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
-      {tags.length > 0 && (
+      {safeTags.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-2">
-          {tags.map(tag => (
+          {safeTags.map(tag => (
             <span key={tag} className="inline-flex items-center gap-1 px-2.5 py-1 bg-primary/10 text-primary border border-primary/20 rounded-full text-xs">
               {tag}
               <button onClick={() => onRemove(tag)} className="hover:text-destructive ml-0.5"><X className="w-3 h-3" /></button>
