@@ -137,7 +137,7 @@ const INTRO_SLIDES = [
   },
 ] as const
 
-type Step = 'intro' | 'personality' | 'name-agent' | 'plan' | 'configure' | 'name-preset' | 'email-setup' | 'notifications' | 'crm-setup' | 'payment' | 'review' | 'creating'
+type Step = 'intro' | 'personality' | 'name-agent' | 'plan' | 'configure' | 'name-preset' | 'email-setup' | 'linkedin-setup' | 'notifications' | 'crm-setup' | 'payment' | 'review' | 'creating'
 
 interface Props {
   onComplete: () => void
@@ -192,7 +192,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
   const [crmError, setCrmError] = useState<string | null>(null)
   const [showCrmDropdown, setShowCrmDropdown] = useState(false)
 
-  const steps: Step[] = ['intro', 'personality', 'name-agent', 'plan', 'configure', 'name-preset', 'email-setup', 'notifications', 'crm-setup', 'payment', 'review', 'creating']
+  const steps: Step[] = ['intro', 'personality', 'name-agent', 'plan', 'configure', 'name-preset', 'email-setup', 'linkedin-setup', 'notifications', 'crm-setup', 'payment', 'review', 'creating']
   const stepIdx = steps.indexOf(step)
   const totalSteps = steps.length - 2 // exclude creating
 
@@ -1092,8 +1092,22 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                   {!useGmail && !useOutlook ? '✓ Selected' : 'Use Mailgun'}
                 </button>
               </div>
+            </div>
+            <div className="flex justify-between">
+              <button onClick={back} className="px-6 py-3 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl font-semibold transition-all">← Back</button>
+              <button onClick={next} className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-semibold hover:shadow-xl hover:scale-105 transition-all">Continue →</button>
+            </div>
+          </div>
+        )}
 
-              {/* LinkedIn */}
+        {/* LINKEDIN SETUP */}
+        {step === 'linkedin-setup' && (
+          <div className="max-w-2xl mx-auto">
+            <div className="text-center mb-7">
+              <h2 className="text-4xl font-bold text-white mb-2">LinkedIn Outreach</h2>
+              <p className="text-xl text-white/70">Connect LinkedIn to reach highly qualified leads on a second channel</p>
+            </div>
+            <div className="space-y-4 mb-7">
               <div className="bg-white/95 backdrop-blur-md border border-gray-200 rounded-2xl p-6 shadow-sm transition-all hover:shadow-md">
                 <h3 className="font-semibold text-gray-900 mb-1 flex items-center gap-2">
                   <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
@@ -1102,9 +1116,8 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                   </svg>
                   LinkedIn
                   {linkedinConnected && <span className="text-xs text-green-400 font-semibold bg-green-500/20 px-2 py-0.5 rounded">CONNECTED</span>}
-                  <span className="ml-auto text-xs text-gray-400 font-normal">Optional</span>
                 </h3>
-                <p className="text-sm text-gray-500 mb-3">Send InMail or connection requests to highly qualified leads in addition to email.</p>
+                <p className="text-sm text-gray-500 mb-3">When a lead is graded as highly qualified, your agent will also send them an InMail or connection request — in addition to email.</p>
                 <button
                   onClick={() => { if (!linkedinConnected) connectLinkedIn() }}
                   disabled={linkedinConnected || linkedinConnecting}
@@ -1116,7 +1129,9 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
             </div>
             <div className="flex justify-between">
               <button onClick={back} className="px-6 py-3 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl font-semibold transition-all">← Back</button>
-              <button onClick={next} className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-semibold hover:shadow-xl hover:scale-105 transition-all">Continue →</button>
+              <button onClick={next} className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-xl font-semibold hover:shadow-xl hover:scale-105 transition-all">
+                {linkedinConnected ? 'Continue →' : 'Skip for now →'}
+              </button>
             </div>
           </div>
         )}
@@ -1519,8 +1534,12 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                 <p className="font-semibold text-gray-900">
                   {useGmail ? '📧 Gmail (Primary inbox)' : useOutlook ? '📧 Outlook/Office 365' : '📧 Mailgun (Standard)'}
                 </p>
+                {linkedinConnected && <p className="text-sm text-[#0A66C2] font-medium mt-0.5">+ LinkedIn outreach enabled</p>}
                 </div>
-                <button onClick={() => editStep('email-setup')} className="shrink-0 text-xs text-blue-600 hover:text-blue-800 font-medium px-2.5 py-1 rounded-lg hover:bg-blue-50 transition-colors">Edit</button>
+                <div className="flex gap-1 shrink-0">
+                  <button onClick={() => editStep('email-setup')} className="text-xs text-blue-600 hover:text-blue-800 font-medium px-2.5 py-1 rounded-lg hover:bg-blue-50 transition-colors">Email</button>
+                  <button onClick={() => editStep('linkedin-setup')} className="text-xs text-blue-600 hover:text-blue-800 font-medium px-2.5 py-1 rounded-lg hover:bg-blue-50 transition-colors">LinkedIn</button>
+                </div>
               </div>
               <div className="flex items-start justify-between gap-2">
                 <div>
