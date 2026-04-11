@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import api from '@/lib/api'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -894,7 +894,7 @@ function computeAutoSendDate(index: number, schedule: SendingSchedule): Date {
 function Empty({ icon: Icon, text, sub }: { icon: React.ElementType; text: string; sub: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-14 gap-3 text-center">
-      <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center"><Icon className="w-5 h-5 text-muted-foreground" /></div>
+      <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center">{React.createElement(Icon as React.ElementType, { className: 'w-5 h-5 text-muted-foreground' })}</div>
       <div><p className="text-sm font-medium">{text}</p><p className="text-xs text-muted-foreground mt-0.5">{sub}</p></div>
     </div>
   )

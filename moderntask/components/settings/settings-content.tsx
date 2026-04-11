@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import {
@@ -708,7 +708,7 @@ export function SettingsContent() {
       {/* Horizontal top nav */}
       <nav className="flex gap-1 border-b border-border pb-0 flex-wrap">
         {TABS.map(t => {
-          const Icon = t.icon
+          const Icon = t.icon as React.ElementType
           const notifUnreadCount = inboxNotifs.filter(n => !n.read).length
           return (
             <button
@@ -720,7 +720,7 @@ export function SettingsContent() {
                   : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
               }`}
             >
-              <Icon className="w-4 h-4 flex-shrink-0" />
+              {React.createElement(Icon, { className: 'w-4 h-4 flex-shrink-0' })}
               {t.label}
               {t.id === "notifications" && notifUnreadCount > 0 && (
                 <span className="ml-0.5 min-w-[18px] h-[18px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
@@ -995,7 +995,7 @@ export function SettingsContent() {
                   ) : (
                     filteredNotifs.map(notif => {
                       const meta = getNotifMeta(notif.type)
-                      const Icon = meta.icon
+                      const Icon = meta.icon as React.ElementType
                       return (
                         <div
                           key={notif.id}
@@ -1008,7 +1008,7 @@ export function SettingsContent() {
                             <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-primary flex-shrink-0" />
                           )}
                           <div className={`flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center ${meta.badge}`}>
-                            <Icon className="w-4 h-4" />
+                            {React.createElement(Icon, { className: 'w-4 h-4' })}
                           </div>
                           <div className="flex-1 min-w-0 pr-4">
                             <div className="flex items-start gap-2 flex-wrap mb-0.5">

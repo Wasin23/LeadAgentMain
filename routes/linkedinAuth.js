@@ -114,7 +114,7 @@ router.get('/callback', async (req, res) => {
  */
 router.get('/status', authenticateToken, async (req, res) => {
   try {
-    const user = await awsManager.getUser(req.user.userId);
+    const user = await awsManager.getUserById(req.user.userId);
     const accountId = user?.linkedinAccountId || null;
     res.json({ success: true, connected: !!accountId, accountId });
   } catch (error) {
@@ -129,7 +129,7 @@ router.get('/status', authenticateToken, async (req, res) => {
  */
 router.post('/disconnect', authenticateToken, async (req, res) => {
   try {
-    const user = await awsManager.getUser(req.user.userId);
+    const user = await awsManager.getUserById(req.user.userId);
     const accountId = user?.linkedinAccountId;
 
     if (accountId && UNIPILE_API_URL && UNIPILE_API_KEY) {
