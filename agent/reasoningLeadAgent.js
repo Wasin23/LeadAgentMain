@@ -4527,8 +4527,8 @@ Format as:
           `SUBJECT_TYPE: "statement" = claim you can defend with facts | "question" = they genuinely want to answer it | "intrigue" = frame alone creates curiosity`,
           `SUBJECT: The actual subject line. Max 8 words. MUST be provocative — a bold claim, a named flaw, a sharp tension, or a pointed question they'll genuinely want to answer.`,
           `The subject should create mild discomfort or sharp curiosity. Safe, diplomatic, or corporate subjects will be ignored.`,
-          `GOOD: "Your BD pipeline is probably broken" | "The $575M bet Post Brothers made" | "Why tokenization changes your margin math"`,
-          `BAD: "Innovative solutions for your company" | "Quick question about Citizens National" | "Exploring opportunities together"`,
+          `GOOD: specific claim about their world, a named tension, or a pointed question with a non-obvious frame`,
+          `BAD: Generic FOMO, vague compliments, or anything that sounds like a marketing headline`,
           `No generic FOMO questions. No "Are you missing X?" unless the angle is genuinely non-obvious.`,
           ``,
           ...(employeeCount && parseInt(employeeCount) >= 500 ? [
@@ -4726,6 +4726,7 @@ EMAIL LENGTH: 6-7 sentences`;
     - One sentence must betray that the writer is human — a hedge, a parenthetical, a moment of self-awareness. Never sound certain of everything.
     - Vary sentence length deliberately. Mix short punchy sentences with longer ones. Never three consecutive sentences of similar length.
     - CTA: low friction, specific to the problem or timing. Not a generic demo ask.
+    - SUBJECT LINE: short, specific, sounds like a human wrote it in 3 seconds. Options in order of preference: (1) reference a real thing about the company — a specific deal, person, product, or fact from the research; (2) blunt/direct — first name or company name + one specific noun from the research; (3) curious but grounded — a named observation about this company specifically. NEVER write a subject that sounds like a blog post title, a LinkedIn ad, or a newsletter headline. No "why X is your next move", no "the overlooked edge in Y", no "is your Z missing X". If it could be a Forbes headline, rewrite it. Do not use any example subjects verbatim — every subject must be generated from the actual research facts provided.
     - No setup-conflict pivot. No "X is great, but Y is a problem" framing. Contrast lives inside sentences, not between them.
     - Banned words and phrases: mismatch, creates drag, operationally, streamline, cutting-edge, leverage, robust, revolutionize, game-changer, scalable, em dash, widening gap.
     - ABSOLUTE BAN: never use the em dash character (—) anywhere in the email. Not in lists, not mid-sentence, not anywhere. Replace with a comma, a period, or rewrite the sentence. There are no exceptions.
@@ -4921,20 +4922,8 @@ RULES FOR THE SUBJECT LINE:
 - Read like something a sharp human wrote, not a marketing template${isLargeEnterprise ? `
 - ENTERPRISE RULE: This is a large company (${employeeCount} employees). NO questions implying they are naive/missing something obvious (e.g. "Is X ready for Y?"). Use a statement or intriguing frame instead.` : ''}
 
-GOOD EXAMPLES (style only, not content):
-- "Your agency BD is probably broken"
-- "Why 17 markets makes this worse"
-- "Retiina's automation gap"
-- "Is your GPU pipeline ready for 2026?"
-- "Most agencies lose here"
-- "What manual outreach costs at scale"
-- "Black Sesame's infrastructure bet"
-
-BAD EXAMPLES (never do these):
-- "Quick question about Brandy" — weak, no claim
-- "Exciting opportunity for you" — spam
-- "Improve your outreach" — vague
-- "Are traditional methods holding you back?" — generic non-question
+GOOD SUBJECT STYLE: specific claim, named flaw, sharp tension, or pointed non-obvious question. Generated from actual facts in the email — never from examples.
+BAD SUBJECT STYLE: generic FOMO, vague compliments, marketing headline, blog title, anything that doesn't come from the email content.
 
 Output ONLY the subject line. Nothing else.`;
 
