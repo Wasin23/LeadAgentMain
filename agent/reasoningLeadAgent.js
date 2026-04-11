@@ -4824,7 +4824,9 @@ Write the email now. First sentence must be specific to this company.`;
         }
       }
 
-      const emailContent = claudeResponse.content[0].text.replace(/—/g, ',');
+      const emailContent = claudeResponse.content[0].text
+        .replace(/ — /g, ' - ')  // spaced em dash → hyphen
+        .replace(/—/g, ' - ');   // bare em dash → hyphen
 
       // Log API usage
       const claudeInputTokens = claudeResponse.usage?.input_tokens || 0;
