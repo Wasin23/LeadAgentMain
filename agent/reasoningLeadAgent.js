@@ -8535,12 +8535,23 @@ Target Positions:`;
         const remainingCredits = user.creditBalance || 0;
         
         if (remainingCredits <= 0) {
+          this.isRunning = false;
+          console.warn(`🚫 [CREDITS] Agent ${this.agentId} stopped — credit balance exhausted (balance: ${user.creditBalance})`);
           this.emit('progress', {
             stage: 'credit-limit-reached',
             message: 'Credit balance exhausted. Purchase more credits to continue.',
             timestamp: new Date().toISOString(),
             remainingCredits: 0
           });
+          // Persist a notification so it appears in the user's notification panel
+          this.logIssue('critical', 'Agent stopped — credits exhausted', {
+            severity: 'critical',
+            agentId: this.agentId,
+            system: 'creditBalance',
+            balance: user.creditBalance,
+            message: 'Your agent has been stopped because your credit balance reached 0. Purchase more credits to resume.',
+            timestamp: new Date().toISOString()
+          }).catch(() => {});
           return { 
             canContinue: false, 
             reason: 'credits-exhausted',
@@ -8573,6 +8584,8 @@ Target Positions:`;
 
         // Check if exhausted
         if (remainingCredits <= 0) {
+          this.isRunning = false;
+          console.warn(`🚫 [CREDITS] Agent ${this.agentId} stopped — trial credits exhausted (used: ${creditsUsed}/${creditsLimit})`);
           this.emit('progress', {
             stage: 'credit-limit-reached',
             message: 'Trial credits exhausted. Please upgrade or purchase credits.',
@@ -8581,6 +8594,16 @@ Target Positions:`;
             creditsLimit,
             remainingCredits: 0
           });
+          // Persist a notification so it appears in the user's notification panel
+          this.logIssue('critical', 'Agent stopped — trial credits exhausted', {
+            severity: 'critical',
+            agentId: this.agentId,
+            system: 'trialCredits',
+            creditsUsed,
+            creditsLimit,
+            message: `Your agent has been stopped because all ${creditsLimit} trial credits have been used. Upgrade your plan or purchase credits to continue.`,
+            timestamp: new Date().toISOString()
+          }).catch(() => {});
           return { 
             canContinue: false, 
             reason: 'credits-exhausted',
@@ -8827,8 +8850,9 @@ Target Positions:`;
   async runLoop() {
     if (!this.isRunning) return;
 
+    let cycleResult;
     try {
-      await this.executeReasoningCycle();
+      cycleResult = await this.executeReasoningCycle();
     } catch (error) {
       console.error('❌ [REASONING AGENT] Cycle error:', error);
       this.emit('progress', {
@@ -8840,6 +8864,9 @@ Target Positions:`;
     }
 
     // Schedule next cycle AFTER current cycle completes (so countdown shows immediately)
+    if (cycleResult?.reason === 'credits-exhausted-mid-cycle' || cycleResult?.reason === 'credits-exhausted') {
+      this.isRunning = false;
+    }
     if (this.isRunning) {
       const interval = this.customInterval || (30 * 60 * 1000); // Default 30 minutes
       this.nextRunTime = new Date(Date.now() + interval);

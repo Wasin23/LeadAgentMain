@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import { UpdateCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import AWSManager from '../utils/awsManager.js';
 
 dotenv.config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.env') });
@@ -46,7 +47,39 @@ async function deleteUser() {
       TableName: awsManager.tables.users,
       Key: { userId }
     }));
-    console.log('✅ User record deleted, including stored signup IP/device hashes');
+    console.log('✅ User record deleted');
+
+    // Scrub IP/device hashes from any OTHER users that share the same values.
+    // This prevents the fingerprint check from blocking a fresh signup from the
+    // same IP/device (e.g. developer re-registering after deleting a test account).
+    const hashesToScrub = [
+      user.signupIpHash ? { field: 'signupIpHash', value: user.signupIpHash } : null,
+      user.signupDeviceHash ? { field: 'signupDeviceHash', value: user.signupDeviceHash } : null,
+    ].filter(Boolean);
+
+    for (const { field, value } of hashesToScrub) {
+      const scanResult = await awsManager.dynamodb.send(new ScanCommand({
+        TableName: awsManager.tables.users,
+        FilterExpression: `#f = :v`,
+        ExpressionAttributeNames: { '#f': field },
+        ExpressionAttributeValues: { ':v': value },
+      }));
+
+      const others = (scanResult.Items || []).filter(u => u.userId !== userId);
+      if (others.length === 0) {
+        console.log(`ℹ️  No other users share ${field} — nothing extra to scrub`);
+        continue;
+      }
+
+      for (const other of others) {
+        await awsManager.dynamodb.send(new UpdateCommand({
+          TableName: awsManager.tables.users,
+          Key: { userId: other.userId },
+          UpdateExpression: 'REMOVE signupIpHash, signupDeviceHash',
+        }));
+        console.log(`🧹 Scrubbed signupIpHash + signupDeviceHash from user ${other.userId} (${other.email || 'no email'})`);
+      }
+    }
     
     // Delete user settings
     console.log('Deleting user settings...');
