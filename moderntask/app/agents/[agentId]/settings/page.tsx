@@ -81,7 +81,7 @@ interface AgentSettings {
     ccEmails: string; bccEmails: string; enableAutoResponse: boolean;
     rebumpIntervalDays: number; useCustomSignature: boolean;
     signatureName: string; signatureTitle: string;
-    useGmail: boolean; useOutlook: boolean;
+    useGmail: boolean; useOutlook: boolean; useLinkedIn?: boolean;
     templates: Array<{ id: string; name: string; subject: string; body: string }>;
     useTemplates: boolean;
   };
@@ -107,7 +107,7 @@ const defaultSettings: AgentSettings = {
   geographicSettings: { targetLocations: ['United States'], excludedLocations: [], leadLimit: 50, timezone: 'America/New_York' },
   concurrencyLevel: 1,
   researchFocus: { focusAreas: [], researchDepth: 'standard', includeCompanyNews: true, includePersonalInfo: false, includeSocialMedia: false },
-  emailBuilder: { emailTemplate: 'professional', customPrompt: '', emailResponsePrompt: '', tone: 'professional', length: 'medium', callToAction: 'meeting', personalization: 'high', ccEmails: '', bccEmails: '', enableAutoResponse: false, rebumpIntervalDays: 3, useCustomSignature: false, signatureName: '', signatureTitle: '', useGmail: false, useOutlook: false, templates: [], useTemplates: false }
+  emailBuilder: { emailTemplate: 'professional', customPrompt: '', emailResponsePrompt: '', tone: 'professional', length: 'medium', callToAction: 'meeting', personalization: 'high', ccEmails: '', bccEmails: '', enableAutoResponse: false, rebumpIntervalDays: 3, useCustomSignature: false, signatureName: '', signatureTitle: '', useGmail: false, useOutlook: false, useLinkedIn: false, templates: [], useTemplates: false }
 };
 
 // ─────────────────────────────────────────────────────
@@ -658,7 +658,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
       companyCriteria: { ...prev.companyCriteria, companySizeMin: preset.companySizeMin || prev.companyCriteria.companySizeMin, companySizeMax: preset.companySizeMax || prev.companyCriteria.companySizeMax, companyIndustries: preset.targetIndustries || prev.companyCriteria.companyIndustries },
       contactCriteria: { ...prev.contactCriteria, targetPositions: preset.targetPositions || prev.contactCriteria.targetPositions },
       geographicSettings: { ...prev.geographicSettings, leadLimit: preset.leadLimit || prev.geographicSettings.leadLimit },
-      emailBuilder: { ...prev.emailBuilder, length: preset.emailLength || prev.emailBuilder.length, callToAction: preset.callToAction || prev.emailBuilder.callToAction, personalization: preset.personalizationLevel || prev.emailBuilder.personalization, ccEmails: preset.ccEmails || prev.emailBuilder.ccEmails, bccEmails: preset.bccEmails || prev.emailBuilder.bccEmails, rebumpIntervalDays: preset.followupIntervalDays || prev.emailBuilder.rebumpIntervalDays, enableAutoResponse: preset.enableAutoResponse !== undefined ? preset.enableAutoResponse : prev.emailBuilder.enableAutoResponse, useCustomSignature: preset.useCustomSignature !== undefined ? preset.useCustomSignature : prev.emailBuilder.useCustomSignature, signatureName: preset.signatureName || prev.emailBuilder.signatureName, signatureTitle: preset.signatureTitle || prev.emailBuilder.signatureTitle },
+      emailBuilder: { ...prev.emailBuilder, length: preset.emailLength || prev.emailBuilder.length, callToAction: preset.callToAction || prev.emailBuilder.callToAction, personalization: preset.personalizationLevel || prev.emailBuilder.personalization, ccEmails: preset.ccEmails || prev.emailBuilder.ccEmails, bccEmails: preset.bccEmails || prev.emailBuilder.bccEmails, rebumpIntervalDays: preset.followupIntervalDays || prev.emailBuilder.rebumpIntervalDays, enableAutoResponse: preset.enableAutoResponse !== undefined ? preset.enableAutoResponse : prev.emailBuilder.enableAutoResponse, useCustomSignature: preset.useCustomSignature !== undefined ? preset.useCustomSignature : prev.emailBuilder.useCustomSignature, signatureName: preset.signatureName || prev.emailBuilder.signatureName, signatureTitle: preset.signatureTitle || prev.emailBuilder.signatureTitle, useLinkedIn: preset.useLinkedIn !== undefined ? preset.useLinkedIn : prev.emailBuilder.useLinkedIn },
     }));
     setHasUnsavedChanges(true);
   };
@@ -1143,7 +1143,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                 {settings.emailBuilder.useGmail && (
                   <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
                     <p className="text-sm text-blue-500 font-medium">✓ Emails will be sent from your connected Gmail account</p>
-                    <p className="text-xs text-blue-500/70 mt-1">Make sure Gmail is connected in Settings → Email → Gmail Connection</p>
+                    <p className="text-xs text-blue-500/70 mt-1">Make sure Gmail is connected in Settings → Outreach → Gmail Connection</p>
                   </div>
                 )}
               </div>
@@ -1159,7 +1159,23 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                 {settings.emailBuilder.useOutlook && (
                   <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
                     <p className="text-sm text-blue-500 font-medium">✓ Emails will be sent from your connected Outlook account</p>
-                    <p className="text-xs text-blue-500/70 mt-1">Make sure Outlook is connected in Settings → Email → Outlook Connection</p>
+                    <p className="text-xs text-blue-500/70 mt-1">Make sure Outlook is connected in Settings → Outreach → Outlook Connection</p>
+                  </div>
+                )}
+              </div>
+
+              {/* LinkedIn */}
+              <div className="border-t border-border pt-4 space-y-3">
+                <ToggleRow
+                  label="Enable LinkedIn Outreach"
+                  checked={!!settings.emailBuilder.useLinkedIn}
+                  onChange={v => updateEmail('useLinkedIn', v)}
+                  description="Allow this agent to send InMail or connection requests to highly qualified leads via LinkedIn"
+                />
+                {settings.emailBuilder.useLinkedIn && (
+                  <div className="p-3 bg-[#0A66C2]/10 border border-[#0A66C2]/20 rounded-lg">
+                    <p className="text-sm font-medium" style={{ color: '#0A66C2' }}>✓ LinkedIn outreach enabled for this agent</p>
+                    <p className="text-xs mt-1" style={{ color: '#0A66C2', opacity: 0.7 }}>Make sure LinkedIn is connected in Settings → Outreach → Connect LinkedIn</p>
                   </div>
                 )}
               </div>

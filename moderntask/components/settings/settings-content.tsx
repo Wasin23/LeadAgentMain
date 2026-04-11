@@ -97,7 +97,7 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "appearance",      label: "Appearance",      icon: Palette },
   { id: "notifications",   label: "Notifications",   icon: Bell },
   { id: "company-profile", label: "Company Profile", icon: Building2 },
-  { id: "email",           label: "Email",           icon: Mail },
+  { id: "email",           label: "Outreach",        icon: Mail },
   { id: "crm",             label: "CRM Connection",  icon: Database },
   { id: "memory",          label: "Memory",          icon: Brain },
   { id: "presets",         label: "Presets",         icon: LayoutGrid },

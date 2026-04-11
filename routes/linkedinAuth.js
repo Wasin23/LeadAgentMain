@@ -5,9 +5,11 @@ import { authenticateToken } from '../middleware/jwt.js';
 const router = express.Router();
 const awsManager = new AWSManager();
 
-const UNIPILE_API_URL = process.env.UNIPILE_API_URL;
+const UNIPILE_API_URL = (process.env.UNIPILE_API_URL || '').replace(/\/$/, '');
 const UNIPILE_API_KEY = process.env.UNIPILE_API_KEY;
-const APP_URL        = process.env.API_BASE_URL;
+const APP_URL        = (process.env.API_BASE_URL || '').replace(/\/$/, '');
+
+console.log('[LINKEDIN AUTH] Module loaded. UNIPILE_API_URL set:', !!UNIPILE_API_URL, '| APP_URL set:', !!APP_URL);
 
 /**
  * GET /api/auth/linkedin/oauth-url
@@ -15,6 +17,7 @@ const APP_URL        = process.env.API_BASE_URL;
  */
 router.get('/oauth-url', authenticateToken, async (req, res) => {
   try {
+    console.log('[LINKEDIN AUTH] /oauth-url hit. UNIPILE_API_URL:', UNIPILE_API_URL ? 'set' : 'MISSING', '| UNIPILE_API_KEY:', UNIPILE_API_KEY ? 'set' : 'MISSING');
     if (!UNIPILE_API_URL || !UNIPILE_API_KEY) {
       return res.status(503).json({ error: 'LinkedIn integration not configured' });
     }
