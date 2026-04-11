@@ -8066,36 +8066,10 @@ Target Positions:`;
             const exhaustedCount = Object.values(keywordAggMap).filter(a => a.exhausted).length;
             const highDupCount = Object.values(keywordAggMap).filter(a => !a.exhausted && a.cumulativeDuplicateRate > 40).length;
 
-            // Any keyword Zilliz knows about that is VIABLE (<=20% dup) but not in the
-            // base industry list should be injected into aiGeneratedKeywords so the
-            // rotation can actually reach it on the next search.
-            const baseKwsNorm = (this.memory.baseIndustryKeywords || []).map(k => k.toLowerCase());
-            const existingAiKws = new Set((this.memory.aiGeneratedKeywords || []).map(k => k.toLowerCase()));
-            let injectedCount = 0;
-            Object.keys(keywordAggMap).forEach(kw => {
-              const agg = keywordAggMap[kw];
-              const kwNorm = kw.toLowerCase();
-              if (
-                agg.cumulativeDuplicateRate <= 40 &&
-                !baseKwsNorm.includes(kwNorm) &&
-                !existingAiKws.has(kwNorm)
-              ) {
-                if (!this.memory.aiGeneratedKeywords) this.memory.aiGeneratedKeywords = [];
-                if (!this.memory.aiGeneratedPositions) this.memory.aiGeneratedPositions = [];
-                this.memory.aiGeneratedKeywords.push(kw);
-                // Use the position from the Zilliz combo if available, else fall back to first base position
-                const comboPosition = agg.combos[0]?.split(' (')[0];
-                const fallbackPosition = (this.memory.userSettings?.targetPositions || [])[0] || 'Manager';
-                this.memory.aiGeneratedPositions.push(comboPosition || fallbackPosition);
-                existingAiKws.add(kwNorm);
-                injectedCount++;
-              }
-            });
-
             // Log to UI
             this.logOperation(
               '🧠 Memory Loaded',
-              `Restored ${memoryData.count} combo records → ${Object.keys(keywordAggMap).length} keywords. ${exhaustedCount} exhausted (Zilliz), ${highDupCount} high-dup (>20%, will be pre-skipped this run)${injectedCount > 0 ? `, ${injectedCount} viable keyword(s) injected into rotation` : ''}.`,
+              `Restored ${memoryData.count} combo records → ${Object.keys(keywordAggMap).length} keywords. ${exhaustedCount} exhausted (Zilliz), ${highDupCount} high-dup (>40%, will be pre-skipped this run).`,
               'success'
             );
           } else {
