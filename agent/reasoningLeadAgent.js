@@ -4767,7 +4767,12 @@ EMAIL LENGTH: 6-7 sentences`;
       };
 
       const nudgePool = softRulePools[personalityType] || softRulePools['HUNTER'];
-      const selectedNudges = [...nudgePool].sort(() => Math.random() - 0.5).slice(0, 3);
+      const _nudgeArr = [...nudgePool];
+      for (let i = _nudgeArr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [_nudgeArr[i], _nudgeArr[j]] = [_nudgeArr[j], _nudgeArr[i]];
+      }
+      const selectedNudges = _nudgeArr.slice(0, 3);
 
       const claudeSystemPrompt = `HARD RULE — READ THIS FIRST: Never use the em dash character (—) anywhere in your output. Not once. Not in any sentence. Replace every em dash with a comma, a period, or rewrite the sentence. This applies to every word you write below.
 
