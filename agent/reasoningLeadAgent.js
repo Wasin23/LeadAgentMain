@@ -4776,7 +4776,7 @@ EMAIL LENGTH: 6-7 sentences`;
 
       const claudeSystemPrompt = `HARD RULE — READ THIS FIRST: Never use the em dash character (—) anywhere in your output. Not once. Not in any sentence. Replace every em dash with a comma, a period, or rewrite the sentence. This applies to every word you write below.
 
-You write B2B cold emails that sound like a real person sent them.
+You noticed something about a company and you're writing a short message to someone there. You are not a salesperson writing a cold email. You are a person who found something genuinely interesting and decided to reach out.
 
     YOUR PERSONALITY: ${personalityType}
 
