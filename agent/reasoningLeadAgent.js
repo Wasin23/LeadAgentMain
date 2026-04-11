@@ -5284,18 +5284,34 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         // Track cycle offset for infinite variety (increases after full cycle)
         if (!this.memory.cycleOffset) this.memory.cycleOffset = 0;
         
-        // Determine which keyword+position pair to use
-        const keywordIndex = this.memory.currentKeywordIndex % totalKeywords;
-        
-        if (keywordIndex < totalBaseKeywords) {
+        // Fast-forward past already-exhausted keywords so we don't waste a full
+        // round-trip (LLM reason call + leadSearch call) just to hit pre-skip.
+        // At most iterate totalKeywords times; if all are exhausted we fall through
+        // to the pre-skip handler below which will trigger AI keyword generation.
+        for (let _skip = 0; _skip < totalKeywords; _skip++) {
+          const _idx = this.memory.currentKeywordIndex % totalKeywords;
+          const _kw = _idx < totalBaseKeywords
+            ? baseKeywords[_idx]
+            : aiKeywords[_idx - totalBaseKeywords];
+          const _dup = this.memory.industryExhaustion[_kw]?.cumulativeDuplicateRate || 0;
+          if (_dup > 20) {
+            console.log(`[KEYWORD FAST-FORWARD] Skipping exhausted keyword "${_kw}" (${_dup.toFixed(1)}% dup) — advancing index`);
+            this.memory.currentKeywordIndex++;
+          } else {
+            break; // Found a viable keyword
+          }
+        }
+
+        const resolvedKeywordIndex = this.memory.currentKeywordIndex % totalKeywords;
+        if (resolvedKeywordIndex < totalBaseKeywords) {
           // Use base keyword from user settings
-          selectedKeyword = baseKeywords[keywordIndex];
+          selectedKeyword = baseKeywords[resolvedKeywordIndex];
           keywordSource = 'base';
           // Pair with matching position index + cycle offset for variety
-          selectedPositionIndex = (keywordIndex + this.memory.cycleOffset) % basePositions.length;
+          selectedPositionIndex = (resolvedKeywordIndex + this.memory.cycleOffset) % basePositions.length;
         } else {
           // Use AI-generated keyword
-          const aiIndex = keywordIndex - totalBaseKeywords;
+          const aiIndex = resolvedKeywordIndex - totalBaseKeywords;
           selectedKeyword = aiKeywords[aiIndex];
           keywordSource = 'ai';
           // Pair with matching AI position + cycle offset
@@ -5303,7 +5319,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         }
         
         // Determine the actual position being used
-        const currentSearchPosition = (keywordIndex < totalBaseKeywords) 
+        const currentSearchPosition = (resolvedKeywordIndex < totalBaseKeywords) 
           ? basePositions[selectedPositionIndex] 
           : aiPositions[selectedPositionIndex];
         
@@ -9059,8 +9075,10 @@ Target Positions:`;
         // ── Consecutive empty search guard ─────────────────────────────────
         // If lead_search keeps returning 0 leads, the agent has nowhere to go.
         // Break the cycle rather than burning credits in an infinite loop.
+        // Pre-skipped searches (intentional keyword rotation) do NOT count — only
+        // searches that actually ran against the API and returned nothing.
         if (reasoningResult.action === 'lead_search') {
-          if (!actionResult?.leads?.length) {
+          if (!actionResult?.leads?.length && !actionResult?.skipped) {
             consecutiveEmptySearches++;
             if (consecutiveEmptySearches >= MAX_EMPTY_SEARCHES) {
               this.logOperation('⚠️ Search Exhausted', `No new leads found after ${MAX_EMPTY_SEARCHES} consecutive searches — ending cycle`, 'warning', {
