@@ -36,7 +36,7 @@ interface Agent {
     companyCriteria?: { companyIndustries?: string[]; companySizeMin?: number | null; companySizeMax?: number | null }
     contactCriteria?: { targetPositions?: string[] }
     geographicSettings?: { leadLimit?: number | null }
-    emailBuilder?: { length?: string; callToAction?: string; rebumpIntervalDays?: number }
+    emailBuilder?: { length?: string; callToAction?: string; rebumpIntervalDays?: number; useLinkedIn?: boolean }
     concurrencyLevel?: number
     [key: string]: unknown
   }
@@ -192,6 +192,15 @@ function AgentCard({
                 <><PauseCircle className="w-2.5 h-2.5 mr-1" />Idle</>
               )}
             </Badge>
+            <span
+              title={agent.settings?.emailBuilder?.useLinkedIn ? 'LinkedIn enabled' : 'LinkedIn not connected'}
+              className={cn('inline-flex items-center', !agent.settings?.emailBuilder?.useLinkedIn && 'opacity-25')}
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 256 256" fill="none">
+                <rect width="256" height="256" rx="24" fill="#0077B5"/>
+                <path d="M75 195V107H48v88h27zm-13.5-100c9.4 0 15.3-6.2 15.3-13.9-.2-7.9-5.8-13.9-15-13.9S46 73.2 46 81.1c0 7.8 5.6 13.9 14.7 13.9h.8zM210 195v-50.5c0-27.2-14.5-39.9-33.9-39.9-15.6 0-22.6 8.6-26.5 14.6V107h-27v88h27v-49.1c0-2.4.2-4.8.9-6.5 2-4.8 6.5-9.8 14-9.8 9.9 0 13.8 7.5 13.8 18.5V195h27z" fill="white"/>
+              </svg>
+            </span>
           </div>
         </div>
       </div>

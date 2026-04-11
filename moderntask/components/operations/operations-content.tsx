@@ -10,8 +10,8 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import {
   Play, Square, RefreshCw, Bot, Mail, Clock,
-  MessageSquare, Wifi, WifiOff, Activity,
-  ChevronRight, ChevronDown, Sparkles, CheckCircle2, Send,
+  MessageSquare, Activity,
+  ChevronRight, ChevronDown, CheckCircle2, Send,
   Target, ExternalLink, ArrowUp, ArrowDown, User,
   UserCheck, Search, Settings, FileText, Users, Globe, Cpu,
   type LucideIcon
@@ -38,7 +38,7 @@ interface Agent {
   settings?: {
     companyCriteria?: { companyIndustries?: string[] }
     contactCriteria?: { targetPositions?: string[] }
-    emailBuilder?: { useGmail?: boolean; useOutlook?: boolean }
+    emailBuilder?: { useGmail?: boolean; useOutlook?: boolean; useLinkedIn?: boolean }
     targeting?: { leadLimit?: number }
     geographicSettings?: { leadLimit?: number }
     concurrencyLevel?: number
@@ -127,7 +127,6 @@ export function OperationsContent() {
   const [agentActivities, setAgentActivities] = useState<Record<string, { status: string; timestamp: number }>>({})
   const [stats, setStats] = useState<TodayStats>({ sent: 0, queued: 0, cycles: 0, replied: 0 })
   const [prevStats, setPrevStats] = useState<TodayStats>({ sent: 0, queued: 0, cycles: 0, replied: 0 })
-  const [aiSummary, setAiSummary] = useState('Initializing coordination intelligence...')
   const [sseConnected, setSseConnected] = useState(false)
   const [expandedLogs, setExpandedLogs] = useState<Record<string, boolean>>({})
   const [toggling, setToggling] = useState<Record<string, boolean>>({})
@@ -190,14 +189,6 @@ export function OperationsContent() {
       const sentYest = emails.filter(e => (e.sentAt || e.createdAt || '').startsWith(yestStr)).length
       const repliedYest = emails.filter(e => e.replied && (e.repliedAt || e.sentAt || '').startsWith(yestStr)).length
       setPrevStats(p => ({ ...p, sent: sentYest, replied: repliedYest }))
-    } catch { /* silent */ }
-  }, [])
-
-  // ── fetch AI summary ─────────────────────────────────────────────────────
-  const fetchSummary = useCallback(async () => {
-    try {
-      const res = await api.get('/api/monitoring/ai-summary')
-      if (res.data?.summary) setAiSummary(res.data.summary)
     } catch { /* silent */ }
   }, [])
 
@@ -336,11 +327,6 @@ export function OperationsContent() {
   useEffect(() => { fetchAgents() }, [fetchAgents])
   useEffect(() => { fetchPrevDay() }, [fetchPrevDay])
   useEffect(() => { fetchPlanStatus() }, [fetchPlanStatus])
-  useEffect(() => {
-    fetchSummary()
-    const id = setInterval(fetchSummary, 5000)
-    return () => clearInterval(id)
-  }, [fetchSummary])
 
   // auto-scroll logs
   useEffect(() => {
@@ -533,6 +519,15 @@ export function OperationsContent() {
                           </svg>
                         </span>
                       )}
+                      <span
+                        title={agent.settings?.emailBuilder?.useLinkedIn ? 'LinkedIn enabled' : 'LinkedIn not connected'}
+                        className={cn('inline-flex items-center p-0.5', !agent.settings?.emailBuilder?.useLinkedIn && 'opacity-25')}
+                      >
+                        <svg className="w-3.5 h-3.5" viewBox="0 0 256 256" fill="none">
+                          <rect width="256" height="256" rx="24" fill="#0077B5"/>
+                          <path d="M75 195V107H48v88h27zm-13.5-100c9.4 0 15.3-6.2 15.3-13.9-.2-7.9-5.8-13.9-15-13.9S46 73.2 46 81.1c0 7.8 5.6 13.9 14.7 13.9h.8zM210 195v-50.5c0-27.2-14.5-39.9-33.9-39.9-15.6 0-22.6 8.6-26.5 14.6V107h-27v88h27v-49.1c0-2.4.2-4.8.9-6.5 2-4.8 6.5-9.8 14-9.8 9.9 0 13.8 7.5 13.8 18.5V195h27z" fill="white"/>
+                        </svg>
+                      </span>
                       <button
                         onClick={e => { e.stopPropagation(); router.push(`/agents/${agent.agentId}/settings`) }}
                         className="text-muted-foreground hover:text-foreground p-1 rounded transition-colors"
@@ -701,25 +696,6 @@ export function OperationsContent() {
             )
           })}
         </div>
-
-        {/* AI Summary */}
-        <Card>
-          <CardHeader className="px-4 py-3 pb-2">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-violet-500" />
-              <CardTitle className="text-sm">Agent Intelligence Summary</CardTitle>
-              <div className="ml-auto flex items-center gap-1.5">
-                {sseConnected
-                  ? <><Wifi className="w-3 h-3 text-green-500" /><span className="text-[10px] text-green-500 font-medium">Live</span></>
-                  : <><WifiOff className="w-3 h-3 text-destructive" /><span className="text-[10px] text-destructive font-medium">Offline</span></>
-                }
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="px-4 pb-3">
-            <p className="text-sm text-muted-foreground leading-relaxed">{aiSummary}</p>
-          </CardContent>
-        </Card>
 
         {/* Activity log */}
         <Card className="flex-1 min-h-0 flex flex-col overflow-hidden">
