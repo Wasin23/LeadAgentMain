@@ -4515,7 +4515,8 @@ Format as:
           ``,
           `2. DEFERRED DECISION — What is one thing this person almost certainly knows they should address, but keeps pushing back? What's the rational-sounding excuse they tell themselves for not acting yet?`,
           ``,
-          `3. WINNING MOVE — If they act on our product and it works, what story do they get to tell in 6 months? What does the smart version of them look like? Make it ego-specific, not just company-level.`,
+          `3. WINNING MOVE — If they act on our product and it works, what does THIS specific person get credit for internally? Name the outcome in terms of their own role, reputation, or decision-making — not a company metric. No peer groups, no "like other firms", no unnamed social proof. The win is personal and specific to them.`,
+          ``,
           ``,
           `4. TOP OBJECTION — What is the single most likely reason they will NOT reply? State it plainly. Then in one sentence, explain how the email should preempt it without addressing it directly.`,
           ``,
@@ -4524,19 +4525,17 @@ Format as:
           `6. ONE-LINE ANGLE — The argument in one sentence. Form: "Because [something specifically true about their world right now], [a consequence they haven't fully reckoned with], and [product] is the clearest way to [resolve it specifically]." If you cannot complete this with actual specifics from the research, write "INSUFFICIENT DATA:" and explain what's missing.`,
           ``,
           `Then:`,
-          `SUBJECT_TYPE: "statement" = claim you can defend with facts | "question" = they genuinely want to answer it | "intrigue" = frame alone creates curiosity`,
-          `SUBJECT: The actual subject line. Max 8 words. MUST be provocative — a bold claim, a named flaw, a sharp tension, or a pointed question they'll genuinely want to answer.`,
+          `SUBJECT_TYPE: "statement" = bold claim you can defend with a specific named fact | "tension" = a named gap, misalignment, or unresolved problem | "intrigue" = the frame alone creates curiosity, no question asked`,
+          `SUBJECT: The actual subject line. Max 8 words. NEVER a question — rephrase any question as a statement, named fact, or named tension. Use a specific thing from the research — a deal, person, event, or gap — not a generic observation.`,
           `The subject should create mild discomfort or sharp curiosity. Safe, diplomatic, or corporate subjects will be ignored.`,
-          `GOOD: specific claim about their world, a named tension, or a pointed question with a non-obvious frame`,
-          `BAD: Generic FOMO, vague compliments, or anything that sounds like a marketing headline`,
-          `No generic FOMO questions. No "Are you missing X?" unless the angle is genuinely non-obvious.`,
+          `GOOD: specific claim about their world, a named tension, a named fact from the research, a blunt company + noun combo`,
+          `BAD: any question, generic FOMO, vague compliments, anything that sounds like a marketing headline`,
           ``,
           ...(employeeCount && parseInt(employeeCount) >= 500 ? [
             `⚠️  ENTERPRISE TONE RULE: This company has ${employeeCount} employees — they are a large, established organization.`,
             `DO NOT use framing that implies they are naive, behind, or missing something obvious. They have smart people.`,
-            `DO NOT write questions like "Is [Company] missing X?" or "Why [Company] hasn't done X yet" — arrogant, will be deleted.`,
-            `Instead: peer-level framing. You are a peer with a specific insight about their space, not a challenger showing them what they missed.`,
-            `SUBJECT TYPE for large enterprises: prefer "statement" or "intrigue". A question is only valid if it surfaced a genuinely non-obvious idea.`,
+            `Peer-level framing only. You are a peer with a specific insight, not a challenger showing them what they missed.`,
+            `SUBJECT TYPE for large enterprises: "statement" or "intrigue" only.`,
           ] : []),
           ``,
           `Respond ONLY in JSON:`,
@@ -4547,7 +4546,7 @@ Format as:
           `  "topObjection": "...",`,
           `  "sharpestIntersection": "...",`,
           `  "oneLineAngle": "...",`,
-          `  "subjectType": "statement | question | intrigue",`,
+          `  "subjectType": "statement | tension | intrigue",`,
           `  "suggestedSubject": "..."`,
           `}`
         ].join('\n');
@@ -4683,8 +4682,6 @@ EMAIL LENGTH: 6-7 sentences`;
           `ANGLE: ${this.truncateForPrompt(salesAngle.oneLineAngle, 180)}`,
           `TENSION: ${this.truncateForPrompt(salesAngle.sharpestIntersection, 180)}`,
           `OBJECTION: ${this.truncateForPrompt(salesAngle.topObjection, 140)}`,
-          `WIN: ${this.truncateForPrompt(salesAngle.winningMove, 140)}`,
-          `SUBJECT TYPE: ${salesAngle.subjectType}`,
           `SUBJECT: ${this.truncateForPrompt(salesAngle.suggestedSubject, 60)}`
         ].join('\n')
         : `BUYER MOTIVATION: ${this.truncateForPrompt(resolvedMotivation, 220)}`;
@@ -4785,7 +4782,7 @@ You noticed something about a company and you're writing a short message to some
     - RELATIONSHIP: warm and perceptive. Lead with genuine curiosity or a specific compliment that earns the right to continue. The edge is in the specificity, not the tone.
     - ANALYST: inference-driven. Form a take from a specific data point or pattern in the research. The opinion sounds like a logical conclusion, not a feeling.
     - CONSULTANT: strategic peer. The opener sounds like something a trusted advisor in the room would say, slightly knowing, a reframe of how they see their own situation.
-    - NETWORKER: socially aware. Reference a pattern seen across companies or people, making the reader feel part of a conversation already happening.
+    - NETWORKER: socially aware. Name the atmosphere — what is shifting in this space right now, what people in this industry are thinking about. The reader feels part of a moment, not a pitch list. Never name other clients, unnamed groups, or fabricated peer companies.
 
     HUMAN OPENER PATTERNS — weave one of these into the opening sentence to make it feel unscripted. Adapt freely, do not copy verbatim. These are fabricated moments — that is intentional and fine:
     - HUNTER: "Blunt question -", "Was debating whether to send this, but", "Not a typical pitch, so bear with me", "Was just arguing about [topic] and your name came up"
@@ -4802,7 +4799,7 @@ You noticed something about a company and you're writing a short message to some
     - Paragraph 1: open with the human moment + your take on this specific company or person. Not a diagnosis. Not a market overview. End on the observation — never on the implication. Do not narrate what the observation means to the reader. They already know. Trust the opener. Let it breathe. The connection to what you do belongs in paragraph 2.
     - Paragraph 2: one thing you do and why it is directly relevant to that specific take. One capability, no feature list.
     - CTA: low friction, specific to the problem or timing. Not a generic demo ask. Never reference unnamed groups in the CTA.
-    - SUBJECT LINE: short, specific, sounds like a human wrote it in 3 seconds. Reference a real thing from the research — a deal, person, product, or specific fact. Never a blog post title, LinkedIn ad, or rhetorical question implying they are behind. Do not use any example verbatim.
+    - SUBJECT LINE: short, specific, sounds like a human wrote it in 3 seconds. Reference a real thing from the research — a deal, person, product, or specific fact. NEVER a question of any kind — statements and intrigue frames only. Never a blog post title or LinkedIn ad. Do not use any example verbatim.
     - No setup-conflict pivot. No "X is great, but Y is a problem" framing.
     - Never write "not a replacement for what you do", "not here to reinvent", "this isn't about replacing" or any variation. Do not pre-object-handle unprompted.
     - Never explain why your observation is relevant. Do not write "this maps directly to how you think about X", "which connects to your work in Y", "given your background in Z, this will resonate". The reader can make the connection. State the observation, move to the product.
@@ -4859,7 +4856,7 @@ ${companyProofPoints.length > 0 ? `- Proof points:\n${companyProofPoints.map((fa
 
 ${campaignStrategy ? `CAMPAIGN:\n${campaignStrategy}\n` : ''}SUBJECT:
 ${salesAngle
-  ? `Type=${salesAngle.subjectType}; suggested=${this.truncateForPrompt(salesAngle.suggestedSubject, 60)}. Use this or a better subject of the same type.`
+  ? `Suggested: "${this.truncateForPrompt(salesAngle.suggestedSubject, 60)}". Use this or write a sharper statement/intrigue subject grounded in the research. NEVER a question.`
   : 'Write a sharp subject tied to the specific tension.'}
 
 SIGNATURE:
