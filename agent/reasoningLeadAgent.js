@@ -8922,6 +8922,8 @@ Target Positions:`;
     });
 
     let stepCount = 0;
+    let consecutiveEmptySearches = 0;
+    const MAX_EMPTY_SEARCHES = 5; // bail out if lead_search returns 0 leads 5 times in a row
     const cycleStartTime = Date.now(); // Hoisted so catch block can reference it
     try {
       const maxSteps = 5000; // Safety limit - increased for high-volume lead processing
@@ -9056,6 +9058,25 @@ Target Positions:`;
         
         // Update cycle state based on action results
         await this.updateCycleState(reasoningResult.action, actionResult);
+
+        // ── Consecutive empty search guard ─────────────────────────────────
+        // If lead_search keeps returning 0 leads, the agent has nowhere to go.
+        // Break the cycle rather than burning credits in an infinite loop.
+        if (reasoningResult.action === 'lead_search') {
+          if (!actionResult?.leads?.length) {
+            consecutiveEmptySearches++;
+            if (consecutiveEmptySearches >= MAX_EMPTY_SEARCHES) {
+              this.logOperation('⚠️ Search Exhausted', `No new leads found after ${MAX_EMPTY_SEARCHES} consecutive searches — ending cycle`, 'warning', {
+                cycleNumber: this.cycleCount,
+                stepNumber: stepCount,
+                consecutiveEmptySearches
+              });
+              break;
+            }
+          } else {
+            consecutiveEmptySearches = 0; // reset on any success
+          }
+        }
 
         // ── Concurrent lead processing ─────────────────────────────────────
         // After Apollo fills the queue, if concurrencyLevel > 1, drain all
