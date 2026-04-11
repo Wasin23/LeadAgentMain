@@ -4,7 +4,7 @@ import React, { useState, useEffect, use, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Check, ChevronDown, ChevronRight,
-  Search, X, Plus, AlertCircle, CheckCircle2, Loader2
+  Search, X, Plus, AlertCircle, CheckCircle2, Loader2, Lock, Unlock
 } from 'lucide-react';
 import api from '@/lib/api';
 import { Sidebar } from '@/components/dashboard/sidebar';
@@ -962,7 +962,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                   criteriaUnlocked ? 'bg-amber-600 text-white hover:bg-amber-700' : 'bg-white border border-amber-400 text-amber-700 hover:bg-amber-100'
                 }`}
               >
-                {criteriaUnlocked ? 'Lock' : 'Unlock to edit'}
+                {criteriaUnlocked ? <><Unlock className="inline w-3 h-3 mr-1" />Lock</> : <><Lock className="inline w-3 h-3 mr-1" />Unlock to edit</>}
               </button>
             </div>
             <div className={`grid grid-cols-1 gap-4 mt-2 transition-opacity ${criteriaUnlocked ? 'opacity-100' : 'opacity-40 pointer-events-none select-none'}`}>
