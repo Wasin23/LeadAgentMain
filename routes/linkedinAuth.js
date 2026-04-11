@@ -25,30 +25,44 @@ router.get('/oauth-url', authenticateToken, async (req, res) => {
     const userId = req.user.userId;
     const state  = Buffer.from(JSON.stringify({ userId })).toString('base64');
 
-    const response = await fetch(`${UNIPILE_API_URL}/api/v1/hosted/accounts/link`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-KEY': UNIPILE_API_KEY,
-      },
-      body: JSON.stringify({
-        type: 'LINKEDIN',
-        api_url: UNIPILE_API_URL,
-        expiresOn: new Date(Date.now() + 1000 * 60 * 30).toISOString(), // 30 min
-        success_redirect_url: `${APP_URL}/api/auth/linkedin/callback?state=${encodeURIComponent(state)}`,
-        failure_redirect_url: `${APP_URL}/api/auth/linkedin/callback?error=1&state=${encodeURIComponent(state)}`,
-      }),
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+    let response;
+    try {
+      response = await fetch(`${UNIPILE_API_URL}/api/v1/hosted/accounts/link`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-KEY': UNIPILE_API_KEY,
+        },
+        body: JSON.stringify({
+          type: 'LINKEDIN',
+          api_url: UNIPILE_API_URL,
+          expiresOn: new Date(Date.now() + 1000 * 60 * 30).toISOString(), // 30 min
+          success_redirect_url: `${APP_URL}/api/auth/linkedin/callback?state=${encodeURIComponent(state)}`,
+          failure_redirect_url: `${APP_URL}/api/auth/linkedin/callback?error=1&state=${encodeURIComponent(state)}`,
+        }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!response.ok) {
       const err = await response.text();
-      console.error('[LINKEDIN AUTH] Unipile link error:', err);
-      return res.status(502).json({ error: 'Failed to create LinkedIn auth link' });
+      console.error('[LINKEDIN AUTH] Unipile link error:', response.status, err);
+      return res.status(502).json({ error: 'Failed to create LinkedIn auth link', detail: err });
     }
 
     const data = await response.json();
+    console.log('[LINKEDIN AUTH] Unipile response keys:', Object.keys(data));
     res.json({ success: true, authUrl: data.url || data.auth_url || data.link });
   } catch (error) {
+    if (error?.name === 'AbortError') {
+      console.error('[LINKEDIN AUTH] Unipile request timed out after 10s');
+      return res.status(504).json({ error: 'LinkedIn auth request timed out — Unipile API unreachable' });
+    }
     console.error('[LINKEDIN AUTH] oauth-url error:', error);
     res.status(500).json({ error: 'Failed to generate LinkedIn OAuth URL' });
   }
