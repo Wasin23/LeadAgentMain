@@ -8951,6 +8951,17 @@ Target Positions:`;
         );
         
         console.log(`[CAMPAIGN PLAN] convertInstructionsToPlan result: ${this.campaignPlan ? 'OK' : 'NULL/UNDEFINED'} | hasQualificationCriteria: ${!!this.campaignPlan?.qualificationCriteria} | mustHave items: ${this.campaignPlan?.qualificationCriteria?.mustHave?.length ?? 'n/a'}`);
+
+        // If user has manually saved qualification criteria in settings, override the auto-generated ones
+        const userCriteria = tempSettings.qualificationCriteria;
+        if (this.campaignPlan && userCriteria && (userCriteria.mustHave?.length > 0 || userCriteria.disqualifiers?.length > 0)) {
+          this.campaignPlan.qualificationCriteria = {
+            mustHave: userCriteria.mustHave || [],
+            niceToHave: userCriteria.niceToHave || [],
+            disqualifiers: userCriteria.disqualifiers || [],
+          };
+          console.log(`[CAMPAIGN PLAN] User criteria override applied — mustHave: ${userCriteria.mustHave?.length}, disqualifiers: ${userCriteria.disqualifiers?.length}`);
+        }
         
         if (this.campaignPlan) {
           this.emit('progress', {

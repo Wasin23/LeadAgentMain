@@ -71,6 +71,7 @@ interface AgentSettings {
   contactCriteria: { targetPositions: string[]; seniorityLevel: string; };
   agentDecidePositions?: boolean;
   agentDecideIndustries?: boolean;
+  qualificationCriteria?: { mustHave: string[]; niceToHave: string[]; disqualifiers: string[]; };
   geographicSettings: { targetLocations: string[]; excludedLocations: string[]; leadLimit: number; timezone: string; };
   concurrencyLevel: number;
   researchFocus: { focusAreas: string[]; researchDepth: string; includeCompanyNews: boolean; includePersonalInfo: boolean; includeSocialMedia: boolean; };
@@ -102,6 +103,7 @@ const defaultSettings: AgentSettings = {
   contactCriteria: { targetPositions: [], seniorityLevel: 'senior' },
   agentDecidePositions: false,
   agentDecideIndustries: false,
+  qualificationCriteria: { mustHave: [], niceToHave: [], disqualifiers: [] },
   geographicSettings: { targetLocations: ['United States'], excludedLocations: [], leadLimit: 50, timezone: 'America/New_York' },
   concurrencyLevel: 1,
   researchFocus: { focusAreas: [], researchDepth: 'standard', includeCompanyNews: true, includePersonalInfo: false, includeSocialMedia: false },
@@ -441,6 +443,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
   const [resetScraping, setResetScraping] = useState(false);
   const [showResetWebsite, setShowResetWebsite] = useState(false);
   const [swapLog, setSwapLog] = useState<{ removedAt: string; removed: string; added: string[]; reason: string }[]>([]);
+  const [criteriaUnlocked, setCriteriaUnlocked] = useState(false);
 
   const handleResetFromWebsite = async () => {
     if (!resetWebsiteUrl.trim()) return;
@@ -942,6 +945,60 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                   <option value="executive">Executive / C-Suite</option>
                 </select>
               </div>
+            </div>
+          </Section>
+
+          {/* Qualification Criteria */}
+          <Section title="Qualification Criteria" description="Advanced: controls how the agent scores and filters leads.">
+            <div className="mb-3 flex items-start justify-between gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              <div className="flex items-start gap-2">
+                <span className="mt-0.5">⚠️</span>
+                <span>These criteria are <strong>auto-generated</strong> from your campaign instructions. Editing them overrides what the agent decides on its own. Wrong values will break who the agent is allowed to find.</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCriteriaUnlocked(v => !v)}
+                className={`ml-3 shrink-0 rounded px-2 py-1 text-xs font-medium transition-colors ${
+                  criteriaUnlocked ? 'bg-amber-600 text-white hover:bg-amber-700' : 'bg-white border border-amber-400 text-amber-700 hover:bg-amber-100'
+                }`}
+              >
+                {criteriaUnlocked ? '🔓 Locked' : '🔒 Unlock to edit'}
+              </button>
+            </div>
+            <div className={`grid grid-cols-1 gap-4 mt-2 transition-opacity ${criteriaUnlocked ? 'opacity-100' : 'opacity-40 pointer-events-none select-none'}`}>
+              <TagInput
+                label="Must Have (all required)"
+                tags={settings.qualificationCriteria?.mustHave ?? []}
+                onAdd={v => setSettings(p => ({ ...p, qualificationCriteria: { ...p.qualificationCriteria!, mustHave: [...(p.qualificationCriteria?.mustHave ?? []), v] } }))}
+                onRemove={v => setSettings(p => ({ ...p, qualificationCriteria: { ...p.qualificationCriteria!, mustHave: (p.qualificationCriteria?.mustHave ?? []).filter(x => x !== v) } }))}
+                placeholder="e.g. owns real estate"
+                helpText="Lead must match ALL of these to qualify"
+              />
+              <TagInput
+                label="Nice to Have (bonus points)"
+                tags={settings.qualificationCriteria?.niceToHave ?? []}
+                onAdd={v => setSettings(p => ({ ...p, qualificationCriteria: { ...p.qualificationCriteria!, niceToHave: [...(p.qualificationCriteria?.niceToHave ?? []), v] } }))}
+                onRemove={v => setSettings(p => ({ ...p, qualificationCriteria: { ...p.qualificationCriteria!, niceToHave: (p.qualificationCriteria?.niceToHave ?? []).filter(x => x !== v) } }))}
+                placeholder="e.g. recently raised funding"
+                helpText="Boosts score but not required"
+              />
+              <TagInput
+                label="Disqualifiers (instant reject)"
+                tags={settings.qualificationCriteria?.disqualifiers ?? []}
+                onAdd={v => setSettings(p => ({ ...p, qualificationCriteria: { ...p.qualificationCriteria!, disqualifiers: [...(p.qualificationCriteria?.disqualifiers ?? []), v] } }))}
+                onRemove={v => setSettings(p => ({ ...p, qualificationCriteria: { ...p.qualificationCriteria!, disqualifiers: (p.qualificationCriteria?.disqualifiers ?? []).filter(x => x !== v) } }))}
+                placeholder="e.g. government agency"
+                helpText="Any match here = immediate reject"
+              />
+              {((settings.qualificationCriteria?.mustHave?.length ?? 0) > 0 || (settings.qualificationCriteria?.disqualifiers?.length ?? 0) > 0) && (
+                <button
+                  type="button"
+                  className="text-xs text-gray-400 underline hover:text-gray-600 self-start"
+                  onClick={() => setSettings(p => ({ ...p, qualificationCriteria: { mustHave: [], niceToHave: [], disqualifiers: [] } }))}
+                >
+                  Reset to auto-generated
+                </button>
+              )}
             </div>
           </Section>
 
