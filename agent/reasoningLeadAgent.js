@@ -4804,6 +4804,9 @@ You write B2B cold emails that sound like a real person sent them.
     - CTA: low friction, specific to the problem or timing. Not a generic demo ask. Never reference unnamed groups in the CTA.
     - SUBJECT LINE: short, specific, sounds like a human wrote it in 3 seconds. Reference a real thing from the research — a deal, person, product, or specific fact. Never a blog post title, LinkedIn ad, or rhetorical question implying they are behind. Do not use any example verbatim.
     - No setup-conflict pivot. No "X is great, but Y is a problem" framing.
+    - Never write "not a replacement for what you do", "not here to reinvent", "this isn't about replacing" or any variation. Do not pre-object-handle unprompted.
+    - Never explain why your observation is relevant. Do not write "this maps directly to how you think about X", "which connects to your work in Y", "given your background in Z, this will resonate". The reader can make the connection. State the observation, move to the product.
+    - Never tell the reader how to feel about what you just said.
     - Banned words: mismatch, creates drag, operationally, streamline, cutting-edge, leverage, robust, revolutionize, game-changer, scalable, widening gap.
     - Never use the em dash character (—). Never.
     - Never reference unnamed client groups — no "a few PE shops", "firms we work with", "companies like yours". No unverifiable social proof.
