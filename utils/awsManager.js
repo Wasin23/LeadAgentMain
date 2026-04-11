@@ -3589,7 +3589,11 @@ class AWSManager {
           },
           canPurchaseMore: planConfig.canPurchaseMore,
           purchaseOptions: planConfig.canPurchaseMore ? planConfig.creditPackages : [],
-          maxAdditionalCredits: planConfig.canPurchaseMore ? planConfig.maxCredits : 0
+          maxAdditionalCredits: planConfig.canPurchaseMore ? planConfig.maxCredits : 0,
+          pendingCancel: user.pendingCancel || false,
+          pendingCancelAt: user.pendingCancelAt || null,
+          pendingDowngrade: user.pendingDowngrade || null,
+          pendingDowngradeAt: user.pendingDowngradeAt || null,
         };
       }
 

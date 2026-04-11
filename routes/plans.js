@@ -253,7 +253,7 @@ router.get('/purchase-history', authenticateToken, async (req, res) => {
 
 const PLAN_ORDER = ['free-trial', 'basic', 'starter', 'professional', 'enterprise'];
 
-// Cancel plan — reverts to free-trial, keeps existing credits
+// Cancel plan — schedules cancellation at end of current billing period
 router.post('/cancel', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -265,27 +265,52 @@ router.post('/cancel', authenticateToken, async (req, res) => {
       return res.status(400).json({ success: false, error: 'You are already on the free trial.' });
     }
 
-    const freePlanConfig = awsManager.getPlanConfig('free-trial');
+    // Calculate end of current billing period (1st of next month at 2am EST)
+    const now = new Date();
+    const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1, 7, 0, 0); // 2am EST = 7am UTC
+
     await awsManager.updateUser(userId, {
-      plan: 'free-trial',
-      maxAgents: freePlanConfig.maxAgents,
-      maxConcurrency: freePlanConfig.maxConcurrency,
-      maxCredits: freePlanConfig.maxCredits,
-      planUpdatedAt: new Date().toISOString(),
+      pendingCancel: true,
+      pendingCancelAt: periodEnd.toISOString(),
     });
 
     const fromPlanName = awsManager.getPlanConfig(currentPlan).name;
     sendPlanCancelledEmail(userId, user.email, fromPlanName).catch(() => {});
 
-    console.log(`📋 [PLANS] User ${userId} cancelled plan (was ${currentPlan})`);
-    res.json({ success: true, message: 'Plan cancelled. You are now on the Free Trial.' });
+    console.log(`📋 [PLANS] User ${userId} scheduled cancellation — plan ends ${periodEnd.toISOString()}`);
+    res.json({
+      success: true,
+      message: `Your ${fromPlanName} will remain active until ${periodEnd.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. After that, your account moves to Free Trial.`,
+      planExpiresAt: periodEnd.toISOString(),
+    });
   } catch (error) {
     console.error('[PLANS] Error cancelling plan:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
-// Downgrade plan — moves to a lower paid tier, no charge, keeps existing credits
+// Undo a pending cancellation
+router.post('/uncancel', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const user = await awsManager.getUserById(userId);
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+    if (!user.pendingCancel) return res.status(400).json({ success: false, error: 'No pending cancellation to undo.' });
+
+    await awsManager.updateUser(userId, {
+      pendingCancel: false,
+      pendingCancelAt: null,
+    });
+
+    console.log(`📋 [PLANS] User ${userId} reversed cancellation`);
+    res.json({ success: true, message: 'Cancellation reversed. Your plan will continue as normal.' });
+  } catch (error) {
+    console.error('[PLANS] Error reversing cancellation:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Downgrade plan — schedules move to a lower paid tier at end of billing period
 router.post('/downgrade', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -304,22 +329,48 @@ router.post('/downgrade', authenticateToken, async (req, res) => {
     if (newIdx === 0) return res.status(400).json({ success: false, error: 'Use the cancel endpoint to revert to Free Trial.' });
     if (newIdx >= currentIdx) return res.status(400).json({ success: false, error: 'Use the upgrade endpoint to move to a higher plan.' });
 
+    const now = new Date();
+    const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1, 7, 0, 0);
     const newPlanConfig = awsManager.getPlanConfig(planType);
+
     await awsManager.updateUser(userId, {
-      plan: planType,
-      maxAgents: newPlanConfig.maxAgents,
-      maxConcurrency: newPlanConfig.maxConcurrency,
-      maxCredits: newPlanConfig.maxCredits,
-      planUpdatedAt: new Date().toISOString(),
+      pendingDowngrade: planType,
+      pendingDowngradeAt: periodEnd.toISOString(),
     });
 
     const fromPlanName = awsManager.getPlanConfig(currentPlan).name;
     sendPlanChangedEmail(userId, user.email, fromPlanName, newPlanConfig.name).catch(() => {});
 
-    console.log(`📋 [PLANS] User ${userId} downgraded from ${currentPlan} to ${planType}`);
-    res.json({ success: true, message: `Downgraded to ${newPlanConfig.name}.`, plan: newPlanConfig });
+    console.log(`📋 [PLANS] User ${userId} scheduled downgrade from ${currentPlan} to ${planType} at ${periodEnd.toISOString()}`);
+    res.json({
+      success: true,
+      message: `You'll move to ${newPlanConfig.name} on ${periodEnd.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. Your current plan remains active until then.`,
+      planExpiresAt: periodEnd.toISOString(),
+      pendingPlan: planType,
+    });
   } catch (error) {
     console.error('[PLANS] Error downgrading plan:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Undo a pending cancellation
+router.post('/uncancel', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const user = await awsManager.getUserById(userId);
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+    if (!user.pendingCancel) return res.status(400).json({ success: false, error: 'No pending cancellation to undo.' });
+
+    await awsManager.updateUser(userId, {
+      pendingCancel: false,
+      pendingCancelAt: null,
+    });
+
+    console.log(`📋 [PLANS] User ${userId} reversed cancellation`);
+    res.json({ success: true, message: 'Cancellation reversed. Your plan will continue as normal.' });
+  } catch (error) {
+    console.error('[PLANS] Error reversing cancellation:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

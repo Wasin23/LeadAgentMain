@@ -768,7 +768,58 @@ export async function scanUsersAndCharge() {
       });
     }
   }
-  
+
+  // ── Process pending plan changes + reset monthly credits ──────────────────
+  console.log('🔄 [BILLING] Processing pending plan changes and resetting credits...');
+  const allUsersForReset = await awsManager.dynamodb.send(
+    new (await import('@aws-sdk/lib-dynamodb')).ScanCommand({ TableName: awsManager.tables.users })
+  );
+  for (const u of allUsersForReset.Items || []) {
+    try {
+      const uid = u.userId;
+      const updates = {};
+
+      // Apply pending cancellation
+      if (u.pendingCancel && u.pendingCancelAt && new Date(u.pendingCancelAt) <= new Date()) {
+        const freePlan = awsManager.getPlanConfig('free-trial');
+        updates.plan = 'free-trial';
+        updates.maxAgents = freePlan.maxAgents;
+        updates.maxConcurrency = freePlan.maxConcurrency;
+        updates.maxCredits = freePlan.maxCredits;
+        updates.pendingCancel = false;
+        updates.pendingCancelAt = null;
+        updates.creditBalance = 0;
+        updates.planUpdatedAt = new Date().toISOString();
+        console.log(`📋 [BILLING] Applied pending cancellation for ${uid} → free-trial`);
+      }
+      // Apply pending downgrade
+      else if (u.pendingDowngrade && u.pendingDowngradeAt && new Date(u.pendingDowngradeAt) <= new Date()) {
+        const newPlan = awsManager.getPlanConfig(u.pendingDowngrade);
+        updates.plan = u.pendingDowngrade;
+        updates.maxAgents = newPlan.maxAgents;
+        updates.maxConcurrency = newPlan.maxConcurrency;
+        updates.maxCredits = newPlan.maxCredits;
+        updates.pendingDowngrade = null;
+        updates.pendingDowngradeAt = null;
+        updates.creditBalance = newPlan.initialCredits;
+        updates.planUpdatedAt = new Date().toISOString();
+        console.log(`📋 [BILLING] Applied pending downgrade for ${uid} → ${u.pendingDowngrade}`);
+      }
+      // Reset credits for active paid plans (no cancellation/downgrade)
+      else if (u.plan && u.plan !== 'free-trial' && !u.pendingCancel) {
+        const planCfg = awsManager.getPlanConfig(u.plan);
+        updates.creditBalance = planCfg.initialCredits;
+        console.log(`💳 [BILLING] Reset credits for ${uid} (${u.plan}) → ${planCfg.initialCredits}`);
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await awsManager.updateUser(uid, updates);
+      }
+    } catch (resetErr) {
+      console.error(`⚠️ [BILLING] Credit reset failed for ${u.userId}:`, resetErr.message);
+    }
+  }
+
   console.log('✅ [BILLING] Monthly billing complete:', results);
   return results;
 }

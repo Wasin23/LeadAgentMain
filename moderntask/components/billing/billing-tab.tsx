@@ -300,6 +300,8 @@ function BillingTabInner() {
   const [gracePeriodEnd, setGracePeriodEnd] = useState<string | null>(null)
   const [cancelConfirm, setCancelConfirm] = useState(false)
   const [cancelLoading, setCancelLoading] = useState(false)
+  const [uncancelLoading, setUncancelLoading] = useState(false)
+  const [showManagePlan, setShowManagePlan] = useState(false)
   const [downgradeTarget, setDowngradeTarget] = useState('')
   const [downgradeLoading, setDowngradeLoading] = useState(false)
 
@@ -335,11 +337,25 @@ function BillingTabInner() {
     try {
       await api.post('/api/plans/cancel')
       setCancelConfirm(false)
+      setShowManagePlan(false)
       await fetchCreditData()
     } catch (err: any) {
       toast({ title: 'Failed to cancel plan', description: err.response?.data?.error, variant: 'destructive', duration: 4000 })
     } finally {
       setCancelLoading(false)
+    }
+  }
+
+  const handleUncancel = async () => {
+    setUncancelLoading(true)
+    try {
+      await api.post('/api/plans/uncancel')
+      await fetchCreditData()
+      toast({ title: 'Cancellation reversed', description: 'Your plan will continue as normal.', duration: 3000 })
+    } catch (err: any) {
+      toast({ title: 'Failed to reverse cancellation', description: err.response?.data?.error, variant: 'destructive', duration: 4000 })
+    } finally {
+      setUncancelLoading(false)
     }
   }
 
@@ -547,7 +563,19 @@ function BillingTabInner() {
           <div className="text-sm divide-y divide-border">
             <div className="flex justify-between pb-3">
               <span className="text-muted-foreground">Plan Type</span>
-              <span className="font-medium">{userPlan?.plan?.name ?? '—'}</span>
+              <div className="flex items-center gap-2">
+                <span className="font-medium">{userPlan?.plan?.name ?? '—'}</span>
+                {userPlan?.pendingCancel && (
+                  <span className="text-xs px-1.5 py-0.5 rounded bg-destructive/10 text-destructive font-medium">
+                    Cancels {new Date(userPlan.pendingCancelAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </span>
+                )}
+                {userPlan?.pendingDowngrade && (
+                  <span className="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">
+                    Downgrades {new Date(userPlan.pendingDowngradeAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </span>
+                )}
+              </div>
             </div>
             <div className="flex justify-between py-3">
               <span className="text-muted-foreground">Plan Pricing</span>
@@ -555,61 +583,92 @@ function BillingTabInner() {
                 {userPlan?.plan?.id === 'free-trial' ? 'Free' : userPlan?.plan?.price ? `$${userPlan.plan.price}/mo` : '—'}
               </span>
             </div>
-            {nextPaymentDue && userPlan?.plan?.id !== 'free-trial' ? (
+            {nextPaymentDue && userPlan?.plan?.id !== 'free-trial' && !userPlan?.pendingCancel ? (
               <div className="flex justify-between pt-3">
                 <span className="text-muted-foreground">Next Charge</span>
                 <span className="font-medium">{new Date(nextPaymentDue).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
               </div>
             ) : <div />}
           </div>
+
+          {/* Pending cancel notice with undo */}
+          {userPlan?.pendingCancel && (
+            <div className="mt-4 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2.5 text-xs text-destructive flex items-center justify-between gap-3">
+              <span>Your plan ends on {new Date(userPlan.pendingCancelAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. Credits will be reset to 0.</span>
+              <button
+                onClick={handleUncancel}
+                disabled={uncancelLoading}
+                className="shrink-0 text-xs font-medium underline hover:no-underline flex items-center gap-1"
+              >
+                {uncancelLoading && <Loader2 className="w-3 h-3 animate-spin" />}
+                Undo
+              </button>
+            </div>
+          )}
+
           <div className="mt-5 flex flex-wrap items-center gap-3">
-            {userPlan?.plan?.id && userPlan.plan.id !== 'free-trial' && (
+            {userPlan?.plan?.id && userPlan.plan.id !== 'free-trial' && !userPlan?.pendingCancel && (
               <>
-                {!cancelConfirm ? (
-                  <button
-                    onClick={() => setCancelConfirm(true)}
-                    className="px-3 py-1.5 text-sm border border-input rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                  >
-                    Cancel Plan
-                  </button>
-                ) : (
-                  <div className="w-full rounded-lg bg-destructive/5 border border-destructive/20 p-3">
-                    <p className="text-xs text-muted-foreground mb-2">Your account moves to Free Trial. No further charges.</p>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={handleCancelPlan}
-                        disabled={cancelLoading}
-                        className="px-3 py-1.5 text-xs font-medium rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 flex items-center gap-1"
-                      >
-                        {cancelLoading && <Loader2 className="w-3 h-3 animate-spin" />}
-                        Yes, cancel
-                      </button>
-                      <button onClick={() => setCancelConfirm(false)} className="px-3 py-1.5 text-xs font-medium rounded-lg border border-input hover:bg-muted">Keep plan</button>
-                    </div>
-                  </div>
-                )}
-                {!cancelConfirm && downgradePlans.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={downgradeTarget}
-                      onChange={e => setDowngradeTarget(e.target.value)}
-                      className="text-sm border border-input rounded-lg px-2.5 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    >
-                      <option value="">Downgrade to…</option>
-                      {downgradePlans.map(p => (
-                        <option key={p} value={p}>{PLAN_LABELS[p] ?? p}</option>
-                      ))}
-                    </select>
-                    {downgradeTarget && (
-                      <button
-                        onClick={handleDowngrade}
-                        disabled={downgradeLoading}
-                        className="text-sm px-3 py-1.5 border border-input rounded-lg hover:bg-muted transition-colors flex items-center gap-1.5 whitespace-nowrap"
-                      >
-                        {downgradeLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                        Confirm
-                      </button>
+                {/* Manage plan — hidden behind a toggle */}
+                <button
+                  onClick={() => { setShowManagePlan(v => !v); setCancelConfirm(false) }}
+                  className="px-3 py-1.5 text-sm border border-input rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                >
+                  Manage plan
+                </button>
+                {showManagePlan && (
+                  <div className="w-full rounded-lg border border-border p-3 space-y-3">
+                    {/* Downgrade */}
+                    {downgradePlans.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={downgradeTarget}
+                          onChange={e => setDowngradeTarget(e.target.value)}
+                          className="text-sm border border-input rounded-lg px-2.5 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        >
+                          <option value="">Downgrade to…</option>
+                          {downgradePlans.map(p => (
+                            <option key={p} value={p}>{PLAN_LABELS[p] ?? p}</option>
+                          ))}
+                        </select>
+                        {downgradeTarget && (
+                          <button
+                            onClick={handleDowngrade}
+                            disabled={downgradeLoading}
+                            className="text-sm px-3 py-1.5 border border-input rounded-lg hover:bg-muted transition-colors flex items-center gap-1.5 whitespace-nowrap"
+                          >
+                            {downgradeLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                            Confirm downgrade
+                          </button>
+                        )}
+                      </div>
                     )}
+                    {/* Cancel — buried at the bottom */}
+                    <div className="pt-2 border-t border-border">
+                      {!cancelConfirm ? (
+                        <button
+                          onClick={() => setCancelConfirm(true)}
+                          className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+                        >
+                          Cancel plan
+                        </button>
+                      ) : (
+                        <div className="rounded-lg bg-destructive/5 border border-destructive/20 p-3">
+                          <p className="text-xs text-muted-foreground mb-1">You'll keep access until the end of your billing period. After that, your account moves to Free Trial and credits reset to 0.</p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <button
+                              onClick={handleCancelPlan}
+                              disabled={cancelLoading}
+                              className="px-3 py-1.5 text-xs font-medium rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 flex items-center gap-1"
+                            >
+                              {cancelLoading && <Loader2 className="w-3 h-3 animate-spin" />}
+                              Yes, cancel at period end
+                            </button>
+                            <button onClick={() => setCancelConfirm(false)} className="px-3 py-1.5 text-xs font-medium rounded-lg border border-input hover:bg-muted">Keep plan</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </>
