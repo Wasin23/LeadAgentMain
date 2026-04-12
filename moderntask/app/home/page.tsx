@@ -383,6 +383,7 @@ export default function DashboardPage() {
         <Header
           title="Home"
           description="Overview of your Meridian agents and outreach activity."
+          actions={<HomeActions mode="icons" />}
           notificationCount={notifCount}
           userName={userName}
           userEmail={userEmail}
@@ -392,7 +393,7 @@ export default function DashboardPage() {
         <div className="mt-4 md:mt-5 space-y-3 md:space-y-4">
           {/* Unified customize bar */}
           <div className="flex items-center justify-between gap-2">
-            <HomeActions checklist={checklist} isPaidPlan={isPaidPlan} />
+            <HomeActions checklist={checklist} isPaidPlan={isPaidPlan} mode="actions" />
             <button
               onClick={() => setEditMode(e => !e)}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${

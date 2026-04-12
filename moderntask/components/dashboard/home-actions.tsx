@@ -26,9 +26,11 @@ const PAID_PLAN_LAST_STEP = { key: "hasSecondAgent" as const, title: "Create ano
 interface Props {
   checklist?: GettingStartedChecklist
   isPaidPlan?: boolean
+  /** "icons" = only the 5 quick-action icon buttons; "actions" = only Create Agent + Get Started */
+  mode?: "icons" | "actions"
 }
 
-export function HomeActions({ checklist, isPaidPlan = false }: Props) {
+export function HomeActions({ checklist, isPaidPlan = false, mode }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -46,21 +48,43 @@ export function HomeActions({ checklist, isPaidPlan = false }: Props) {
   const allDone = completed === steps.length
   const remaining = steps.length - completed
 
+  if (mode === "icons") {
+    return (
+      <div className="flex items-center gap-1">
+        {QUICK_ACTIONS.map(({ label, icon: Icon, href, accent }) => (
+          <button
+            key={label}
+            onClick={() => router.push(href)}
+            title={label}
+            className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${accent}`}
+          >
+            <Icon className="w-4 h-4" />
+          </button>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div className="flex items-center gap-1">
-      {/* Quick action icon buttons */}
-      {QUICK_ACTIONS.map(({ label, icon: Icon, href, accent }) => (
-        <button
-          key={label}
-          onClick={() => router.push(href)}
-          title={label}
-          className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${accent}`}
-        >
-          <Icon className="w-4 h-4" />
-        </button>
-      ))}
+      {mode === undefined && (
+        <>
+          {/* Quick action icon buttons */}
+          {QUICK_ACTIONS.map(({ label, icon: Icon, href, accent }) => (
+            <button
+              key={label}
+              onClick={() => router.push(href)}
+              title={label}
+              className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${accent}`}
+            >
+              <Icon className="w-4 h-4" />
+            </button>
+          ))}
+          <div className="w-px h-5 bg-border mx-1" />
+        </>
+      )}
 
-      <div className="w-px h-5 bg-border mx-1" />
+
 
       {/* Create Agent */}
       <Button
