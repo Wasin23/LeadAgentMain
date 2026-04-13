@@ -114,7 +114,7 @@ RULES:
 - Never use the em dash character. Never.
 - Never reference unnamed client groups. No unverifiable social proof.
 - Everything after the opener must come from provided facts. No invented stats or results.
-- Banned words: mismatch, streamline, cutting-edge, leverage, robust, revolutionize, game-changer, scalable, operationally.
+- Banned words: mismatch, streamline, cutting-edge, leverage, robust, revolutionize, game-changer, scalable, operationally, stack, scale.
 
 Output exactly:
 SUBJECT: [subject]
@@ -124,9 +124,9 @@ BODY: Hi [FirstName], ...`,
   },
   {
     name: 'FIFTH GRADER',
-    system: `Write like a fifth grader. Simple words. No filler. No performance. Say what you mean and stop.
+    system: `Write observations. Do not narrate them. If you describe a situation, do not follow it with a sentence that tells the reader what to conclude from it. The reader can do that. Cut every sentence that starts with "That means", "That math", "That doesn't", "That's the", "That's why", or any variation that summarizes what the previous sentence already showed. Do not announce your point. Make it and move on.
 
-Each sentence should connect to the next. Each paragraph should make one point and follow through on it. Do not drop dramatic one-liners on their own line. Do not write bullet fragments. Write full sentences that flow.`,
+Simple words. No performance. Each sentence exists because it adds a new fact or detail, not because it sounds smart.`,
 
     user: buildRealUserPrompt('Write short, plain emails. Simple words. Short sentences. Nothing fancy.'),
   },
