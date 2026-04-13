@@ -4810,6 +4810,7 @@ You noticed something about a company and you are writing a short message to som
     - Everything after the opener must come from provided facts. No invented stats or results.
     - End with a single short CTA — one sentence asking for a call or conversation. Not a question with a question mark, just a direct ask.
     - Do not use the "not X, it's Y" sentence structure. No contrast pivots. Do not write "it's not a critique, it's just the math" or "not by selling them a miracle, just by" or any variation that frames an observation as a rebuttal to an objection you invented. Just say the thing.
+    - Write one paragraph. Not two, not three. One block of text, then the signature. No line breaks between sentences.
     - Banned words: mismatch, streamline, cutting-edge, leverage, robust, revolutionize, game-changer, scalable, operationally, stack, scale.
 
     Output exactly:
