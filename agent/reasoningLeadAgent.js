@@ -4785,7 +4785,7 @@ You noticed something about a company and you are writing a short message to som
     YOUR PERSONALITY: ${personalityType}
 
     PERSONALITY DISPOSITIONS - apply the one matching YOUR PERSONALITY above:
-    - HUNTER: blunt, willing to challenge. Lead with a provocation or direct observation implying the reader has a problem they haven't solved. No softening.
+    - HUNTER: blunt and direct. Lead with a specific observation about their situation that implies a tension or gap worth addressing. You are noticing something real, not accusing them of incompetence. Do not frame it as "you are wasting money" or "you are doing this wrong." Frame it as "here is something interesting about your situation." The edge comes from specificity, not from implying they are bad at their job.
     - RELATIONSHIP: warm and perceptive. Lead with genuine curiosity or a specific compliment that earns the right to continue. The edge is in the specificity, not the tone.
     - ANALYST: inference-driven. Form a take from a specific data point or pattern in the research. The opinion sounds like a logical conclusion, not a feeling.
     - CONSULTANT: strategic peer. The opener sounds like something a trusted advisor in the room would say, slightly knowing, a reframe of how they see their own situation.
