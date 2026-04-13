@@ -13,12 +13,12 @@ import {
   CheckSquare, Square, ChevronsLeft, ChevronLeft,
   ChevronRight, ChevronsRight, X, CalendarClock, Calendar,
   Settings2, Save, Search, FileText, ExternalLink,
-  MoreHorizontal, Wrench, Loader2,
+  MoreHorizontal, Wrench, Loader2, Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 // ── types ─────────────────────────────────────────────────────────────────────
-interface Agent { agentId: string; name: string; personality?: { avatar?: string }; settings?: { sendingSchedule?: SendingSchedule } }
+interface Agent { agentId: string; name: string; personality?: { avatar?: string }; settings?: { sendingSchedule?: SendingSchedule; emailBuilder?: { smartRebump?: boolean } } }
 
 interface SendingSchedule {
   activeDays:  number[]  // 0=Sun … 6=Sat
@@ -584,9 +584,9 @@ function EmailRow({ email, agentMap, selected, onSelect, fontSize, actions, onEd
               {email.isRebump && <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 text-orange-400 border-orange-500/30 bg-orange-500/10">Follow-up</Badge>}
               {email.fromAccount && <span className="text-muted-foreground truncate">via {email.fromAccount}</span>}
               {autoScheduleDate && !email.scheduledAt && (
-                <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 text-primary border-primary/30 bg-primary/10 flex items-center gap-0.5">
-                  <Clock className="w-2.5 h-2.5" />
-                  auto · {autoScheduleDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                <Badge variant="outline" className={cn('text-[9px] px-1 py-0 h-4 flex items-center gap-0.5', agent?.settings?.emailBuilder?.smartRebump ? 'text-purple-400 border-purple-500/30 bg-purple-500/10' : 'text-primary border-primary/30 bg-primary/10')}>
+                  {agent?.settings?.emailBuilder?.smartRebump ? <Sparkles className="w-2 h-2" /> : <Clock className="w-2.5 h-2.5" />}
+                  {agent?.settings?.emailBuilder?.smartRebump ? 'smart' : 'auto'} · {autoScheduleDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                   {onCancelAutoSchedule && (
                     <span
                       role="button"

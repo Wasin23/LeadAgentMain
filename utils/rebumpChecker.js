@@ -2,10 +2,167 @@ import AWSManager from './awsManager.js';
 import AWSEmailQueue from './awsEmailQueue.js';
 import OpenAI from 'openai';
 import { leadEmail } from '../tools/leadEmail.js';
+import { internetSearch } from '../tools/internetSearch.js';
 
 const awsManager = new AWSManager();
 const emailQueue = new AWSEmailQueue();
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const mistral = new OpenAI({
+  apiKey: process.env.MISTRAL_API_KEY,
+  baseURL: 'https://api.mistral.ai/v1'
+});
+
+// 0.5 credits × $0.05/credit
+const SMART_FOLLOWUP_COST = 0.025;
+
+/**
+ * Scrape recent LinkedIn activity for a lead to find a fresh hook.
+ * Returns a short string summary or null if nothing useful found.
+ */
+async function scrapeLinkedInActivity(lead) {
+  try {
+    const name = `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || lead.name || '';
+    const company = lead.company || lead.organization?.name || '';
+    if (!name) return null;
+
+    const query = `${name} ${company} site:linkedin.com`;
+    const results = await internetSearch(query);
+    const snippets = (results?.organic || [])
+      .slice(0, 3)
+      .map(r => r.snippet)
+      .filter(Boolean)
+      .join(' ');
+
+    if (!snippets || snippets.length < 30) return null;
+
+    // Use gpt-4o-mini to extract anything actionable (recent post, award, job change, news)
+    const extraction = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'Extract any recent activity (posts, job changes, awards, announcements) for this person from the snippets. Return 1 short fact (max 30 words) or "NOTHING USEFUL".' },
+        { role: 'user', content: `Person: ${name} at ${company}\nSnippets: ${snippets}` }
+      ],
+      temperature: 0.2,
+      max_tokens: 60
+    });
+
+    const fact = extraction.choices[0].message.content.trim();
+    return fact.includes('NOTHING USEFUL') ? null : fact;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Generate a smart follow-up email using Mistral, with context from the original email.
+ * Returns { subject, body } or null on failure.
+ */
+async function generateSmartFollowUp(userId, agentId, email, agentSettings, stepNumber) {
+  try {
+    const lead = email.lead || {};
+    const firstName = (lead.name || lead.first_name || 'there').split(' ')[0];
+    const company = lead.company || lead.organization?.name || 'your company';
+    const title = lead.title || lead.headline || '';
+    const companyName = agentSettings.companyBranding?.companyName || 'our company';
+    const product = agentSettings.companyBranding?.primaryService || 'our solution';
+
+    // Optionally scrape LinkedIn for a fresh hook
+    const linkedinScrape = agentSettings.emailBuilder?.rebumpLinkedinScrape !== false;
+    const freshHook = linkedinScrape ? await scrapeLinkedInActivity(lead) : null;
+
+    const stepStrategies = {
+      1: `New angle — don't repeat the original pitch. Notice something you didn't mention before, or reframe the same observation from a different direction. 2-3 sentences max.`,
+      2: `Shorter and more direct. One sentence observation, one sentence ask. No pitch. If they haven't replied to two emails, they are busy, not uninterested. Make it trivially easy to say yes.`,
+      3: `Closing the loop. This is the last one. One sentence max. Light, no pressure, leave the door open. Something like "closing the loop on this — genuinely happy to connect whenever timing is better."`,
+    };
+
+    const strategy = stepStrategies[stepNumber] || stepStrategies[3];
+
+    const systemPrompt = `You are writing a follow-up cold email. The original email was not replied to. You are not a salesperson — you are someone who found something interesting and is following up briefly.
+
+HARD RULES:
+- Never use em dash (—). Never.
+- Do not repeat the original email's opener, angle, or phrases.
+- Do not reference the original email directly ("just following up on my last email") — that sounds like a template.
+- No unnamed social proof. No fabricated stats.
+- No contrast pivots ("not X, just Y").
+- Write in plain text. No bold, no bullets.
+- Banned words: streamline, leverage, scalable, robust, cutting-edge, game-changer, revolutionize, operationally.`;
+
+    const userPrompt = `ORIGINAL EMAIL SENT:
+Subject: ${email.subject || '(no subject)'}
+Body: ${email.body || '(not available)'}
+
+LEAD:
+- Name: ${firstName}
+- Company: ${company}
+- Title: ${title}
+
+PRODUCT BEING SOLD: ${product} by ${companyName}
+
+${freshHook ? `FRESH LINKEDIN ACTIVITY (use as hook if relevant): ${freshHook}\n` : ''}
+FOLLOW-UP STEP: ${stepNumber}
+STRATEGY FOR THIS STEP: ${strategy}
+
+Write a follow-up email. Greeting ("Hi ${firstName},") on its own line, then one short paragraph, then "Let's find 15 minutes." or similar direct CTA.
+
+Output exactly:
+SUBJECT: [subject — can be same thread subject with "Re:" or a new one]
+
+BODY:
+Hi ${firstName},
+
+[body]`;
+
+    const response = await mistral.chat.completions.create({
+      model: 'mistral-medium-latest',
+      max_tokens: 200,
+      temperature: 0.9,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ]
+    });
+
+    const content = response.choices[0].message.content
+      .replace(/\u2014/g, ' - ')
+      .replace(/\u2013/g, ' - ')
+      .replace(/\*\*/g, '');
+
+    // Parse SUBJECT and BODY
+    const subjectMatch = content.match(/SUBJECT:\s*(.+)/i);
+    const bodyMatch = content.match(/BODY:\s*([\s\S]+)/i);
+
+    if (!subjectMatch || !bodyMatch) {
+      console.warn('[SMART REBUMP] Could not parse Mistral output, falling back to template');
+      return null;
+    }
+
+    // Charge credits
+    await awsManager.logApiUsage({
+      userId,
+      agentId,
+      service: 'mistral',
+      operation: 'smart_followup_generation',
+      usage: response.usage?.total_tokens || 0,
+      cost: SMART_FOLLOWUP_COST,
+      metadata: {
+        model: 'mistral-medium-latest',
+        step: stepNumber,
+        companyName: company,
+        usedLinkedinHook: !!freshHook
+      }
+    }).catch(err => console.error('[SMART REBUMP] Failed to log credit usage:', err.message));
+
+    return {
+      subject: subjectMatch[1].trim(),
+      body: bodyMatch[1].trim()
+    };
+  } catch (err) {
+    console.error('[SMART REBUMP] Generation failed:', err.message);
+    return null;
+  }
+}
 
 /**
  * Batch update email statuses with delay to prevent DynamoDB throttling
@@ -349,42 +506,58 @@ export async function checkForRebumps() {
           const timeSinceLastContact = now - sentAt.getTime();
           {
             console.log(`📧 [REBUMP] Queueing rebump for ${email.to} (scheduled: ${followUpDate.toISOString()})`);
-            
-            // Use the assigned template from when email was sent
-            let template = email.assignedTemplate;
-            let templateIndex = email.assignedTemplateId || 0;
-            
-            // Fallback to templates if assigned template is missing
-            if (!template) {
-              template = agentSettings.followUpTemplates?.templates[templateIndex];
+
+            const stepNumber = rebumpCount + 1;
+            const useSmartRebump = agentSettings.emailBuilder?.smartRebump === true;
+
+            let subject, body;
+
+            if (useSmartRebump) {
+              // ── SMART MODE: Mistral-generated, context-aware follow-up ──────────
+              console.log(`🤖 [REBUMP] Smart mode — generating follow-up #${stepNumber} for ${email.to}`);
+              const smart = await generateSmartFollowUp(userId, agentId, email, agentSettings, stepNumber);
+              if (smart) {
+                subject = smart.subject;
+                body = smart.body;
+                console.log(`✅ [REBUMP] Smart follow-up generated. Subject: "${subject}"`);
+              } else {
+                console.warn(`⚠️ [REBUMP] Smart generation failed, falling back to template for ${email.to}`);
+              }
             }
-            
-            if (!template) {
-              console.log(`⚠️ [REBUMP] No templates available for agent ${agentId}`);
-              continue;
+
+            if (!subject || !body) {
+              // ── TEMPLATE MODE (default or smart fallback) ─────────────────────
+              let template = email.assignedTemplate;
+              let templateIndex = email.assignedTemplateId || 0;
+
+              if (!template) {
+                template = agentSettings.followUpTemplates?.templates[templateIndex];
+              }
+
+              if (!template) {
+                console.log(`⚠️ [REBUMP] No templates available for agent ${agentId}`);
+                continue;
+              }
+
+              const daysAgo = Math.floor(timeSinceLastContact / (24 * 60 * 60 * 1000));
+              const topic = email.subject || 'our previous conversation';
+              const firstName = (lead.name || lead.first_name || 'there').split(' ')[0];
+
+              subject = template.subject
+                .replace(/{name}/g, firstName)
+                .replace(/{company}/g, lead.company || 'your company')
+                .replace(/{topic}/g, topic)
+                .replace(/{days_ago}/g, daysAgo);
+
+              body = template.body
+                .replace(/{name}/g, firstName)
+                .replace(/{company}/g, lead.company || 'your company')
+                .replace(/{topic}/g, topic)
+                .replace(/{days_ago}/g, daysAgo);
             }
-
-            // Fill in template variables
-            const lead = email.lead || {};
-            const daysAgo = Math.floor(timeSinceLastContact / (24 * 60 * 60 * 1000));
-            const topic = email.subject || 'our previous conversation';
-            
-            // Extract first name only (e.g., "John Smith" -> "John")
-            const firstName = (lead.name || 'there').split(' ')[0];
-
-            const subject = template.subject
-              .replace(/{name}/g, firstName)
-              .replace(/{company}/g, lead.company || 'your company')
-              .replace(/{topic}/g, topic)
-              .replace(/{days_ago}/g, daysAgo);
-
-            const body = template.body
-              .replace(/{name}/g, firstName)
-              .replace(/{company}/g, lead.company || 'your company')
-              .replace(/{topic}/g, topic)
-              .replace(/{days_ago}/g, daysAgo);
 
             // Build threading info for sending as a reply to the original email
+            const lead = email.lead || {};
             const replyOptions = {
               // Use original email's tracking ID for In-Reply-To header
               // trackingId already contains the full tracking ID (e.g., "tracking-userId_agentId_timestamp_random")

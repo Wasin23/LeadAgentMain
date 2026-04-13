@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import {
   Mail, Eye, MessageSquare, MousePointer,
   RefreshCw, Bot, Building2, Clock, Search, X, ChevronDown,
-  UserCheck, FileText, CalendarClock, Check, Settings2, ChevronLeft, ChevronRight,
+  UserCheck, FileText, CalendarClock, Check, Settings2, ChevronLeft, ChevronRight, Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -58,6 +58,8 @@ interface AgentFull {
       enableRebump?: boolean
       rebumpIntervalDays?: number
       maxRebumps?: number
+      smartRebump?: boolean
+      rebumpLinkedinScrape?: boolean
     }
     followUpTemplates?: {
       templates?: Array<{ name: string; subject: string; body: string }>
@@ -934,6 +936,31 @@ export function ContactedContent() {
                       className="flex-1 h-8 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
                     <span className="text-xs text-muted-foreground">max</span>
                   </div>
+                </Card>
+
+                <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-purple-400" /> Smart Follow-ups</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">AI-generated · 0.5 credits each</p>
+                    </div>
+                    <button onClick={() => mutateSelected(selectedAgent, { smartRebump: !selectedAgent.settings?.emailBuilder?.smartRebump })}
+                      className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors', selectedAgent.settings?.emailBuilder?.smartRebump ? 'bg-purple-500' : 'bg-muted')}>
+                      <span className={cn('inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform', selectedAgent.settings?.emailBuilder?.smartRebump ? 'translate-x-6' : 'translate-x-1')} />
+                    </button>
+                  </div>
+                  {selectedAgent.settings?.emailBuilder?.smartRebump && (
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
+                      <div>
+                        <p className="text-xs font-medium">LinkedIn scrape</p>
+                        <p className="text-xs text-muted-foreground">Find fresh context</p>
+                      </div>
+                      <button onClick={() => mutateSelected(selectedAgent, { rebumpLinkedinScrape: !(selectedAgent.settings?.emailBuilder?.rebumpLinkedinScrape !== false) })}
+                        className={cn('relative inline-flex h-5 w-9 items-center rounded-full transition-colors', (selectedAgent.settings?.emailBuilder?.rebumpLinkedinScrape !== false) ? 'bg-purple-500' : 'bg-muted')}>
+                        <span className={cn('inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform', (selectedAgent.settings?.emailBuilder?.rebumpLinkedinScrape !== false) ? 'translate-x-5' : 'translate-x-1')} />
+                      </button>
+                    </div>
+                  )}
                 </Card>
 
                 <Card className="p-4 space-y-2">

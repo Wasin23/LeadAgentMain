@@ -84,6 +84,8 @@ interface AgentSettings {
     useGmail: boolean; useOutlook: boolean; useLinkedIn?: boolean;
     templates: Array<{ id: string; name: string; subject: string; body: string }>;
     useTemplates: boolean;
+    smartRebump?: boolean;
+    rebumpLinkedinScrape?: boolean;
   };
 }
 
@@ -107,7 +109,7 @@ const defaultSettings: AgentSettings = {
   geographicSettings: { targetLocations: ['United States'], excludedLocations: [], leadLimit: 50, timezone: 'America/New_York' },
   concurrencyLevel: 1,
   researchFocus: { focusAreas: [], researchDepth: 'standard', includeCompanyNews: true, includePersonalInfo: false, includeSocialMedia: false },
-  emailBuilder: { emailTemplate: 'professional', customPrompt: '', emailResponsePrompt: '', tone: 'professional', length: 'medium', callToAction: 'meeting', personalization: 'high', ccEmails: '', bccEmails: '', enableAutoResponse: false, rebumpIntervalDays: 3, useCustomSignature: false, signatureName: '', signatureTitle: '', useGmail: false, useOutlook: false, useLinkedIn: false, templates: [], useTemplates: false }
+  emailBuilder: { emailTemplate: 'professional', customPrompt: '', emailResponsePrompt: '', tone: 'professional', length: 'medium', callToAction: 'meeting', personalization: 'high', ccEmails: '', bccEmails: '', enableAutoResponse: false, rebumpIntervalDays: 3, useCustomSignature: false, signatureName: '', signatureTitle: '', useGmail: false, useOutlook: false, useLinkedIn: false, templates: [], useTemplates: false, smartRebump: false, rebumpLinkedinScrape: true }
 };
 
 // ─────────────────────────────────────────────────────
@@ -590,6 +592,8 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
             useOutlook: e.useOutlook ?? e.emailBuilder?.useOutlook ?? false,
             templates: e.templates || e.emailBuilder?.templates || [],
             useTemplates: e.useTemplates ?? e.emailBuilder?.useTemplates ?? false,
+            smartRebump: e.smartRebump ?? e.emailBuilder?.smartRebump ?? false,
+            rebumpLinkedinScrape: e.rebumpLinkedinScrape ?? e.emailBuilder?.rebumpLinkedinScrape ?? true,
           },
         };
         setSettings(loaded);

@@ -105,30 +105,27 @@ Output is JSON. This drives the entire email.
 ---
 
 ## STEP 8 — Email Generation
-**Model:** `claude-sonnet-4-5`  
+**Model:** `mistral-medium-latest` (OpenAI-compatible client)  
 **When:** Final step per lead. Uses all prior research + sales angle.  
-**Max tokens:** 600  
-**Temperature:** 0.5
+**Max tokens:** 300  
+**Temperature:** 0.9  
+**Post-processing:** em dash / en dash → ` - `, bold markdown stripped
 
 ### System Prompt (summarized):
-- "You are not a salesperson. You are a person who found something interesting and decided to reach out."
+- "You are a person who found something interesting and decided to reach out. You are not a salesperson."
+- Never narrate observations — cut any sentence starting with "That means", "That math", "That's why", etc.
 - Personality type injected (HUNTER / RELATIONSHIP / ANALYST / CONSULTANT / NETWORKER)
-- Personality-specific opener patterns (fabricated moments to make it feel unscripted)
-- 3 randomly-sampled style nudges from a pool of 10 per personality
+- Personality-specific opener patterns (fabricated human moments — intentionally fine)
+- 3 randomly-sampled style nudges from personality-specific pool
 - Hard rules:
-  - Exactly 2 short paragraphs + 1 CTA line, under 120 words
-  - Paragraph 1: human moment + observation, ends on the observation — NOT the implication
-  - Paragraph 2: one capability, no feature list
-  - CTA: low friction, specific, NOT a generic demo ask
-  - Subject: short, specific, never a question
-  - No setup-conflict pivot ("X is great, but Y is a problem")
-  - Never explain why the observation is relevant
-  - Never tell the reader how to feel
-  - **Banned words:** mismatch, creates drag, operationally, streamline, cutting-edge, leverage, robust, revolutionize, game-changer, scalable, widening gap
-  - Never reference unnamed client groups
-  - Fabrication budget is the opener moment ONLY — everything after must come from facts
-  - Never use em dash (—)
-  - Enterprise rule: 500+ employee companies get no questions implying they're naive
+  - **One paragraph only. 4–5 sentences maximum.** Greeting on its own line, then one block, then signature.
+  - CTA: direct ask, no question mark
+  - Subject: short, specific, never a question, references something real from research
+  - No "not X, it's Y" contrast pivots
+  - No unnamed client groups / unverifiable social proof
+  - Everything after opener must come from provided facts
+  - Never use em dash (—) — stripped in post-processing anyway
+  - **Banned words:** mismatch, streamline, cutting-edge, leverage, robust, revolutionize, game-changer, scalable, operationally, stack, scale
 
 ### User Prompt (summarized):
 ```
@@ -189,7 +186,7 @@ Output format: `SUBJECT: [...]\n\nBODY: Hi [FirstName], ...`
 | 5 Full Qualify | gpt-4o-mini | medium | tier, buyer motivation, email hooks |
 | 6 Supporting Research | gpt-4o-mini × ~4 | medium | industry stats, company proof points |
 | 7 Sales Strategist | **gpt-4o (full)** | expensive | 6-question reasoning + subject |
-| 8 Email Generation | **claude-sonnet-4-5** | expensive | final email body + subject |
+| 8 Email Generation | **mistral-medium-latest** | cheap | final email body + subject |
 | 9 Subject Fallback | gpt-4o-mini | cheap | subject line only |
 | 10 Confidence Report | gpt-4o-mini | cheap | UI display only |
 
