@@ -1073,6 +1073,13 @@ IMPORTANT RULES:
       if (agentSettings && agentSettings.personality) {
         return agentSettings.personality;
       }
+
+      // Fallback: read from the agent list entry (older agents stored personality there)
+      const user = await this.awsManager.getUserById(this.userId);
+      const agentData = user?.activeAgents?.find(a => String(a.agentId) === String(this.agentId));
+      if (agentData?.personality) {
+        return agentData.personality;
+      }
       
       // Default personality if none found
       return {
@@ -1812,10 +1819,15 @@ Call the appropriate function to continue the workflow.`;
           const confidence = qualification.confidence || 'MEDIUM';
           
           // Add email to queue with confidence metadata
+          const currentLead = this.memory.currentCycle?.currentLead;
+          if (!currentLead) {
+            console.error('❌ [CYCLE] updateCycleState called but currentLead is null — skipping queue add');
+            return;
+          }
           const leadData = {
-            ...this.memory.currentCycle.currentLead,
-            email: this.memory.currentCycle.currentLead.email,
-            company: this.memory.currentCycle.currentLead.company || this.memory.currentCycle.currentLead.organization?.name,
+            ...currentLead,
+            email: currentLead.email,
+            company: currentLead.company || currentLead.organization?.name,
             personalizedEmail: actionResult.email,
             emailSubject: actionResult.subject,
             generatedEmail: actionResult.email,
@@ -4703,7 +4715,12 @@ EMAIL LENGTH: 6-7 sentences`;
         : 'No verified industry stats.';
 
       // ── SYSTEM PROMPT (rules — Claude treats these as inviolable constraints) ──────
-      const personalityType = (personality?.type || 'hunter').toUpperCase().replace('-', ' ').replace('RELATIONSHIP BUILDER', 'RELATIONSHIP');
+      const personalityType = (personality?.type || 'hunter')
+        .toUpperCase()
+        .replace(/-/g, ' ')  // replace ALL hyphens, not just the first
+        .replace('RELATIONSHIP BUILDER', 'RELATIONSHIP')
+        .trim();
+      console.log(`🎭 [EMAIL BUILDER] personalityType resolved: "${personalityType}" (from raw: "${personality?.type}")`);
 
       // ── SOFT STYLE NUDGE POOLS (personality-specific, 3 sampled per email) ────────
       const softRulePools = {

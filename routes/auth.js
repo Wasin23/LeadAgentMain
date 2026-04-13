@@ -1225,6 +1225,17 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
       }
     });
     
+    agentSettings.personality = personality || {
+      type: 'hunter',
+      name: 'The Hunter',
+      description: 'Default personality',
+      avatar: '🎯',
+      emailPrompt: 'Write short, plain emails. Simple words. Short sentences. Nothing fancy.',
+      emailStyle: 'Professional and direct',
+      traits: ['Professional', 'Direct'],
+      color: 'blue'
+    };
+
     await awsManagerInstance.saveLeadAgentSettings(userId, agentId, agentSettings);
     
     // Log agent creation to issues/alerts as an important event
