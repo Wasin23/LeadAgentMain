@@ -4352,8 +4352,6 @@ Format as:
       const buyerMotivation = aiReport?.buyerMotivation || qualification?.buyerMotivation;
       
       // Check if buyer motivation is articulated and sophisticated
-      // SHOTGUN tier is exempt — it uses generic templates and doesn't require specific evidence
-      const isShotgun = tier === 'SHOTGUN';
       const hasValidMotivation = buyerMotivation && 
         buyerMotivation !== 'Not articulated' &&
         buyerMotivation.length > 50 && // Must be substantial
@@ -4361,7 +4359,7 @@ Format as:
         !buyerMotivation.toLowerCase().includes('probably') &&
         !buyerMotivation.toLowerCase().includes('could benefit');
       
-      if (!hasValidMotivation && !isShotgun) {
+      if (!hasValidMotivation) {
         const errorMsg = !buyerMotivation || buyerMotivation === 'Not articulated' 
           ? '❌ [BUYER MOTIVATION] Not articulated - cannot generate email'
           : '❌ [BUYER MOTIVATION] Too generic or speculative - requires specific evidence-based reasoning';
@@ -4388,16 +4386,9 @@ Format as:
         );
       }
 
-      // For SHOTGUN, fall back to a generic role/industry motivation if none was articulated
-      const resolvedMotivation = hasValidMotivation
-        ? buyerMotivation
-        : `${leadData.title || 'Professional'} at ${companyName} — general industry fit with potential need for our solution based on role and company profile.`;
-
-      if (isShotgun && !hasValidMotivation) {
-      } else {
-      }
+      const resolvedMotivation = buyerMotivation;
       
-      const topEmailFacts = this.selectTopEmailFacts(aiReport, companyName, tier === 'HIGHLY_QUALIFIED' ? 4 : 3);
+      const topEmailFacts = this.selectTopEmailFacts(aiReport, companyName, 4);
       const compactResearchFacts = this.summarizeResearchForEmail(researchData, companyName, 3);
       const companyProofPoints = this.summarizeCompanyProofPoints(this.memory.platformMetrics?.raw, 2);
       const ragFacts = (this.memory.industryFactsFromRAG || []).slice(0, 2).map(fact => this.truncateForPrompt(fact, 140));
@@ -4599,71 +4590,6 @@ Format as:
         console.error('[SALES STRATEGIST] Reasoning step failed, continuing without angle:', err.message);
       }
 
-      // Build tier-specific email instructions
-      let tierInstructions = '';
-      let personalizationLevel = 'DEEP';
-      
-      switch (tier) {
-        case 'HIGHLY_QUALIFIED':
-          personalizationLevel = 'DEEP';
-          tierInstructions = `
-🌟 TIER: HIGHLY QUALIFIED - DEEP PERSONALIZATION
-This lead is a PERFECT MATCH with verified research. Write a highly personalized email using specific cited facts.
-
-REQUIREMENTS:
-✓ Use 3-5 specific facts from the VERIFIED RESEARCH FACTS above
-✓ Cite each fact naturally (e.g., "I saw you recently raised $10M...")
-✓ Show you deeply understand their business
-✓ Make specific recommendations based on their situation
-✓ Email should feel like it was written by a human who spent 30 minutes researching them
-
-STRENGTHS TO LEVERAGE:
-${qualification?.keyStrengths?.map(s => `- ${s}`).join('\n') || 'N/A'}
-
-EMAIL LENGTH: 6-7 sentences (highly personalized but concise)`;
-          break;
-          
-        case 'QUALIFIED':
-          personalizationLevel = 'MODERATE';
-          tierInstructions = `
-✅ TIER: QUALIFIED - MODERATE PERSONALIZATION
-This lead is a GOOD MATCH with some verified research. Write a moderately personalized email.
-
-REQUIREMENTS:
-✓ Use 1-2 facts from research if available
-✓ Focus on industry/role relevance
-✓ Show understanding of their general challenges
-✓ Less specific than HIGHLY_QUALIFIED but more than generic template
-
-STRENGTHS TO LEVERAGE:
-${qualification?.keyStrengths?.map(s => `- ${s}`).join('\n') || 'General industry fit'}
-
-EMAIL LENGTH: 6-7 sentences (standard personalization)`;
-          break;
-          
-        case 'SHOTGUN':
-          personalizationLevel = 'MINIMAL';
-          tierInstructions = `
-🎯 TIER: SHOTGUN - MINIMAL PERSONALIZATION
-This lead is TANGENTIALLY RELATED. Write a generic template email focusing on value proposition.
-
-REQUIREMENTS:
-✓ DO NOT use specific research facts (not enough verified data)
-✓ Focus on general industry/role pain points
-✓ Lead with value proposition immediately
-✓ Keep it brief and scannable
-✓ Use generic but professional language
-
-EMAIL LENGTH: 5-6 sentences (short and generic)`;
-          break;
-          
-        default:
-          personalizationLevel = 'MODERATE';
-          tierInstructions = `
-STANDARD PERSONALIZATION - Use available research but don't force it.
-EMAIL LENGTH: 6-7 sentences`;
-      }
-      
       // Get agent personality for email style
       const personality = await this.getAgentPersonality();
       
