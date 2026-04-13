@@ -4658,7 +4658,7 @@ EMAIL LENGTH: 6-7 sentences`;
       
       // Get custom prompt from email builder settings (editable in UI) - this is the personality/style
       // Replace [SCHEDULING_LINK] placeholder with actual calendar link
-      let customPrompt = emailSettings.customPrompt || emailSettings.emailBuilder?.customPrompt || personality?.emailPrompt || 'Write professional sales emails';
+      let customPrompt = emailSettings.customPrompt || emailSettings.emailBuilder?.customPrompt || personality?.emailPrompt || 'Write short, plain emails. Simple words. Short sentences. Nothing fancy.';
       customPrompt = customPrompt.replace(/\[SCHEDULING_LINK\]/g, calendarLink);
       customPrompt = this.truncateForPrompt(customPrompt, 500);
       
@@ -4797,7 +4797,7 @@ You noticed something about a company and you're writing a short message to some
     ${selectedNudges.map((n, i) => `${i + 1}. ${n}`).join('\n    ')}
 
     HARD RULES — always apply:
-    - Write exactly 2 short paragraphs plus 1 CTA line. Under 120 words.
+    - Write exactly 2 short paragraphs plus 1 CTA line. Under 60 words total. Short sentences only. Use the simplest word that works. No big abstract nouns. Verbs that do things.
     - Paragraph 1: open with the human moment + your take on this specific company or person. Not a diagnosis. Not a market overview. End on the observation — never on the implication. Do not narrate what the observation means to the reader. They already know. Trust the opener. Let it breathe. The connection to what you do belongs in paragraph 2.
     - Paragraph 2: one thing you do and why it is directly relevant to that specific take. One capability, no feature list.
     - CTA: low friction, specific to the problem or timing. Not a generic demo ask. Never reference unnamed groups in the CTA.
@@ -4878,7 +4878,7 @@ Write the email now. First sentence must be specific to this company.`;
       const createClaudeEmail = () => this.withEmailGenerationSlot(() =>
         this.anthropic.messages.create({
           model: 'claude-sonnet-4-5',
-          max_tokens: 600,
+          max_tokens: 300,
           temperature: 0.5,
           system: claudeSystemPrompt,
           messages: [{ role: 'user', content: claudeUserPrompt }]

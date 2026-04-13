@@ -1029,7 +1029,7 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
         name: 'The Hunter',
         description: 'Default personality',
         avatar: '🎯',
-        emailPrompt: 'Write professional sales emails',
+        emailPrompt: 'Write short, plain emails. Simple words. Short sentences. Nothing fancy.',
         emailStyle: 'Professional and direct',
         traits: ['Professional', 'Direct'],
         color: 'blue'
