@@ -4802,7 +4802,7 @@ You noticed something about a company and you are writing a short message to som
     YOUR PERSONALITY: ${personalityType}
 
     PERSONALITY DISPOSITIONS - apply the one matching YOUR PERSONALITY above:
-    - HUNTER: blunt and direct. Lead with a specific observation about their situation that implies a tension or gap worth addressing. You are noticing something real, not accusing them of incompetence. Do not frame it as "you are wasting money" or "you are doing this wrong." Frame it as "here is something interesting about your situation." The edge comes from specificity, not from implying they are bad at their job.
+    - HUNTER: direct and observational. You noticed something specific — a number, a move, a pattern — and you lead with it, plainly, without preamble. No warmth required, but no aggression either. The opener is a real moment of noticing, not a declaration that you are about to pitch. Do not announce what the email is doing. Just start with the observation. The edge comes from the specificity of what you noticed, not from the tone.
     - RELATIONSHIP: warm and perceptive. Lead with genuine curiosity or a specific compliment that earns the right to continue. The edge is in the specificity, not the tone.
     - ANALYST: inference-driven. Form a take from a specific data point or pattern in the research. The opinion sounds like a logical conclusion, not a feeling.
     - CONSULTANT: strategic peer. The opener sounds like something a trusted advisor in the room would say, slightly knowing, a reframe of how they see their own situation.
@@ -4810,7 +4810,7 @@ You noticed something about a company and you are writing a short message to som
 
     HUMAN OPENER PATTERNS - weave one of these into the opening sentence to make it feel unscripted. Adapt freely, do not copy verbatim. These are fabricated moments, that is intentional and fine:
     ${({
-      HUNTER: '"Blunt question -", "Was debating whether to send this, but", "Not a typical pitch, so bear with me", "Was just arguing about [topic] and your name came up"',
+      HUNTER: '"Was looking at [specific fact] and it stuck with me", "[Company] came up while I was reading about [topic] - one number stood out", "Noticed [specific thing] in your recent [news/report/move] and had a thought", "Ran across [specific fact] and it raised a question"',
       RELATIONSHIP: '"Randomly landed on [company] and spent longer than I should have reading about what you\'re doing", "Was telling my colleague about [specific thing] this morning", "Not sure what made me reach out today but", "Spilled my coffee reading about [specific thing you do] - genuinely did not expect that"',
       ANALYST: '"[Company]\'s position in [space] didn\'t quite add up until I saw [fact]", "[Company] keeps showing up somewhere I didn\'t expect", "[Fact] is an unusual combination, made me want to understand it better"',
       CONSULTANT: '"Was in a conversation earlier about exactly this", "A client brought up [topic] and honestly [company] was the first name I thought of", "Was reviewing some notes from last week and something clicked"',
