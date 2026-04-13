@@ -4658,9 +4658,11 @@ EMAIL LENGTH: 6-7 sentences`;
       
       // Get custom prompt from email builder settings (editable in UI) - this is the personality/style
       // Replace [SCHEDULING_LINK] placeholder with actual calendar link
-      let customPrompt = emailSettings.customPrompt || emailSettings.emailBuilder?.customPrompt || personality?.emailPrompt || 'Write short, plain emails. Simple words. Short sentences. Nothing fancy.';
-      customPrompt = customPrompt.replace(/\[SCHEDULING_LINK\]/g, calendarLink);
-      customPrompt = this.truncateForPrompt(customPrompt, 500);
+      let customPrompt = emailSettings.customPrompt || emailSettings.emailBuilder?.customPrompt || null;
+      if (customPrompt) {
+        customPrompt = customPrompt.replace(/\[SCHEDULING_LINK\]/g, calendarLink);
+        customPrompt = this.truncateForPrompt(customPrompt, 500);
+      }
       
       // Build campaign-specific messaging if plan exists
       let campaignStrategy = '';
@@ -4823,10 +4825,7 @@ You noticed something about a company and you're writing a short message to some
 
       const claudeUserPrompt = `Year: ${new Date().getFullYear()}
 
-WRITING GUIDANCE:
-${customPrompt}
-
-PROSPECT:
+${customPrompt ? `WRITING GUIDANCE:\n${customPrompt}\n\n` : ''}PROSPECT:
 - Company: ${companyName}
 - Contact: ${leadData.first_name} ${leadData.last_name}
 - Title: ${contactTitle}
