@@ -4808,6 +4808,7 @@ You noticed something about a company and you are writing a short message to som
     - Never use the em dash character (—). Never.
     - Never reference unnamed client groups. No unverifiable social proof.
     - Everything after the opener must come from provided facts. No invented stats or results.
+    - End with a single short CTA — one sentence asking for a call or conversation. Not a question with a question mark, just a direct ask.
     - Banned words: mismatch, streamline, cutting-edge, leverage, robust, revolutionize, game-changer, scalable, operationally, stack, scale.
 
     Output exactly:
