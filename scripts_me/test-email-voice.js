@@ -8,10 +8,15 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// ─── Fine-tune config — swap in your model ID once trained ─────────────────
+const FINETUNE_MODEL = process.env.FINETUNE_MODEL_ID || null; // e.g. 'ft:gpt-4o-mini:org:name:id'
 
 // ─── Fake lead data — mirrors real production data fields ───────────────────
 const LEAD = {
@@ -90,26 +95,26 @@ Write the email now. First sentence must be specific to this company.`;
 // ─── Prompt strategies — same user data, different system prompts ────────────
 const STRATEGIES = [
   {
-    name: 'PRODUCTION (current system prompt)',
+    name: 'UPDATED PRODUCTION (no structure spec)',
     system: `HARD RULE: Never use the em dash character anywhere in your output.
 
-You noticed something about a company and you're writing a short message to someone there. You are not a salesperson writing a cold email. You are a person who found something genuinely interesting and decided to reach out.
+You noticed something about a company and you are writing a short message to someone there. You are not a salesperson writing a cold email. You are a person who found something genuinely interesting and decided to reach out.
 
 YOUR PERSONALITY: HUNTER
 
-PERSONALITY DISPOSITIONS: HUNTER: blunt, willing to challenge. Lead with a provocation or direct observation implying the reader has a problem they haven't solved. No softening.
+PERSONALITY DISPOSITIONS:
+- HUNTER: blunt, willing to challenge. Lead with a provocation or direct observation implying the reader has a problem they have not solved. No softening.
 
-HUMAN OPENER PATTERNS: "Blunt question -", "Was debating whether to send this, but", "Not a typical pitch, so bear with me", "Was just arguing about [topic] and your name came up"
+HUMAN OPENER PATTERNS — weave one of these into the opening sentence. Adapt freely, do not copy verbatim:
+"Blunt question -", "Was debating whether to send this, but", "Not a typical pitch, so bear with me", "Was just arguing about [topic] and your name came up"
 
-HARD RULES:
-- Write exactly 2 short paragraphs plus 1 CTA line. Under 60 words total. Short sentences only. Use the simplest word that works. No big abstract nouns. Verbs that do things.
-- Paragraph 1: open with the human moment + your take on this specific company or person. End on the observation, never on the implication.
-- Paragraph 2: one thing you do and why it is directly relevant to that specific take. One capability, no feature list.
-- CTA: low friction, specific to the problem or timing.
-- SUBJECT LINE: short, specific, sounds like a human wrote it in 3 seconds. NEVER a question.
-- No setup-conflict pivot.
-- Never tell the reader how to feel about what you just said.
-- Banned words: mismatch, creates drag, operationally, streamline, cutting-edge, leverage, robust, revolutionize, game-changer, scalable, widening gap.
+RULES:
+- Under 60 words total. Short sentences. Simple words.
+- SUBJECT LINE: short, specific, sounds like a human wrote it in 3 seconds. Reference something real from the research. Never a question.
+- Never use the em dash character. Never.
+- Never reference unnamed client groups. No unverifiable social proof.
+- Everything after the opener must come from provided facts. No invented stats or results.
+- Banned words: mismatch, streamline, cutting-edge, leverage, robust, revolutionize, game-changer, scalable, operationally.
 
 Output exactly:
 SUBJECT: [subject]
@@ -118,31 +123,76 @@ BODY: Hi [FirstName], ...`,
     user: buildRealUserPrompt('Write short, plain emails. Simple words. Short sentences. Nothing fancy.'),
   },
   {
-    name: 'NO STRUCTURE — voice only, same data',
-    system: `You noticed something about a company and you are writing them a quick note. You are not trying to impress anyone. You are not performing. You just have something worth saying and you are saying it. Keep it under 60 words. Do not sell. Do not pitch. Just talk. Include a subject line.`,
+    name: 'FIFTH GRADER',
+    system: `Write like a fifth grader. Simple words. No filler. No performance. Say what you mean and stop.
+
+Each sentence should connect to the next. Each paragraph should make one point and follow through on it. Do not drop dramatic one-liners on their own line. Do not write bullet fragments. Write full sentences that flow.`,
+
     user: buildRealUserPrompt('Write short, plain emails. Simple words. Short sentences. Nothing fancy.'),
   },
   {
-    name: 'SINGLE REACTION — voice + data, no blueprint',
-    system: `You are reaching out cold. Open with one honest reaction to something specific in the research — not a compliment, not a diagnosis, just a reaction. One sentence on what you do. One soft ask. That is the whole email. No arc. No structure. No performing. Include a subject line.`,
+    name: 'FINE-TUNE (gpt-4o-mini)',
+    provider: 'openai',
+    system: `You write cold emails. Short. Plain. Human.`,
     user: buildRealUserPrompt('Write short, plain emails. Simple words. Short sentences. Nothing fancy.'),
   },
 ];
 
 // ─── Runner ──────────────────────────────────────────────────────────────────
 async function runStrategy(strategy) {
-  const response = await client.messages.create({
+  if (strategy.provider === 'openai') {
+    if (!FINETUNE_MODEL) {
+      return '(no fine-tune model ID set — add FINETUNE_MODEL_ID to .env once trained)';
+    }
+    const response = await openai.chat.completions.create({
+      model: FINETUNE_MODEL,
+      max_tokens: 300,
+      temperature: 0.9,
+      messages: [
+        { role: 'system', content: strategy.system },
+        { role: 'user', content: strategy.user },
+      ],
+    });
+    return response.choices[0].message.content.trim();
+  }
+
+  // default: anthropic
+  const response = await anthropic.messages.create({
     model: 'claude-sonnet-4-5',
     max_tokens: 300,
     temperature: 0.9,
     system: strategy.system,
     messages: [{ role: 'user', content: strategy.user }],
   });
-
   return response.content[0].text.trim();
 }
 
 async function main() {
+  const args = process.argv.slice(2);
+  const repeatMode = args.includes('--repeat');
+
+  if (repeatMode) {
+    // Run only FIFTH GRADER 10 times
+    const strategy = STRATEGIES.find(s => s.name === 'FIFTH GRADER');
+    console.log('═'.repeat(70));
+    console.log(' 10x FIFTH GRADER');
+    console.log(' Lead: ' + LEAD.firstName + ', ' + LEAD.title + ' @ ' + LEAD.company);
+    console.log('═'.repeat(70));
+    for (let i = 1; i <= 10; i++) {
+      console.log('\n' + '─'.repeat(70));
+      console.log(`[${i}/10]`);
+      console.log('─'.repeat(70));
+      try {
+        const result = await runStrategy(strategy);
+        console.log(result);
+      } catch (err) {
+        console.error('ERROR:', err.message);
+      }
+    }
+    console.log('\n' + '═'.repeat(70));
+    return;
+  }
+
   console.log('═'.repeat(70));
   console.log(' EMAIL VOICE TESTER');
   console.log(' Lead: ' + LEAD.firstName + ', ' + LEAD.title + ' @ ' + LEAD.company);

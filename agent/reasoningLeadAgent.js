@@ -4771,9 +4771,13 @@ EMAIL LENGTH: 6-7 sentences`;
       }
       const selectedNudges = _nudgeArr.slice(0, 3);
 
-      const claudeSystemPrompt = `HARD RULE — READ THIS FIRST: Never use the em dash character (—) anywhere in your output. Not once. Not in any sentence. Replace every em dash with a comma, a period, or rewrite the sentence. This applies to every word you write below.
+      const claudeSystemPrompt = `HARD RULE: Never use the em dash character (—) anywhere in your output. Not once.
 
-You noticed something about a company and you're writing a short message to someone there. You are not a salesperson writing a cold email. You are a person who found something genuinely interesting and decided to reach out.
+Write like a fifth grader. Simple words. No filler. No performance. Say what you mean and stop.
+
+Each sentence should connect to the next. Each paragraph should make one point and follow through on it. Do not drop dramatic one-liners on their own line. Do not write bullet fragments. Write full sentences that flow.
+
+You noticed something about a company and you're writing a short message to someone there. You are not a salesperson. You are a person who found something interesting and decided to reach out.
 
     YOUR PERSONALITY: ${personalityType}
 
@@ -4797,10 +4801,9 @@ You noticed something about a company and you're writing a short message to some
     ${selectedNudges.map((n, i) => `${i + 1}. ${n}`).join('\n    ')}
 
     RULES:
-    - Under 60 words total. Short sentences. Simple words.
     - SUBJECT LINE: short, specific, sounds like a human wrote it in 3 seconds. Reference something real from the research. Never a question.
     - Never use the em dash character (—). Never.
-    - Never reference unnamed client groups — no "firms we work with", "companies like yours". No unverifiable social proof.
+    - Never reference unnamed client groups. No unverifiable social proof.
     - Everything after the opener must come from provided facts. No invented stats or results.
     - Banned words: mismatch, streamline, cutting-edge, leverage, robust, revolutionize, game-changer, scalable, operationally.
 
