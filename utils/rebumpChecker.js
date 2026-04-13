@@ -89,9 +89,22 @@ HARD RULES:
 - Write in plain text. No bold, no bullets.
 - Banned words: streamline, leverage, scalable, robust, cutting-edge, game-changer, revolutionize, operationally.`;
 
+    // Strip HTML tags and tracking pixels from body so Mistral gets clean plain text
+    const rawBody = email.body || email.bodyText || '';
+    const plainBody = rawBody
+      .replace(/<img[^>]*>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/[ \t]{2,}/g, ' ')
+      .trim()
+      .slice(0, 800); // cap to avoid huge prompts
+
     const userPrompt = `ORIGINAL EMAIL SENT:
 Subject: ${email.subject || '(no subject)'}
-Body: ${email.body || '(not available)'}
+Body: ${plainBody || '(not available)'}
 
 LEAD:
 - Name: ${firstName}
@@ -294,6 +307,11 @@ export async function autoScheduleFollowUp(userId, agentId, sentEmail) {
     
     if (!rebumpEnabled) {
       return { success: false, reason: 'disabled' };
+    }
+
+    // Don't schedule follow-ups on follow-up emails — only on original outreach
+    if (sentEmail.isRebump) {
+      return { success: false, reason: 'is_rebump' };
     }
 
     // Check if follow-up already scheduled
@@ -511,6 +529,7 @@ export async function checkForRebumps() {
             const useSmartRebump = agentSettings.emailBuilder?.smartRebump === true;
 
             let subject, body;
+            let templateIndex = email.assignedTemplateId || 0; // hoisted so template rotation can always access it
 
             if (useSmartRebump) {
               // ── SMART MODE: Mistral-generated, context-aware follow-up ──────────
@@ -528,7 +547,6 @@ export async function checkForRebumps() {
             if (!subject || !body) {
               // ── TEMPLATE MODE (default or smart fallback) ─────────────────────
               let template = email.assignedTemplate;
-              let templateIndex = email.assignedTemplateId || 0;
 
               if (!template) {
                 template = agentSettings.followUpTemplates?.templates[templateIndex];
@@ -617,17 +635,18 @@ export async function checkForRebumps() {
             
             console.log(`✅ [REBUMP] Updated original email ${email.id} with rebumpCount=${rebumpCount + 1}`);
 
-            // Update template rotation
-            const nextIndex = (templateIndex + 1) % agentSettings.followUpTemplates.templates.length;
-            await awsManager.saveLeadAgentSettings(userId, agentId, {
-              ...agentSettings,
-              followUpTemplates: {
-                ...agentSettings.followUpTemplates,
-                lastUsedIndex: nextIndex
-              }
-            });
-
-            totalRebumpsQueued++;
+            // Update template rotation (only if templates exist)
+            const templates = agentSettings.followUpTemplates?.templates;
+            if (templates && templates.length > 0) {
+              const nextIndex = (templateIndex + 1) % templates.length;
+              await awsManager.saveLeadAgentSettings(userId, agentId, {
+                ...agentSettings,
+                followUpTemplates: {
+                  ...agentSettings.followUpTemplates,
+                  lastUsedIndex: nextIndex
+                }
+              });
+            }
           }
         }
       }
