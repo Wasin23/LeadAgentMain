@@ -4827,13 +4827,16 @@ You noticed something about a company and you are writing a short message to som
     - Everything after the opener must come from provided facts. No invented stats or results.
     - End with a single short CTA — one sentence asking for a call or conversation. Not a question with a question mark, just a direct ask.
     - Do not use the "not X, it's Y" sentence structure. No contrast pivots. Do not write "it's not a critique, it's just the math" or "not by selling them a miracle, just by" or any variation that frames an observation as a rebuttal to an objection you invented. Just say the thing.
-    - Write one paragraph. Not two, not three. One block of text, then the signature. No line breaks between sentences.
+    - Write one paragraph. Not two, not three. The greeting ("Hi [FirstName],") goes on its own line, then ONE block of text with no line breaks between sentences, then the signature.
     - Banned words: mismatch, streamline, cutting-edge, leverage, robust, revolutionize, game-changer, scalable, operationally, stack, scale.
 
     Output exactly:
     SUBJECT: [subject]
 
-    BODY: Hi [FirstName], ...`;
+    BODY:
+    Hi [FirstName],
+
+    [body paragraph]`;
 
       // ── USER MESSAGE (lead-specific data + instructions) ─────────────────────────
       const signatureName = emailSettings.emailBuilder?.useCustomSignature
@@ -4916,9 +4919,9 @@ Write the email now. First sentence must be specific to this company.`;
       }
 
       const emailContent = emailResponse.choices[0].message.content
-        .replace(/\u2014/g, '-')  // em dash
-        .replace(/\u2013/g, '-')  // en dash
-        .replace(/\*\*/g, '');    // bold markdown
+        .replace(/\u2014/g, ' - ')  // em dash
+        .replace(/\u2013/g, ' - ')  // en dash
+        .replace(/\*\*/g, '');      // bold markdown
 
       // Log API usage
       const claudeInputTokens = emailResponse.usage?.prompt_tokens || 0;
