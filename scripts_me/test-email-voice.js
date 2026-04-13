@@ -14,6 +14,7 @@ dotenv.config();
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const mistral = new OpenAI({ apiKey: process.env.MISTRAL_API_KEY, baseURL: 'https://api.mistral.ai/v1' });
 
 // ─── Fine-tune config — swap in your model ID once trained ─────────────────
 const FINETUNE_MODEL = process.env.FINETUNE_MODEL_ID || null; // e.g. 'ft:gpt-4o-mini:org:name:id'
@@ -136,10 +137,63 @@ Simple words. No performance. Each sentence exists because it adds a new fact or
     system: `You write cold emails. Short. Plain. Human.`,
     user: buildRealUserPrompt('Write short, plain emails. Simple words. Short sentences. Nothing fancy.'),
   },
+  {
+    name: 'MISTRAL (mistral-medium-latest)',
+    provider: 'mistral',
+    system: `HARD RULE: Never use the em dash character (—) anywhere in your output. Not once.
+
+Write observations. Do not narrate them. If you describe a situation, do not follow it with a sentence that tells the reader what to conclude from it. The reader can do that. Cut every sentence that starts with "That means", "That math", "That doesn't", "That's the", "That's why", or any variation that summarizes what the previous sentence already showed. Do not announce your point. Make it and move on.
+
+Simple words. No performance. Each sentence exists because it adds a new fact or detail, not because it sounds smart.
+
+You noticed something about a company and you are writing a short message to someone there. You are not a salesperson. You are a person who found something interesting and decided to reach out.
+
+    YOUR PERSONALITY: HUNTER
+
+    PERSONALITY DISPOSITIONS - apply the one matching YOUR PERSONALITY above:
+    - HUNTER: blunt, willing to challenge. Lead with a provocation or direct observation implying the reader has a problem they haven't solved. No softening.
+
+    HUMAN OPENER PATTERNS - weave one of these into the opening sentence to make it feel unscripted. Adapt freely, do not copy verbatim:
+    "Blunt question -", "Was debating whether to send this, but", "Not a typical pitch, so bear with me", "Was just arguing about [topic] and your name came up"
+
+    STYLE NUDGES - for this email only, apply these three:
+    1. If the research gives you a number, use it. Specific beats vague every time.
+    2. The email should feel like it was written by someone who read one thing about this company and reacted to it.
+    3. One paragraph. No list. No line breaks between sentences.
+
+    RULES:
+    - SUBJECT LINE: short, specific, sounds like a human wrote it in 3 seconds. Reference something real from the research. Never a question.
+    - Never use the em dash character (—). Never.
+    - Never reference unnamed client groups. No unverifiable social proof.
+    - Everything after the opener must come from provided facts. No invented stats or results.
+    - Banned words: mismatch, streamline, cutting-edge, leverage, robust, revolutionize, game-changer, scalable, operationally, stack, scale.
+
+    Output exactly:
+    SUBJECT: [subject]
+
+    BODY: Hi [FirstName], ...`,
+    user: buildRealUserPrompt('Write short, plain emails. Simple words. Short sentences. Nothing fancy.'),
+  },
 ];
 
 // ─── Runner ──────────────────────────────────────────────────────────────────
 async function runStrategy(strategy) {
+  if (strategy.provider === 'mistral') {
+    const response = await mistral.chat.completions.create({
+      model: 'mistral-medium-latest',
+      max_tokens: 300,
+      temperature: 0.9,
+      messages: [
+        { role: 'system', content: strategy.system },
+        { role: 'user', content: strategy.user },
+      ],
+    });
+    return response.choices[0].message.content.trim()
+      .replace(/\u2014/g, '-')   // em dash
+      .replace(/\u2013/g, '-')   // en dash
+      .replace(/\*\*/g, '');     // bold markdown
+  }
+
   if (strategy.provider === 'openai') {
     if (!FINETUNE_MODEL) {
       return '(no fine-tune model ID set — add FINETUNE_MODEL_ID to .env once trained)';
@@ -176,6 +230,27 @@ async function main() {
     const strategy = STRATEGIES.find(s => s.name === 'FIFTH GRADER');
     console.log('═'.repeat(70));
     console.log(' 10x FIFTH GRADER');
+    console.log(' Lead: ' + LEAD.firstName + ', ' + LEAD.title + ' @ ' + LEAD.company);
+    console.log('═'.repeat(70));
+    for (let i = 1; i <= 10; i++) {
+      console.log('\n' + '─'.repeat(70));
+      console.log(`[${i}/10]`);
+      console.log('─'.repeat(70));
+      try {
+        const result = await runStrategy(strategy);
+        console.log(result);
+      } catch (err) {
+        console.error('ERROR:', err.message);
+      }
+    }
+    console.log('\n' + '═'.repeat(70));
+    return;
+  }
+
+  if (args.includes('--mistral')) {
+    const strategy = STRATEGIES.find(s => s.name === 'MISTRAL (mistral-medium-latest)');
+    console.log('═'.repeat(70));
+    console.log(' 10x MISTRAL');
     console.log(' Lead: ' + LEAD.firstName + ', ' + LEAD.title + ' @ ' + LEAD.company);
     console.log('═'.repeat(70));
     for (let i = 1; i <= 10; i++) {

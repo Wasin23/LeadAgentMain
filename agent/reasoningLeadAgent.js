@@ -59,6 +59,10 @@ class ReasoningLeadAgent extends EventEmitter {
     this.anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY
     });
+    this.mistral = new OpenAI({
+      apiKey: process.env.MISTRAL_API_KEY,
+      baseURL: 'https://api.mistral.ai/v1'
+    });
     this.emailGenerationInFlight = 0;
     this.emailGenerationWaiters = [];
     this.emailGenerationConcurrency = 1;
@@ -4866,36 +4870,39 @@ Write the email now. First sentence must be specific to this company.`;
         userPrompt: claudeUserPrompt
       });
 
-      const createClaudeEmail = () => this.withEmailGenerationSlot(() =>
-        this.anthropic.messages.create({
-          model: 'claude-sonnet-4-5',
+      const createEmail = () => this.withEmailGenerationSlot(() =>
+        this.mistral.chat.completions.create({
+          model: 'mistral-medium-latest',
           max_tokens: 300,
-          temperature: 0.5,
-          system: claudeSystemPrompt,
-          messages: [{ role: 'user', content: claudeUserPrompt }]
+          temperature: 0.9,
+          messages: [
+            { role: 'system', content: claudeSystemPrompt },
+            { role: 'user', content: claudeUserPrompt }
+          ]
         })
       );
 
-      let claudeResponse;
+      let emailResponse;
       try {
-        claudeResponse = await createClaudeEmail();
+        emailResponse = await createEmail();
       } catch (error) {
         if (error?.status === 429) {
-          console.warn('⚠️ [EMAIL BUILDER] Anthropic rate limit hit, retrying after cooldown');
+          console.warn('⚠️ [EMAIL BUILDER] Mistral rate limit hit, retrying after cooldown');
           await this.waitForRetryAfter(error.headers, 15000);
-          claudeResponse = await createClaudeEmail();
+          emailResponse = await createEmail();
         } else {
           throw error;
         }
       }
 
-      const emailContent = claudeResponse.content[0].text
-        .replace(/ — /g, ' - ')  // spaced em dash → hyphen
-        .replace(/—/g, ' - ');   // bare em dash → hyphen
+      const emailContent = emailResponse.choices[0].message.content
+        .replace(/\u2014/g, '-')  // em dash
+        .replace(/\u2013/g, '-')  // en dash
+        .replace(/\*\*/g, '');    // bold markdown
 
       // Log API usage
-      const claudeInputTokens = claudeResponse.usage?.input_tokens || 0;
-      const claudeOutputTokens = claudeResponse.usage?.output_tokens || 0;
+      const claudeInputTokens = emailResponse.usage?.prompt_tokens || 0;
+      const claudeOutputTokens = emailResponse.usage?.completion_tokens || 0;
       console.log(
         `📊 [EMAIL PROMPT ACTUAL] ${contactName} @ ${companyName} | ` +
         `actualInput=${claudeInputTokens} actualOutput=${claudeOutputTokens} | ` +
@@ -4904,17 +4911,17 @@ Write the email now. First sentence must be specific to this company.`;
       await this.awsManager.logApiUsage({
         userId: this.userId,
         agentId: this.agentId,
-        service: 'anthropic',
+        service: 'mistral',
         operation: 'email_generation',
         usage: claudeInputTokens + claudeOutputTokens,
         metadata: {
-          model: 'claude-sonnet-4-5',
+          model: 'mistral-medium-latest',
           prompt_tokens: claudeInputTokens,
           completion_tokens: claudeOutputTokens,
           companyName: companyName,
           leadName: contactName
         }
-      }).catch(err => console.error('Failed to log Claude usage:', err));
+      }).catch(err => console.error('Failed to log Mistral usage:', err));
       
       // Extract body from AI response
       let body;
