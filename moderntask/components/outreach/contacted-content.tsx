@@ -547,6 +547,109 @@ function Pagination({ page, total, pageSize = PAGE_SIZE, onChange }: {
   )
 }
 
+// ── TemplatesPanel ────────────────────────────────────────────────────────────
+type Template = { name: string; subject: string; body: string }
+
+function TemplatesPanel({ agent, templates, onMutate, onMassFollowUp, saved, followUps }: {
+  agent: AgentFull
+  templates: Template[]
+  onMutate: (agent: AgentFull, partial: NonNullable<AgentFull['settings']>['emailBuilder']) => void
+  onMassFollowUp: () => void
+  saved: boolean
+  followUps: AnalyticsEmail[]
+}) {
+  const [adding, setAdding] = useState(false)
+  const [newT, setNewT] = useState<Template>({ name: '', subject: '', body: '' })
+
+  const saveNew = () => {
+    if (!newT.subject.trim() || !newT.body.trim()) return
+    const updated = [...templates, { ...newT, name: newT.name || `Template ${templates.length + 1}` }]
+    onMutate(agent, { useTemplates: true } as any)
+    // save via settings update — store in followUpTemplates
+    api.put(`/api/auth/agents/${agent.agentId}/settings`, {
+      ...agent.settings,
+      followUpTemplates: { ...agent.settings?.followUpTemplates, templates: updated }
+    }).catch(() => {})
+    setAdding(false)
+    setNewT({ name: '', subject: '', body: '' })
+  }
+
+  const deleteTemplate = (i: number) => {
+    const updated = templates.filter((_, idx) => idx !== i)
+    api.put(`/api/auth/agents/${agent.agentId}/settings`, {
+      ...agent.settings,
+      followUpTemplates: { ...agent.settings?.followUpTemplates, templates: updated }
+    }).catch(() => {})
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold">Templates</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Used as fallback when Smart Follow-ups is off or fails</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setAdding(p => !p)}>+ Add template</Button>
+          <Button size="sm" className="h-8 text-xs" onClick={onMassFollowUp}>+ Mass Follow-up</Button>
+        </div>
+      </div>
+
+      {adding && (
+        <Card className="p-4 space-y-3 border-primary/30">
+          <p className="text-xs font-semibold text-primary">New Template</p>
+          <input placeholder="Name (optional)" value={newT.name} onChange={e => setNewT(p => ({ ...p, name: e.target.value }))}
+            className="w-full h-8 rounded-md border border-input bg-background px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring" />
+          <input placeholder="Subject — use {name}, {company}, {topic}, {days_ago}" value={newT.subject} onChange={e => setNewT(p => ({ ...p, subject: e.target.value }))}
+            className="w-full h-8 rounded-md border border-input bg-background px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring" />
+          <textarea placeholder="Body — use {name}, {company}, {topic}, {days_ago}" value={newT.body} onChange={e => setNewT(p => ({ ...p, body: e.target.value }))} rows={4}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring resize-none" />
+          <div className="flex gap-2">
+            <Button size="sm" className="h-7 text-xs" onClick={saveNew}>Save</Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setAdding(false)}>Cancel</Button>
+          </div>
+        </Card>
+      )}
+
+      {templates.length === 0 && !adding ? (
+        <Card className="p-8 text-center">
+          <FileText className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+          <p className="text-sm font-medium">No templates yet</p>
+          <p className="text-xs text-muted-foreground mt-1">Auto-generated weekly, or add your own above.</p>
+        </Card>
+      ) : (
+        <div className="space-y-2">
+          {templates.map((t, i) => (
+            <Card key={i} className="p-4">
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-[10px] px-1.5 h-4">{i + 1}</Badge>
+                  <p className="font-semibold text-sm">{t.name}</p>
+                </div>
+                <button onClick={() => deleteTemplate(i)} className="text-muted-foreground hover:text-destructive transition-colors shrink-0">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div className="space-y-2">
+                <div>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Subject</p>
+                  <p className="text-xs bg-muted/40 rounded px-2.5 py-1.5 font-mono">{t.subject}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Body</p>
+                  <p className="text-xs bg-muted/40 rounded px-2.5 py-2 whitespace-pre-wrap leading-relaxed">{t.body}</p>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {saved && <div className="flex items-center gap-1.5 text-green-500 text-xs"><Check className="w-3.5 h-3.5" /> Saved</div>}
+    </div>
+  )
+}
+
 // ── main export ───────────────────────────────────────────────────────────────
 type Tab = 'sent' | 'replies' | 'followups' | 'templates'
 
@@ -850,38 +953,105 @@ export function ContactedContent() {
 
       {/* ── FOLLOW-UPS ───────────────────────────────────────────────────── */}
       {tab === 'followups' && (
-        <Card className="p-5">
-          <div className="relative mb-4">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
-            <input className="w-full h-8 rounded-md border border-input bg-background pl-7 pr-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
-              placeholder="Search follow-ups…" value={search} onChange={e => setSearch(e.target.value)} />
-            {search && <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="w-3 h-3" /></button>}
-          </div>
-          {loading ? (
-            <div className="space-y-3">{[...Array(4)].map((_, i) => <div key={i} className="animate-pulse space-y-1"><div className="h-3 bg-muted rounded w-1/3" /><div className="h-3 bg-muted rounded w-1/2" /></div>)}</div>
-          ) : displayedFollowUps.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-14 gap-3 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center"><CalendarClock className="w-5 h-5 text-muted-foreground" /></div>
-              <div>
-                <p className="text-sm font-medium">{search ? 'No results' : 'No follow-ups yet'}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{search ? `No follow-ups match "${search}"` : 'Emails with scheduled or sent follow-ups will appear here.'}</p>
-              </div>
+        <div className="grid grid-cols-[1fr_280px] gap-4 items-start">
+          {/* list */}
+          <Card className="p-5">
+            <div className="relative mb-4">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
+              <input className="w-full h-8 rounded-md border border-input bg-background pl-7 pr-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                placeholder="Search follow-ups…" value={search} onChange={e => setSearch(e.target.value)} />
+              {search && <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"><X className="w-3 h-3" /></button>}
             </div>
-          ) : (
-            <>
-              <div className="divide-y divide-border">
-                {pagedFollowUps.map((e, i) => <FollowUpRow key={emailId(e) || i} email={e} onEditFollowUp={setEditFollowUpEmail} onCancelFollowUp={cancelFollowUp} onRetryFollowUp={retryFollowUp} />)}
+            {loading ? (
+              <div className="space-y-3">{[...Array(4)].map((_, i) => <div key={i} className="animate-pulse space-y-1"><div className="h-3 bg-muted rounded w-1/3" /><div className="h-3 bg-muted rounded w-1/2" /></div>)}</div>
+            ) : displayedFollowUps.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-14 gap-3 text-center">
+                <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center"><CalendarClock className="w-5 h-5 text-muted-foreground" /></div>
+                <div>
+                  <p className="text-sm font-medium">{search ? 'No results' : 'No follow-ups yet'}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{search ? `No follow-ups match "${search}"` : 'Emails with scheduled or sent follow-ups will appear here.'}</p>
+                </div>
               </div>
-              <Pagination page={followUpsPage} total={displayedFollowUps.length} onChange={p => { setFollowUpsPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
-            </>
+            ) : (
+              <>
+                <div className="divide-y divide-border">
+                  {pagedFollowUps.map((e, i) => <FollowUpRow key={emailId(e) || i} email={e} onEditFollowUp={setEditFollowUpEmail} onCancelFollowUp={cancelFollowUp} onRetryFollowUp={retryFollowUp} />)}
+                </div>
+                <Pagination page={followUpsPage} total={displayedFollowUps.length} onChange={p => { setFollowUpsPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
+              </>
+            )}
+          </Card>
+
+          {/* settings sidebar */}
+          {selectedAgent && (
+            <div className="space-y-3">
+              <p className="text-sm font-semibold flex items-center gap-1.5 px-1"><Settings2 className="w-4 h-4" /> Follow-up Settings</p>
+
+              <Card className="p-4 divide-y divide-border">
+                <div className="flex items-center justify-between pb-4">
+                  <div>
+                    <p className="text-sm font-medium">Auto Follow-ups</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Send rebumps automatically</p>
+                  </div>
+                  <button onClick={() => mutateSelected(selectedAgent, { enableRebump: !(selectedAgent.settings?.emailBuilder?.enableRebump !== false) })}
+                    className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0', (selectedAgent.settings?.emailBuilder?.enableRebump !== false) ? 'bg-green-500' : 'bg-muted')}>
+                    <span className={cn('inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform', (selectedAgent.settings?.emailBuilder?.enableRebump !== false) ? 'translate-x-6' : 'translate-x-1')} />
+                  </button>
+                </div>
+
+                <div className="py-4 grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs font-medium mb-1.5">Interval</p>
+                    <div className="flex items-center gap-1.5">
+                      <input type="number" min={1} max={30} value={selectedAgent.settings?.emailBuilder?.rebumpIntervalDays ?? 7}
+                        onChange={e => mutateSelected(selectedAgent, { rebumpIntervalDays: parseInt(e.target.value) || 7 })}
+                        className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">days</span>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium mb-1.5">Max sends</p>
+                    <input type="number" min={1} max={5} value={selectedAgent.settings?.emailBuilder?.maxRebumps ?? 1}
+                      onChange={e => mutateSelected(selectedAgent, { maxRebumps: parseInt(e.target.value) || 1 })}
+                      className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+                  </div>
+                </div>
+
+                <div className="pt-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-purple-400" /> Smart Follow-ups</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">AI-written per lead · 0.5 credits</p>
+                    </div>
+                    <button onClick={() => mutateSelected(selectedAgent, { smartRebump: !selectedAgent.settings?.emailBuilder?.smartRebump })}
+                      className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0', selectedAgent.settings?.emailBuilder?.smartRebump ? 'bg-purple-500' : 'bg-muted')}>
+                      <span className={cn('inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform', selectedAgent.settings?.emailBuilder?.smartRebump ? 'translate-x-6' : 'translate-x-1')} />
+                    </button>
+                  </div>
+                  {selectedAgent.settings?.emailBuilder?.smartRebump && (
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
+                      <div>
+                        <p className="text-xs font-medium">LinkedIn scrape</p>
+                        <p className="text-xs text-muted-foreground">Pull fresh context</p>
+                      </div>
+                      <button onClick={() => mutateSelected(selectedAgent, { rebumpLinkedinScrape: !(selectedAgent.settings?.emailBuilder?.rebumpLinkedinScrape !== false) })}
+                        className={cn('relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0', (selectedAgent.settings?.emailBuilder?.rebumpLinkedinScrape !== false) ? 'bg-purple-500' : 'bg-muted')}>
+                        <span className={cn('inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform', (selectedAgent.settings?.emailBuilder?.rebumpLinkedinScrape !== false) ? 'translate-x-5' : 'translate-x-1')} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </Card>
+
+              {saved && <div className="flex items-center gap-1.5 text-green-500 text-xs px-1"><Check className="w-3.5 h-3.5" /> Saved</div>}
+            </div>
           )}
-        </Card>
+        </div>
       )}
 
       {/* ── TEMPLATES ────────────────────────────────────────────────────── */}
       {tab === 'templates' && (
         <div className="space-y-4">
-          {/* agent picker — horizontal pill row */}
           {agents.length > 1 && (
             <div className="flex flex-wrap gap-2">
               {agents.map(agent => (
@@ -900,128 +1070,9 @@ export function ContactedContent() {
           )}
 
           {!selectedAgent ? (
-            <Card className="flex items-center justify-center p-12 text-muted-foreground text-sm">Select an agent to view settings</Card>
+            <Card className="flex items-center justify-center p-12 text-muted-foreground text-sm">Select an agent</Card>
           ) : (
-            <div className="grid grid-cols-[1fr_300px] gap-4 items-start">
-
-              {/* ── left: templates ── */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold">Fallback Templates</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Used when Smart Follow-ups is off, or as fallback if AI fails</p>
-                  </div>
-                  <Button size="sm" className="h-8 text-xs" onClick={() => setShowMassFollowUpModal(true)}>+ Mass Follow-up</Button>
-                </div>
-                {agentTemplates.length === 0 ? (
-                  <Card className="p-8 text-center">
-                    <FileText className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-sm font-medium">No templates yet</p>
-                    <p className="text-xs text-muted-foreground mt-1">Templates are auto-generated weekly. Send your first email to trigger generation.</p>
-                  </Card>
-                ) : (
-                  <div className="space-y-2">
-                    {agentTemplates.map((t, i) => (
-                      <Card key={i} className="p-4">
-                        <div className="flex items-center gap-2 mb-3">
-                          <Badge variant="outline" className="text-[10px] px-1.5 h-4">{i + 1}</Badge>
-                          <p className="font-semibold text-sm">{t.name}</p>
-                        </div>
-                        <div className="space-y-2">
-                          <div>
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Subject</p>
-                            <p className="text-xs bg-muted/40 rounded px-2.5 py-1.5 font-mono">{t.subject}</p>
-                          </div>
-                          <div>
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Body</p>
-                            <p className="text-xs bg-muted/40 rounded px-2.5 py-2 whitespace-pre-wrap leading-relaxed">{t.body}</p>
-                          </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* ── right: settings ── */}
-              <div className="space-y-3">
-                <p className="text-sm font-semibold flex items-center gap-1.5"><Settings2 className="w-4 h-4" /> Follow-up Settings</p>
-
-                <Card className="p-4 divide-y divide-border space-y-0">
-                  {/* auto follow-ups on/off */}
-                  <div className="flex items-center justify-between pb-4">
-                    <div>
-                      <p className="text-sm font-medium">Auto Follow-ups</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">Send rebumps automatically</p>
-                    </div>
-                    <button onClick={() => mutateSelected(selectedAgent, { enableRebump: !(selectedAgent.settings?.emailBuilder?.enableRebump !== false) })}
-                      className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0', (selectedAgent.settings?.emailBuilder?.enableRebump !== false) ? 'bg-green-500' : 'bg-muted')}>
-                      <span className={cn('inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform', (selectedAgent.settings?.emailBuilder?.enableRebump !== false) ? 'translate-x-6' : 'translate-x-1')} />
-                    </button>
-                  </div>
-
-                  {/* interval + max in one row */}
-                  <div className="py-4 grid grid-cols-2 gap-3">
-                    <div>
-                      <p className="text-xs font-medium mb-1.5">Interval</p>
-                      <div className="flex items-center gap-1.5">
-                        <input type="number" min={1} max={30} value={selectedAgent.settings?.emailBuilder?.rebumpIntervalDays ?? 7}
-                          onChange={e => mutateSelected(selectedAgent, { rebumpIntervalDays: parseInt(e.target.value) || 7 })}
-                          className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">days</span>
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium mb-1.5">Max sends</p>
-                      <input type="number" min={1} max={5} value={selectedAgent.settings?.emailBuilder?.maxRebumps ?? 1}
-                        onChange={e => mutateSelected(selectedAgent, { maxRebumps: parseInt(e.target.value) || 1 })}
-                        className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
-                    </div>
-                  </div>
-
-                  {/* smart follow-ups */}
-                  <div className="pt-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-purple-400" /> Smart Follow-ups</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">AI-written per lead · 0.5 credits</p>
-                      </div>
-                      <button onClick={() => mutateSelected(selectedAgent, { smartRebump: !selectedAgent.settings?.emailBuilder?.smartRebump })}
-                        className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0', selectedAgent.settings?.emailBuilder?.smartRebump ? 'bg-purple-500' : 'bg-muted')}>
-                        <span className={cn('inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform', selectedAgent.settings?.emailBuilder?.smartRebump ? 'translate-x-6' : 'translate-x-1')} />
-                      </button>
-                    </div>
-                    {selectedAgent.settings?.emailBuilder?.smartRebump && (
-                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
-                        <div>
-                          <p className="text-xs font-medium">LinkedIn scrape</p>
-                          <p className="text-xs text-muted-foreground">Pull fresh context before writing</p>
-                        </div>
-                        <button onClick={() => mutateSelected(selectedAgent, { rebumpLinkedinScrape: !(selectedAgent.settings?.emailBuilder?.rebumpLinkedinScrape !== false) })}
-                          className={cn('relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0', (selectedAgent.settings?.emailBuilder?.rebumpLinkedinScrape !== false) ? 'bg-purple-500' : 'bg-muted')}>
-                          <span className={cn('inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform', (selectedAgent.settings?.emailBuilder?.rebumpLinkedinScrape !== false) ? 'translate-x-5' : 'translate-x-1')} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </Card>
-
-                {/* stats */}
-                <Card className="p-4 space-y-2">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Stats</p>
-                  <div className="space-y-1.5 text-sm">
-                    <div className="flex justify-between"><span className="text-muted-foreground">Templates</span><span className="font-semibold">{agentTemplates.length}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Follow-ups sent</span><span className="font-semibold">{followUps.filter(e => e.agentId === selectedAgent.agentId && (e.rebumpCount ?? 0) > 0).length}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Scheduled</span><span className="font-semibold">{followUps.filter(e => e.agentId === selectedAgent.agentId && e.followUpScheduled && (e.rebumpCount ?? 0) === 0).length}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Templates refreshed</span>
-                      <span className="font-semibold">{selectedAgent.settings?.followUpTemplates?.generatedAt ? new Date(selectedAgent.settings.followUpTemplates.generatedAt).toLocaleDateString() : 'Never'}</span>
-                    </div>
-                  </div>
-                </Card>
-
-                {saved && <div className="flex items-center gap-1.5 text-green-500 text-xs"><Check className="w-3.5 h-3.5" /> Saved</div>}
-              </div>
-            </div>
+            <TemplatesPanel agent={selectedAgent} templates={agentTemplates} onMutate={mutateSelected} onMassFollowUp={() => setShowMassFollowUpModal(true)} saved={saved} followUps={followUps} />
           )}
         </div>
       )}
