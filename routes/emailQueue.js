@@ -1258,6 +1258,37 @@ router.put('/:emailId/followup', async (req, res) => {
   }
 });
 
+// Retry a follow-up immediately (reset rebumpCount + followUpDate to now)
+router.post('/:emailId/followup/retry', authenticateToken, async (req, res) => {
+  try {
+    const { emailId } = req.params;
+    const { agentId } = req.body;
+    const userId = req.user.userId;
+
+    if (!agentId) {
+      return res.status(400).json({ success: false, error: 'Agent ID is required' });
+    }
+
+    const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+    const awsQueue = getAWSEmailQueue();
+
+    await awsQueue.updateEmailStatus(userId, agentId, emailId, 'SENT', 'SENT', {
+      rebumpCount: 0,
+      followUpScheduled: true,
+      followUpDate: new Date().toISOString(),
+      followUpStatus: null,
+      lastRebumpAt: null,
+      lastFollowUpSentAt: null,
+    });
+
+    console.log(`🔄 [EMAIL QUEUE] Queued retry follow-up for email ${emailId}`);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[EMAIL QUEUE API] Error retrying follow-up:', error);
+    res.status(500).json({ success: false, error: 'Failed to retry follow-up', details: error.message });
+  }
+});
+
 // Cancel a scheduled follow-up for a specific email
 router.delete('/:emailId/followup', authenticateToken, async (req, res) => {
   try {

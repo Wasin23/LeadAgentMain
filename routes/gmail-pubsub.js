@@ -270,6 +270,18 @@ router.post('/gmail-notification', async (req, res) => {
           const trackingId = gmailManager.extractTrackingId(fullMessage);
 
           if (trackingId) {
+            // Skip if this is our own sent message (Gmail fires history events for sent mail too)
+            const fromHeader = fullMessage.from || '';
+            const fromEmail = (fromHeader.match(/<([^>]+)>/) || [, fromHeader])[1].trim().toLowerCase();
+            const ownAddresses = (userSettings.gmailAccounts || []).map(a => a.email.toLowerCase());
+            if (userSettings.gmailAuth?.email) ownAddresses.push(userSettings.gmailAuth.email.toLowerCase());
+            if (emailAddress) ownAddresses.push(emailAddress.toLowerCase());
+
+            if (ownAddresses.includes(fromEmail)) {
+              console.log(`📤 [GMAIL PUBSUB] Skipping own sent message from ${fromEmail}`);
+              continue;
+            }
+
             console.log(`📧 [GMAIL PUBSUB] Found reply to tracked email from: ${fullMessage.from} (${trackingId})`);
             
             // Process through webhook logic

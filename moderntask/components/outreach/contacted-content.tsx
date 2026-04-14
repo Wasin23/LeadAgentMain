@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import {
   Mail, Eye, MessageSquare, MousePointer,
   RefreshCw, Bot, Building2, Clock, Search, X, ChevronDown,
-  UserCheck, FileText, CalendarClock, Check, Settings2, ChevronLeft, ChevronRight, Sparkles,
+  UserCheck, FileText, CalendarClock, Check, Settings2, ChevronLeft, ChevronRight, Sparkles, RotateCcw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -238,7 +238,7 @@ function SentRow({ email, onEditFollowUp }: { email: AnalyticsEmail; onEditFollo
 
 // ── edit follow-up modal ──────────────────────────────────────────────────────
 // ── follow-up row (shows actual follow-up sent, not original email) ───────────
-function FollowUpRow({ email, onEditFollowUp, onCancelFollowUp }: { email: AnalyticsEmail; onEditFollowUp: (e: AnalyticsEmail) => void; onCancelFollowUp?: (e: AnalyticsEmail) => void }) {
+function FollowUpRow({ email, onEditFollowUp, onCancelFollowUp, onRetryFollowUp }: { email: AnalyticsEmail; onEditFollowUp: (e: AnalyticsEmail) => void; onCancelFollowUp?: (e: AnalyticsEmail) => void; onRetryFollowUp?: (e: AnalyticsEmail) => void }) {
   const [expanded, setExpanded] = useState(false)
   const rc  = email.rebumpCount  ?? 0
   const max = email.maxFollowUps ?? 1
@@ -309,6 +309,15 @@ function FollowUpRow({ email, onEditFollowUp, onCancelFollowUp }: { email: Analy
                 )}
                 {rc >= max && (
                   <Badge variant="outline" className="text-[9px] px-1.5 h-4 text-green-400 border-green-500/30 bg-green-500/10">✓ done</Badge>
+                )}
+                {onRetryFollowUp && (
+                  <button
+                    title="Retry follow-up now"
+                    onClick={e => { e.stopPropagation(); onRetryFollowUp(email) }}
+                    className="text-[9px] px-1 h-4 rounded border border-blue-500/30 text-blue-400 hover:bg-blue-500/10 flex items-center gap-0.5 transition-colors"
+                  >
+                    <RotateCcw className="w-2.5 h-2.5" /> Retry
+                  </button>
                 )}
               </>
             )}
@@ -608,6 +617,13 @@ export function ContactedContent() {
     } catch { /* silent */ }
   }, [load])
 
+  const retryFollowUp = useCallback(async (email: AnalyticsEmail) => {
+    try {
+      await api.post(`/api/email-queue/${email.id || email.trackingId}/followup/retry`, { agentId: email.agentId })
+      load()
+    } catch { /* silent */ }
+  }, [load])
+
   const loadAgents = useCallback(async () => {
     try {
       const r = await api.get('/api/auth/agents')
@@ -854,7 +870,7 @@ export function ContactedContent() {
           ) : (
             <>
               <div className="divide-y divide-border">
-                {pagedFollowUps.map((e, i) => <FollowUpRow key={emailId(e) || i} email={e} onEditFollowUp={setEditFollowUpEmail} onCancelFollowUp={cancelFollowUp} />)}
+                {pagedFollowUps.map((e, i) => <FollowUpRow key={emailId(e) || i} email={e} onEditFollowUp={setEditFollowUpEmail} onCancelFollowUp={cancelFollowUp} onRetryFollowUp={retryFollowUp} />)}
               </div>
               <Pagination page={followUpsPage} total={displayedFollowUps.length} onChange={p => { setFollowUpsPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
             </>
