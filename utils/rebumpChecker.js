@@ -544,6 +544,9 @@ export async function checkForRebumps() {
               }
             }
 
+            // Lead info — must be defined before template substitution
+            const lead = email.lead || {};
+
             if (!subject || !body) {
               // ── TEMPLATE MODE (default or smart fallback) ─────────────────────
               let template = email.assignedTemplate;
@@ -573,9 +576,6 @@ export async function checkForRebumps() {
                 .replace(/{topic}/g, topic)
                 .replace(/{days_ago}/g, daysAgo);
             }
-
-            // Build threading info for sending as a reply to the original email
-            const lead = email.lead || {};
             const replyOptions = {
               // Use original email's tracking ID for In-Reply-To header
               // trackingId already contains the full tracking ID (e.g., "tracking-userId_agentId_timestamp_random")
@@ -657,6 +657,60 @@ export async function checkForRebumps() {
     console.error('❌ [REBUMP] Error checking rebumps:', error);
     console.error('❌ [REBUMP] Stack:', error.stack);
   }
+}
+
+/**
+ * Fire a follow-up for a single email immediately (used by the retry endpoint).
+ */
+export async function fireSingleFollowUp(userId, agentId, emailId) {
+  const agentSettings = await awsManager.getLeadAgentSettings(userId, agentId);
+  if (!agentSettings) throw new Error('No agent settings found');
+
+  const sentEmails = await emailQueue.getSentEmails(userId, agentId);
+  const email = sentEmails.find(e => e.id === emailId || e.trackingId === emailId);
+  if (!email) throw new Error('Email not found');
+
+  const rebumpCount = 0; // always fire as step 1 on retry
+  const stepNumber = 1;
+  const timeSinceLastContact = Date.now() - new Date(email.sentAt || email.timestamp || Date.now()).getTime();
+  const useSmartRebump = agentSettings.emailBuilder?.smartRebump === true;
+  const lead = email.lead || {};
+  let subject, body;
+
+  if (useSmartRebump) {
+    console.log(`🤖 [REBUMP RETRY] Smart mode for ${email.to}`);
+    const smart = await generateSmartFollowUp(userId, agentId, email, agentSettings, stepNumber);
+    if (smart) { subject = smart.subject; body = smart.body; }
+    else console.warn(`⚠️ [REBUMP RETRY] Smart failed, falling back to template`);
+  }
+
+  if (!subject || !body) {
+    const templates = agentSettings.followUpTemplates?.templates;
+    const template = templates?.[email.assignedTemplateId || 0] || templates?.[0];
+    if (!template) throw new Error('No templates available');
+    const daysAgo = Math.floor(timeSinceLastContact / (24 * 60 * 60 * 1000));
+    const topic = email.subject || 'our previous conversation';
+    const firstName = (lead.name || lead.first_name || 'there').split(' ')[0];
+    subject = template.subject.replace(/{name}/g, firstName).replace(/{company}/g, lead.company || 'your company').replace(/{topic}/g, topic).replace(/{days_ago}/g, daysAgo);
+    body = template.body.replace(/{name}/g, firstName).replace(/{company}/g, lead.company || 'your company').replace(/{topic}/g, topic).replace(/{days_ago}/g, daysAgo);
+  }
+
+  const replyOptions = {
+    inReplyTo: email.trackingId ? `<${email.trackingId}@gmail.com>` : null,
+    references: email.trackingId ? `<${email.trackingId}@gmail.com>` : null,
+    threadId: email.gmailThreadId || null
+  };
+
+  const sendResult = await leadEmail(email.to, subject, body, lead, userId, agentId, null, null, null, replyOptions);
+  if (!sendResult.success) throw new Error(sendResult.error || 'Send failed');
+
+  const maxRebumps = agentSettings.emailBuilder?.maxRebumps || 1;
+  const rebumpIntervalMs = (agentSettings.emailBuilder?.rebumpIntervalDays || 7) * 24 * 60 * 60 * 1000;
+  const updates = { rebumpCount: 1, lastRebumpAt: new Date().toISOString(), lastFollowUpSentAt: new Date().toISOString(), followUpStatus: 'SENT' };
+  if (1 < maxRebumps) updates.followUpDate = new Date(Date.now() + rebumpIntervalMs).toISOString();
+  await emailQueue.updateEmailStatus(userId, agentId, emailId, 'SENT', 'SENT', updates);
+
+  return { success: true, to: email.to };
 }
 
 /**
