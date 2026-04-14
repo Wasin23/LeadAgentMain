@@ -880,111 +880,140 @@ export function ContactedContent() {
 
       {/* ── TEMPLATES ────────────────────────────────────────────────────── */}
       {tab === 'templates' && (
-        <div className="flex gap-4">
-          {/* agent selector */}
-          <div className="flex flex-col gap-2 w-56 shrink-0">
-            {agents.map(agent => (
-              <button key={agent.agentId} onClick={() => setSelectedAgent(agent)}
-                className={cn('flex items-center gap-2.5 px-3 py-2.5 rounded-lg border text-sm font-medium transition-colors text-left',
-                  selectedAgent?.agentId === agent.agentId ? 'bg-primary/10 border-primary/40 text-primary' : 'border-border hover:bg-muted/50 text-foreground')}>
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
-                  {agent.personality?.avatar
-                    ? <img src={agent.personality.avatar} alt={agent.name} className="w-full h-full object-cover" />
-                    : <span className="text-xs font-bold text-primary">{agent.name?.[0]?.toUpperCase()}</span>}
-                </div>
-                <span className="truncate">{agent.name}</span>
-              </button>
-            ))}
-          </div>
+        <div className="space-y-4">
+          {/* agent picker — horizontal pill row */}
+          {agents.length > 1 && (
+            <div className="flex flex-wrap gap-2">
+              {agents.map(agent => (
+                <button key={agent.agentId} onClick={() => setSelectedAgent(agent)}
+                  className={cn('flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-medium transition-colors',
+                    selectedAgent?.agentId === agent.agentId ? 'bg-primary/10 border-primary/40 text-primary' : 'border-border hover:bg-muted/50 text-muted-foreground')}>
+                  <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
+                    {agent.personality?.avatar
+                      ? <img src={agent.personality.avatar} alt={agent.name} className="w-full h-full object-cover" />
+                      : <span className="text-[9px] font-bold text-primary">{agent.name?.[0]?.toUpperCase()}</span>}
+                  </div>
+                  {agent.name}
+                </button>
+              ))}
+            </div>
+          )}
 
-          {selectedAgent ? (
-            <div className="flex gap-4 flex-1 min-w-0">
-              {/* templates list */}
-              <div className="flex-1 space-y-3">
+          {!selectedAgent ? (
+            <Card className="flex items-center justify-center p-12 text-muted-foreground text-sm">Select an agent to view settings</Card>
+          ) : (
+            <div className="grid grid-cols-[1fr_300px] gap-4 items-start">
+
+              {/* ── left: templates ── */}
+              <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">{selectedAgent.name} templates</p>
-                  <Button size="sm" className="h-8 text-xs" onClick={() => setShowMassFollowUpModal(true)}>+ Schedule Mass Follow-up</Button>
+                  <div>
+                    <p className="text-sm font-semibold">Fallback Templates</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Used when Smart Follow-ups is off, or as fallback if AI fails</p>
+                  </div>
+                  <Button size="sm" className="h-8 text-xs" onClick={() => setShowMassFollowUpModal(true)}>+ Mass Follow-up</Button>
                 </div>
                 {agentTemplates.length === 0 ? (
                   <Card className="p-8 text-center">
-                    <FileText className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">No templates yet for {selectedAgent.name}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Templates are generated automatically by the agent</p>
+                    <FileText className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-sm font-medium">No templates yet</p>
+                    <p className="text-xs text-muted-foreground mt-1">Templates are auto-generated weekly. Send your first email to trigger generation.</p>
                   </Card>
-                ) : agentTemplates.map((t, i) => (
-                  <Card key={i} className="p-4 space-y-2">
-                    <p className="font-semibold text-sm">{t.name}</p>
-                    <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Subject</p><p className="text-xs bg-muted/50 rounded p-2">{t.subject}</p></div>
-                    <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">Body</p><p className="text-xs bg-muted/50 rounded p-2 line-clamp-3 whitespace-pre-wrap">{t.body}</p></div>
-                  </Card>
-                ))}
+                ) : (
+                  <div className="space-y-2">
+                    {agentTemplates.map((t, i) => (
+                      <Card key={i} className="p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Badge variant="outline" className="text-[10px] px-1.5 h-4">{i + 1}</Badge>
+                          <p className="font-semibold text-sm">{t.name}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <div>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Subject</p>
+                            <p className="text-xs bg-muted/40 rounded px-2.5 py-1.5 font-mono">{t.subject}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Body</p>
+                            <p className="text-xs bg-muted/40 rounded px-2.5 py-2 whitespace-pre-wrap leading-relaxed">{t.body}</p>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* settings */}
-              <div className="w-72 shrink-0 space-y-3">
-                <p className="text-sm font-medium flex items-center gap-1.5"><Settings2 className="w-4 h-4" /> Settings</p>
+              {/* ── right: settings ── */}
+              <div className="space-y-3">
+                <p className="text-sm font-semibold flex items-center gap-1.5"><Settings2 className="w-4 h-4" /> Follow-up Settings</p>
 
-                <Card className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div><p className="text-sm font-medium">Auto Follow-ups</p><p className="text-xs text-muted-foreground mt-0.5">Automatic rebumps</p></div>
+                <Card className="p-4 divide-y divide-border space-y-0">
+                  {/* auto follow-ups on/off */}
+                  <div className="flex items-center justify-between pb-4">
+                    <div>
+                      <p className="text-sm font-medium">Auto Follow-ups</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Send rebumps automatically</p>
+                    </div>
                     <button onClick={() => mutateSelected(selectedAgent, { enableRebump: !(selectedAgent.settings?.emailBuilder?.enableRebump !== false) })}
-                      className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors', (selectedAgent.settings?.emailBuilder?.enableRebump !== false) ? 'bg-green-500' : 'bg-muted')}>
+                      className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0', (selectedAgent.settings?.emailBuilder?.enableRebump !== false) ? 'bg-green-500' : 'bg-muted')}>
                       <span className={cn('inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform', (selectedAgent.settings?.emailBuilder?.enableRebump !== false) ? 'translate-x-6' : 'translate-x-1')} />
                     </button>
                   </div>
-                </Card>
 
-                <Card className="p-4 space-y-2">
-                  <p className="text-sm font-medium">Follow-up Interval</p>
-                  <div className="flex items-center gap-2">
-                    <input type="number" min={1} max={30} value={selectedAgent.settings?.emailBuilder?.rebumpIntervalDays ?? 7}
-                      onChange={e => mutateSelected(selectedAgent, { rebumpIntervalDays: parseInt(e.target.value) || 7 })}
-                      className="flex-1 h-8 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
-                    <span className="text-xs text-muted-foreground">days</span>
-                  </div>
-                </Card>
-
-                <Card className="p-4 space-y-2">
-                  <p className="text-sm font-medium">Max Follow-ups</p>
-                  <div className="flex items-center gap-2">
-                    <input type="number" min={1} max={5} value={selectedAgent.settings?.emailBuilder?.maxRebumps ?? 1}
-                      onChange={e => mutateSelected(selectedAgent, { maxRebumps: parseInt(e.target.value) || 1 })}
-                      className="flex-1 h-8 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
-                    <span className="text-xs text-muted-foreground">max</span>
-                  </div>
-                </Card>
-
-                <Card className="p-4">
-                  <div className="flex items-center justify-between">
+                  {/* interval + max in one row */}
+                  <div className="py-4 grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-sm font-medium flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-purple-400" /> Smart Follow-ups</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">AI-generated · 0.5 credits each</p>
-                    </div>
-                    <button onClick={() => mutateSelected(selectedAgent, { smartRebump: !selectedAgent.settings?.emailBuilder?.smartRebump })}
-                      className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors', selectedAgent.settings?.emailBuilder?.smartRebump ? 'bg-purple-500' : 'bg-muted')}>
-                      <span className={cn('inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform', selectedAgent.settings?.emailBuilder?.smartRebump ? 'translate-x-6' : 'translate-x-1')} />
-                    </button>
-                  </div>
-                  {selectedAgent.settings?.emailBuilder?.smartRebump && (
-                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
-                      <div>
-                        <p className="text-xs font-medium">LinkedIn scrape</p>
-                        <p className="text-xs text-muted-foreground">Find fresh context</p>
+                      <p className="text-xs font-medium mb-1.5">Interval</p>
+                      <div className="flex items-center gap-1.5">
+                        <input type="number" min={1} max={30} value={selectedAgent.settings?.emailBuilder?.rebumpIntervalDays ?? 7}
+                          onChange={e => mutateSelected(selectedAgent, { rebumpIntervalDays: parseInt(e.target.value) || 7 })}
+                          className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">days</span>
                       </div>
-                      <button onClick={() => mutateSelected(selectedAgent, { rebumpLinkedinScrape: !(selectedAgent.settings?.emailBuilder?.rebumpLinkedinScrape !== false) })}
-                        className={cn('relative inline-flex h-5 w-9 items-center rounded-full transition-colors', (selectedAgent.settings?.emailBuilder?.rebumpLinkedinScrape !== false) ? 'bg-purple-500' : 'bg-muted')}>
-                        <span className={cn('inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform', (selectedAgent.settings?.emailBuilder?.rebumpLinkedinScrape !== false) ? 'translate-x-5' : 'translate-x-1')} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium mb-1.5">Max sends</p>
+                      <input type="number" min={1} max={5} value={selectedAgent.settings?.emailBuilder?.maxRebumps ?? 1}
+                        onChange={e => mutateSelected(selectedAgent, { maxRebumps: parseInt(e.target.value) || 1 })}
+                        className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+                    </div>
+                  </div>
+
+                  {/* smart follow-ups */}
+                  <div className="pt-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-purple-400" /> Smart Follow-ups</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">AI-written per lead · 0.5 credits</p>
+                      </div>
+                      <button onClick={() => mutateSelected(selectedAgent, { smartRebump: !selectedAgent.settings?.emailBuilder?.smartRebump })}
+                        className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0', selectedAgent.settings?.emailBuilder?.smartRebump ? 'bg-purple-500' : 'bg-muted')}>
+                        <span className={cn('inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform', selectedAgent.settings?.emailBuilder?.smartRebump ? 'translate-x-6' : 'translate-x-1')} />
                       </button>
                     </div>
-                  )}
+                    {selectedAgent.settings?.emailBuilder?.smartRebump && (
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
+                        <div>
+                          <p className="text-xs font-medium">LinkedIn scrape</p>
+                          <p className="text-xs text-muted-foreground">Pull fresh context before writing</p>
+                        </div>
+                        <button onClick={() => mutateSelected(selectedAgent, { rebumpLinkedinScrape: !(selectedAgent.settings?.emailBuilder?.rebumpLinkedinScrape !== false) })}
+                          className={cn('relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0', (selectedAgent.settings?.emailBuilder?.rebumpLinkedinScrape !== false) ? 'bg-purple-500' : 'bg-muted')}>
+                          <span className={cn('inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform', (selectedAgent.settings?.emailBuilder?.rebumpLinkedinScrape !== false) ? 'translate-x-5' : 'translate-x-1')} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </Card>
 
+                {/* stats */}
                 <Card className="p-4 space-y-2">
-                  <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Agent Stats</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Stats</p>
                   <div className="space-y-1.5 text-sm">
                     <div className="flex justify-between"><span className="text-muted-foreground">Templates</span><span className="font-semibold">{agentTemplates.length}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Follow-ups Sent</span><span className="font-semibold">{followUps.filter(e => e.agentId === selectedAgent.agentId).length}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Last Generated</span>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Follow-ups sent</span><span className="font-semibold">{followUps.filter(e => e.agentId === selectedAgent.agentId && (e.rebumpCount ?? 0) > 0).length}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Scheduled</span><span className="font-semibold">{followUps.filter(e => e.agentId === selectedAgent.agentId && e.followUpScheduled && (e.rebumpCount ?? 0) === 0).length}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Templates refreshed</span>
                       <span className="font-semibold">{selectedAgent.settings?.followUpTemplates?.generatedAt ? new Date(selectedAgent.settings.followUpTemplates.generatedAt).toLocaleDateString() : 'Never'}</span>
                     </div>
                   </div>
@@ -993,8 +1022,6 @@ export function ContactedContent() {
                 {saved && <div className="flex items-center gap-1.5 text-green-500 text-xs"><Check className="w-3.5 h-3.5" /> Saved</div>}
               </div>
             </div>
-          ) : (
-            <Card className="flex-1 flex items-center justify-center p-12 text-muted-foreground text-sm">Select an agent to view templates</Card>
           )}
         </div>
       )}
