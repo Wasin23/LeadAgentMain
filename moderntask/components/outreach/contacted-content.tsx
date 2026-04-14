@@ -10,7 +10,11 @@ import {
   Mail, Eye, MessageSquare, MousePointer,
   RefreshCw, Bot, Building2, Clock, Search, X, ChevronDown,
   UserCheck, FileText, CalendarClock, Check, Settings2, ChevronLeft, ChevronRight, Sparkles, RotateCcw,
+  MoreHorizontal, Zap,
 } from 'lucide-react'
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
 
 // ── types ─────────────────────────────────────────────────────────────────────
@@ -143,7 +147,12 @@ function replyBadgeClasses(kind: 'classification' | 'status' | 'sentiment', valu
 }
 
 // ── sent email row ─────────────────────────────────────────────────────────────
-function SentRow({ email, onEditFollowUp }: { email: AnalyticsEmail; onEditFollowUp: (e: AnalyticsEmail) => void }) {
+function SentRow({ email, onEditFollowUp, onScheduleFollowUp, onSendNow }: {
+  email: AnalyticsEmail
+  onEditFollowUp: (e: AnalyticsEmail) => void
+  onScheduleFollowUp?: (e: AnalyticsEmail) => void
+  onSendNow?: (e: AnalyticsEmail) => void
+}) {
   const [expanded, setExpanded] = useState(false)
   const a = email.analyticsStatus || {}
   const isBounced = email.status === 'bounced'
@@ -214,6 +223,35 @@ function SentRow({ email, onEditFollowUp }: { email: AnalyticsEmail; onEditFollo
           {a.opened && <span className="flex items-center gap-0.5"><Eye className="w-3 h-3" />{(a.openCount || 0) > 1 ? a.openCount : ''}</span>}
           {a.clicked && <MousePointer className="w-3 h-3 text-yellow-400" />}
           {a.replied && <MessageSquare className="w-3 h-3 text-green-400" />}
+          {(onScheduleFollowUp || onSendNow) && !isBounced && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button onClick={e => e.stopPropagation()} className="w-5 h-5 flex items-center justify-center rounded hover:bg-muted transition-colors ml-0.5">
+                  <MoreHorizontal className="w-3.5 h-3.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="text-xs min-w-[160px]">
+                {onScheduleFollowUp && !email.followUpScheduled && !email.isRebump && (
+                  <DropdownMenuItem onClick={e => { e.stopPropagation(); onScheduleFollowUp(email) }} className="text-xs gap-2">
+                    <CalendarClock className="w-3 h-3" /> Schedule follow-up
+                  </DropdownMenuItem>
+                )}
+                {email.followUpScheduled && (
+                  <DropdownMenuItem onClick={e => { e.stopPropagation(); onEditFollowUp(email) }} className="text-xs gap-2">
+                    <CalendarClock className="w-3 h-3" /> Edit schedule
+                  </DropdownMenuItem>
+                )}
+                {onSendNow && !email.isRebump && (
+                  <>
+                    {(onScheduleFollowUp && !email.followUpScheduled) || email.followUpScheduled ? <DropdownMenuSeparator /> : null}
+                    <DropdownMenuItem onClick={e => { e.stopPropagation(); onSendNow(email) }} className="text-xs gap-2">
+                      <Zap className="w-3 h-3 text-yellow-400" /> Send follow-up now
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
       {expanded && (
@@ -727,6 +765,13 @@ export function ContactedContent() {
     } catch { /* silent */ }
   }, [load])
 
+  const scheduleFollowUp = useCallback(async (email: AnalyticsEmail) => {
+    try {
+      await api.post(`/api/email-queue/${email.id || email.trackingId}/followup/schedule`, { agentId: email.agentId })
+      load()
+    } catch { /* silent */ }
+  }, [load])
+
   const loadAgents = useCallback(async () => {
     try {
       const r = await api.get('/api/auth/agents')
@@ -881,7 +926,22 @@ export function ContactedContent() {
             ) : (
               <div className="flex items-center gap-1.5">
                 <span className="text-xs text-muted-foreground">{selectedIds.size} selected</span>
-                {selectedIds.size > 0 && <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setShowMassReschedule(true)}>Reschedule All</Button>}
+                {selectedIds.size > 0 && (
+                  <>
+                    <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setShowMassReschedule(true)}>Reschedule</Button>
+                    <Button size="sm" variant="outline" className="h-8 text-xs" onClick={async () => {
+                      const agentId = pagedSent.find(e => selectedIds.has(emailId(e)))?.agentId
+                      if (!agentId) return
+                      await api.post('/api/email-queue/schedule-mass-followup', { agentId, emailIds: [...selectedIds] })
+                      load(); setSelectionMode(false); setSelectedIds(new Set())
+                    }}>Schedule Follow-ups</Button>
+                    <Button size="sm" variant="outline" className="h-8 text-xs" onClick={async () => {
+                      const selected = pagedSent.filter(e => selectedIds.has(emailId(e)))
+                      await Promise.allSettled(selected.map(e => api.post(`/api/email-queue/${e.id || e.trackingId}/followup/retry`, { agentId: e.agentId })))
+                      load(); setSelectionMode(false); setSelectedIds(new Set())
+                    }}><Zap className="w-3 h-3 mr-1" />Send Now</Button>
+                  </>
+                )}
                 <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => { setSelectionMode(false); setSelectedIds(new Set()) }}>Done</Button>
               </div>
             )}
@@ -910,7 +970,7 @@ export function ContactedContent() {
                         onChange={() => setSelectedIds(prev => { const s = new Set(prev); s.has(emailId(e)) ? s.delete(emailId(e)) : s.add(emailId(e)); return s })}
                         onClick={ev => ev.stopPropagation()} />
                     )}
-                    <div className="flex-1 min-w-0"><SentRow email={e} onEditFollowUp={setEditFollowUpEmail} /></div>
+                    <div className="flex-1 min-w-0"><SentRow email={e} onEditFollowUp={setEditFollowUpEmail} onScheduleFollowUp={scheduleFollowUp} onSendNow={retryFollowUp} /></div>
                   </div>
                 ))}
               </div>

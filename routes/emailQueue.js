@@ -1128,66 +1128,48 @@ router.post('/reset-batch-excluded', async (req, res) => {
 // Schedule mass follow-up for all eligible emails
 router.post('/schedule-mass-followup', async (req, res) => {
   try {
-    const { agentId, templateId } = req.body;
+    const { agentId, emailIds } = req.body; // emailIds: optional array to restrict which emails to schedule
     const userId = req.user.userId;
     
     if (!agentId) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'Agent ID is required' 
-      });
+      return res.status(400).json({ success: false, error: 'Agent ID is required' });
     }
     
     console.log(`🔧 [EMAIL QUEUE] Scheduling mass follow-up for agent ${agentId}`);
     
-    const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
-    const awsQueue = getAWSEmailQueue();
+    let emailsToSchedule;
+
+    if (Array.isArray(emailIds) && emailIds.length > 0) {
+      // Frontend passed specific IDs — schedule exactly those (skip eligibility checks, caller is responsible)
+      emailsToSchedule = emailIds.map(id => ({ id, isRebump: false, followUpScheduled: false }));
+    } else {
+      // No list provided — fetch all and filter eligible
+      const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+      const awsQueue = getAWSEmailQueue();
+      const sentEmails = await awsQueue.getSentEmails(userId, agentId);
+      emailsToSchedule = sentEmails.filter(email =>
+        !email.followUpScheduled && email.status !== 'REPLIED' && email.status !== 'BOUNCED' && !email.isRebump
+      );
+    }
+
+    console.log(`🔧 [EMAIL QUEUE] Scheduling follow-ups for ${emailsToSchedule.length} emails`);
     
-    // Get all sent emails for this agent
-    const sentEmails = await awsQueue.getSentEmails(userId, agentId);
-    
-    // Filter for eligible emails (not already scheduled, not replied)
-    const eligibleEmails = sentEmails.filter(email => {
-      // Skip if already scheduled for follow-up
-      if (email.followUpScheduled) return false;
-      
-      // Skip if email has been replied to
-      if (email.status === 'REPLIED') return false;
-      
-      // Skip if email bounced
-      if (email.status === 'BOUNCED') return false;
-      
-      return true;
-    });
-    
-    console.log(`🔧 [EMAIL QUEUE] Found ${eligibleEmails.length} eligible emails out of ${sentEmails.length} total sent emails`);
-    
-    // Schedule follow-up for each eligible email
     let scheduledCount = 0;
-    for (const email of eligibleEmails) {
+    for (const email of emailsToSchedule) {
       try {
-        await autoScheduleFollowUp(userId, agentId, email);
-        scheduledCount++;
+        const result = await autoScheduleFollowUp(userId, agentId, email);
+        if (result.success) scheduledCount++;
       } catch (error) {
         console.error(`[EMAIL QUEUE] Failed to schedule follow-up for email ${email.id}:`, error);
       }
     }
     
-    console.log(`✅ [EMAIL QUEUE] Mass follow-up complete: ${scheduledCount}/${eligibleEmails.length} emails scheduled`);
+    console.log(`✅ [EMAIL QUEUE] Mass follow-up complete: ${scheduledCount}/${emailsToSchedule.length} emails scheduled`);
     
-    res.json({
-      success: true,
-      scheduledCount,
-      eligibleCount: eligibleEmails.length,
-      totalSent: sentEmails.length
-    });
+    res.json({ success: true, scheduledCount, eligibleCount: emailsToSchedule.length });
   } catch (error) {
     console.error('[EMAIL QUEUE API] Error in mass follow-up:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Failed to schedule mass follow-up',
-      details: error.message 
-    });
+    res.status(500).json({ success: false, error: 'Failed to schedule mass follow-up', details: error.message });
   }
 });
 
@@ -1244,6 +1226,32 @@ router.put('/:emailId/followup', async (req, res) => {
       error: 'Failed to update follow-up',
       details: error.message 
     });
+  }
+});
+
+// Schedule a follow-up for a single email (without sending it now)
+router.post('/:emailId/followup/schedule', authenticateToken, async (req, res) => {
+  try {
+    const { emailId } = req.params;
+    const { agentId } = req.body;
+    const userId = req.user.userId;
+
+    if (!agentId) {
+      return res.status(400).json({ success: false, error: 'Agent ID is required' });
+    }
+
+    const emailForFollowUp = { id: emailId, isRebump: false, followUpScheduled: false };
+    const result = await autoScheduleFollowUp(userId, agentId, emailForFollowUp);
+
+    if (result.success) {
+      console.log(`✅ [EMAIL QUEUE] Scheduled follow-up for ${emailId}: ${result.followUpDate}`);
+      res.json({ success: true, followUpDate: result.followUpDate });
+    } else {
+      res.status(400).json({ success: false, reason: result.reason, error: result.error });
+    }
+  } catch (error) {
+    console.error('[EMAIL QUEUE API] Error scheduling follow-up:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
