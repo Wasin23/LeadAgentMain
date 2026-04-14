@@ -181,22 +181,26 @@ Hi ${firstName},
  * Batch update email statuses with delay to prevent DynamoDB throttling
  */
 async function updateEmailStatusWithDelay(userId, agentId, emailId, status, reasoning, metadata = {}, delay = 0) {
-  try {
-    if (delay > 0) {
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-    await emailQueue.updateEmailStatus(userId, agentId, emailId, status, reasoning, metadata);
-  } catch (error) {
-    if (error.name === 'ProvisionedThroughputExceededException') {
-      console.log(`⚠️ [REBUMP] DynamoDB throttled, retrying ${emailId} in 2s...`);
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      try {
-        await emailQueue.updateEmailStatus(userId, agentId, emailId, status, reasoning, metadata);
-      } catch (retryError) {
-        console.error(`❌ [REBUMP] Retry failed for ${emailId}:`, retryError.message);
+  if (delay > 0) {
+    await new Promise(resolve => setTimeout(resolve, delay));
+  }
+  const maxAttempts = 5;
+  const retryDelays = [1000, 2000, 3000, 4000];
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      await emailQueue.updateEmailStatus(userId, agentId, emailId, status, reasoning, metadata);
+      return;
+    } catch (error) {
+      const isThrottle = error.name === 'ProvisionedThroughputExceededException';
+      const isNotFound = error.message && error.message.includes('not found with status');
+      if ((isThrottle || isNotFound) && attempt < maxAttempts - 1) {
+        const wait = retryDelays[attempt];
+        console.log(`⚠️ [REBUMP] ${isNotFound ? 'Record not visible yet' : 'DynamoDB throttled'}, retrying ${emailId} in ${wait}ms (attempt ${attempt + 1})...`);
+        await new Promise(resolve => setTimeout(resolve, wait));
+      } else {
+        console.error(`❌ [REBUMP] updateEmailStatus failed for ${emailId} after ${attempt + 1} attempt(s):`, error.message);
+        throw error;
       }
-    } else {
-      throw error;
     }
   }
 }

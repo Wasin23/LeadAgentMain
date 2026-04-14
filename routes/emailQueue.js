@@ -747,28 +747,17 @@ router.post('/:id/approve', async (req, res) => {
             console.log('📅 [FOLLOW-UP] emailId:', id);
             console.log('═══════════════════════════════════════════════════════════');
             
-            // Get the sent email to pass to autoScheduleFollowUp
-            const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
-            const awsQueue = getAWSEmailQueue();
+            // Build the email object directly from available data — avoids a DynamoDB
+            // eventual-consistency race condition where getSentEmails() misses the
+            // record that was written moments earlier by markEmailAsSent().
+            // autoScheduleFollowUp only needs id, isRebump, and followUpScheduled.
+            const emailForFollowUp = {
+              id,
+              isRebump: approvedEmail.isRebump || false,
+              followUpScheduled: false
+            };
             
-            console.log('📅 [FOLLOW-UP] Fetching sent emails from AWS...');
-            const sentEmails = await awsQueue.getSentEmails(userId, effectiveAgentId);
-            
-            const sentEmail = sentEmails.find(e => e.id === id);
-            
-            if (sentEmail) {
-              //   id: sentEmail.id,
-              //   to: sentEmail.to,
-              //   subject: sentEmail.subject,
-              //   sentAt: sentEmail.sentAt,
-              //   hasTrackingId: !!sentEmail.trackingId
-              // });
-              
-              const result = await autoScheduleFollowUp(userId, effectiveAgentId, sentEmail);
-            } else {
-              console.log('⚠️ [FOLLOW-UP] Could not find sent email with id:', id);
-              console.log('⚠️ [FOLLOW-UP] Available sent email IDs:', sentEmails.map(e => e.id));
-            }
+            const result = await autoScheduleFollowUp(userId, effectiveAgentId, emailForFollowUp);
           } catch (followUpError) {
             console.error('[EMAIL QUEUE] ⚠️ Failed to auto-schedule follow-up:', followUpError);
             console.error('[EMAIL QUEUE] ⚠️ Follow-up error stack:', followUpError.stack);
