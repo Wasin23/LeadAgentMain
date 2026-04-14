@@ -1177,7 +1177,7 @@ router.post('/schedule-mass-followup', async (req, res) => {
 router.put('/:emailId/followup', async (req, res) => {
   try {
     const { emailId } = req.params;
-    const { agentId, followUpDate, templateId } = req.body;
+    const { agentId, followUpDate, templateId, assignedTemplate: incomingTemplate } = req.body;
     const userId = req.user.userId;
     
     if (!agentId) {
@@ -1208,6 +1208,10 @@ router.put('/:emailId/followup', async (req, res) => {
     if (templateId !== undefined) {
       updates.assignedTemplateId = templateId;
       updates.assignedTemplate = templates[templateId];
+    }
+
+    if (incomingTemplate) {
+      updates.assignedTemplate = incomingTemplate;
     }
     
     // Update the email

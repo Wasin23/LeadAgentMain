@@ -29,6 +29,7 @@ interface AnalyticsEmail {
   timestamp?: string
   status?: string
   isRebump?: boolean
+  isSmartFollowUp?: boolean
   rebumpNumber?: number
   rebumpCount?: number
   maxFollowUps?: number
@@ -267,7 +268,7 @@ function SentRow({ email, onEditFollowUp, onScheduleFollowUp, onSendNow }: {
               {(email.rebumpCount ?? 0) > 0 && <span className="text-muted-foreground">· {email.rebumpCount} sent</span>}
             </div>
           )}
-          {email.body && <div className="col-span-2"><span className="font-medium text-foreground mr-1">Body</span><span className="line-clamp-3 whitespace-pre-wrap">{email.body}</span></div>}
+          {email.body && <div className="col-span-2"><span className="font-medium text-foreground mr-1">Body</span><span className="whitespace-pre-wrap">{email.body}</span></div>}
         </div>
       )}
     </div>
@@ -285,6 +286,7 @@ function FollowUpRow({ email, onEditFollowUp, onCancelFollowUp, onRetryFollowUp 
   const templateName    = email.assignedTemplate?.name
   const templateBody    = email.assignedTemplate?.body
   const isScheduled = rc === 0 && email.followUpScheduled
+  const isSmart = !!email.isSmartFollowUp
   const nextDate = email.followUpDate ? new Date(email.followUpDate) : null
   const isOverdue = nextDate && nextDate <= new Date() && !isScheduled
 
@@ -306,8 +308,13 @@ function FollowUpRow({ email, onEditFollowUp, onCancelFollowUp, onRetryFollowUp 
             )}
           </div>
           {/* follow-up subject */}
-          <p className="text-sm text-foreground truncate">
-            {isScheduled ? `Scheduled: ${templateSubject || '(no subject)'}` : `Re: ${templateSubject || email.subject || '(no subject)'}`}
+          <p className="text-sm text-foreground truncate flex items-center gap-1.5">
+            {isScheduled
+              ? isSmart
+                ? <><Sparkles className="w-3 h-3 text-purple-400 shrink-0" /><span className="truncate">{templateSubject || 'Smart AI follow-up'}</span></>
+                : `Scheduled: ${templateSubject || '(no subject)'}`
+              : `Re: ${templateSubject || email.subject || '(no subject)'}`
+            }
           </p>
           {/* meta row */}
           <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-[11px]">
@@ -319,7 +326,15 @@ function FollowUpRow({ email, onEditFollowUp, onCancelFollowUp, onRetryFollowUp 
                 </Badge>
                 {isOverdue && (
                   <Badge variant="outline" className="text-[9px] px-1.5 h-4 text-orange-400 border-orange-500/30 bg-orange-500/10">Overdue</Badge>
-                )}                {onCancelFollowUp && (
+                )}
+                <button
+                  title="Edit follow-up"
+                  onClick={e => { e.stopPropagation(); onEditFollowUp(email) }}
+                  className="text-[9px] px-1 h-4 rounded border border-border text-muted-foreground hover:bg-muted flex items-center gap-0.5 transition-colors"
+                >
+                  <FileText className="w-2.5 h-2.5" /> Edit
+                </button>
+                {onCancelFollowUp && (
                   <button
                     title="Cancel follow-up"
                     onClick={e => { e.stopPropagation(); onCancelFollowUp(email) }}
@@ -379,7 +394,7 @@ function FollowUpRow({ email, onEditFollowUp, onCancelFollowUp, onRetryFollowUp 
             )}
           </div>
           {templateBody && (
-            <div><span className="font-medium text-foreground">Follow-up body</span><p className="mt-1 line-clamp-4 whitespace-pre-wrap">{templateBody}</p></div>
+            <div><span className="font-medium text-foreground">Follow-up body</span><p className="mt-1 whitespace-pre-wrap">{templateBody}</p></div>
           )}
         </div>
       )}
@@ -469,17 +484,35 @@ function ReplyDetailModal({ reply, onClose }: { reply: ReplyConversation; onClos
 
 function EditFollowUpModal({ email, onClose, onSaved }: { email: AnalyticsEmail; onClose: () => void; onSaved: () => void }) {
   const [date, setDate] = useState(email.followUpDate ? new Date(email.followUpDate).toISOString().slice(0, 16) : new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 16))
+  const [subject, setSubject] = useState(email.assignedTemplate?.subject || '')
+  const [body, setBody] = useState(email.assignedTemplate?.body || '')
   const [saving, setSaving] = useState(false)
   const save = async () => {
     setSaving(true)
-    try { await api.put(`/api/email-queue/${email.id || email.trackingId}/followup`, { agentId: email.agentId, followUpDate: new Date(date).toISOString() }); onSaved(); onClose() } catch { /* silent */ }
+    try {
+      const payload: Record<string, unknown> = { agentId: email.agentId, followUpDate: new Date(date).toISOString() }
+      if (subject || body) payload.assignedTemplate = { ...email.assignedTemplate, subject, body }
+      await api.put(`/api/email-queue/${email.id || email.trackingId}/followup`, payload)
+      onSaved(); onClose()
+    } catch { /* silent */ }
     setSaving(false)
   }
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <Card className="p-6 max-w-sm w-full space-y-4" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between"><h3 className="font-semibold">Edit Follow-up Date</h3><button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button></div>
-        <input type="datetime-local" value={date} onChange={e => setDate(e.target.value)} className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+      <Card className="p-6 max-w-lg w-full space-y-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between"><h3 className="font-semibold">Edit Follow-up</h3><button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button></div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Send date</label>
+          <input type="datetime-local" value={date} onChange={e => setDate(e.target.value)} className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Subject</label>
+          <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Subject line…" className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Body</label>
+          <textarea value={body} onChange={e => setBody(e.target.value)} rows={8} placeholder="Email body…" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring resize-y" />
+        </div>
         <div className="flex gap-2"><Button variant="ghost" className="flex-1" onClick={onClose}>Cancel</Button><Button className="flex-1" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save'}</Button></div>
       </Card>
     </div>

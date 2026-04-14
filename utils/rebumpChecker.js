@@ -147,7 +147,8 @@ Hi ${firstName},
     const bodyMatch = content.match(/BODY:\s*([\s\S]+)/i);
 
     if (!subjectMatch || !bodyMatch) {
-      console.warn('[SMART REBUMP] Could not parse Mistral output, falling back to template');
+      console.warn('[SMART REBUMP] Could not parse Mistral output. Raw response:');
+      console.warn(content);
       return null;
     }
 
@@ -173,6 +174,7 @@ Hi ${firstName},
     };
   } catch (err) {
     console.error('[SMART REBUMP] Generation failed:', err.message);
+    console.error('[SMART REBUMP] Stack:', err.stack);
     return null;
   }
 }
@@ -348,13 +350,32 @@ export async function autoScheduleFollowUp(userId, agentId, sentEmail) {
     const templateToUse = templates?.[selectedTemplateId] || templates?.[0];
     
 
-    // Mark email with calculated follow-up date and assigned template
+    const useSmartRebump = agentSettings.emailBuilder.smartRebump === true;
+
+    // For smart mode: generate the follow-up NOW so the preview shows real content
+    let assignedTemplate = templateToUse;
+    if (useSmartRebump) {
+      try {
+        const smart = await generateSmartFollowUp(userId, agentId, sentEmail, agentSettings, 1);
+        if (smart) {
+          assignedTemplate = { name: 'Smart AI follow-up', subject: smart.subject, body: smart.body };
+          console.log(`✅ [REBUMP] Smart follow-up pre-generated for ${sentEmail.id}: "${smart.subject}"`);
+        } else {
+          console.warn(`⚠️ [REBUMP] Smart generation returned null for ${sentEmail.id}, storing template as fallback`);
+        }
+      } catch (smartErr) {
+        console.error(`❌ [REBUMP] Smart pre-generation failed for ${sentEmail.id}:`, smartErr.message);
+      }
+    }
+
+    // Mark email with calculated follow-up date and pre-generated content
     await updateEmailStatusWithDelay(userId, agentId, sentEmail.id, 'SENT', 'SENT', {
       followUpScheduled: true,
       followUpScheduledAt: new Date().toISOString(),
       followUpDate: followUpDate.toISOString(),
       assignedTemplateId: selectedTemplateId,
-      assignedTemplate: templateToUse
+      assignedTemplate,
+      isSmartFollowUp: useSmartRebump,
     });
 
     
@@ -533,10 +554,15 @@ export async function checkForRebumps() {
             const useSmartRebump = agentSettings.emailBuilder?.smartRebump === true;
 
             let subject, body;
-            let templateIndex = email.assignedTemplateId || 0; // hoisted so template rotation can always access it
+            let templateIndex = email.assignedTemplateId || 0;
 
-            if (useSmartRebump) {
-              // ── SMART MODE: Mistral-generated, context-aware follow-up ──────────
+            // If smart follow-up was pre-generated at schedule time, use that content directly
+            if (useSmartRebump && email.assignedTemplate?.name === 'Smart AI follow-up') {
+              subject = email.assignedTemplate.subject;
+              body = email.assignedTemplate.body;
+              console.log(`✅ [REBUMP] Using pre-generated smart follow-up for ${email.to}: "${subject}"`);
+            } else if (useSmartRebump) {
+              // ── SMART MODE: generate now (fallback if not pre-generated) ────────
               console.log(`🤖 [REBUMP] Smart mode — generating follow-up #${stepNumber} for ${email.to}`);
               const smart = await generateSmartFollowUp(userId, agentId, email, agentSettings, stepNumber);
               if (smart) {
@@ -682,10 +708,17 @@ export async function fireSingleFollowUp(userId, agentId, emailId) {
   let subject, body;
 
   if (useSmartRebump) {
-    console.log(`🤖 [REBUMP RETRY] Smart mode for ${email.to}`);
-    const smart = await generateSmartFollowUp(userId, agentId, email, agentSettings, stepNumber);
-    if (smart) { subject = smart.subject; body = smart.body; }
-    else console.warn(`⚠️ [REBUMP RETRY] Smart failed, falling back to template`);
+    // Use pre-generated content if available
+    if (email.assignedTemplate?.name === 'Smart AI follow-up') {
+      subject = email.assignedTemplate.subject;
+      body = email.assignedTemplate.body;
+      console.log(`✅ [REBUMP RETRY] Using pre-generated smart content for ${email.to}: "${subject}"`);
+    } else {
+      console.log(`🤖 [REBUMP RETRY] Smart mode — generating now for ${email.to}`);
+      const smart = await generateSmartFollowUp(userId, agentId, email, agentSettings, stepNumber);
+      if (smart) { subject = smart.subject; body = smart.body; }
+      else throw new Error('Smart follow-up generation failed — Mistral returned null or could not be parsed. Check server logs for the raw response.');
+    }
   }
 
   if (!subject || !body) {
