@@ -1192,83 +1192,68 @@ export async function processGmailReply(userId, message) {
         toneGuidance = 'Use clear, respectful language';
     }
     
-    const prompt = ChatPromptTemplate.fromMessages([
-      ["system", `You are an AI sales assistant helping to manage email conversations with potential leads.
+    const systemPrompt = `You are an AI sales assistant helping to manage email conversations with potential leads.
 ${personalityTraits}. ${toneGuidance}.
 
-Your timezone is ${userTimezone} (UTC${getTimezoneOffset(userTimezone)}).
-
-IMPORTANT INSTRUCTIONS:
-1. ALWAYS check conversation history FIRST using get_conversation_history
-2. Read their message carefully and understand the context
-3. If they're asking about availability or meetings:
-   - Use get_business_hours to see when you're available
-   - Use get_availability to check specific dates/times
-   - Suggest 2-3 specific time options if they haven't proposed times
-4. Keep responses concise (2-3 paragraphs max)
-5. End with a clear call-to-action or question
-6. Use send_email_reply to send your response
-7. If you need to research their company, use research_company
-8. For general questions, use search_internet
+Your timezone is ${userTimezone}.
 
 MEETING SCHEDULING RULES:
 - Only suggest times during business hours (9 AM - 5 PM in your timezone)
-- When proposing times, give specific dates and times (e.g., "Tuesday, March 15th at 2:00 PM ${userTimezone}")
-- If they propose a time outside business hours, politely suggest an alternative
+- When proposing times, give specific dates and times
 - Always confirm timezone when scheduling
 
-Remember: You represent the user professionally. Be helpful, responsive, and clear in all communications.`],
-      ["human", "{input}"],
-      new MessagesPlaceholder("agent_scratchpad")
+Remember: You represent the user professionally. Be helpful, responsive, and clear in all communications.`;
+
+    console.log('[GMAIL REPLY] Executing manual tool pipeline...');
+
+    // Step 1: Get conversation history
+    const historyResult = await getConversationTool.func({ tracking_id: trackingId });
+    const history = JSON.parse(historyResult);
+
+    // Step 2: Generate response using LLM
+    const senderName = userSettings?.emailSettings?.fromName ||
+                       userSettings?.companyProfile?.companyName ||
+                       'AI Assistant';
+
+    const responsePrompt = `You received an email from ${message.from}:
+
+Message: ${message.body}
+
+Conversation history: ${history.message || 'First message in thread'}
+
+Write a ${aiPersonality} response email. Keep it brief and action-oriented.
+
+CRITICAL SIGNATURE INSTRUCTION:
+- You MUST sign the email as: ${senderName}
+- Write ONLY the email body content. Do NOT include a Subject line or email headers.
+
+Response:`;
+
+    const llmResponse = await model.invoke([
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: responsePrompt }
     ]);
-    
-    const agent = await createOpenAIFunctionsAgent({
-      llm: model,
-      tools,
-      prompt
+
+    const responseBody = llmResponse.content;
+
+    // Step 3: Send the reply
+    console.log('[GMAIL REPLY] Sending email reply...');
+    const sendResult = await sendEmailTool.func({
+      tracking_id: trackingId,
+      to: message.from,
+      subject: `Re: ${message.subject.replace(/^Re:\s*/i, '')}`,
+      body: responseBody,
+      in_reply_to: message.inReplyTo,
+      references: message.references
     });
-    
-    const agentExecutor = new AgentExecutor({
-      agent,
-      tools,
-      verbose: true,
-      maxIterations: 10,
-      returnIntermediateSteps: true
-    });
-    
-    // Prepare input for agent
-    const agentInput = `You received an email from Gmail:
 
-From: ${message.from}
-Subject: ${message.subject}
-Message:
-${message.body}
+    console.log('[GMAIL REPLY] Email sent successfully');
 
-Tracking ID: ${trackingId}
-In-Reply-To: ${message.inReplyTo || 'N/A'}
-
-REQUIRED ACTIONS (you MUST complete all steps):
-1. Use get_conversation_history tool with tracking_id: ${trackingId}
-2. After reviewing history, you MUST use send_email_reply tool to send your response
-3. Do NOT stop after checking history - you MUST send a reply
-
-This is mandatory - complete both steps.`;
-    
-    console.log('[GMAIL REPLY] Executing agent...');
-    
-    // Execute agent - use call() to ensure tools are executed
-    const agentResponse = await agentExecutor.call({
-      input: agentInput
-    });
-    
-    console.log('[GMAIL REPLY] Agent response:', agentResponse);
-    console.log('[GMAIL REPLY] Agent processing completed successfully');
-    
     return {
       success: true,
       processed: true,
       tracking_id: trackingId,
-      agent_response: agentResponse.output || 'Agent executed successfully'
+      agent_response: 'Email reply sent successfully'
     };
     
   } catch (error) {
