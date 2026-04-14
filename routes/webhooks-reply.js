@@ -1160,7 +1160,7 @@ export async function processGmailReply(userId, message) {
     ];
     
     // Get user timezone
-    const userSettings = await getUserSettings(extractedUserId || userId);
+    const userSettings = await awsManager.getUserSettings(extractedUserId || userId);
     const userTimezone = userSettings?.timezone || 'America/Los_Angeles';
     
     // Get AI personality
