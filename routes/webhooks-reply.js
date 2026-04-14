@@ -1154,10 +1154,9 @@ export async function processGmailReply(userId, message) {
     const tools = [
       getConversationTool,
       sendEmailTool,
-      getAvailabilityTool,
-      researchCompanyTool,
-      searchInternetTool,
-      getBusinessHoursTool
+      checkAvailabilityTool,
+      createCalendarEventTool,
+      getUserSettingsTool
     ];
     
     // Get user timezone
