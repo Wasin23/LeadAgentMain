@@ -94,7 +94,29 @@ router.post('/send-overdue', async (req, res) => {
 
         console.log(`📤 [SEND-OVERDUE] Sending overdue follow-up to ${email.to}`);
 
-        // Get template
+        // Smart mode: delegate entirely to fireSingleFollowUp which handles both smart and template paths
+        const useSmartRebump = agentSettings.emailBuilder?.smartRebump === true;
+
+        if (useSmartRebump) {
+          try {
+            const { fireSingleFollowUp } = await import('../utils/rebumpChecker.js');
+            const result = await fireSingleFollowUp(userId, currentAgentId, email.id);
+            if (result.success) {
+              console.log(`✅ [SEND-OVERDUE] Smart follow-up sent to ${email.to}`);
+              totalSent++;
+              results.push({ email: email.to, success: true });
+            } else {
+              console.error(`❌ [SEND-OVERDUE] Smart follow-up failed for ${email.to}`);
+              results.push({ email: email.to, success: false });
+            }
+          } catch (smartError) {
+            console.error(`❌ [SEND-OVERDUE] Smart follow-up error for ${email.to}:`, smartError.message);
+            results.push({ email: email.to, success: false, error: smartError.message });
+          }
+          continue;
+        }
+
+        // Template mode: get template
         let template = email.assignedTemplate;
         let templateIndex = email.assignedTemplateId || 0;
         
