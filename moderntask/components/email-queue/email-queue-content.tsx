@@ -618,10 +618,18 @@ function EmailRow({ email, agentMap, selected, onSelect, fontSize, actions, onEd
                   )}
                 </Badge>
               )}
+              {email.aiReport && onViewReport && (
+                <button
+                  onClick={e => { e.stopPropagation(); onViewReport() }}
+                  className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <FileText className="w-2.5 h-2.5" />
+                  <span>View Report</span>
+                </button>
+              )}
             </div>
           </button>
-          <div className="flex flex-col items-end gap-1 shrink-0">
-            <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0">
             {(email.aiReport || onSchedule || onEdit || onRebuild) && (
               <div className="relative" ref={menuRef}>
                 <button
@@ -666,16 +674,6 @@ function EmailRow({ email, agentMap, selected, onSelect, fontSize, actions, onEd
               </div>
             )}
             {actions}
-            </div>
-            {email.aiReport && onViewReport && (
-              <button
-                onClick={onViewReport}
-                className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <FileText className="w-3 h-3" />
-                View Report
-              </button>
-            )}
           </div>
         </div>
         {expanded && body && (
