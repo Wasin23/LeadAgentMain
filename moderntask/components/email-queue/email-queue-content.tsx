@@ -620,7 +620,8 @@ function EmailRow({ email, agentMap, selected, onSelect, fontSize, actions, onEd
               )}
             </div>
           </button>
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            <div className="flex items-center gap-1">
             {(email.aiReport || onSchedule || onEdit || onRebuild) && (
               <div className="relative" ref={menuRef}>
                 <button
@@ -633,15 +634,6 @@ function EmailRow({ email, agentMap, selected, onSelect, fontSize, actions, onEd
                 </button>
                 {menuOpen && (
                   <div className="absolute right-0 top-full z-50 mt-1 w-44 bg-popover border border-border rounded-lg shadow-xl overflow-hidden">
-                    {email.aiReport && onViewReport && (
-                      <button
-                        onClick={() => { setMenuOpen(false); onViewReport() }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-foreground hover:bg-muted transition-colors"
-                      >
-                        <FileText className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
-                        View Report
-                      </button>
-                    )}
                     {onSchedule && (
                       <button
                         onClick={() => { setMenuOpen(false); onSchedule() }}
@@ -674,6 +666,16 @@ function EmailRow({ email, agentMap, selected, onSelect, fontSize, actions, onEd
               </div>
             )}
             {actions}
+            </div>
+            {email.aiReport && onViewReport && (
+              <button
+                onClick={onViewReport}
+                className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <FileText className="w-3 h-3" />
+                View Report
+              </button>
+            )}
           </div>
         </div>
         {expanded && body && (
