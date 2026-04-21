@@ -111,10 +111,9 @@ async function generateSmartFollowUp(userId, agentId, email, agentSettings, step
     const companyName = agentSettings.companyBranding?.companyName || 'our company';
     const product = agentSettings.companyBranding?.primaryService || 'our solution';
 
-    // Gather fresh context in parallel: LinkedIn activity, company news, Proxycurl profile
-    const linkedinScrape = agentSettings.emailBuilder?.rebumpLinkedinScrape !== false;
+    // Gather fresh context in parallel: person activity, company news, Proxycurl profile
     const [freshHook, companyContext] = await Promise.all([
-      linkedinScrape ? scrapeLinkedInActivity(lead) : Promise.resolve(null),
+      scrapeLinkedInActivity(lead),
       searchCompanyContext(lead),
       getProxycurlProfile(lead),
     ]);

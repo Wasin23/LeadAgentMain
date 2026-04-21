@@ -148,11 +148,12 @@ function replyBadgeClasses(kind: 'classification' | 'status' | 'sentiment', valu
 }
 
 // ── sent email row ─────────────────────────────────────────────────────────────
-function SentRow({ email, onEditFollowUp, onScheduleFollowUp, onSendNow }: {
+function SentRow({ email, onEditFollowUp, onScheduleFollowUp, onSendNow, onCancelAllFollowUps }: {
   email: AnalyticsEmail
   onEditFollowUp: (e: AnalyticsEmail) => void
   onScheduleFollowUp?: (e: AnalyticsEmail) => void
   onSendNow?: (e: AnalyticsEmail) => void
+  onCancelAllFollowUps?: (e: AnalyticsEmail) => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const a = email.analyticsStatus || {}
@@ -224,7 +225,7 @@ function SentRow({ email, onEditFollowUp, onScheduleFollowUp, onSendNow }: {
           {a.opened && <span className="flex items-center gap-0.5"><Eye className="w-3 h-3" />{(a.openCount || 0) > 1 ? a.openCount : ''}</span>}
           {a.clicked && <MousePointer className="w-3 h-3 text-yellow-400" />}
           {a.replied && <MessageSquare className="w-3 h-3 text-green-400" />}
-          {(onScheduleFollowUp || onSendNow) && !isBounced && (
+          {(onScheduleFollowUp || onSendNow || onCancelAllFollowUps) && !isBounced && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button onClick={e => e.stopPropagation()} className="w-5 h-5 flex items-center justify-center rounded hover:bg-muted transition-colors ml-0.5">
@@ -247,6 +248,14 @@ function SentRow({ email, onEditFollowUp, onScheduleFollowUp, onSendNow }: {
                     {(onScheduleFollowUp && !email.followUpScheduled) || email.followUpScheduled ? <DropdownMenuSeparator /> : null}
                     <DropdownMenuItem onClick={e => { e.stopPropagation(); onSendNow(email) }} className="text-xs gap-2">
                       <Zap className="w-3 h-3 text-yellow-400" /> Send follow-up now
+                    </DropdownMenuItem>
+                  </>
+                )}
+                {onCancelAllFollowUps && (email.followUpScheduled || (email.rebumpCount ?? 0) > 0) && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={e => { e.stopPropagation(); onCancelAllFollowUps(email) }} className="text-xs gap-2 text-destructive focus:text-destructive">
+                      <X className="w-3 h-3" /> Cancel all follow-ups
                     </DropdownMenuItem>
                   </>
                 )}
@@ -340,7 +349,7 @@ function FollowUpRow({ email, onEditFollowUp, onCancelFollowUp, onRetryFollowUp 
                     onClick={e => { e.stopPropagation(); onCancelFollowUp(email) }}
                     className="text-[9px] px-1 h-4 rounded border border-destructive/30 text-destructive/70 hover:bg-destructive/10 hover:text-destructive flex items-center gap-0.5 transition-colors"
                   >
-                    <X className="w-2.5 h-2.5" /> Cancel
+                    <X className="w-2.5 h-2.5" /> Cancel current
                   </button>
                 )}              </>
             ) : (
@@ -757,6 +766,9 @@ export function ContactedContent() {
   const [showMassReschedule, setShowMassReschedule]       = useState(false)
   const [showMassFollowUpModal, setShowMassFollowUpModal] = useState(false)
   const [saved, setSaved]                 = useState(false)
+  const [pendingInterval, setPendingInterval]   = useState<number | null>(null)
+  const [pendingMaxRebumps, setPendingMaxRebumps] = useState<number | null>(null)
+  useEffect(() => { setPendingInterval(null); setPendingMaxRebumps(null) }, [selectedAgent?.agentId])
 
   useEffect(() => {
     if (agentIdFromUrl) {
@@ -1003,7 +1015,7 @@ export function ContactedContent() {
                         onChange={() => setSelectedIds(prev => { const s = new Set(prev); s.has(emailId(e)) ? s.delete(emailId(e)) : s.add(emailId(e)); return s })}
                         onClick={ev => ev.stopPropagation()} />
                     )}
-                    <div className="flex-1 min-w-0"><SentRow email={e} onEditFollowUp={setEditFollowUpEmail} onScheduleFollowUp={scheduleFollowUp} onSendNow={retryFollowUp} /></div>
+                    <div className="flex-1 min-w-0"><SentRow email={e} onEditFollowUp={setEditFollowUpEmail} onScheduleFollowUp={scheduleFollowUp} onSendNow={retryFollowUp} onCancelAllFollowUps={cancelFollowUp} /></div>
                   </div>
                 ))}
               </div>
@@ -1092,49 +1104,89 @@ export function ContactedContent() {
                   </button>
                 </div>
 
-                <div className="py-4 grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-xs font-medium mb-1.5">Interval</p>
-                    <div className="flex items-center gap-1.5">
-                      <input type="number" min={1} max={30} value={selectedAgent.settings?.emailBuilder?.rebumpIntervalDays ?? 7}
-                        onChange={e => mutateSelected(selectedAgent, { rebumpIntervalDays: parseInt(e.target.value) || 7 })}
+                <div className="py-4 space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-xs font-medium mb-1.5">Interval</p>
+                      <div className="flex items-center gap-1.5">
+                        <input type="number" min={1} max={30}
+                          value={pendingInterval ?? selectedAgent.settings?.emailBuilder?.rebumpIntervalDays ?? 7}
+                          onChange={e => setPendingInterval(parseInt(e.target.value) || 7)}
+                          className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">days</span>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium mb-1.5">Max sends</p>
+                      <input type="number" min={1} max={5}
+                        value={pendingMaxRebumps ?? selectedAgent.settings?.emailBuilder?.maxRebumps ?? 1}
+                        onChange={e => setPendingMaxRebumps(parseInt(e.target.value) || 1)}
                         className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">days</span>
                     </div>
                   </div>
-                  <div>
-                    <p className="text-xs font-medium mb-1.5">Max sends</p>
-                    <input type="number" min={1} max={5} value={selectedAgent.settings?.emailBuilder?.maxRebumps ?? 1}
-                      onChange={e => mutateSelected(selectedAgent, { maxRebumps: parseInt(e.target.value) || 1 })}
-                      className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
-                  </div>
+                  {(pendingInterval !== null || pendingMaxRebumps !== null) && (
+                    <button
+                      onClick={async () => {
+                        const newInterval = pendingInterval ?? selectedAgent.settings?.emailBuilder?.rebumpIntervalDays ?? 7
+                        const newMax = pendingMaxRebumps ?? selectedAgent.settings?.emailBuilder?.maxRebumps ?? 1
+                        mutateSelected(selectedAgent, { rebumpIntervalDays: newInterval, maxRebumps: newMax })
+                        if (pendingInterval !== null) {
+                          await api.post('/api/email-queue/reschedule-pending-followups', { agentId: selectedAgent.agentId, intervalDays: newInterval }).catch(() => {})
+                          load()
+                        }
+                        setPendingInterval(null)
+                        setPendingMaxRebumps(null)
+                      }}
+                      className="w-full h-8 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
+                    >
+                      Save &amp; update scheduled
+                    </button>
+                  )}
                 </div>
 
                 <div className="pt-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-purple-400" /> Smart Follow-ups</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">AI-written per lead · 0.5 credits</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">AI-written per lead · real cost</p>
                     </div>
                     <button onClick={() => mutateSelected(selectedAgent, { smartRebump: !selectedAgent.settings?.emailBuilder?.smartRebump })}
                       className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0', selectedAgent.settings?.emailBuilder?.smartRebump ? 'bg-purple-500' : 'bg-muted')}>
                       <span className={cn('inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform', selectedAgent.settings?.emailBuilder?.smartRebump ? 'translate-x-6' : 'translate-x-1')} />
                     </button>
                   </div>
-                  {selectedAgent.settings?.emailBuilder?.smartRebump && (
-                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
-                      <div>
-                        <p className="text-xs font-medium">LinkedIn scrape</p>
-                        <p className="text-xs text-muted-foreground">Pull fresh context</p>
-                      </div>
-                      <button onClick={() => mutateSelected(selectedAgent, { rebumpLinkedinScrape: !(selectedAgent.settings?.emailBuilder?.rebumpLinkedinScrape !== false) })}
-                        className={cn('relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0', (selectedAgent.settings?.emailBuilder?.rebumpLinkedinScrape !== false) ? 'bg-purple-500' : 'bg-muted')}>
-                        <span className={cn('inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform', (selectedAgent.settings?.emailBuilder?.rebumpLinkedinScrape !== false) ? 'translate-x-5' : 'translate-x-1')} />
-                      </button>
-                    </div>
-                  )}
                 </div>
               </Card>
+
+              {(() => {
+                const pending = sent.filter(e =>
+                  e.agentId === selectedAgent.agentId && e.followUpScheduled && (e.rebumpCount ?? 0) === 0
+                )
+                if (pending.length === 0) return null
+                return (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground px-1 mb-2">Pending follow-ups ({pending.length})</p>
+                    <div className="relative" style={{ height: Math.min(pending.length, 4) * 8 + 52 }}>
+                      {pending.slice(0, 5).map((e, i) => (
+                        <div key={e.id || e.trackingId}
+                          className="absolute w-full bg-card border border-border rounded-lg px-3 py-2 flex items-center justify-between shadow-sm"
+                          style={{ top: i * 8, zIndex: pending.length - i }}>
+                          <div className="min-w-0">
+                            <p className="text-xs font-medium truncate">{leadName(e)}</p>
+                            <p className="text-[10px] text-muted-foreground truncate">
+                              {leadCompany(e) && `${leadCompany(e)} · `}
+                              {e.followUpDate ? new Date(e.followUpDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'scheduled'}
+                            </p>
+                          </div>
+                          <button onClick={() => cancelFollowUp(e)} className="shrink-0 ml-2 text-muted-foreground hover:text-destructive transition-colors">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
 
               {saved && <div className="flex items-center gap-1.5 text-green-500 text-xs px-1"><Check className="w-3.5 h-3.5" /> Saved</div>}
             </div>

@@ -1281,6 +1281,35 @@ router.post('/:emailId/followup/retry', authenticateToken, async (req, res) => {
   }
 });
 
+// Bulk reschedule all pending follow-ups for an agent when interval changes
+router.post('/reschedule-pending-followups', authenticateToken, async (req, res) => {
+  try {
+    const { agentId, intervalDays } = req.body;
+    const userId = req.user.userId;
+    if (!agentId || !intervalDays) return res.status(400).json({ success: false, error: 'agentId and intervalDays required' });
+
+    const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+    const awsQueue = getAWSEmailQueue();
+    const emails = await awsQueue.getSentEmails(userId, agentId);
+    const pending = (emails || []).filter(e => e.followUpScheduled && e.followUpDate);
+
+    const intervalMs = intervalDays * 24 * 60 * 60 * 1000;
+    let updated = 0;
+    for (const email of pending) {
+      const base = email.lastRebumpAt || email.sentAt || email.timestamp;
+      if (!base) continue;
+      const newDate = new Date(new Date(base).getTime() + intervalMs).toISOString();
+      await awsQueue.updateEmailStatus(userId, agentId, email.id, 'SENT', 'SENT', { followUpDate: newDate });
+      updated++;
+    }
+
+    res.json({ success: true, updated });
+  } catch (error) {
+    console.error('[EMAIL QUEUE API] Error bulk rescheduling follow-ups:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Cancel a scheduled follow-up for a specific email
 router.delete('/:emailId/followup', authenticateToken, async (req, res) => {
   try {
@@ -1295,10 +1324,16 @@ router.delete('/:emailId/followup', authenticateToken, async (req, res) => {
     const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
     const awsQueue = getAWSEmailQueue();
 
+    const AWSManager = (await import('../utils/awsManager.js')).default;
+    const awsManager = new AWSManager();
+    const agentSettings = await awsManager.getLeadAgentSettings(userId, agentId);
+    const maxRebumps = agentSettings?.emailBuilder?.maxRebumps ?? 1;
+
     await awsQueue.updateEmailStatus(userId, agentId, emailId, 'SENT', 'SENT', {
       followUpScheduled: false,
       followUpDate: null,
       followUpCanceledAt: new Date().toISOString(),
+      rebumpCount: maxRebumps, // mark as fully done so cron never reschedules
     });
 
     console.log(`✅ [EMAIL QUEUE] Canceled follow-up for email ${emailId}`);
