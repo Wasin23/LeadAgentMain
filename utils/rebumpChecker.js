@@ -20,21 +20,14 @@ const MISTRAL_OUTPUT_COST_PER_TOKEN = (2.40 / 1_000_000) * 1.2;
  * Scrape recent LinkedIn activity for a lead to find a fresh hook.
  * Returns a short string summary or null if nothing useful found.
  */
-async function scrapeLinkedInActivity(lead, userId, agentId) {
+async function scrapeLinkedInActivity(lead) {
   try {
     const name = `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || lead.name || '';
     const company = lead.company || lead.organization?.name || '';
     if (!name) return null;
 
-    const query = `${name} ${company} site:linkedin.com`;
+    const query = `"${name}" "${company}" post OR interview OR announcement OR award 2025`;
     const results = await internetSearch(query);
-
-    await awsManager.logApiUsage({
-      userId, agentId,
-      service: 'serper', operation: 'followup_linkedin_search', usage: 1,
-      metadata: { query }
-    }).catch(() => {});
-
     const snippets = (results?.organic || [])
       .slice(0, 3)
       .map(r => r.snippet)
@@ -53,14 +46,6 @@ async function scrapeLinkedInActivity(lead, userId, agentId) {
       max_tokens: 60
     });
 
-    if (extraction.usage) {
-      await awsManager.logApiUsage({
-        userId, agentId,
-        service: 'openai', operation: 'followup_linkedin_extract', usage: extraction.usage.total_tokens,
-        metadata: { model: 'gpt-4o-mini' }
-      }).catch(() => {});
-    }
-
     const fact = extraction.choices[0].message.content.trim();
     return fact.includes('NOTHING USEFUL') ? null : fact;
   } catch {
@@ -72,20 +57,13 @@ async function scrapeLinkedInActivity(lead, userId, agentId) {
  * Search for recent company news and announcements to use as a fresh hook.
  * Returns a short string summary or null if nothing useful found.
  */
-async function searchCompanyContext(lead, userId, agentId) {
+async function searchCompanyContext(lead) {
   try {
     const company = lead.company || lead.organization?.name || '';
     if (!company) return null;
 
     const query = `${company} news announcement funding 2025`;
     const results = await internetSearch(query);
-
-    await awsManager.logApiUsage({
-      userId, agentId,
-      service: 'serper', operation: 'followup_company_search', usage: 1,
-      metadata: { query }
-    }).catch(() => {});
-
     const snippets = (results?.organic || [])
       .slice(0, 4)
       .map(r => `${r.title || ''}: ${r.snippet || ''}`)
@@ -103,14 +81,6 @@ async function searchCompanyContext(lead, userId, agentId) {
       temperature: 0.2,
       max_tokens: 80
     });
-
-    if (extraction.usage) {
-      await awsManager.logApiUsage({
-        userId, agentId,
-        service: 'openai', operation: 'followup_company_extract', usage: extraction.usage.total_tokens,
-        metadata: { model: 'gpt-4o-mini' }
-      }).catch(() => {});
-    }
 
     const fact = extraction.choices[0].message.content.trim();
     return fact.includes('NOTHING USEFUL') ? null : fact;
@@ -144,8 +114,8 @@ async function generateSmartFollowUp(userId, agentId, email, agentSettings, step
     // Gather fresh context in parallel: LinkedIn activity, company news, Proxycurl profile
     const linkedinScrape = agentSettings.emailBuilder?.rebumpLinkedinScrape !== false;
     const [freshHook, companyContext] = await Promise.all([
-      linkedinScrape ? scrapeLinkedInActivity(lead, userId, agentId) : Promise.resolve(null),
-      searchCompanyContext(lead, userId, agentId),
+      linkedinScrape ? scrapeLinkedInActivity(lead) : Promise.resolve(null),
+      searchCompanyContext(lead),
       getProxycurlProfile(lead),
     ]);
 
@@ -163,10 +133,13 @@ HARD RULES:
 - Never use em dash (—). Never.
 - Do not repeat the original email's opener, angle, or phrases.
 - Do not reference the original email directly ("just following up on my last email") — that sounds like a template.
-- No unnamed social proof. No fabricated stats.
+- No fabricated stats or percentages. If you don't have a real number, don't use one.
+- No unnamed social proof ("teams we've worked with", "companies like yours").
+- Never write placeholder text or brackets like [specific area] or [example]. If you don't have a real specific fact, skip that sentence entirely.
 - No contrast pivots ("not X, just Y").
 - Write in plain text. No bold, no bullets.
-- Banned words: streamline, leverage, scalable, robust, cutting-edge, game-changer, revolutionize, operationally.`;
+- Banned words: streamline, leverage, scalable, robust, cutting-edge, game-changer, revolutionize, operationally.
+- If the provided context is thin, write a shorter email rather than inventing details.`;
 
     // Strip HTML tags and tracking pixels from body so Mistral gets clean plain text
     const rawBody = email.body || email.bodyText || '';
@@ -641,14 +614,9 @@ export async function checkForRebumps() {
             let subject, body;
             let templateIndex = email.assignedTemplateId || 0;
 
-            // If smart follow-up was pre-generated at schedule time, use that content directly
-            if (useSmartRebump && email.assignedTemplate?.name === 'Smart AI follow-up') {
-              subject = email.assignedTemplate.subject;
-              body = email.assignedTemplate.body;
-              console.log(`✅ [REBUMP] Using pre-generated smart follow-up for ${email.to}: "${subject}"`);
-            } else if (useSmartRebump) {
-              // ── SMART MODE: generate now (fallback if not pre-generated) ────────
-              console.log(`🤖 [REBUMP] Smart mode — generating follow-up #${stepNumber} for ${email.to}`);
+            if (useSmartRebump) {
+              // Always regenerate at fire time for fresh research — pre-generated content is only for UI preview
+              console.log(`🤖 [REBUMP] Smart mode — generating fresh follow-up #${stepNumber} for ${email.to}`);
               const smart = await generateSmartFollowUp(userId, agentId, email, agentSettings, stepNumber);
               if (smart) {
                 subject = smart.subject;

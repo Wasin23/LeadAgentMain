@@ -193,10 +193,10 @@ function SentRow({ email, onEditFollowUp, onScheduleFollowUp, onSendNow }: {
       label = `${rc} follow-up${rc > 1 ? 's' : ''} sent`
     } else if (overdue) {
       cls += 'text-orange-400 border-orange-500/30 bg-orange-500/10'
-      label = `⚠ overdue ${dateStr}`
+      label = `overdue ${dateStr}`
     } else if (hasFuture) {
       cls += 'text-blue-400 border-blue-500/30 bg-blue-500/10'
-      label = `follow-up ${dateStr}`
+      label = max > 1 ? `${max} follow-ups · ${dateStr}` : `follow-up ${dateStr}`
     }
 
     return (
@@ -357,7 +357,7 @@ function FollowUpRow({ email, onEditFollowUp, onCancelFollowUp, onRetryFollowUp 
                   <Badge variant="outline" className="text-[9px] px-1.5 h-4 text-blue-400 border-blue-500/30 bg-blue-500/10 cursor-pointer"
                     onClick={e => { e.stopPropagation(); onEditFollowUp(email) }}>
                     <CalendarClock className="w-2.5 h-2.5 mr-0.5 inline" />
-                    next {nextDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    follow-up {rc + 1} of {max} · {nextDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} {nextDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                   </Badge>
                 )}
                 {rc >= max && (
