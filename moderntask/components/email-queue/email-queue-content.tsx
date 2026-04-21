@@ -621,7 +621,7 @@ function EmailRow({ email, agentMap, selected, onSelect, fontSize, actions, onEd
               {email.aiReport && onViewReport && (
                 <button
                   onClick={e => { e.stopPropagation(); onViewReport() }}
-                  className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
+                  className="flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors"
                 >
                   <FileText className="w-2.5 h-2.5" />
                   <span>View Report</span>
