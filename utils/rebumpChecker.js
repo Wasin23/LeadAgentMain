@@ -12,14 +12,15 @@ const mistral = new OpenAI({
   baseURL: 'https://api.mistral.ai/v1'
 });
 
-// 0.5 credits × $0.05/credit
-const SMART_FOLLOWUP_COST = 0.025;
+// Mistral medium rates with 1.2x platform margin
+const MISTRAL_INPUT_COST_PER_TOKEN = (0.40 / 1_000_000) * 1.2;
+const MISTRAL_OUTPUT_COST_PER_TOKEN = (2.40 / 1_000_000) * 1.2;
 
 /**
  * Scrape recent LinkedIn activity for a lead to find a fresh hook.
  * Returns a short string summary or null if nothing useful found.
  */
-async function scrapeLinkedInActivity(lead) {
+async function scrapeLinkedInActivity(lead, userId, agentId) {
   try {
     const name = `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || lead.name || '';
     const company = lead.company || lead.organization?.name || '';
@@ -27,6 +28,13 @@ async function scrapeLinkedInActivity(lead) {
 
     const query = `${name} ${company} site:linkedin.com`;
     const results = await internetSearch(query);
+
+    await awsManager.logApiUsage({
+      userId, agentId,
+      service: 'serper', operation: 'followup_linkedin_search', usage: 1,
+      metadata: { query }
+    }).catch(() => {});
+
     const snippets = (results?.organic || [])
       .slice(0, 3)
       .map(r => r.snippet)
@@ -35,7 +43,6 @@ async function scrapeLinkedInActivity(lead) {
 
     if (!snippets || snippets.length < 30) return null;
 
-    // Use gpt-4o-mini to extract anything actionable (recent post, award, job change, news)
     const extraction = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
@@ -46,11 +53,79 @@ async function scrapeLinkedInActivity(lead) {
       max_tokens: 60
     });
 
+    if (extraction.usage) {
+      await awsManager.logApiUsage({
+        userId, agentId,
+        service: 'openai', operation: 'followup_linkedin_extract', usage: extraction.usage.total_tokens,
+        metadata: { model: 'gpt-4o-mini' }
+      }).catch(() => {});
+    }
+
     const fact = extraction.choices[0].message.content.trim();
     return fact.includes('NOTHING USEFUL') ? null : fact;
   } catch {
     return null;
   }
+}
+
+/**
+ * Search for recent company news and announcements to use as a fresh hook.
+ * Returns a short string summary or null if nothing useful found.
+ */
+async function searchCompanyContext(lead, userId, agentId) {
+  try {
+    const company = lead.company || lead.organization?.name || '';
+    if (!company) return null;
+
+    const query = `${company} news announcement funding 2025`;
+    const results = await internetSearch(query);
+
+    await awsManager.logApiUsage({
+      userId, agentId,
+      service: 'serper', operation: 'followup_company_search', usage: 1,
+      metadata: { query }
+    }).catch(() => {});
+
+    const snippets = (results?.organic || [])
+      .slice(0, 4)
+      .map(r => `${r.title || ''}: ${r.snippet || ''}`)
+      .filter(Boolean)
+      .join(' ');
+
+    if (!snippets || snippets.length < 30) return null;
+
+    const extraction = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'Extract the most recent and specific company development (funding round, product launch, partnership, hire, award, expansion) from these snippets. Return 1-2 sentences max or "NOTHING USEFUL".' },
+        { role: 'user', content: `Company: ${company}\nSnippets: ${snippets}` }
+      ],
+      temperature: 0.2,
+      max_tokens: 80
+    });
+
+    if (extraction.usage) {
+      await awsManager.logApiUsage({
+        userId, agentId,
+        service: 'openai', operation: 'followup_company_extract', usage: extraction.usage.total_tokens,
+        metadata: { model: 'gpt-4o-mini' }
+      }).catch(() => {});
+    }
+
+    const fact = extraction.choices[0].message.content.trim();
+    return fact.includes('NOTHING USEFUL') ? null : fact;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Stub for future Proxycurl LinkedIn profile scraping.
+ * Will return enriched profile data once the tool is implemented.
+ */
+async function getProxycurlProfile(lead) {
+  // TODO: implement when Proxycurl tool is created
+  return null;
 }
 
 /**
@@ -66,9 +141,13 @@ async function generateSmartFollowUp(userId, agentId, email, agentSettings, step
     const companyName = agentSettings.companyBranding?.companyName || 'our company';
     const product = agentSettings.companyBranding?.primaryService || 'our solution';
 
-    // Optionally scrape LinkedIn for a fresh hook
+    // Gather fresh context in parallel: LinkedIn activity, company news, Proxycurl profile
     const linkedinScrape = agentSettings.emailBuilder?.rebumpLinkedinScrape !== false;
-    const freshHook = linkedinScrape ? await scrapeLinkedInActivity(lead) : null;
+    const [freshHook, companyContext] = await Promise.all([
+      linkedinScrape ? scrapeLinkedInActivity(lead, userId, agentId) : Promise.resolve(null),
+      searchCompanyContext(lead, userId, agentId),
+      getProxycurlProfile(lead),
+    ]);
 
     const stepStrategies = {
       1: `New angle — don't repeat the original pitch. Notice something you didn't mention before, or reframe the same observation from a different direction. 2-3 sentences max.`,
@@ -113,7 +192,7 @@ LEAD:
 
 PRODUCT BEING SOLD: ${product} by ${companyName}
 
-${freshHook ? `FRESH LINKEDIN ACTIVITY (use as hook if relevant): ${freshHook}\n` : ''}
+${companyContext ? `RECENT COMPANY NEWS (use as hook if relevant): ${companyContext}\n` : ''}${freshHook ? `FRESH LINKEDIN ACTIVITY (use as hook if relevant): ${freshHook}\n` : ''}
 FOLLOW-UP STEP: ${stepNumber}
 STRATEGY FOR THIS STEP: ${strategy}
 
@@ -152,19 +231,25 @@ Hi ${firstName},
       return null;
     }
 
-    // Charge credits
+    // Charge credits based on actual token usage × 1.2x platform margin
+    const promptTokens = response.usage?.prompt_tokens || 0;
+    const completionTokens = response.usage?.completion_tokens || 0;
+    const mistralCost = (promptTokens * MISTRAL_INPUT_COST_PER_TOKEN) + (completionTokens * MISTRAL_OUTPUT_COST_PER_TOKEN);
     await awsManager.logApiUsage({
       userId,
       agentId,
       service: 'mistral',
       operation: 'smart_followup_generation',
       usage: response.usage?.total_tokens || 0,
-      cost: SMART_FOLLOWUP_COST,
+      cost: mistralCost,
       metadata: {
         model: 'mistral-medium-latest',
         step: stepNumber,
         companyName: company,
-        usedLinkedinHook: !!freshHook
+        usedLinkedinHook: !!freshHook,
+        usedCompanyContext: !!companyContext,
+        prompt_tokens: promptTokens,
+        completion_tokens: completionTokens
       }
     }).catch(err => console.error('[SMART REBUMP] Failed to log credit usage:', err.message));
 
