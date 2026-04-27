@@ -74,6 +74,13 @@ interface AgentFull {
   }
 }
 
+interface UnsubscribeRecord {
+  email: string
+  reason?: string
+  timestamp?: string
+  source?: string
+}
+
 interface ReplyMessage {
   id: string
   type: 'outbound' | 'reply' | 'ai_response' | 'manual' | 'system'
@@ -752,6 +759,7 @@ export function ContactedContent() {
   useEffect(() => { setTab(urlTab) }, [urlTab])
   const [emails, setEmails]               = useState<AnalyticsEmail[]>([])
   const [replies, setReplies]             = useState<ReplyConversation[]>([])
+  const [unsubscribeList, setUnsubscribeList] = useState<UnsubscribeRecord[]>([])
   const [agents, setAgents]               = useState<AgentFull[]>([])
   const [selectedAgent, setSelectedAgent] = useState<AgentFull | null>(null)
   const [agentFilter, setAgentFilter]     = useState('all')
@@ -784,15 +792,17 @@ export function ContactedContent() {
     setLoading(true)
     try {
       const params = agentFilter !== 'all' ? { agentId: agentFilter } : {}
-      const [emailRes, repliesRes] = await Promise.all([
+      const [emailRes, repliesRes, unsubRes] = await Promise.all([
         api.get('/api/analytics/emails', { params }),
-        api.get('/api/replies', { params: { ...params, timeRange: '30d' } }).catch(() => null)
+        api.get('/api/replies', { params: { ...params, timeRange: '30d' } }).catch(() => null),
+        api.get('/api/unsubscribe/list').catch(() => null),
       ])
       // api.get returns { data: { data: [...] } } when analytics wraps it, or { data: [...] }
       const raw = emailRes.data?.data ?? emailRes.data ?? []
       const list: AnalyticsEmail[] = Array.isArray(raw) ? raw : []
       setEmails([...list].sort((a, b) => new Date(sentDate(b)).getTime() - new Date(sentDate(a)).getTime()))
       setReplies(repliesRes?.data?.data?.replies || [])
+      setUnsubscribeList(unsubRes?.data?.unsubscribes || [])
     } catch { /* silent */ }
     setLoading(false)
   }, [agentFilter])
@@ -917,7 +927,7 @@ export function ContactedContent() {
     { id: 'sent',         label: 'Sent Emails',   count: sent.length },
     { id: 'replies',      label: 'Replies',        count: replies.length },
     { id: 'followups',    label: 'Follow-ups',     count: followUps.length },
-    { id: 'unsubscribed', label: 'Unsubscribed',   count: unsubscribedEmails.length },
+    { id: 'unsubscribed', label: 'Unsubscribed',   count: unsubscribeList.length },
     { id: 'templates',    label: 'Templates' },
   ]
 
@@ -1198,8 +1208,8 @@ export function ContactedContent() {
 
       {/* ── UNSUBSCRIBED ─────────────────────────────────────────────────── */}
       {tab === 'unsubscribed' && (
-        <div className="space-y-1">
-          {unsubscribedEmails.length === 0 ? (
+        <Card className="p-5">
+          {unsubscribeList.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center gap-2">
               <UserCheck className="w-8 h-8 text-muted-foreground/40" />
               <p className="text-sm font-medium">No unsubscribes</p>
@@ -1207,27 +1217,34 @@ export function ContactedContent() {
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {unsubscribedEmails.map(e => (
-                <div key={e.id || e.trackingId} className="py-3 px-1 border-l-2 border-l-destructive/40 pl-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
-                        <span className="font-medium text-sm text-foreground">{leadName(e)}</span>
-                        {leadCompany(e) && <span className="text-xs text-muted-foreground flex items-center gap-0.5"><Building2 className="w-2.5 h-2.5" />{leadCompany(e)}</span>}
+              {unsubscribeList.map(u => {
+                const matched = emails.find(e => (e.to || '').toLowerCase() === u.email.toLowerCase())
+                const name = matched ? leadName(matched) : u.email.split('@')[0]
+                const company = matched ? leadCompany(matched) : ''
+                const agent = matched ? agents.find(a => a.agentId === matched.agentId) : null
+                return (
+                  <div key={u.email} className="py-3 px-1 border-l-2 border-l-destructive/40 pl-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
+                          <span className="font-medium text-sm text-foreground">{name}</span>
+                          {company && <span className="text-xs text-muted-foreground flex items-center gap-0.5"><Building2 className="w-2.5 h-2.5" />{company}</span>}
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">{u.email}</p>
+                        <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-[11px] text-muted-foreground">
+                          <span className="flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{timeAgo(u.timestamp)}</span>
+                          {agent && <span className="flex items-center gap-1"><Bot className="w-2.5 h-2.5" />{agent.name}</span>}
+                          {u.source && <span className="text-muted-foreground/60">{u.source === 'email_link' ? 'via email link' : 'manual'}</span>}
+                        </div>
                       </div>
-                      <p className="text-xs text-muted-foreground truncate">{e.to || e.recipient}</p>
-                      <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-[11px] text-muted-foreground">
-                        <span className="flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{timeAgo(e.sentAt || e.timestamp)}</span>
-                        {e.agentId && agents.find(a => a.agentId === e.agentId) && <span className="flex items-center gap-1"><Bot className="w-2.5 h-2.5" />{agents.find(a => a.agentId === e.agentId)!.name}</span>}
-                      </div>
+                      <Badge variant="outline" className="text-[9px] px-1.5 h-4 text-red-400 border-red-500/30 bg-red-500/10 shrink-0">Unsubscribed</Badge>
                     </div>
-                    <Badge variant="outline" className="text-[9px] px-1.5 h-4 text-red-400 border-red-500/30 bg-red-500/10 shrink-0">Unsubscribed</Badge>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
-        </div>
+        </Card>
       )}
 
       {/* ── TEMPLATES ────────────────────────────────────────────────────── */}
