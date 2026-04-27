@@ -17,10 +17,56 @@ const MISTRAL_INPUT_COST_PER_TOKEN = (0.40 / 1_000_000) * 1.2;
 const MISTRAL_OUTPUT_COST_PER_TOKEN = (2.40 / 1_000_000) * 1.2;
 
 /**
+ * Extract 3-5 disambiguation keywords for a company from all available research
+ * (Apollo org data, AI report, email body) so Serper doesn't return the wrong company.
+ * Returns a keyword string like "tokenization newsletter blockchain" or null.
+ */
+async function extractCompanyDisambiguation(lead, email) {
+  const sources = [];
+
+  const org = lead.organization || {};
+  if (org.description) sources.push(org.description);
+  if (org.short_description) sources.push(org.short_description);
+  if (org.industry) sources.push(`Industry: ${org.industry}`);
+  if (Array.isArray(org.keywords) && org.keywords.length) sources.push(org.keywords.slice(0, 5).join(', '));
+  if (org.website_url) sources.push(`Website: ${org.website_url}`);
+
+  if (email) {
+    if (email.aiReport) sources.push(email.aiReport);
+    if (email.researchSummary) sources.push(email.researchSummary);
+    if (email.personalizedContext) sources.push(email.personalizedContext);
+    if (email.leadQualification) {
+      const q = email.leadQualification;
+      sources.push(typeof q === 'string' ? q : JSON.stringify(q));
+    }
+    const body = email.body || email.bodyText || '';
+    if (body.length > 20) sources.push(`Email about them: ${body.slice(0, 300)}`);
+  }
+
+  if (!sources.length) return null;
+
+  try {
+    const extraction = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'Extract 3-5 specific keywords that uniquely identify what this company does. Return only space-separated lowercase keywords (e.g. "tokenization newsletter blockchain" or "homebuilder construction residential"). No explanation, no punctuation.' },
+        { role: 'user', content: `Company: ${lead.company || lead.organization?.name || ''}\n\n${sources.join('\n').slice(0, 600)}` }
+      ],
+      temperature: 0.1,
+      max_tokens: 30
+    });
+    const keywords = extraction.choices[0].message.content.trim();
+    return keywords.length > 3 ? keywords : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Scrape recent LinkedIn activity for a lead to find a fresh hook.
  * Returns a short string summary or null if nothing useful found.
  */
-async function scrapeLinkedInActivity(lead) {
+async function scrapeLinkedInActivity(lead, email) {
   try {
     const name = `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || lead.name || '';
     const company = lead.company || lead.organization?.name || '';
@@ -55,14 +101,20 @@ async function scrapeLinkedInActivity(lead) {
 
 /**
  * Search for recent company news and announcements to use as a fresh hook.
+ * Reads existing research first to build a disambiguated query.
  * Returns a short string summary or null if nothing useful found.
  */
-async function searchCompanyContext(lead) {
+async function searchCompanyContext(lead, email) {
   try {
     const company = lead.company || lead.organization?.name || '';
     if (!company) return null;
 
-    const query = `${company} news announcement funding 2025`;
+    // Read existing research to avoid returning results for the wrong company
+    const disambig = await extractCompanyDisambiguation(lead, email);
+    const query = disambig
+      ? `"${company}" ${disambig} news 2025`
+      : `${company} news announcement funding 2025`;
+
     const results = await internetSearch(query);
     const snippets = (results?.organic || [])
       .slice(0, 4)
@@ -75,7 +127,7 @@ async function searchCompanyContext(lead) {
     const extraction = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
-        { role: 'system', content: 'Extract the most recent and specific company development (funding round, product launch, partnership, hire, award, expansion) from these snippets. Return 1-2 sentences max or "NOTHING USEFUL".' },
+        { role: 'system', content: 'Extract a raw factual observation about this company from the snippets — something a person could reference naturally in a follow-up email. Accept anything: a funding round, product launch, article they published, market insight they shared, LinkedIn post, or any company activity. Return 1 plain sentence, no editorial commentary ("this is interesting", "great conversation starter", etc.). Only return "NOTHING USEFUL" if the snippets contain zero information about this specific company.' },
         { role: 'user', content: `Company: ${company}\nSnippets: ${snippets}` }
       ],
       temperature: 0.2,
@@ -113,32 +165,35 @@ async function generateSmartFollowUp(userId, agentId, email, agentSettings, step
 
     // Gather fresh context in parallel: person activity, company news, Proxycurl profile
     const [freshHook, companyContext] = await Promise.all([
-      scrapeLinkedInActivity(lead),
-      searchCompanyContext(lead),
+      scrapeLinkedInActivity(lead, email),
+      searchCompanyContext(lead, email),
       getProxycurlProfile(lead),
     ]);
 
     const stepStrategies = {
-      1: `New angle — don't repeat the original pitch. Notice something you didn't mention before, or reframe the same observation from a different direction. 2-3 sentences max.`,
-      2: `Shorter and more direct. One sentence observation, one sentence ask. No pitch. If they haven't replied to two emails, they are busy, not uninterested. Make it trivially easy to say yes.`,
-      3: `Closing the loop. This is the last one. One sentence max. Light, no pressure, leave the door open. Something like "closing the loop on this — genuinely happy to connect whenever timing is better."`,
+      1: `Reference something specific from the ORIGINAL EMAIL SENT (a fact, stat, or observation you already mentioned) and ask a genuine question about it — don't introduce a new pitch or new product angle. If fresh research is available, use that fact as a brief hook instead. 2 sentences max. No jargon. No made-up stats.`,
+      2: `Two sentences max. Be direct — reference one specific thing from the original email or fresh research and ask a simple, genuine question. No meta-commentary about the email ("I know you're busy", "just reply yes or no", "circling back"). Sound like a real person checking in, not a sales sequence.`,
+      3: `One sentence. Close the loop warmly. No pitch. Something like "closing the loop — happy to connect whenever the timing is better." Nothing else.`,
     };
 
     const strategy = stepStrategies[stepNumber] || stepStrategies[3];
 
-    const systemPrompt = `You are writing a follow-up cold email. The original email was not replied to. You are not a salesperson — you are someone who found something interesting and is following up briefly.
+    const systemPrompt = `You are writing a follow-up cold email. The original email was not replied to. You are a real person following up briefly — not a salesperson, not an AI.
 
 HARD RULES:
 - Never use em dash (—). Never.
-- Do not repeat the original email's opener, angle, or phrases.
-- Do not reference the original email directly ("just following up on my last email") — that sounds like a template.
-- No fabricated stats or percentages. If you don't have a real number, don't use one.
-- No unnamed social proof ("teams we've worked with", "companies like yours").
-- Never write placeholder text or brackets like [specific area] or [example]. If you don't have a real specific fact, skip that sentence entirely.
+- Do not repeat the original email's opener, angle, or phrases verbatim.
+- Do not say "just following up", "circling back", "touching base", or any template phrase.
+- No fabricated stats or percentages. Zero. If you don't have a verified number, do not write one.
+- No unnamed social proof. No "companies like yours", "teams we work with", "clients in your space".
+- No new product pitch or new feature angle. Follow-ups are not second chances to pitch — they are human nudges.
+- No jargon: no "Trusted Execution Environments", "GPU clusters", "AI workloads", "infrastructure at scale" unless the original email used that exact phrase.
+- Never write placeholder text or brackets. If you lack a specific fact, write fewer sentences.
 - No contrast pivots ("not X, just Y").
-- Write in plain text. No bold, no bullets.
-- Banned words: streamline, leverage, scalable, robust, cutting-edge, game-changer, revolutionize, operationally.
-- If the provided context is thin, write a shorter email rather than inventing details.`;
+- Plain text only. No bold, no bullets.
+- Vary the CTA — do not use "Let's find 15 minutes" every time. Use natural alternatives: "Worth a quick call?", "Open to a chat?", "Happy to jump on a call if useful."
+- Banned words: streamline, leverage, scalable, robust, cutting-edge, game-changer, revolutionize, operationally, innovative, solution, synergy.
+- When context (company news, LinkedIn activity) is thin, write 1-2 sentences and stop. Do not pad.`;
 
     // Strip HTML tags and tracking pixels from body so Mistral gets clean plain text
     const rawBody = email.body || email.bodyText || '';
@@ -180,8 +235,8 @@ Hi ${firstName},
 
     const response = await mistral.chat.completions.create({
       model: 'mistral-medium-latest',
-      max_tokens: 200,
-      temperature: 0.9,
+      max_tokens: 150,
+      temperature: 0.85,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
@@ -225,9 +280,21 @@ Hi ${firstName},
       }
     }).catch(err => console.error('[SMART REBUMP] Failed to log credit usage:', err.message));
 
+    const { generateUnsubscribeToken } = await import('../routes/unsubscribe.js');
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const leadEmail = lead.email || email.to || '';
+    const unsubscribeUrl = `${frontendUrl}/unsubscribe?token=${generateUnsubscribeToken(leadEmail)}&uid=${userId}`;
+    const companyWebsite = agentSettings.companyBranding?.companyWebsite || '';
+    const footerParts = [agentSettings.companyBranding?.companyName || companyName];
+    if (companyWebsite) {
+      const displayHost = companyWebsite.replace(/^https?:\/\//, '').replace(/\/$/, '');
+      footerParts.push(`<a href="${companyWebsite}" style="color:#6b7280;text-decoration:none;">${displayHost}</a>`);
+    }
+    const footer = `\n\n${footerParts.join(' | ')}\n<a href="${unsubscribeUrl}">Stop emails</a>`;
+
     return {
       subject: subjectMatch[1].trim(),
-      body: bodyMatch[1].trim()
+      body: bodyMatch[1].trim() + footer
     };
   } catch (err) {
     console.error('[SMART REBUMP] Generation failed:', err.message);
@@ -556,7 +623,12 @@ export async function checkForRebumps() {
           if (email.status === 'REPLIED' || email.replied === true) {
             continue;
           }
-          
+
+          // Skip if recipient has unsubscribed
+          if (email.unsubscribed || await awsManager.isUnsubscribed(email.to).catch(() => false)) {
+            continue;
+          }
+
           // Skip if bounced
           if (email.status === 'BOUNCED') {
             continue;

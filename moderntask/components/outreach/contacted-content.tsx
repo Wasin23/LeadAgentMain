@@ -52,6 +52,7 @@ interface AnalyticsEmail {
     hasProxy?: boolean
     openCount?: number
   }
+  unsubscribed?: boolean
 }
 
 interface AgentFull {
@@ -731,10 +732,10 @@ function TemplatesPanel({ agent, templates, onMutate, onMassFollowUp, saved, fol
 }
 
 // ── main export ───────────────────────────────────────────────────────────────
-type Tab = 'sent' | 'replies' | 'followups' | 'templates'
+type Tab = 'sent' | 'replies' | 'followups' | 'templates' | 'unsubscribed'
 
 function isValidTab(value: string | null): value is Tab {
-  return value === 'sent' || value === 'replies' || value === 'followups' || value === 'templates'
+  return value === 'sent' || value === 'replies' || value === 'followups' || value === 'templates' || value === 'unsubscribed'
 }
 
 export function ContactedContent() {
@@ -832,10 +833,10 @@ export function ContactedContent() {
   useEffect(() => { api.post('/api/outreach/send-overdue', { agentId: 'all' }).catch(() => {}) }, [])
 
   const sent      = useMemo(() => emails, [emails])
-  // Follow-ups = emails where at least one follow-up has been sent, or one is scheduled
   const followUps = useMemo(() => emails.filter(e =>
     (e.rebumpCount ?? 0) > 0 || e.followUpScheduled === true
   ), [emails])
+  const unsubscribedEmails = useMemo(() => emails.filter(e => e.unsubscribed), [emails])
 
   const applySearch = (list: AnalyticsEmail[]) => {
     if (!search.trim()) return list
@@ -913,10 +914,11 @@ export function ContactedContent() {
   }
 
   const TABS: { id: Tab; label: string; count?: number }[] = [
-    { id: 'sent',      label: 'Sent Emails',  count: sent.length },
-    { id: 'replies',   label: 'Replies',      count: replies.length },
-    { id: 'followups', label: 'Follow-ups',   count: followUps.length },
-    { id: 'templates', label: 'Templates' },
+    { id: 'sent',         label: 'Sent Emails',   count: sent.length },
+    { id: 'replies',      label: 'Replies',        count: replies.length },
+    { id: 'followups',    label: 'Follow-ups',     count: followUps.length },
+    { id: 'unsubscribed', label: 'Unsubscribed',   count: unsubscribedEmails.length },
+    { id: 'templates',    label: 'Templates' },
   ]
 
   return (
@@ -1189,6 +1191,40 @@ export function ContactedContent() {
               })()}
 
               {saved && <div className="flex items-center gap-1.5 text-green-500 text-xs px-1"><Check className="w-3.5 h-3.5" /> Saved</div>}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── UNSUBSCRIBED ─────────────────────────────────────────────────── */}
+      {tab === 'unsubscribed' && (
+        <div className="space-y-1">
+          {unsubscribedEmails.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center gap-2">
+              <UserCheck className="w-8 h-8 text-muted-foreground/40" />
+              <p className="text-sm font-medium">No unsubscribes</p>
+              <p className="text-xs text-muted-foreground">Nobody has opted out yet.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {unsubscribedEmails.map(e => (
+                <div key={e.id || e.trackingId} className="py-3 px-1 border-l-2 border-l-destructive/40 pl-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
+                        <span className="font-medium text-sm text-foreground">{leadName(e)}</span>
+                        {leadCompany(e) && <span className="text-xs text-muted-foreground flex items-center gap-0.5"><Building2 className="w-2.5 h-2.5" />{leadCompany(e)}</span>}
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">{e.to || e.recipient}</p>
+                      <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-[11px] text-muted-foreground">
+                        <span className="flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{timeAgo(e.sentAt || e.timestamp)}</span>
+                        {e.agentId && agents.find(a => a.agentId === e.agentId) && <span className="flex items-center gap-1"><Bot className="w-2.5 h-2.5" />{agents.find(a => a.agentId === e.agentId)!.name}</span>}
+                      </div>
+                    </div>
+                    <Badge variant="outline" className="text-[9px] px-1.5 h-4 text-red-400 border-red-500/30 bg-red-500/10 shrink-0">Unsubscribed</Badge>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>

@@ -606,6 +606,18 @@ router.get('/api/analytics/emails', authenticateToken, async (req, res) => {
       }));
     }
     
+    // Cross-reference with unsubscribes
+    try {
+      const unsubscribes = await awsManager.getUnsubscribes(1000);
+      const unsubscribedSet = new Set((unsubscribes || []).map(u => (u.email || '').toLowerCase()));
+      if (unsubscribedSet.size > 0) {
+        emailsWithAnalytics = emailsWithAnalytics.map(e => ({
+          ...e,
+          unsubscribed: unsubscribedSet.has((e.to || '').toLowerCase()) || e.unsubscribed || false
+        }));
+      }
+    } catch { /* non-fatal */ }
+
     res.json({
       success: true,
       data: emailsWithAnalytics

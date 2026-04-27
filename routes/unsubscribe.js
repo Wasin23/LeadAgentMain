@@ -138,7 +138,7 @@ router.get('/', async (req, res) => {
  */
 router.post('/', async (req, res) => {
   try {
-    const { token, email, reason } = req.body;
+    const { token, email, reason, userId } = req.body;
     
     let emailToUnsubscribe;
     
@@ -176,7 +176,43 @@ router.post('/', async (req, res) => {
     }
     
     console.log(`🚫 [UNSUBSCRIBE] Email unsubscribed: ${emailToUnsubscribe}`);
-    
+
+    // Cancel pending follow-ups and notify the sender
+    if (userId) {
+      try {
+        const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+        const awsQueue = getAWSEmailQueue();
+        const agents = await awsManager.getUserAgents(userId);
+        for (const agent of (agents || [])) {
+          const sentEmails = await awsQueue.getSentEmails(userId, agent.agentId);
+          for (const e of (sentEmails || [])) {
+            if ((e.to || '').toLowerCase() === emailToUnsubscribe.toLowerCase() && e.followUpScheduled) {
+              await awsQueue.updateEmailStatus(userId, agent.agentId, e.id, 'SENT', 'SENT', {
+                followUpScheduled: false,
+                followUpDate: null,
+                unsubscribed: true,
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[UNSUBSCRIBE] Failed to cancel follow-ups:', err.message);
+      }
+
+      try {
+        const { broadcastNotification } = await import('./monitoring.js');
+        broadcastNotification(userId, {
+          type: 'unsubscribe',
+          title: 'Unsubscribe',
+          message: `${emailToUnsubscribe} unsubscribed from your emails`,
+          severity: 'medium',
+          timestamp: new Date().toISOString(),
+        });
+      } catch (err) {
+        console.error('[UNSUBSCRIBE] Failed to broadcast notification:', err.message);
+      }
+    }
+
     res.json({
       success: true,
       email: emailToUnsubscribe,

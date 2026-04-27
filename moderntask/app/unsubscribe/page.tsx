@@ -21,6 +21,7 @@ function UnsubscribeContent() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [message, setMessage] = useState('');
   const [token, setToken] = useState('');
+  const [uid, setUid] = useState('');
 
   // Canvas globe — same as signin
   useEffect(() => {
@@ -132,6 +133,8 @@ function UnsubscribeContent() {
   }, []);
 
   useEffect(() => {
+    const uidParam = searchParams.get('uid');
+    if (uidParam) setUid(uidParam);
     const tokenParam = searchParams.get('token');
     if (tokenParam) {
       setToken(tokenParam);
@@ -163,6 +166,7 @@ function UnsubscribeContent() {
           token: token || undefined,
           email: !token ? email : undefined,
           reason,
+          userId: uid || undefined,
         }),
       });
       const data = await response.json();
