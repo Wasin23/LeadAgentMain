@@ -497,7 +497,7 @@ app.get('/api/metrics', (req, res) => {
     nodeVersion: process.version,
     platform: process.platform
   };
-o  
+  
   res.json(metrics);
 });
 
