@@ -153,9 +153,9 @@ function OnboardingInner() {
           hasProfile = saved.hasCompanyProfile ?? false
         }
 
-        // Show team prompt only once — skip if they've already dismissed it
-        const skippedTeamPrompt = localStorage.getItem('skippedTeamPrompt') === 'true'
-        if (!hasProfile && !skippedTeamPrompt) {
+        // Show team prompt only on fresh registration (?new=1), never for returning users
+        const isNewRegistration = searchParams.get('new') === '1'
+        if (!hasProfile && isNewRegistration) {
           setStage('team-prompt')
           return
         }
@@ -193,7 +193,6 @@ function OnboardingInner() {
   }
 
   const handleTeamSkip = () => {
-    localStorage.setItem('skippedTeamPrompt', 'true')
     setStage('company-profile')
   }
 

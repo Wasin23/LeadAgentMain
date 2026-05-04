@@ -279,7 +279,7 @@ export default function SignInPage() {
       const ok = await register(signUpForm.username, signUpForm.email, signUpForm.password)
       if (ok) {
         setSuccessMsg('Account created! Redirecting...')
-        setTimeout(() => router.push('/onboarding'), 1200)
+        setTimeout(() => router.push('/onboarding?new=1'), 1200)
       } else {
         setError('Registration failed. Username or email may already exist.')
       }
