@@ -153,9 +153,15 @@ function OnboardingInner() {
           hasProfile = saved.hasCompanyProfile ?? false
         }
 
-        // Show team prompt before company profile for new users
-        if (!hasProfile) {
+        // Show team prompt only once — skip if they've already dismissed it
+        const skippedTeamPrompt = localStorage.getItem('skippedTeamPrompt') === 'true'
+        if (!hasProfile && !skippedTeamPrompt) {
           setStage('team-prompt')
+          return
+        }
+
+        if (!hasProfile) {
+          setStage('company-profile')
           return
         }
 
@@ -187,6 +193,7 @@ function OnboardingInner() {
   }
 
   const handleTeamSkip = () => {
+    localStorage.setItem('skippedTeamPrompt', 'true')
     setStage('company-profile')
   }
 

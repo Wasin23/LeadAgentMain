@@ -372,7 +372,8 @@ router.get('/debug-activity', authenticateToken, async (req, res) => {
 // Get user profile
 router.get('/profile', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.userId; // Get from JWT token
+    // Use actualUserId so team members see their own profile, not the owner's
+    const userId = req.user.actualUserId || req.user.userId;
     
     // Import AWS manager to get user data
     const { default: AWSManager } = await import('../utils/awsManager.js');
