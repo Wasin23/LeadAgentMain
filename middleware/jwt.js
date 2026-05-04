@@ -50,8 +50,9 @@ export function authenticateToken(req, res, next) {
     // Team proxy: if the user is a team member, swap userId to team owner's userId
     // actualUserId retains the real user's id for team management routes
     if (decoded.proxyUserId) {
+      const memberUserId = decoded.userId; // capture before mutation
       req.user.userId = decoded.proxyUserId;
-      req.user.actualUserId = decoded.userId;
+      req.user.actualUserId = memberUserId;
     }
 
     // Track user activity for presence-based polling (async) - but don't let it consume next()
