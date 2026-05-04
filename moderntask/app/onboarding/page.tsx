@@ -122,6 +122,10 @@ function OnboardingInner() {
   useEffect(() => {
     const init = async () => {
       try {
+        // Fresh registration — wipe any stale onboarding cache so it can't skip the team-prompt
+        const isNewRegistration = searchParams.get('new') === '1'
+        if (isNewRegistration) localStorage.removeItem('onboardingProgress')
+
         let saved: { hasCompanyProfile?: boolean; hasAgentSetup?: boolean } = {}
         try {
           const raw = localStorage.getItem('onboardingProgress')
@@ -154,7 +158,6 @@ function OnboardingInner() {
         }
 
         // Show team prompt only on fresh registration (?new=1), never for returning users
-        const isNewRegistration = searchParams.get('new') === '1'
         if (!hasProfile && isNewRegistration) {
           setStage('team-prompt')
           return

@@ -237,7 +237,7 @@ export default function SignInPage() {
       // For Google sign-in, check if user needs onboarding
       try {
         const { data } = await api.get('/api/company-profile/check')
-        router.replace(data?.hasProfile ? redirectPath : '/onboarding')
+        router.replace((data?.hasProfile || data?.hasCompletedOnboarding) ? redirectPath : '/onboarding?new=1')
       } catch {
         router.replace(redirectPath)
       }
