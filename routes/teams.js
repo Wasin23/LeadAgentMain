@@ -4,6 +4,7 @@ import AWSManager from '../utils/awsManager.js';
 import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
+import { sendTeamMemberJoinedEmail } from '../utils/billingEmails.js';
 
 // Strongly-consistent read for post-write token generation
 async function getUser(userId) {
@@ -133,6 +134,19 @@ router.post('/invite/:token/accept', async (req, res) => {
     // Consistent read so proxyUserId is guaranteed present in the new token
     const freshUser = await getUser(userId);
     const token = generateToken(freshUser);
+
+    // Notify team owner (non-blocking)
+    const updatedTeam = await aws.getTeam(team.teamId).catch(() => team);
+    const owner = await aws.getUserById(team.ownerId).catch(() => null);
+    if (owner?.email) {
+      sendTeamMemberJoinedEmail(owner.email, {
+        memberUsername: user.username,
+        memberEmail: user.email,
+        teamName: team.name || 'your team',
+        memberCount: updatedTeam?.members?.length ?? 2,
+      }).catch(err => console.warn('[TEAMS] Join email failed (non-critical):', err.message));
+    }
+
     res.json({ success: true, teamId: team.teamId, proxyUserId: team.ownerId, token });
   } catch (error) {
     console.error('[TEAMS] Error accepting invite:', error);

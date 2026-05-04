@@ -1,438 +1,340 @@
-import AWSManager from './awsManager.js';
+import { sendSystemEmail } from '../tools/emailMailgun.js';
 
-const awsManager = new AWSManager();
-const FROM_EMAIL = process.env.NOTIFICATION_EMAIL || 'noreply@yourdomain.com';
+const APP_URL = process.env.FRONTEND_URL || 'https://app.meridianai.co';
 
-export async function sendPaymentFailedEmail(userId, userEmail, amount, errorMessage) {
-  const subject = '⚠️ Payment Failed - Action Required';
-  
-  const htmlBody = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #dc2626;">Payment Failed</h2>
-      <p>Hello,</p>
-      <p>We were unable to process your monthly payment of <strong>$${amount.toFixed(2)}</strong> for your Meridian API usage.</p>
-      
-      <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; margin: 20px 0;">
-        <p style="margin: 0;"><strong>Error:</strong> ${errorMessage}</p>
-      </div>
-      
-      <p>You have <strong>7 days</strong> to update your payment method before your account is suspended.</p>
-      
-      <p style="margin: 30px 0;">
-        <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings?tab=billing" 
-           style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-          Update Payment Method
-        </a>
-      </p>
-      
-      <p>If you have any questions, please contact our support team.</p>
-      
-      <p style="color: #666; font-size: 12px; margin-top: 40px;">
-        This is an automated message from Meridian. Please do not reply to this email.
-      </p>
-    </div>
-  `;
-  
-  const textBody = `
-Payment Failed
+// Shared dark-themed shell — same accent bar and logo as the batch email
+function emailShell({ badge, badgeColor, title, subtitle, body, ctaHref, ctaLabel, footerNote }) {
+  return `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#09090b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 20px;">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#18181b;border-radius:16px;overflow:hidden;border:1px solid #27272a;">
 
-We were unable to process your monthly payment of $${amount.toFixed(2)} for your Meridian API usage.
+  <tr><td style="background:linear-gradient(90deg,#6366f1 0%,#8b5cf6 50%,#a855f7 100%);height:3px;font-size:0;">&nbsp;</td></tr>
 
-Error: ${errorMessage}
+  <tr><td style="padding:32px 40px 20px;">
+    <table width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td><table cellpadding="0" cellspacing="0"><tr>
+        <td style="width:36px;height:36px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:8px;text-align:center;vertical-align:middle;line-height:36px;">
+          <span style="color:#fff;font-weight:800;font-size:18px;">M</span>
+        </td>
+        <td style="padding-left:10px;vertical-align:middle;">
+          <span style="color:#71717a;font-size:13px;font-weight:600;letter-spacing:0.06em;">MERIDIAN</span>
+        </td>
+      </tr></table></td>
+      <td align="right">
+        <span style="background:${badgeColor}22;color:${badgeColor};font-size:11px;font-weight:700;padding:5px 12px;border-radius:999px;border:1px solid ${badgeColor}44;">${badge}</span>
+      </td>
+    </tr></table>
+  </td></tr>
 
-You have 7 days to update your payment method before your account is suspended.
+  <tr><td style="padding:0 40px 28px;">
+    <h1 style="margin:0 0 8px;font-size:28px;font-weight:700;color:#fafafa;line-height:1.2;">${title}</h1>
+    <p style="margin:0;color:#71717a;font-size:15px;">${subtitle}</p>
+  </td></tr>
 
-Update your payment method: ${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings?tab=billing
+  ${body}
 
-If you have any questions, please contact our support team.
-  `;
-  
-  try {
-    await awsManager.sendEmail({
-      to: userEmail,
-      from: FROM_EMAIL,
-      subject,
-      htmlBody,
-      textBody
-    });
-    console.log(`✅ [EMAIL] Payment failed notification sent to ${userEmail}`);
-  } catch (error) {
-    console.error(`❌ [EMAIL] Failed to send payment failed email:`, error);
-  }
+  <tr><td style="padding:4px 40px 32px;">
+    <a href="${ctaHref}" style="display:inline-block;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;text-decoration:none;font-size:14px;font-weight:600;padding:13px 28px;border-radius:10px;">${ctaLabel} &rarr;</a>
+  </td></tr>
+
+  <tr><td style="padding:20px 40px;border-top:1px solid #27272a;">
+    <p style="margin:0;color:#52525b;font-size:12px;line-height:1.7;">
+      ${footerNote}<br>
+      <a href="${APP_URL}/settings?tab=notifications" style="color:#6366f1;text-decoration:none;">Manage preferences</a>
+    </p>
+  </td></tr>
+
+</table></td></tr></table>
+</body></html>`;
+}
+
+function statsRow(cells) {
+  const cols = cells.map((c, i) => `
+    <td width="${Math.floor(100 / cells.length)}%" style="padding:20px;${i < cells.length - 1 ? 'border-right:1px solid #27272a;' : ''}text-align:center;">
+      <div style="font-size:${c.big ? '26px' : '16px'};font-weight:700;color:${c.color};">${c.value}</div>
+      <div style="color:#71717a;font-size:11px;margin-top:3px;text-transform:uppercase;letter-spacing:0.06em;">${c.label}</div>
+    </td>`).join('');
+  return `<tr><td style="padding:0 40px 28px;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #27272a;border-radius:12px;border-collapse:collapse;overflow:hidden;">
+      <tr>${cols}</tr>
+    </table>
+  </td></tr>`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Team notifications
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function sendTeamMemberJoinedEmail(ownerEmail, { memberUsername, memberEmail, teamName, memberCount }) {
+  const subject = `👥 ${memberUsername} joined your team`;
+  const html = emailShell({
+    badge: '&#x1F465; NEW MEMBER',
+    badgeColor: '#6366f1',
+    title: `${memberUsername} joined your team`,
+    subtitle: `Your Meridian team <strong style="color:#a1a1aa;">${teamName}</strong> has a new member.`,
+    body: statsRow([
+      { value: memberUsername, label: 'New Member', color: '#6366f1', big: false },
+      { value: memberCount, label: 'Total Members', color: '#8b5cf6', big: true },
+      { value: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), label: 'Date Joined', color: '#4ade80', big: false },
+    ]) + `<tr><td style="padding:0 40px 24px;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #27272a;border-radius:10px;border-collapse:collapse;overflow:hidden;">
+        <tr>
+          <td style="padding:14px 16px;">
+            <span style="color:#e4e4e7;font-size:13px;font-weight:500;">${memberUsername}</span>
+            <span style="color:#71717a;font-size:12px;"> &middot; ${memberEmail}</span>
+          </td>
+          <td style="padding:14px 16px;text-align:right;">
+            <span style="background:#6366f122;color:#818cf8;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;border:1px solid #6366f144;">member</span>
+          </td>
+        </tr>
+      </table>
+    </td></tr>`,
+    ctaHref: `${APP_URL}/team`,
+    ctaLabel: 'View Team',
+    footerNote: 'You received this because you own a Meridian team.',
+  });
+
+  const result = await sendSystemEmail(ownerEmail, subject, html);
+  if (!result.success) console.error('[TEAM EMAIL] Failed to send join notification:', result.error);
+  return result;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Payment / billing notifications
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function sendPaymentMethodAddedEmail(userEmail, { last4, brand }) {
+  const subject = '💳 Payment method added to your account';
+  const html = emailShell({
+    badge: '&#x2713; CARD ADDED',
+    badgeColor: '#4ade80',
+    title: 'Payment method added',
+    subtitle: 'Your card has been saved and your account is ready for usage-based billing.',
+    body: statsRow([
+      { value: brand ? brand.charAt(0).toUpperCase() + brand.slice(1) : 'Card', label: 'Brand', color: '#6366f1', big: false },
+      { value: last4 ? `••••&nbsp;${last4}` : '••••', label: 'Last 4', color: '#8b5cf6', big: false },
+      { value: '&#x2713; Active', label: 'Status', color: '#4ade80', big: false },
+    ]),
+    ctaHref: `${APP_URL}/settings?tab=billing`,
+    ctaLabel: 'View Billing',
+    footerNote: 'You received this because a payment method was added to your Meridian account.',
+  });
+
+  const result = await sendSystemEmail(userEmail, subject, html);
+  if (!result.success) console.error('[BILLING EMAIL] Failed to send payment method added email:', result.error);
+  return result;
 }
 
 export async function sendPaymentSuccessEmail(userId, userEmail, amount) {
-  const subject = '✅ Payment Successful';
-  
-  const htmlBody = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #16a34a;">Payment Successful</h2>
-      <p>Hello,</p>
-      <p>Your monthly payment of <strong>$${amount.toFixed(2)}</strong> for Meridian API usage has been successfully processed.</p>
-      
-      <div style="background-color: #f0fdf4; border-left: 4px solid #16a34a; padding: 15px; margin: 20px 0;">
-        <p style="margin: 0;"><strong>Amount Charged:</strong> $${amount.toFixed(2)}</p>
-        <p style="margin: 5px 0 0 0;"><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
-      </div>
-      
-      <p>Thank you for using Meridian!</p>
-      
-      <p style="margin: 30px 0;">
-        <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings?tab=billing" 
-           style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-          View Billing Details
-        </a>
-      </p>
-      
-      <p style="color: #666; font-size: 12px; margin-top: 40px;">
-        This is an automated message from Meridian. Please do not reply to this email.
-      </p>
-    </div>
-  `;
-  
-  const textBody = `
-Payment Successful
+  const subject = '✅ Payment successful';
+  const html = emailShell({
+    badge: '&#x2713; PAYMENT RECEIVED',
+    badgeColor: '#4ade80',
+    title: `$${amount.toFixed(2)} payment received`,
+    subtitle: 'Your Meridian account has been charged for API usage.',
+    body: statsRow([
+      { value: `$${amount.toFixed(2)}`, label: 'Amount', color: '#4ade80', big: true },
+      { value: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), label: 'Date', color: '#6366f1', big: false },
+      { value: '&#x2713; Paid', label: 'Status', color: '#4ade80', big: false },
+    ]),
+    ctaHref: `${APP_URL}/settings?tab=billing`,
+    ctaLabel: 'View Billing History',
+    footerNote: 'You received this because a payment was processed on your Meridian account.',
+  });
 
-Your monthly payment of $${amount.toFixed(2)} for Meridian API usage has been successfully processed.
-
-Amount Charged: $${amount.toFixed(2)}
-Date: ${new Date().toLocaleDateString()}
-
-Thank you for using Meridian!
-
-View billing details: ${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings?tab=billing
-  `;
-  
-  try {
-    await awsManager.sendEmail({
-      to: userEmail,
-      from: FROM_EMAIL,
-      subject,
-      htmlBody,
-      textBody
-    });
-    console.log(`✅ [EMAIL] Payment success notification sent to ${userEmail}`);
-  } catch (error) {
-    console.error(`❌ [EMAIL] Failed to send payment success email:`, error);
-  }
+  const result = await sendSystemEmail(userEmail, subject, html);
+  if (!result.success) console.error('[BILLING EMAIL] Failed to send payment success email:', result.error);
+  return result;
 }
 
-export async function sendGracePeriodWarningEmail(userId, userEmail, daysRemaining, amount) {
-  const subject = `⚠️ Account Suspension Warning - ${daysRemaining} Days Remaining`;
-  
-  const htmlBody = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #dc2626;">Urgent: Account Suspension Warning</h2>
-      <p>Hello,</p>
-      <p>Your Meridian account will be suspended in <strong>${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}</strong> due to an unpaid balance.</p>
-      
-      <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; margin: 20px 0;">
-        <p style="margin: 0;"><strong>Unpaid Amount:</strong> $${amount.toFixed(2)}</p>
-        <p style="margin: 5px 0 0 0;"><strong>Suspension Date:</strong> ${new Date(Date.now() + daysRemaining * 24 * 60 * 60 * 1000).toLocaleDateString()}</p>
-      </div>
-      
-      <p><strong>Update your payment method now to avoid service interruption.</strong></p>
-      
-      <p style="margin: 30px 0;">
-        <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings?tab=billing" 
-           style="background-color: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-          Update Payment Method Now
-        </a>
-      </p>
-      
-      <p>If you have any questions, please contact our support team immediately.</p>
-      
-      <p style="color: #666; font-size: 12px; margin-top: 40px;">
-        This is an automated message from Meridian. Please do not reply to this email.
-      </p>
-    </div>
-  `;
-  
-  const textBody = `
-Urgent: Account Suspension Warning
+export async function sendCreditPurchaseEmail(userEmail, { amount, credits, newBalance }) {
+  const subject = `✅ ${credits.toLocaleString()} credits added`;
+  const html = emailShell({
+    badge: '&#x2713; CREDITS ADDED',
+    badgeColor: '#4ade80',
+    title: `${credits.toLocaleString()} credits purchased`,
+    subtitle: amount > 0
+      ? `Your card was charged <strong style="color:#a1a1aa;">$${amount.toFixed(2)}</strong> and credits have been added to your balance.`
+      : 'Credits have been added to your balance.',
+    body: statsRow([
+      { value: `+${credits.toLocaleString()}`, label: 'Added', color: '#4ade80', big: true },
+      { value: newBalance.toLocaleString(), label: 'New Balance', color: '#6366f1', big: true },
+      ...(amount > 0 ? [{ value: `$${amount.toFixed(2)}`, label: 'Charged', color: '#8b5cf6', big: false }] : []),
+    ]),
+    ctaHref: `${APP_URL}/settings?tab=billing`,
+    ctaLabel: 'View Billing',
+    footerNote: 'You received this because credits were purchased on your Meridian account.',
+  });
 
-Your Meridian account will be suspended in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''} due to an unpaid balance.
+  const result = await sendSystemEmail(userEmail, subject, html);
+  if (!result.success) console.error('[BILLING EMAIL] Failed to send credit purchase email:', result.error);
+  return result;
+}
 
-Unpaid Amount: $${amount.toFixed(2)}
-Suspension Date: ${new Date(Date.now() + daysRemaining * 24 * 60 * 60 * 1000).toLocaleDateString()}
+export async function sendPaymentFailedEmail(userId, userEmail, amount, errorMessage) {
+  const subject = '⚠️ Payment failed — action required';
+  const html = emailShell({
+    badge: '&#x26A0; PAYMENT FAILED',
+    badgeColor: '#f87171',
+    title: `$${amount.toFixed(2)} payment failed`,
+    subtitle: 'We were unable to process your monthly payment. Please update your card to avoid suspension.',
+    body: `<tr><td style="padding:0 40px 28px;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #27272a;border-radius:12px;border-collapse:collapse;overflow:hidden;">
+        <tr>
+          <td style="padding:20px;border-right:1px solid #27272a;text-align:center;">
+            <div style="font-size:26px;font-weight:700;color:#f87171;">$${amount.toFixed(2)}</div>
+            <div style="color:#71717a;font-size:11px;margin-top:3px;text-transform:uppercase;letter-spacing:0.06em;">Amount Due</div>
+          </td>
+          <td style="padding:20px;text-align:center;">
+            <div style="font-size:13px;font-weight:600;color:#f87171;">7 days</div>
+            <div style="color:#71717a;font-size:11px;margin-top:3px;text-transform:uppercase;letter-spacing:0.06em;">Grace Period</div>
+          </td>
+        </tr>
+        <tr><td colspan="2" style="padding:14px 20px;border-top:1px solid #27272a;">
+          <span style="color:#71717a;font-size:12px;">Error: </span>
+          <span style="color:#f87171;font-size:12px;">${errorMessage}</span>
+        </td></tr>
+      </table>
+    </td></tr>`,
+    ctaHref: `${APP_URL}/settings?tab=billing`,
+    ctaLabel: 'Update Payment Method',
+    footerNote: 'You received this because a payment failed on your Meridian account.',
+  });
 
-Update your payment method now to avoid service interruption.
-
-Update payment method: ${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings?tab=billing
-
-If you have any questions, please contact our support team immediately.
-  `;
-  
-  try {
-    await awsManager.sendEmail({
-      to: userEmail,
-      from: FROM_EMAIL,
-      subject,
-      htmlBody,
-      textBody
-    });
-    console.log(`✅ [EMAIL] Grace period warning sent to ${userEmail}`);
-  } catch (error) {
-    console.error(`❌ [EMAIL] Failed to send grace period warning:`, error);
-  }
+  const result = await sendSystemEmail(userEmail, subject, html);
+  if (!result.success) console.error('[BILLING EMAIL] Failed to send payment failed email:', result.error);
+  return result;
 }
 
 export async function sendAccountSuspendedEmail(userId, userEmail, amount) {
-  const subject = '🚫 Account Suspended - Immediate Action Required';
-  
-  const htmlBody = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #dc2626;">Account Suspended</h2>
-      <p>Hello,</p>
-      <p>Your Meridian account has been suspended due to an unpaid balance of <strong>$${amount.toFixed(2)}</strong>.</p>
-      
-      <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; margin: 20px 0;">
-        <p style="margin: 0;"><strong>Status:</strong> Account Suspended</p>
-        <p style="margin: 5px 0 0 0;"><strong>Unpaid Amount:</strong> $${amount.toFixed(2)}</p>
-      </div>
-      
-      <p><strong>All API services have been disabled.</strong> Update your payment method to restore access immediately.</p>
-      
-      <p style="margin: 30px 0;">
-        <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings?tab=billing" 
-           style="background-color: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-          Restore Account Access
-        </a>
-      </p>
-      
-      <p>Once payment is received, your account will be reactivated immediately.</p>
-      
-      <p style="color: #666; font-size: 12px; margin-top: 40px;">
-        This is an automated message from Meridian. Please do not reply to this email.
-      </p>
-    </div>
-  `;
-  
-  const textBody = `
-Account Suspended
+  const subject = '🚫 Account suspended — immediate action required';
+  const html = emailShell({
+    badge: '&#x1F6AB; SUSPENDED',
+    badgeColor: '#f87171',
+    title: 'Your account has been suspended',
+    subtitle: `An unpaid balance of <strong style="color:#a1a1aa;">$${amount.toFixed(2)}</strong> has caused your account to be suspended. All agents have been paused.`,
+    body: statsRow([
+      { value: `$${amount.toFixed(2)}`, label: 'Unpaid Balance', color: '#f87171', big: true },
+      { value: 'Suspended', label: 'Status', color: '#f87171', big: false },
+    ]),
+    ctaHref: `${APP_URL}/settings?tab=billing`,
+    ctaLabel: 'Restore Account',
+    footerNote: 'You received this because your Meridian account was suspended due to a failed payment.',
+  });
 
-Your Meridian account has been suspended due to an unpaid balance of $${amount.toFixed(2)}.
-
-Status: Account Suspended
-Unpaid Amount: $${amount.toFixed(2)}
-
-All API services have been disabled. Update your payment method to restore access immediately.
-
-Restore account: ${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings?tab=billing
-
-Once payment is received, your account will be reactivated immediately.
-  `;
-  
-  try {
-    await awsManager.sendEmail({
-      to: userEmail,
-      from: FROM_EMAIL,
-      subject,
-      htmlBody,
-      textBody
-    });
-    console.log(`✅ [EMAIL] Account suspended notification sent to ${userEmail}`);
-  } catch (error) {
-    console.error(`❌ [EMAIL] Failed to send account suspended email:`, error);
-  }
+  const result = await sendSystemEmail(userEmail, subject, html);
+  if (!result.success) console.error('[BILLING EMAIL] Failed to send account suspended email:', result.error);
+  return result;
 }
 
 export async function sendAccountReactivatedEmail(userId, userEmail) {
-  const subject = '✅ Account Reactivated';
-  
-  const htmlBody = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #16a34a;">Account Reactivated</h2>
-      <p>Hello,</p>
-      <p>Great news! Your Meridian account has been successfully reactivated.</p>
-      
-      <div style="background-color: #f0fdf4; border-left: 4px solid #16a34a; padding: 15px; margin: 20px 0;">
-        <p style="margin: 0;"><strong>Status:</strong> Active</p>
-        <p style="margin: 5px 0 0 0;">All services have been restored</p>
-      </div>
-      
-      <p>You can now continue using all Meridian API services.</p>
-      
-      <p style="margin: 30px 0;">
-        <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}" 
-           style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-          Go to Dashboard
-        </a>
-      </p>
-      
-      <p>Thank you for your prompt payment!</p>
-      
-      <p style="color: #666; font-size: 12px; margin-top: 40px;">
-        This is an automated message from Meridian. Please do not reply to this email.
-      </p>
-    </div>
-  `;
-  
-  const textBody = `
-Account Reactivated
+  const subject = '✅ Account reactivated';
+  const html = emailShell({
+    badge: '&#x2713; REACTIVATED',
+    badgeColor: '#4ade80',
+    title: 'Your account is back online',
+    subtitle: 'Payment received — all your agents and services have been restored.',
+    body: statsRow([
+      { value: '&#x2713; Active', label: 'Status', color: '#4ade80', big: false },
+      { value: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), label: 'Restored', color: '#6366f1', big: false },
+    ]),
+    ctaHref: APP_URL,
+    ctaLabel: 'Go to Dashboard',
+    footerNote: 'You received this because your Meridian account was reactivated.',
+  });
 
-Great news! Your Meridian account has been successfully reactivated.
+  const result = await sendSystemEmail(userEmail, subject, html);
+  if (!result.success) console.error('[BILLING EMAIL] Failed to send reactivated email:', result.error);
+  return result;
+}
 
-Status: Active
-All services have been restored
+export async function sendGracePeriodWarningEmail(userId, userEmail, daysRemaining, amount) {
+  const suspensionDate = new Date(Date.now() + daysRemaining * 24 * 60 * 60 * 1000)
+    .toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const subject = `⚠️ Account suspends in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}`;
+  const html = emailShell({
+    badge: '&#x26A0; ACTION REQUIRED',
+    badgeColor: '#fbbf24',
+    title: `Suspension in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}`,
+    subtitle: 'Update your payment method now to keep your agents running.',
+    body: statsRow([
+      { value: `$${amount.toFixed(2)}`, label: 'Unpaid', color: '#fbbf24', big: true },
+      { value: daysRemaining, label: 'Days Left', color: '#f87171', big: true },
+      { value: suspensionDate, label: 'Suspends', color: '#71717a', big: false },
+    ]),
+    ctaHref: `${APP_URL}/settings?tab=billing`,
+    ctaLabel: 'Update Payment Method',
+    footerNote: 'You received this because your Meridian account has an outstanding balance.',
+  });
 
-You can now continue using all Meridian API services.
-
-Go to dashboard: ${process.env.FRONTEND_URL || 'http://localhost:3000'}
-
-Thank you for your prompt payment!
-  `;
-  
-  try {
-    await awsManager.sendEmail({
-      to: userEmail,
-      from: FROM_EMAIL,
-      subject,
-      htmlBody,
-      textBody
-    });
-    console.log(`✅ [EMAIL] Account reactivated notification sent to ${userEmail}`);
-  } catch (error) {
-    console.error(`❌ [EMAIL] Failed to send account reactivated email:`, error);
-  }
+  const result = await sendSystemEmail(userEmail, subject, html);
+  if (!result.success) console.error('[BILLING EMAIL] Failed to send grace period warning:', result.error);
+  return result;
 }
 
 export async function sendPlanCancelledEmail(userId, userEmail, fromPlanName) {
   const subject = 'Your Meridian plan has been cancelled';
-  const htmlBody = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #374151;">Plan Cancelled</h2>
-      <p>Hello,</p>
-      <p>Your <strong>${fromPlanName}</strong> subscription has been cancelled. Your account has been moved to the Free Trial tier.</p>
+  const html = emailShell({
+    badge: 'PLAN CANCELLED',
+    badgeColor: '#71717a',
+    title: `${fromPlanName} cancelled`,
+    subtitle: 'Your subscription has ended and your account has moved to the Free tier.',
+    body: statsRow([
+      { value: 'Free Tier', label: 'New Plan', color: '#71717a', big: false },
+      { value: '1 Agent', label: 'Limit', color: '#71717a', big: false },
+      { value: '$0', label: 'Monthly', color: '#4ade80', big: false },
+    ]),
+    ctaHref: `${APP_URL}/settings?tab=billing`,
+    ctaLabel: 'Manage Billing',
+    footerNote: 'You can re-subscribe at any time from your billing settings.',
+  });
 
-      <div style="background-color: #f9fafb; border-left: 4px solid #9ca3af; padding: 15px; margin: 20px 0;">
-        <p style="margin: 0;"><strong>What this means:</strong></p>
-        <ul style="margin: 8px 0 0 0; padding-left: 20px;">
-          <li>You now have 1 agent slot and 5x speed</li>
-          <li>No further monthly charges will be processed</li>
-          <li>You can re-subscribe at any time from your billing settings</li>
-        </ul>
-      </div>
-
-      <p style="margin: 30px 0;">
-        <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings?tab=billing"
-           style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-          Manage Billing
-        </a>
-      </p>
-
-      <p>We're sorry to see you go. If there's anything we can improve, please reach out to our support team.</p>
-
-      <p style="color: #666; font-size: 12px; margin-top: 40px;">
-        This is an automated message from Meridian. Please do not reply to this email.
-      </p>
-    </div>
-  `;
-  const textBody = `
-Plan Cancelled
-
-Your ${fromPlanName} subscription has been cancelled. Your account has been moved to the Free Trial tier.
-
-What this means:
-- You now have 1 agent slot and 5x speed
-- No further monthly charges will be processed
-- You can re-subscribe at any time from your billing settings
-
-Manage billing: ${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings?tab=billing
-  `;
-  try {
-    await awsManager.sendEmail({ to: userEmail, from: FROM_EMAIL, subject, htmlBody, textBody });
-    console.log(`✅ [EMAIL] Plan cancelled notification sent to ${userEmail}`);
-  } catch (error) {
-    console.error(`❌ [EMAIL] Failed to send plan cancelled email:`, error);
-  }
+  const result = await sendSystemEmail(userEmail, subject, html);
+  if (!result.success) console.error('[BILLING EMAIL] Failed to send plan cancelled email:', result.error);
+  return result;
 }
 
 export async function sendPlanChangedEmail(userId, userEmail, fromPlanName, toPlanName) {
-  const subject = `Your Meridian plan has been changed to ${toPlanName}`;
-  const htmlBody = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #374151;">Plan Updated</h2>
-      <p>Hello,</p>
-      <p>Your Meridian plan has been updated from <strong>${fromPlanName}</strong> to <strong>${toPlanName}</strong>.</p>
+  const subject = `Your Meridian plan has been updated to ${toPlanName}`;
+  const html = emailShell({
+    badge: 'PLAN UPDATED',
+    badgeColor: '#6366f1',
+    title: `Moved to ${toPlanName}`,
+    subtitle: `Your plan changed from <strong style="color:#a1a1aa;">${fromPlanName}</strong> to <strong style="color:#a1a1aa;">${toPlanName}</strong>. New limits are active immediately.`,
+    body: statsRow([
+      { value: fromPlanName, label: 'Previous', color: '#71717a', big: false },
+      { value: toPlanName, label: 'New Plan', color: '#6366f1', big: false },
+    ]),
+    ctaHref: `${APP_URL}/settings?tab=billing`,
+    ctaLabel: 'View Billing',
+    footerNote: 'You received this because your Meridian plan was updated.',
+  });
 
-      <div style="background-color: #f9fafb; border-left: 4px solid #9ca3af; padding: 15px; margin: 20px 0;">
-        <p style="margin: 0;">Your new plan limits are now active. The change takes effect immediately.</p>
-      </div>
-
-      <p style="margin: 30px 0;">
-        <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings?tab=billing"
-           style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-          View Billing
-        </a>
-      </p>
-
-      <p style="color: #666; font-size: 12px; margin-top: 40px;">
-        This is an automated message from Meridian. Please do not reply to this email.
-      </p>
-    </div>
-  `;
-  const textBody = `
-Plan Updated
-
-Your Meridian plan has been updated from ${fromPlanName} to ${toPlanName}.
-
-Your new plan limits are now active. The change takes effect immediately.
-
-View billing: ${process.env.FRONTEND_URL || 'http://localhost:3000'}/settings?tab=billing
-  `;
-  try {
-    await awsManager.sendEmail({ to: userEmail, from: FROM_EMAIL, subject, htmlBody, textBody });
-    console.log(`✅ [EMAIL] Plan changed notification sent to ${userEmail}`);
-  } catch (error) {
-    console.error(`❌ [EMAIL] Failed to send plan changed email:`, error);
-  }
+  const result = await sendSystemEmail(userEmail, subject, html);
+  if (!result.success) console.error('[BILLING EMAIL] Failed to send plan changed email:', result.error);
+  return result;
 }
 
 export async function sendPlanUpgradedEmail(userId, userEmail, fromPlanName, toPlanName, amountCharged) {
   const subject = `✅ Welcome to ${toPlanName}`;
-  const htmlBody = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-      <h2 style="color: #16a34a;">Plan Upgraded</h2>
-      <p>Hello,</p>
-      <p>Your plan has been upgraded from <strong>${fromPlanName}</strong> to <strong>${toPlanName}</strong>.</p>
+  const html = emailShell({
+    badge: '&#x2B06; UPGRADED',
+    badgeColor: '#4ade80',
+    title: `Welcome to ${toPlanName}`,
+    subtitle: `Upgraded from <strong style="color:#a1a1aa;">${fromPlanName}</strong>. Your new limits and credits are live.`,
+    body: statsRow([
+      { value: toPlanName, label: 'New Plan', color: '#6366f1', big: false },
+      { value: `$${amountCharged.toFixed(2)}`, label: 'Charged', color: '#4ade80', big: true },
+      { value: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), label: 'Date', color: '#71717a', big: false },
+    ]),
+    ctaHref: APP_URL,
+    ctaLabel: 'Go to Dashboard',
+    footerNote: 'You received this because your Meridian plan was upgraded.',
+  });
 
-      <div style="background-color: #f0fdf4; border-left: 4px solid #16a34a; padding: 15px; margin: 20px 0;">
-        <p style="margin: 0;"><strong>Amount Charged:</strong> $${amountCharged.toFixed(2)}</p>
-        <p style="margin: 5px 0 0 0;"><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
-        <p style="margin: 5px 0 0 0;">Your new credits and agent limits are now active.</p>
-      </div>
-
-      <p style="margin: 30px 0;">
-        <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}"
-           style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-          Go to Dashboard
-        </a>
-      </p>
-
-      <p>Thank you for upgrading!</p>
-
-      <p style="color: #666; font-size: 12px; margin-top: 40px;">
-        This is an automated message from Meridian. Please do not reply to this email.
-      </p>
-    </div>
-  `;
-  const textBody = `
-Plan Upgraded — Welcome to ${toPlanName}!
-
-Your plan has been upgraded from ${fromPlanName} to ${toPlanName}.
-
-Amount Charged: $${amountCharged.toFixed(2)}
-Date: ${new Date().toLocaleDateString()}
-
-Your new credits and agent limits are now active.
-
-Go to dashboard: ${process.env.FRONTEND_URL || 'http://localhost:3000'}
-  `;
-  try {
-    await awsManager.sendEmail({ to: userEmail, from: FROM_EMAIL, subject, htmlBody, textBody });
-    console.log(`✅ [EMAIL] Plan upgraded notification sent to ${userEmail}`);
-  } catch (error) {
-    console.error(`❌ [EMAIL] Failed to send plan upgraded email:`, error);
-  }
+  const result = await sendSystemEmail(userEmail, subject, html);
+  if (!result.success) console.error('[BILLING EMAIL] Failed to send plan upgraded email:', result.error);
+  return result;
 }

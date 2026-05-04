@@ -4,11 +4,13 @@ import { authenticateToken } from '../middleware/jwt.js';
 import { getTrialCreditStatus } from '../middleware/apiCostTracker.js';
 import AWSManager from '../utils/awsManager.js';
 import { broadcastActivity } from './monitoring.js';
-import { 
-  sendPaymentFailedEmail, 
-  sendPaymentSuccessEmail, 
+import {
+  sendPaymentFailedEmail,
+  sendPaymentSuccessEmail,
   sendAccountSuspendedEmail,
-  sendAccountReactivatedEmail 
+  sendAccountReactivatedEmail,
+  sendPaymentMethodAddedEmail,
+  sendCreditPurchaseEmail,
 } from '../utils/billingEmails.js';
 
 // Activity logging helper - creates single critical issue for billing failures
@@ -193,7 +195,18 @@ router.post('/add-payment-method', authenticateToken, async (req, res) => {
     }
 
     console.log(`✅ [BILLING] Payment method added for user ${userId} - Trial restrictions removed`);
-    
+
+    // Send confirmation email (non-blocking)
+    if (user.email) {
+      try {
+        const pm = await stripe.paymentMethods.retrieve(paymentMethodId);
+        sendPaymentMethodAddedEmail(user.email, {
+          last4: pm.card?.last4,
+          brand: pm.card?.brand,
+        }).catch(() => {});
+      } catch {}
+    }
+
     res.json({
       success: true,
       message: 'Payment method added successfully. You now have unlimited API usage!',
@@ -988,7 +1001,12 @@ router.post('/purchase-credits', authenticateToken, async (req, res) => {
         paymentIntentId: paymentIntent.id,
         newBalance
       }, 'success');
-      
+
+      // Send confirmation email (non-blocking)
+      if (user.email) {
+        sendCreditPurchaseEmail(user.email, { amount, credits, newBalance }).catch(() => {});
+      }
+
       res.json({
         success: true,
         message: `Successfully purchased ${credits.toLocaleString()} credits`,
@@ -1082,7 +1100,12 @@ router.post('/add-credits', authenticateToken, async (req, res) => {
         previousBalance: currentBalance,
         newBalance
       }, 'success');
-      
+
+      // Send confirmation email (non-blocking)
+      if (user.email) {
+        sendCreditPurchaseEmail(user.email, { amount, credits, newBalance }).catch(() => {});
+      }
+
       res.json({
         success: true,
         message: `Successfully added ${credits.toLocaleString()} credits to your account`,
