@@ -46,7 +46,14 @@ export function authenticateToken(req, res, next) {
     
     // Add user info to request object
     req.user = decoded;
-    
+
+    // Team proxy: if the user is a team member, swap userId to team owner's userId
+    // actualUserId retains the real user's id for team management routes
+    if (decoded.proxyUserId) {
+      req.user.userId = decoded.proxyUserId;
+      req.user.actualUserId = decoded.userId;
+    }
+
     // Track user activity for presence-based polling (async) - but don't let it consume next()
     trackUserActivity(req, res, () => {}).catch(error => {
       console.error('[JWT] Error in activity tracking:', error);
@@ -114,7 +121,10 @@ export function generateToken(user) {
   const payload = {
     userId: user.userId,
     username: user.username,
-    email: user.email
+    email: user.email,
+    ...(user.proxyUserId && { proxyUserId: user.proxyUserId }),
+    ...(user.teamId && { teamId: user.teamId }),
+    ...(user.teamRole && { teamRole: user.teamRole }),
   };
   
   const options = {

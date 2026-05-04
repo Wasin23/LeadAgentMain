@@ -23,6 +23,7 @@ class AWSManager {
     
     // Table names
     this.tables = {
+      teams: process.env.AWS_DYNAMODB_TEAMS_TABLE || 'meridian-teams',
       users: process.env.AWS_DYNAMODB_USERS_TABLE || 'meridian-users',
       userSettings: process.env.AWS_DYNAMODB_USER_SETTINGS_TABLE || 'meridian-user-settings',
       agentSettings: process.env.AWS_DYNAMODB_AGENT_SETTINGS_TABLE || 'meridian-agent-settings',
@@ -3820,6 +3821,161 @@ class AWSManager {
         }
       }));
     }
+  }
+
+  // ==================
+  // TEAMS METHODS
+  // ==================
+
+  async createTeam(ownerId, ownerEmail, ownerUsername, teamName) {
+    const { v4: uuidv4 } = await import('uuid');
+    const teamId = uuidv4();
+    const inviteToken = uuidv4();
+    const now = new Date().toISOString();
+
+    const team = {
+      teamId,
+      name: teamName || `${ownerUsername}'s Team`,
+      ownerId,
+      inviteToken,
+      members: [{ userId: ownerId, email: ownerEmail, username: ownerUsername, role: 'owner', joinedAt: now }],
+      createdAt: now,
+    };
+
+    await this.dynamodb.send(new PutCommand({ TableName: this.tables.teams, Item: team }));
+
+    // Mark owner's user record with teamId and role
+    await this.dynamodb.send(new UpdateCommand({
+      TableName: this.tables.users,
+      Key: { userId: ownerId },
+      UpdateExpression: 'SET teamId = :tid, teamRole = :role',
+      ExpressionAttributeValues: { ':tid': teamId, ':role': 'owner' },
+    }));
+
+    return team;
+  }
+
+  async getTeam(teamId) {
+    const result = await this.dynamodb.send(new GetCommand({ TableName: this.tables.teams, Key: { teamId } }));
+    return result.Item || null;
+  }
+
+  async getTeamByInviteToken(inviteToken) {
+    const result = await this.dynamodb.send(new ScanCommand({
+      TableName: this.tables.teams,
+      FilterExpression: 'inviteToken = :t',
+      ExpressionAttributeValues: { ':t': inviteToken },
+    }));
+    return result.Items?.[0] || null;
+  }
+
+  async getTeamByUserId(userId) {
+    const user = await this.getUserById(userId);
+    if (!user?.teamId) return null;
+    return this.getTeam(user.teamId);
+  }
+
+  async addTeamMember(teamId, memberUser, role = 'member') {
+    const now = new Date().toISOString();
+    const newMember = {
+      userId: memberUser.userId,
+      email: memberUser.email,
+      username: memberUser.username,
+      role,
+      joinedAt: now,
+    };
+
+    const team = await this.getTeam(teamId);
+    if (!team) throw new Error('Team not found');
+
+    const members = [...(team.members || []), newMember];
+
+    await this.dynamodb.send(new UpdateCommand({
+      TableName: this.tables.teams,
+      Key: { teamId },
+      UpdateExpression: 'SET members = :m',
+      ExpressionAttributeValues: { ':m': members },
+    }));
+
+    // Update member's user record to proxy to the team owner
+    await this.dynamodb.send(new UpdateCommand({
+      TableName: this.tables.users,
+      Key: { userId: memberUser.userId },
+      UpdateExpression: 'SET teamId = :tid, teamRole = :role, proxyUserId = :proxy',
+      ExpressionAttributeValues: { ':tid': teamId, ':role': role, ':proxy': team.ownerId },
+    }));
+
+    return { ...team, members };
+  }
+
+  async removeTeamMember(teamId, memberId) {
+    const team = await this.getTeam(teamId);
+    if (!team) throw new Error('Team not found');
+
+    const members = (team.members || []).filter(m => m.userId !== memberId);
+
+    await this.dynamodb.send(new UpdateCommand({
+      TableName: this.tables.teams,
+      Key: { teamId },
+      UpdateExpression: 'SET members = :m',
+      ExpressionAttributeValues: { ':m': members },
+    }));
+
+    // Clear team fields from removed member's user record
+    await this.dynamodb.send(new UpdateCommand({
+      TableName: this.tables.users,
+      Key: { userId: memberId },
+      UpdateExpression: 'REMOVE teamId, teamRole, proxyUserId',
+    }));
+  }
+
+  async updateTeamMemberRole(teamId, memberId, role) {
+    const team = await this.getTeam(teamId);
+    if (!team) throw new Error('Team not found');
+
+    const members = (team.members || []).map(m => m.userId === memberId ? { ...m, role } : m);
+
+    await this.dynamodb.send(new UpdateCommand({
+      TableName: this.tables.teams,
+      Key: { teamId },
+      UpdateExpression: 'SET members = :m',
+      ExpressionAttributeValues: { ':m': members },
+    }));
+
+    await this.dynamodb.send(new UpdateCommand({
+      TableName: this.tables.users,
+      Key: { userId: memberId },
+      UpdateExpression: 'SET teamRole = :role',
+      ExpressionAttributeValues: { ':role': role },
+    }));
+  }
+
+  async refreshTeamInviteToken(teamId) {
+    const { v4: uuidv4 } = await import('uuid');
+    const inviteToken = uuidv4();
+    await this.dynamodb.send(new UpdateCommand({
+      TableName: this.tables.teams,
+      Key: { teamId },
+      UpdateExpression: 'SET inviteToken = :t',
+      ExpressionAttributeValues: { ':t': inviteToken },
+    }));
+    return inviteToken;
+  }
+
+  async disbandTeam(teamId) {
+    const team = await this.getTeam(teamId);
+    if (!team) return;
+
+    // Clear team fields from all members
+    await Promise.all((team.members || []).map(m =>
+      this.dynamodb.send(new UpdateCommand({
+        TableName: this.tables.users,
+        Key: { userId: m.userId },
+        UpdateExpression: 'REMOVE teamId, teamRole, proxyUserId',
+      }))
+    ));
+
+    await this.dynamodb.send(new DeleteCommand({ TableName: this.tables.teams, Key: { teamId } }));
   }
 }
 

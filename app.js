@@ -312,6 +312,14 @@ try {
   helpRoutes = (req, res, next) => next(); // No-op if not present
 }
 
+let teamsRoutes;
+try {
+  teamsRoutes = (await import('./routes/teams.js')).default;
+} catch (e) {
+  console.log('Teams routes not available:', e.message);
+  teamsRoutes = (req, res, next) => next();
+}
+
 const app = express();
 
 // Security Configuration
@@ -638,6 +646,7 @@ console.log('✅ [APP] Mounting company profile routes at /api/company-profile')
 app.use('/api/company-profile', companyProfileRoutes); // Company profile onboarding
 app.use('/api/plans', plansRoutes); // User plans and credit management
 app.use('/api/settings', settingsRoutes); // Settings presets management
+app.use('/api/teams', teamsRoutes); // Team management
 app.use('/api/crm', crmRoutes); // CRM integration (Merge.dev)
 app.use('/api/calendar', calendarRoutes); // Calendar OAuth and integration
 app.use('/api/gmail-pubsub', gmailPubSubRoutes); // Gmail Pub/Sub push notifications

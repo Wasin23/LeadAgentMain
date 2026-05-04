@@ -1,6 +1,6 @@
 "use client"
 
-import { LayoutDashboard, CheckSquare, BarChart3, Settings, HelpCircle, LogOut, Mail, Bot, UserCheck, Circle, Building2, GripVertical, Pencil, Check } from "lucide-react"
+import { LayoutDashboard, CheckSquare, BarChart3, Settings, HelpCircle, LogOut, Mail, Bot, UserCheck, Circle, Building2, GripVertical, Pencil, Check, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState, useEffect, Suspense } from "react"
 import Link from "next/link"
@@ -61,6 +61,7 @@ const generalItems: NavItem[] = [
       { icon: Circle, label: "Billing",         href: "/settings?tab=billing" },
     ],
   },
+  { icon: Users,      label: "Team",     href: "/team" },
   { icon: HelpCircle, label: "Help",     href: "/help" },
   { icon: LogOut,     label: "Logout",   href: "/logout" },
 ]
