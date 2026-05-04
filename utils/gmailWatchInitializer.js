@@ -56,7 +56,25 @@ export async function initializeGmailWatches() {
         
       } catch (userError) {
         errors++;
-        console.error(`❌ [GMAIL WATCH INIT] Error for user ${user.userId.substring(0, 8)}:`, userError.message);
+        const msg = userError.message || '';
+        // invalid_grant means the refresh token is permanently dead — clear it so we don't retry every startup
+        if (msg.includes('invalid_grant') || userError.response?.data?.error === 'invalid_grant') {
+          console.warn(`⚠️  [GMAIL WATCH INIT] Clearing revoked Gmail token for user ${user.userId.substring(0, 8)}...`);
+          try {
+            const staleSettings = await awsManager.getUserSettings(user.userId);
+            if (staleSettings) {
+              const cleaned = { ...staleSettings };
+              delete cleaned.gmailAuth;
+              delete cleaned.gmailWatch;
+              if (cleaned.gmailAccounts) cleaned.gmailAccounts = [];
+              await awsManager.saveUserSettings(user.userId, cleaned);
+            }
+          } catch (cleanupErr) {
+            console.error(`❌ [GMAIL WATCH INIT] Failed to clear token for ${user.userId.substring(0, 8)}:`, cleanupErr.message);
+          }
+        } else {
+          console.error(`❌ [GMAIL WATCH INIT] Error for user ${user.userId.substring(0, 8)}:`, msg);
+        }
       }
     }
     
