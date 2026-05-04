@@ -53,7 +53,9 @@ export function TeamContent() {
   const { user: authUser } = useAuth()
   const [team, setTeam] = useState<Team | null>(null)
   const [loading, setLoading] = useState(true)
-  const [isOwner, setIsOwner] = useState(false)
+
+  // Computed — never stale regardless of when authUser loads
+  const isOwner = !!(team && authUser?.userId && team.ownerId === authUser.userId)
 
   // Create team form
   const [teamName, setTeamName] = useState("")
@@ -77,11 +79,10 @@ export function TeamContent() {
       const teamRes = await api.get("/api/teams/me").catch(() => null)
       const t = teamRes?.data?.team || null
       setTeam(t)
-      setIsOwner(t ? t.ownerId === authUser?.userId : false)
     } finally {
       setLoading(false)
     }
-  }, [authUser?.userId])
+  }, [])
 
   useEffect(() => {
     load()
@@ -119,7 +120,6 @@ export function TeamContent() {
       const r = await api.post("/api/teams/create", { name: teamName.trim() })
       if (r.data.token) storeToken(r.data.token)
       setTeam(r.data.team)
-      setIsOwner(true)
       flash("Team created!")
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : (e as { response?: { data?: { error?: string } } })?.response?.data?.error || "Failed to create team."
@@ -173,8 +173,9 @@ export function TeamContent() {
         ...prev,
         members: prev.members.map(m => m.userId === memberId ? { ...m, role: role as TeamMember["role"] } : m),
       } : prev)
-    } catch {
-      flash("Failed to update role.", "error")
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error || "Failed to update role."
+      flash(msg, "error")
     }
   }
 
@@ -183,8 +184,9 @@ export function TeamContent() {
       await api.delete(`/api/teams/members/${memberId}`)
       setTeam(prev => prev ? { ...prev, members: prev.members.filter(m => m.userId !== memberId) } : prev)
       flash("Member removed.")
-    } catch {
-      flash("Failed to remove member.", "error")
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error || "Failed to remove member."
+      flash(msg, "error")
     }
   }
 
@@ -193,10 +195,10 @@ export function TeamContent() {
       const r = await api.post("/api/teams/leave")
       if (r.data.token) storeToken(r.data.token)
       setTeam(null)
-      setIsOwner(false)
       flash("You have left the team.")
-    } catch {
-      flash("Failed to leave team.", "error")
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error || "Failed to leave team."
+      flash(msg, "error")
     }
   }
 
@@ -204,10 +206,10 @@ export function TeamContent() {
     try {
       await api.delete("/api/teams")
       setTeam(null)
-      setIsOwner(false)
       flash("Team disbanded.")
-    } catch {
-      flash("Failed to disband team.", "error")
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error || "Failed to disband team."
+      flash(msg, "error")
     }
   }
 
