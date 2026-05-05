@@ -40,7 +40,7 @@ const PARA_NOTES: string[] = [
   'Q2: calendar + CRM → full end-to-end automation',
 ]
 
-const WPS = 200
+const WPS = 70
 
 function sleep(ms: number) {
   return new Promise<void>(r => setTimeout(r, ms))
@@ -165,18 +165,18 @@ export function AiResearchSection() {
       setSubStep(3); await sleep(700); if (!alive.current) return
 
       setPhase('linkedin'); setSubStep(0)
-      await sleep(3400); if (!alive.current) return
+      await sleep(1200); if (!alive.current) return
 
       setPhase('websearch'); setSubStep(0)
-      await sleep(400);  if (!alive.current) return
-      setSubStep(1); await sleep(700);  if (!alive.current) return
-      setSubStep(2); await sleep(1000); if (!alive.current) return
+      await sleep(150);  if (!alive.current) return
+      setSubStep(1); await sleep(350);  if (!alive.current) return
+      setSubStep(2); await sleep(500); if (!alive.current) return
 
       setPhase('article'); setArtPara(0); setNotesList([])
       for (let i = 0; i < ARTICLE_PARAS.length; i++) {
         if (!alive.current) return
         setArtPara(i)
-        const dur = Math.ceil(ARTICLE_PARAS[i].split(' ').length / WPS) * 1000 + 350
+        const dur = Math.ceil(ARTICLE_PARAS[i].split(' ').length / WPS) * 1000 + 60
         await sleep(dur)
         if (!alive.current) return
         if (PARA_NOTES[i]) setNotesList(n => [...n, PARA_NOTES[i]])
@@ -247,11 +247,6 @@ export function AiResearchSection() {
 
         {/* ── Left copy ── */}
         <div className="lg:sticky lg:top-28">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 text-xs font-semibold tracking-widest uppercase mb-6">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-            How it works
-          </div>
-
           <h2 className="text-4xl sm:text-5xl xl:text-[3.25rem] font-black text-white leading-[1.04] tracking-tight mb-5">
             Reads the room<br />before writing.
           </h2>
@@ -259,11 +254,6 @@ export function AiResearchSection() {
           <p className="text-white/50 text-lg leading-relaxed mb-4 max-w-[400px]">
             Every email starts with account intelligence. Meridian pulls company profiles, recent news, hiring signals, and role context — then writes from that research. Not a template.
           </p>
-
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.08] text-white/55 text-sm mb-8">
-            <span className="text-green-400">⚡</span>
-            Average research + email:&nbsp;<span className="text-white/80 font-semibold">~10 seconds</span>
-          </div>
 
           <div className="space-y-3 mb-10">
             {[
@@ -422,7 +412,7 @@ export function AiResearchSection() {
                     <div className="text-[12px] leading-relaxed">
                       <ScanText
                         text="AI-powered revenue platform helping B2B teams scale outbound without adding headcount. Trusted by 200+ fast-growing companies across North America and Europe."
-                        speed={130}
+                        speed={70}
                       />
                     </div>
                   </div>
@@ -456,7 +446,7 @@ export function AiResearchSection() {
                         <div key={i} className="flex items-start gap-2">
                           <span className="text-xs shrink-0 mt-px">{a.e}</span>
                           <span className="text-[11px] leading-relaxed flex-1">
-                            <ScanText text={a.t} speed={100} />
+                            <ScanText text={a.t} speed={70} />
                           </span>
                           <span className="text-[10px] text-white/18 shrink-0">{a.d}</span>
                         </div>
