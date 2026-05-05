@@ -44,20 +44,9 @@ export function HorizonHero() {
         </div>
       </h1>
 
-      <div ref={subtitleRef} className="flex flex-wrap justify-center gap-3 mb-10 max-w-2xl">
-        {[
-          'Runs 24/7',
-          'Researches every lead',
-          'Personalizes every email',
-          'Multi-agent workflows',
-          'Sends from your inbox',
-          'Follows up automatically',
-        ].map(item => (
-          <span key={item} className="line inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/10 bg-white/[0.04] text-white/50 text-sm">
-            <span className="w-1 h-1 rounded-full bg-indigo-400 shrink-0" />
-            {item}
-          </span>
-        ))}
+      <div ref={subtitleRef} className="space-y-2 mb-10">
+        <p className="line text-xl text-white/50">Runs 24/7. Multi-agent. Fully personalized.</p>
+        <p className="line text-xl text-white/50">Researches leads, writes emails, sends from your inbox, follows up automatically.</p>
       </div>
 
       <div className="flex gap-4">

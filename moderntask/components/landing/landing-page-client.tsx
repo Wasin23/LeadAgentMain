@@ -3,20 +3,15 @@
 import { useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import dynamic from "next/dynamic"
 import { useAuth } from "@/contexts/AuthContext"
 import { StarField } from "@/components/landing/star-field"
+import { HorizonHero } from "@/components/demo/horizon-hero"
 import { AiResearchSection } from "@/components/landing/ai-research-section"
 import { OutreachSection } from "@/components/landing/outreach-section"
 import { CrmPipelineSection } from "@/components/landing/crm-pipeline-section"
 import { FeaturesCarousel } from "@/components/landing/features-carousel"
 import { PricingSection } from "@/components/landing/pricing-section"
 import { FooterSection } from "@/components/landing/footer-section"
-
-const HorizonHero = dynamic(
-  () => import("@/components/demo/horizon-hero").then((m) => ({ default: m.HorizonHero })),
-  { ssr: false, loading: () => <div className="h-screen w-full bg-[#03050d]" /> }
-)
 
 export function LandingPageClient() {
   const { user } = useAuth()
@@ -48,10 +43,10 @@ export function LandingPageClient() {
       </nav>
 
       <StarField fixed />
-      <FeaturesCarousel labels={['', 'AI Research', 'Outreach', 'CRM Auditor', 'Pricing', '']}>
+      <FeaturesCarousel labels={['', 'Outreach', 'AI Research', 'CRM Auditor', 'Pricing', '']}>
         <HorizonHero />
-        <AiResearchSection />
         <OutreachSection />
+        <AiResearchSection />
         <CrmPipelineSection />
         <PricingSection />
         <FooterSection />
