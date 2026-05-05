@@ -9,6 +9,7 @@ import { StarField } from "@/components/landing/star-field"
 import { AiResearchSection } from "@/components/landing/ai-research-section"
 import { OutreachSection } from "@/components/landing/outreach-section"
 import { CrmPipelineSection } from "@/components/landing/crm-pipeline-section"
+import { FeaturesCarousel } from "@/components/landing/features-carousel"
 import { PricingSection } from "@/components/landing/pricing-section"
 import { FooterSection } from "@/components/landing/footer-section"
 
@@ -48,9 +49,11 @@ export function LandingPageClient() {
 
       <StarField fixed />
       <HorizonHero />
-      <AiResearchSection />
-      <OutreachSection />
-      <CrmPipelineSection />
+      <FeaturesCarousel>
+        <AiResearchSection />
+        <OutreachSection />
+        <CrmPipelineSection />
+      </FeaturesCarousel>
       <PricingSection />
       <FooterSection />
     </div>

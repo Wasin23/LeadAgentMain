@@ -7,21 +7,22 @@ import Link from 'next/link'
 // ── types ──────────────────────────────────────────────────────────────────
 type Phase =
   | 'idle'
-  | 'to-leads'
+  | 'to-crm'
   | 'pickup'
   | 'to-research'
   | 'researching'
-  | 'pickup-enriched'
-  | 'to-crm'
+  | 'pickup-verified'
+  | 'to-verified'
   | 'deposit'
 
 // ── data ───────────────────────────────────────────────────────────────────
-const LEADS_QUEUE = [
+const CRM_RECORDS = [
   { name: 'Sarah Chen',  co: 'ScaleFlow',   role: 'Head of Growth'  },
   { name: 'Marcus Lee',  co: 'Finova',      role: 'VP of Sales'     },
   { name: 'Jade Morris', co: 'FleetGrid',   role: 'Head of Revenue' },
   { name: 'Tom Reyes',   co: 'LayerStack',  role: 'CEO'             },
   { name: 'Nina Patel',  co: 'StitchOps',   role: 'VP Finance'      },
+  { name: 'Lena Kwon',   co: 'Driftwork',   role: 'Dir. of Sales'   },
 ]
 
 const ARTICLE_PARAS = [
@@ -31,21 +32,17 @@ const ARTICLE_PARAS = [
 ]
 
 const SIGNALS = [
-  { label: 'Series A closed',        value: '$12M · Sequoia'            },
-  { label: 'Hiring 3 Senior SDRs',   value: 'posted 4 days ago'         },
-  { label: 'Headcount',              value: '12 → 35 by Q3'             },
-  { label: 'Intent signal',          value: 'Outbound tooling research'  },
+  { label: 'Series A closed',       value: '$12M · Sequoia'           },
+  { label: 'Hiring 3 Senior SDRs',  value: 'posted 4 days ago'        },
+  { label: 'Headcount',             value: '12 → 35 by Q3'            },
+  { label: 'Verdict',               value: '✓ High fit — re-engage'   },
 ]
 
-const CRM_ENRICHED = [
-  { name: 'Lena Kwon',   co: 'Driftwork',  fit: 91 },
-  { name: 'Alex Park',   co: 'Vantara',    fit: 88 },
-  { name: 'Chris Mao',   co: 'Buildbase',  fit: 85 },
-]
+const FIT_SCORES = [94, 88, 91, 86, 79, 83, 90, 85, 77, 92]
 
 function sleep(ms: number) { return new Promise<void>(r => setTimeout(r, ms)) }
 
-// ── tiny scan-text ──────────────────────────────────────────────────────────
+// ── scan text ───────────────────────────────────────────────────────────────
 function ScanLine({ text, active, done }: { text: string; active: boolean; done: boolean }) {
   const words = useMemo(() => text.split(' '), [text])
   const [idx, setIdx] = useState(0)
@@ -78,45 +75,35 @@ function ScanLine({ text, active, done }: { text: string; active: boolean; done:
   )
 }
 
-// ── agent bot SVG ───────────────────────────────────────────────────────────
-function AgentBot({ carrying, enriched }: { carrying: boolean; enriched: boolean }) {
+// ── agent bot ───────────────────────────────────────────────────────────────
+function AgentBot({ carrying, verified }: { carrying: boolean; verified: boolean }) {
   return (
     <div className="flex flex-col items-center gap-1 select-none">
-      {/* card being carried */}
       {carrying && (
         <div
           className="rounded border px-2 py-1 text-[9px] font-semibold mb-0.5 transition-all"
           style={{
-            background: enriched ? 'rgba(74,222,128,0.12)' : 'rgba(99,102,241,0.12)',
-            borderColor: enriched ? 'rgba(74,222,128,0.4)' : 'rgba(99,102,241,0.4)',
-            color: enriched ? 'rgba(74,222,128,0.9)' : 'rgba(165,180,252,0.9)',
+            background: verified ? 'rgba(74,222,128,0.12)' : 'rgba(99,102,241,0.12)',
+            borderColor: verified ? 'rgba(74,222,128,0.4)' : 'rgba(99,102,241,0.4)',
+            color: verified ? 'rgba(74,222,128,0.9)' : 'rgba(165,180,252,0.9)',
             minWidth: 64,
             textAlign: 'center',
           }}
         >
-          {enriched ? '✦ Enriched' : 'Lead'}
+          {verified ? '✓ Verified' : 'CRM record'}
         </div>
       )}
-      {/* bot body */}
       <svg width="36" height="42" viewBox="0 0 36 42" fill="none">
-        {/* head */}
         <rect x="8" y="2" width="20" height="16" rx="4" fill="#1e2a5e" stroke="rgba(99,102,241,0.7)" strokeWidth="1.2"/>
-        {/* eyes */}
         <circle cx="13" cy="10" r="2.5" fill="rgba(129,140,248,0.9)"/>
         <circle cx="23" cy="10" r="2.5" fill="rgba(129,140,248,0.9)"/>
-        {/* antenna */}
         <line x1="18" y1="2" x2="18" y2="-2" stroke="rgba(99,102,241,0.6)" strokeWidth="1.2"/>
         <circle cx="18" cy="-3" r="1.5" fill="rgba(99,102,241,0.8)"/>
-        {/* neck */}
         <rect x="15" y="18" width="6" height="3" fill="#1e2a5e"/>
-        {/* body */}
         <rect x="6" y="21" width="24" height="14" rx="3" fill="#1a2356" stroke="rgba(99,102,241,0.5)" strokeWidth="1.2"/>
-        {/* chest light */}
         <circle cx="18" cy="28" r="3" fill="rgba(99,102,241,0.4)" stroke="rgba(129,140,248,0.6)" strokeWidth="0.8"/>
-        {/* arms */}
         <rect x="0" y="22" width="6" height="3" rx="1.5" fill="#1e2a5e" stroke="rgba(99,102,241,0.4)" strokeWidth="0.8"/>
         <rect x="30" y="22" width="6" height="3" rx="1.5" fill="#1e2a5e" stroke="rgba(99,102,241,0.4)" strokeWidth="0.8"/>
-        {/* legs */}
         <rect x="9"  y="35" width="7" height="7" rx="2" fill="#1e2a5e" stroke="rgba(99,102,241,0.4)" strokeWidth="0.8"/>
         <rect x="20" y="35" width="7" height="7" rx="2" fill="#1e2a5e" stroke="rgba(99,102,241,0.4)" strokeWidth="0.8"/>
       </svg>
@@ -124,44 +111,53 @@ function AgentBot({ carrying, enriched }: { carrying: boolean; enriched: boolean
   )
 }
 
-// ── stations ────────────────────────────────────────────────────────────────
-function LeadsPile({ active, leadIdx }: { active: boolean; leadIdx: number }) {
-  const remaining = LEADS_QUEUE.slice(leadIdx % LEADS_QUEUE.length)
+// ── left: CRM unverified ────────────────────────────────────────────────────
+function CrmUnverified({ active, currentIdx }: { active: boolean; currentIdx: number }) {
+  const remaining = CRM_RECORDS.slice(currentIdx % CRM_RECORDS.length)
+
   return (
-    <div className="flex flex-col items-center gap-2 w-[140px]">
-      <div className={`text-[10px] font-bold uppercase tracking-widest mb-1 transition-colors ${active ? 'text-indigo-400' : 'text-white/25'}`}>
-        Leads queue
+    <div className="flex flex-col gap-2 w-[148px]">
+      <div className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${active ? 'text-indigo-400' : 'text-white/25'}`}>
+        Your CRM
       </div>
-      <div className="relative w-full">
-        {[...remaining].reverse().slice(0, 4).map((l, i) => (
+      <div className="rounded-xl border border-white/[0.08] bg-[#080c20] overflow-hidden">
+        <div className="px-3 py-1.5 border-b border-white/[0.05] text-[9px] text-white/20 font-mono flex justify-between">
+          <span>unaudited</span>
+          <span>{remaining.length}</span>
+        </div>
+        {remaining.slice(0, 4).map((r, i) => (
           <div
             key={i}
-            className="rounded-lg border border-white/[0.08] bg-[#0a0e24] px-3 py-2 absolute w-full transition-all"
-            style={{ bottom: i * 6, zIndex: i, opacity: 0.4 + i * 0.15 }}
+            className={`px-3 py-2 border-b border-white/[0.04] last:border-0 transition-all ${i === 0 && active ? 'bg-indigo-500/10' : ''}`}
           >
-            <div className="text-[10px] font-semibold text-white/60">{l.name}</div>
-            <div className="text-[9px] text-white/25">{l.co}</div>
+            <div className="flex items-center justify-between gap-1">
+              <div className="text-[10px] font-semibold text-white/60 truncate">{r.name}</div>
+              {i === 0 && active
+                ? <span className="text-[8px] text-indigo-400 shrink-0">↑ auditing</span>
+                : <span className="text-[8px] text-white/15 shrink-0">?</span>
+              }
+            </div>
+            <div className="text-[9px] text-white/25">{r.co}</div>
           </div>
         ))}
-        <div className="h-[72px]" />
       </div>
     </div>
   )
 }
 
-function ResearchStation({ phase, paraIdx }: { phase: Phase; paraIdx: number }) {
+// ── center: audit station ───────────────────────────────────────────────────
+function AuditStation({ phase, paraIdx }: { phase: Phase; paraIdx: number }) {
   const active = phase === 'researching'
   const signalsShown = active ? Math.min(SIGNALS.length, paraIdx + 1) : 0
 
   return (
-    <div className={`flex flex-col gap-2 w-[260px] transition-all duration-500 ${active ? 'opacity-100' : 'opacity-40'}`}>
-      <div className={`text-[10px] font-bold uppercase tracking-widest mb-1 transition-colors ${active ? 'text-indigo-400' : 'text-white/25'}`}>
-        Research station
+    <div className={`flex flex-col gap-2 w-[252px] transition-all duration-500 ${active ? 'opacity-100' : 'opacity-35'}`}>
+      <div className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${active ? 'text-indigo-400' : 'text-white/25'}`}>
+        Audit station
       </div>
-      {/* article pane */}
       <div className="rounded-xl border border-white/[0.08] bg-[#080c20] p-3 space-y-2">
         <div className={`text-[9px] font-mono truncate transition-colors ${active ? 'text-indigo-400/70' : 'text-white/15'}`}>
-          {active ? '⟳ scaleflow.com/blog/series-a' : '── waiting ──'}
+          {active ? '⟳ verifying · scaleflow.com' : '── waiting for record ──'}
         </div>
         {ARTICLE_PARAS.map((para, i) => (
           <ScanLine
@@ -172,14 +168,13 @@ function ResearchStation({ phase, paraIdx }: { phase: Phase; paraIdx: number }) 
           />
         ))}
       </div>
-      {/* signals pane */}
       {signalsShown > 0 && (
         <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/[0.05] p-3 space-y-1.5">
-          <div className="text-[9px] font-bold text-indigo-400/60 uppercase tracking-widest mb-1">Signals found</div>
+          <div className="text-[9px] font-bold text-indigo-400/60 uppercase tracking-widest mb-1">Audit findings</div>
           {SIGNALS.slice(0, signalsShown).map((s, i) => (
             <div key={i} className="flex items-center justify-between gap-2 text-[10px]">
               <span className="text-white/40">{s.label}</span>
-              <span className="text-indigo-300/80 font-medium">{s.value}</span>
+              <span className={`font-medium ${i === SIGNALS.length - 1 ? 'text-green-400' : 'text-indigo-300/80'}`}>{s.value}</span>
             </div>
           ))}
         </div>
@@ -188,31 +183,32 @@ function ResearchStation({ phase, paraIdx }: { phase: Phase; paraIdx: number }) 
   )
 }
 
-function CrmBase({ enrichedCount }: { enrichedCount: number }) {
-  const visible = [...CRM_ENRICHED, ...LEADS_QUEUE.map(l => ({ name: l.name, co: l.co, fit: Math.floor(80 + Math.random() * 18) }))]
-    .slice(0, enrichedCount)
-    .reverse()
-    .slice(0, 5)
+// ── right: verified CRM ─────────────────────────────────────────────────────
+function CrmVerified({ verifiedCount, currentIdx }: { verifiedCount: number; currentIdx: number }) {
+  const rows = CRM_RECORDS.slice(0, currentIdx % CRM_RECORDS.length).reverse().slice(0, 5)
 
   return (
-    <div className="flex flex-col gap-2 w-[150px]">
-      <div className="text-[10px] font-bold uppercase tracking-widest mb-1 text-white/25">
-        CRM base
+    <div className="flex flex-col gap-2 w-[148px]">
+      <div className="text-[10px] font-bold uppercase tracking-widest text-white/25">
+        Audited
       </div>
       <div className="rounded-xl border border-white/[0.08] bg-[#080c20] overflow-hidden">
-        <div className="px-3 py-1.5 border-b border-white/[0.05] text-[9px] text-white/20 font-mono">
-          {enrichedCount} enriched
+        <div className="px-3 py-1.5 border-b border-white/[0.05] text-[9px] text-white/20 font-mono flex justify-between">
+          <span>verified</span>
+          <span className="text-green-400/60">{verifiedCount}</span>
         </div>
-        {visible.length === 0 && (
-          <div className="px-3 py-4 text-[9px] text-white/15 italic text-center">empty</div>
+        {rows.length === 0 && (
+          <div className="px-3 py-4 text-[9px] text-white/12 italic text-center">none yet</div>
         )}
-        {visible.map((l, i) => (
-          <div key={i} className="flex items-center justify-between px-3 py-2 border-b border-white/[0.04] last:border-0">
-            <div>
-              <div className="text-[10px] font-semibold text-white/70">{l.name}</div>
-              <div className="text-[9px] text-white/25">{l.co}</div>
+        {rows.map((r, i) => (
+          <div key={i} className="px-3 py-2 border-b border-white/[0.04] last:border-0">
+            <div className="flex items-center justify-between gap-1">
+              <div className="text-[10px] font-semibold text-white/70 truncate">{r.name}</div>
+              <span className="text-[8px] font-bold text-green-400 shrink-0">
+                {FIT_SCORES[(i + verifiedCount) % FIT_SCORES.length]}%
+              </span>
             </div>
-            <div className="text-[9px] font-bold text-green-400">{l.fit}%</div>
+            <div className="text-[9px] text-white/25">{r.co}</div>
           </div>
         ))}
       </div>
@@ -220,60 +216,48 @@ function CrmBase({ enrichedCount }: { enrichedCount: number }) {
   )
 }
 
-// ── main viz ────────────────────────────────────────────────────────────────
+// ── agent positions ──────────────────────────────────────────────────────────
 const PHASE_X: Record<Phase, number> = {
   'idle':             6,
-  'to-leads':         82,
-  'pickup':           82,
+  'to-crm':           6,
+  'pickup':           6,
   'to-research':      44,
   'researching':      44,
-  'pickup-enriched':  44,
-  'to-crm':           6,
-  'deposit':          6,
-}
-
-const PHASE_DURATIONS: Partial<Record<Phase, number>> = {
-  'to-leads':    850,
-  'pickup':      400,
-  'to-research': 850,
-  'researching': 5200,
-  'pickup-enriched': 350,
-  'to-crm':      850,
-  'deposit':     500,
+  'pickup-verified':  44,
+  'to-verified':      88,
+  'deposit':          88,
 }
 
 function CrmViz() {
-  const [phase, setPhase]               = useState<Phase>('idle')
-  const [agentX, setAgentX]             = useState(6)
-  const [carrying, setCarrying]         = useState(false)
-  const [carryingEnriched, setCarryingEnriched] = useState(false)
-  const [leadIdx, setLeadIdx]           = useState(0)
-  const [enrichedCount, setEnrichedCount] = useState(CRM_ENRICHED.length)
-  const [paraIdx, setParaIdx]           = useState(-1)
+  const [phase, setPhase]             = useState<Phase>('idle')
+  const [agentX, setAgentX]           = useState(6)
+  const [carrying, setCarrying]       = useState(false)
+  const [carryVerified, setCarryVerified] = useState(false)
+  const [recordIdx, setRecordIdx]     = useState(0)
+  const [verifiedCount, setVerifiedCount] = useState(0)
+  const [paraIdx, setParaIdx]         = useState(-1)
   const alive = useRef(true)
 
   useEffect(() => {
     alive.current = true
-
     const go = async () => {
       while (alive.current) {
-        // idle pause
-        await sleep(900)
+        await sleep(800)
         if (!alive.current) return
 
-        // move to leads
-        setPhase('to-leads'); setAgentX(PHASE_X['to-leads'])
-        await sleep(PHASE_DURATIONS['to-leads']!)
+        // agent walks to CRM pile
+        setPhase('to-crm'); setAgentX(PHASE_X['to-crm'])
+        await sleep(500)
 
-        // pickup
-        setPhase('pickup'); setCarrying(true); setCarryingEnriched(false)
-        await sleep(PHASE_DURATIONS['pickup']!)
+        // picks up record
+        setPhase('pickup'); setCarrying(true); setCarryVerified(false)
+        await sleep(400)
 
-        // move to research
+        // walks to audit station
         setPhase('to-research'); setAgentX(PHASE_X['to-research'])
-        await sleep(PHASE_DURATIONS['to-research']!)
+        await sleep(850)
 
-        // drop off + research
+        // drops off, audit begins
         setPhase('researching'); setCarrying(false); setParaIdx(0)
         await sleep(1600)
         if (!alive.current) return
@@ -281,24 +265,27 @@ function CrmViz() {
         await sleep(1800)
         if (!alive.current) return
         setParaIdx(2)
-        await sleep(1600)
+        await sleep(1400)
+        if (!alive.current) return
+        setParaIdx(3) // verdict signal
+        await sleep(800)
         if (!alive.current) return
 
-        // pick up enriched
-        setPhase('pickup-enriched'); setCarrying(true); setCarryingEnriched(true)
-        await sleep(PHASE_DURATIONS['pickup-enriched']!)
+        // picks up verified record
+        setPhase('pickup-verified'); setCarrying(true); setCarryVerified(true)
+        await sleep(400)
 
-        // move to CRM
-        setPhase('to-crm'); setAgentX(PHASE_X['to-crm'])
-        await sleep(PHASE_DURATIONS['to-crm']!)
+        // carries to verified column
+        setPhase('to-verified'); setAgentX(PHASE_X['to-verified'])
+        await sleep(850)
 
-        // deposit
+        // deposits
         setPhase('deposit')
-        setCarrying(false); setCarryingEnriched(false)
-        setEnrichedCount(c => c + 1)
-        setLeadIdx(i => i + 1)
+        setCarrying(false); setCarryVerified(false)
+        setVerifiedCount(c => c + 1)
+        setRecordIdx(i => i + 1)
         setParaIdx(-1)
-        await sleep(PHASE_DURATIONS['deposit']!)
+        await sleep(500)
 
         setPhase('idle')
       }
@@ -307,77 +294,72 @@ function CrmViz() {
     return () => { alive.current = false }
   }, [])
 
-  const isCarrying  = carrying
-  const isEnriched  = carryingEnriched
-
   return (
     <div className="rounded-2xl border border-white/[0.08] bg-[#05070f] overflow-hidden shadow-2xl shadow-black/60">
-      {/* titlebar */}
       <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-white/[0.06] bg-[#05070f]">
         <div className="w-2 h-2 rounded-full bg-[#ff5f57]" />
         <div className="w-2 h-2 rounded-full bg-[#febc2e]" />
         <div className="w-2 h-2 rounded-full bg-[#28c840]" />
-        <span className="ml-2 text-[10px] text-white/20 font-mono">meridian · ai agent</span>
+        <span className="ml-2 text-[10px] text-white/20 font-mono">meridian · crm auditor</span>
         <span className="ml-auto text-[9px] text-indigo-400/60 font-mono">
-          {phase === 'researching' ? '⟳ researching…' : phase === 'to-leads' ? '→ fetching lead' : phase === 'to-crm' ? '→ updating CRM' : phase === 'idle' ? '● ready' : '···'}
+          {phase === 'researching'    ? '⟳ auditing record…'
+          : phase === 'to-research'  ? '→ to audit station'
+          : phase === 'to-verified'  ? '→ filing verified record'
+          : phase === 'to-crm'       ? '→ pulling next record'
+          : '● ready'}
         </span>
       </div>
 
       {/* track */}
       <div className="relative px-4 py-5" style={{ height: 88 }}>
-        {/* dashed track line */}
         <div className="absolute left-8 right-8 top-1/2 -translate-y-1/2 border-t border-dashed border-white/[0.08]" />
-
-        {/* station markers */}
-        {[
-          { x: '6%',  label: 'CRM'      },
-          { x: '44%', label: 'Research'  },
-          { x: '82%', label: 'Leads'     },
-        ].map(s => (
-          <div key={s.label} className="absolute top-1/2 -translate-y-1/2 flex flex-col items-center gap-1" style={{ left: s.x }}>
+        {[{ x: '6%' }, { x: '44%' }, { x: '88%' }].map(({ x }, i) => (
+          <div key={i} className="absolute top-1/2 -translate-y-1/2" style={{ left: x }}>
             <div className="w-2 h-2 rounded-full bg-white/15" />
           </div>
         ))}
-
-        {/* agent */}
         <div
           className="absolute top-1/2 -translate-y-[60%] -translate-x-1/2 transition-all"
-          style={{ left: `${agentX}%`, transitionDuration: phase === 'to-leads' || phase === 'to-research' || phase === 'to-crm' ? '850ms' : '300ms', transitionTimingFunction: 'cubic-bezier(0.4,0,0.2,1)' }}
+          style={{
+            left: `${agentX}%`,
+            transitionDuration: ['to-crm','to-research','to-verified'].includes(phase) ? '850ms' : '300ms',
+            transitionTimingFunction: 'cubic-bezier(0.4,0,0.2,1)',
+          }}
         >
-          <AgentBot carrying={isCarrying} enriched={isEnriched} />
+          <AgentBot carrying={carrying} verified={carryVerified} />
         </div>
       </div>
 
       {/* stations */}
       <div className="px-4 pb-5 flex items-start justify-between gap-3">
-        <CrmBase enrichedCount={enrichedCount} />
-        <ResearchStation phase={phase} paraIdx={paraIdx} />
-        <LeadsPile active={phase === 'to-leads' || phase === 'pickup'} leadIdx={leadIdx} />
+        <CrmUnverified active={phase === 'to-crm' || phase === 'pickup'} currentIdx={recordIdx} />
+        <AuditStation phase={phase} paraIdx={paraIdx} />
+        <CrmVerified verifiedCount={verifiedCount} currentIdx={recordIdx} />
       </div>
     </div>
   )
 }
 
-// ── section ─────────────────────────────────────────────────────────────────
+// ── section ──────────────────────────────────────────────────────────────────
 export function CrmPipelineSection() {
   return (
     <section className="relative z-10 py-28 px-6">
       <div className="mx-auto max-w-7xl flex flex-col lg:flex-row items-center gap-16">
 
         <div className="flex-1 max-w-[420px] shrink-0">
-          <p className="text-indigo-400 text-sm font-semibold tracking-widest uppercase mb-4">CRM Intelligence</p>
+          <p className="text-indigo-400 text-sm font-semibold tracking-widest uppercase mb-4">CRM Auditor</p>
           <h2 className="text-5xl xl:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6">
-            Researches every<br />lead. Automatically.
+            Audits your CRM.<br />Verifies every lead.
           </h2>
           <p className="text-white/50 text-lg leading-relaxed mb-8">
-            Meridian's AI agent pulls each lead, finds live signals — funding rounds, job posts, news — then enriches your CRM before it ever hits your inbox.
+            Meridian works through your existing CRM records one by one — re-researching each contact with live signals, verifying fit, and flagging anyone worth re-engaging before you waste a send.
           </p>
           <div className="space-y-3 mb-10">
             {[
-              'Pulls leads from your queue automatically',
-              'Finds live signals: funding, hiring, intent',
-              'Enriches each record before outreach',
-              'Syncs back to HubSpot, Salesforce, and more',
+              'Re-researches every contact with live web signals',
+              'Flags stale records, bad fits, and missed opps',
+              'Scores each lead before it hits your sequence',
+              'Writes back verified data to HubSpot or Salesforce',
             ].map(f => (
               <div key={f} className="flex items-center gap-3 text-white/55 text-[15px]">
                 <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" />

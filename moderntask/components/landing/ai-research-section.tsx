@@ -26,7 +26,6 @@ const ARTICLE_PARAS = [
   "The funding follows a breakout Q4 — 340% ARR growth driven by expansion into the US enterprise segment and a new reseller channel across Northern Europe. The company now serves over 200 revenue teams in 18 countries, up from 60 at the start of the year.",
   "ScaleFlow's platform automates the full outbound loop: prospect sourcing, personalized email generation, follow-up sequencing, and reply routing — all orchestrated by a single AI workflow per campaign, with no manual handoffs between steps.",
   "Investors point to the $14B sales engagement market as the core opportunity, noting that most B2B teams still rely on manual prospecting and generic blast templates that consistently underperform compared to research-backed personalized outreach.",
-  "The company plans to ship calendar integration and native CRM sync in Q2, completing the loop from first outbound touch to booked meeting — fully automated from sourcing to reply, with the human reviewing a finished pipeline rather than building one.",
 ]
 
 const PARA_NOTES: string[] = [
@@ -37,7 +36,6 @@ const PARA_NOTES: string[] = [
   '340% ARR Q4 · 200+ customers · 18 countries',
   '',
   '$14B market · personalization gap confirmed by investors',
-  'Q2: calendar + CRM → full end-to-end automation',
 ]
 
 const WPS = 70
