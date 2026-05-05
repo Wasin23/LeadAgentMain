@@ -280,66 +280,84 @@ export function GlobeCrmSection() {
     g.position.set(0, -3.2, 0)
     scene.add(g)
 
-    // Sphere
+    // Sphere — dark planet, nearly black
     g.add(new THREE.Mesh(
       new THREE.SphereGeometry(R, 80, 80),
-      new THREE.MeshPhongMaterial({ color: 0x020a1e, emissive: 0x050e2a, specular: 0x1a3080, shininess: 40 }),
+      new THREE.MeshPhongMaterial({
+        color:     0x010812,
+        emissive:  0x010306,
+        specular:  0x0a1840,
+        shininess: 6,
+      }),
     ))
 
-    // Atmosphere (back-face glow)
+    // Thin atmosphere edge — barely visible ring glow
     g.add(new THREE.Mesh(
-      new THREE.SphereGeometry(R * 1.055, 64, 64),
-      new THREE.MeshBasicMaterial({ color: 0x1e3fbf, transparent: true, opacity: 0.08, side: THREE.BackSide, blending: THREE.AdditiveBlending }),
+      new THREE.SphereGeometry(R * 1.02, 64, 64),
+      new THREE.MeshBasicMaterial({
+        color: 0x1535aa, transparent: true, opacity: 0.04,
+        side: THREE.BackSide, blending: THREE.AdditiveBlending,
+      }),
     ))
 
-    // Latitude lines — clear and prominent
+    // Latitude lines — prominent, clearly visible
     for (let la = -75; la <= 75; la += 15) {
       const pts: THREE.Vector3[] = []
-      for (let lg = 0; lg <= 360; lg += 2) pts.push(ll2v(la, lg, R + 0.004))
+      for (let lg = 0; lg <= 360; lg += 2) pts.push(ll2v(la, lg, R + 0.005))
       g.add(new THREE.Line(
         new THREE.BufferGeometry().setFromPoints(pts),
-        new THREE.LineBasicMaterial({ color: la === 0 ? 0x4466ee : 0x2d4bbb, transparent: true, opacity: la === 0 ? 0.35 : 0.22 }),
+        new THREE.LineBasicMaterial({
+          color:       la === 0 ? 0x4466dd : 0x2a44aa,
+          transparent: true,
+          opacity:     la === 0 ? 0.55 : 0.32,
+        }),
       ))
     }
-    // Longitude lines — subtle
+    // Longitude lines — subtle meridians
     for (let lg = 0; lg < 360; lg += 20) {
       const pts: THREE.Vector3[] = []
-      for (let la = -90; la <= 90; la += 2) pts.push(ll2v(la, lg, R + 0.004))
+      for (let la = -90; la <= 90; la += 2) pts.push(ll2v(la, lg, R + 0.005))
       g.add(new THREE.Line(
         new THREE.BufferGeometry().setFromPoints(pts),
-        new THREE.LineBasicMaterial({ color: 0x1a2f88, transparent: true, opacity: 0.10 }),
+        new THREE.LineBasicMaterial({ color: 0x162466, transparent: true, opacity: 0.18 }),
       ))
     }
 
     // City dots
-    const cityVecs = CITIES.map(c => ll2v(c.lat, c.lng, R + 0.014))
+    const cityVecs = CITIES.map(c => ll2v(c.lat, c.lng, R + 0.016))
     const dPos = new Float32Array(cityVecs.length * 3)
     cityVecs.forEach((v, i) => { dPos[i*3]=v.x; dPos[i*3+1]=v.y; dPos[i*3+2]=v.z })
     const dotGeo = new THREE.BufferGeometry()
     dotGeo.setAttribute('position', new THREE.BufferAttribute(dPos, 3))
-    g.add(new THREE.Points(dotGeo, new THREE.PointsMaterial({ color: 0x99aaff, size: 0.044, sizeAttenuation: true })))
+    g.add(new THREE.Points(dotGeo, new THREE.PointsMaterial({ color: 0x8899ee, size: 0.048, sizeAttenuation: true })))
 
-    // Source dot (NYC) — glowing sphere
+    // Source dot (NYC)
     const src = cityVecs[0]
     const srcMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(0.052, 10, 10),
-      new THREE.MeshBasicMaterial({ color: 0x5577ff, blending: THREE.AdditiveBlending }),
+      new THREE.SphereGeometry(0.055, 10, 10),
+      new THREE.MeshBasicMaterial({ color: 0x4466ff, blending: THREE.AdditiveBlending }),
     )
     srcMesh.position.copy(src)
     g.add(srcMesh)
 
     // Pulsing ring around source
-    const ringMat = new THREE.MeshBasicMaterial({ color: 0x4466ff, transparent: true, opacity: 0.5, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false })
-    const ring = new THREE.Mesh(new THREE.RingGeometry(0.060, 0.095, 32), ringMat)
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0x3355ee, transparent: true, opacity: 0.45,
+      side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false,
+    })
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.065, 0.100, 32), ringMat)
     ring.position.copy(src)
     ring.lookAt(src.clone().multiplyScalar(3))
     g.add(ring)
 
-    // Lighting
-    scene.add(new THREE.AmbientLight(0x1a2860, 3.5))
-    const sun = new THREE.DirectionalLight(0x3355dd, 2.2)
-    sun.position.set(5, 3, 4)
-    scene.add(sun)
+    // Lighting — subtle, directional to show sphere curvature without glowing
+    scene.add(new THREE.AmbientLight(0x080e28, 1.2))          // near-black ambient
+    const keyLight = new THREE.DirectionalLight(0xffffff, 0.45) // white key from upper-left
+    keyLight.position.set(-4, 3, 3)
+    scene.add(keyLight)
+    const rimLight = new THREE.DirectionalLight(0x1a33cc, 0.35) // blue rim from behind-right
+    rimLight.position.set(4, -1, -4)
+    scene.add(rimLight)
 
     // Arcs
     type Arc = { line: THREE.Line; geo: THREE.BufferGeometry; head: number; tail: number }
@@ -394,32 +412,43 @@ export function GlobeCrmSection() {
     }
     animate(0)
 
+    // Cache section absolute top so scroll math is reliable regardless of overflow parents
+    let sectionTop = 0
+    const cacheSectionTop = () => {
+      const s = sectionRef.current
+      if (!s) return
+      sectionTop = s.getBoundingClientRect().top + window.scrollY
+    }
+    cacheSectionTop()
+
     const onScroll = () => {
       const section = sectionRef.current
       if (!section) return
-      const scrolled = window.scrollY - section.offsetTop
+      const scrolled  = window.scrollY - sectionTop
       const maxScroll = section.offsetHeight - window.innerHeight
       const p = Math.min(Math.max(scrolled / Math.max(maxScroll, 1), 0), 1)
       scrollProg.current = p
-      const show = p > 0.42
+      const show = p > 0.38
       if (show !== crmShown.current) {
         crmShown.current = show
         setShowCrm(show)
       }
     }
     window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('resize', cacheSectionTop)
     window.addEventListener('resize', setSize)
 
     return () => {
       cancelAnimationFrame(raf)
       window.removeEventListener('scroll', onScroll)
       window.removeEventListener('resize', setSize)
+      window.removeEventListener('resize', cacheSectionTop)
       renderer.dispose()
     }
   }, [])
 
   return (
-    <div ref={sectionRef} className="relative z-10" style={{ height: '200vh' }}>
+    <div ref={sectionRef} className="relative z-10" style={{ height: '300vh' }}>
       <style>{`
         @keyframes scanLine { from{transform:scaleX(0)}to{transform:scaleX(1)} }
         @keyframes slideInRight { from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)} }
