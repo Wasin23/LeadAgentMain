@@ -4,72 +4,129 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { CheckCircle2, ArrowRight } from 'lucide-react'
 
-// ── SVG Globe ─────────────────────────────────────────────────────────────
+// ── Canvas Globe ───────────────────────────────────────────────────────────
 function GlobeGraphic() {
-  const lats = [-75, -60, -45, -30, -15, 0, 15, 30, 45, 60, 75]
-  const lngs = Array.from({ length: 12 }, (_, i) => i * 30)
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    let raf: number
+    let t = 0
+
+    const resize = () => {
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+    }
+    resize()
+    window.addEventListener('resize', resize)
+
+    const draw = () => {
+      const W = canvas.width
+      const H = canvas.height
+      t += 0.003
+      ctx.clearRect(0, 0, W, H)
+
+      const cx = W * 0.5
+      const cy = H * 0.5
+      const R = Math.min(W, H) * 0.42
+
+      const TILT = 20 * Math.PI / 180
+      const cosA = Math.cos(TILT)
+      const sinA = Math.sin(TILT)
+      const proj = (x3: number, y3: number): [number, number] => [
+        cx + R * (x3 * cosA - y3 * sinA),
+        cy - R * (x3 * sinA + y3 * cosA),
+      ]
+
+      ctx.save()
+      ctx.beginPath()
+      ctx.arc(cx, cy, R, 0, Math.PI * 2)
+      ctx.clip()
+
+      const body = ctx.createRadialGradient(cx + R * 0.20, cy - R * 0.35, R * 0.05, cx, cy, R)
+      body.addColorStop(0, '#1e4898')
+      body.addColorStop(0.25, '#0e1f6a')
+      body.addColorStop(0.55, '#07133a')
+      body.addColorStop(1, '#010510')
+      ctx.fillStyle = body
+      ctx.fillRect(0, 0, W, H)
+
+      // latitude lines
+      const LAT_COUNT = 13
+      const sinMax = Math.sin(80 * Math.PI / 180)
+      const lats = Array.from({ length: LAT_COUNT }, (_, i) => {
+        const s = -sinMax + (i / (LAT_COUNT - 1)) * 2 * sinMax
+        return Math.asin(s) * 180 / Math.PI
+      })
+      for (const deg of lats) {
+        const lat = (deg * Math.PI) / 180
+        const cosLat = Math.cos(lat)
+        const sinLat = Math.sin(lat)
+        for (let pass = 0; pass < 2; pass++) {
+          const aStart = pass === 0 ? Math.PI / 2 : -Math.PI / 2
+          const aEnd = pass === 0 ? Math.PI * 3 / 2 : Math.PI / 2
+          ctx.beginPath()
+          const steps = 64
+          for (let k = 0; k <= steps; k++) {
+            const alpha = aStart + (aEnd - aStart) * (k / steps)
+            const [sx, sy] = proj(cosLat * Math.sin(alpha), sinLat)
+            k === 0 ? ctx.moveTo(sx, sy) : ctx.lineTo(sx, sy)
+          }
+          ctx.strokeStyle = pass === 0 ? 'rgba(100,150,255,0.07)' : 'rgba(100,150,255,0.25)'
+          ctx.lineWidth = pass === 0 ? 0.7 : 1.0
+          ctx.stroke()
+        }
+      }
+
+      // meridian lines
+      const NUM = 20
+      const SEGS = 80
+      for (let i = 0; i < NUM; i++) {
+        const theta = (i / NUM) * Math.PI * 2 + t
+        const sinT = Math.sin(theta)
+        const cosT = Math.cos(theta)
+        const isFront = cosT > 0
+        const alpha = isFront ? 0.12 + 0.55 * Math.abs(sinT) : 0.03 + 0.06 * Math.abs(sinT)
+        ctx.beginPath()
+        for (let j = 0; j <= SEGS; j++) {
+          const phi = (j / SEGS) * Math.PI - Math.PI / 2
+          const [sx, sy] = proj(Math.cos(phi) * sinT, Math.sin(phi))
+          j === 0 ? ctx.moveTo(sx, sy) : ctx.lineTo(sx, sy)
+        }
+        ctx.strokeStyle = `rgba(100,150,255,${alpha})`
+        ctx.lineWidth = isFront ? 0.8 + 1.0 * Math.abs(sinT) : 0.4
+        ctx.stroke()
+      }
+
+      ctx.restore()
+
+      // atmosphere glow ring
+      const atmo = ctx.createRadialGradient(cx, cy, R * 0.93, cx, cy, R * 1.08)
+      atmo.addColorStop(0, 'rgba(60,100,255,0)')
+      atmo.addColorStop(0.4, 'rgba(80,140,255,0.28)')
+      atmo.addColorStop(1, 'rgba(40,80,255,0)')
+      ctx.beginPath()
+      ctx.arc(cx, cy, R * 1.08, 0, Math.PI * 2)
+      ctx.fillStyle = atmo
+      ctx.fill()
+
+      raf = requestAnimationFrame(draw)
+    }
+    draw()
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('resize', resize)
+    }
+  }, [])
 
   return (
-    <div
-      className="rounded-full absolute"
-      style={{
-        width: '120vw',
-        height: '120vw',
-        left: '50%',
-        top: '50%',
-        transform: 'translate(-50%, -42%)',
-        background: 'radial-gradient(circle at 38% 32%, #0e1f6a 0%, #07133a 28%, #030920 62%, #010510 100%)',
-        boxShadow: '0 0 120px 40px rgba(30,60,200,0.12), inset 0 0 80px rgba(20,50,180,0.08)',
-        border: '1px solid rgba(70,110,255,0.18)',
-        overflow: 'hidden',
-      }}
-    >
-      <svg viewBox="0 0 1000 1000" className="absolute inset-0 w-full h-full">
-        {/* Latitude rings */}
-        {lats.map(lat => {
-          const rad = lat * Math.PI / 180
-          const cy  = 500 - 488 * Math.sin(rad)
-          const rx  = 488 * Math.cos(rad)
-          const ry  = rx * 0.10
-          return (
-            <ellipse
-              key={lat}
-              cx={500} cy={cy} rx={rx} ry={ry}
-              fill="none"
-              stroke={lat === 0 ? 'rgba(80,130,255,0.50)' : 'rgba(60,100,230,0.22)'}
-              strokeWidth={lat === 0 ? 1.5 : 0.9}
-            />
-          )
-        })}
-
-        {/* Longitude meridians */}
-        {lngs.map(lng => (
-          <ellipse
-            key={lng}
-            cx={500} cy={500} rx={35} ry={488}
-            fill="none"
-            stroke="rgba(50,85,210,0.14)"
-            strokeWidth={0.8}
-            transform={`rotate(${lng} 500 500)`}
-          />
-        ))}
-
-        {/* Glowing city dots at major coordinates */}
-        {[
-          [500 - 488 * Math.cos(41 * Math.PI/180) * Math.cos(-74 * Math.PI/180), 500 - 488 * Math.sin(41 * Math.PI/180)], // NYC approx
-          [500 - 488 * Math.cos(51 * Math.PI/180) * Math.cos(0),                500 - 488 * Math.sin(51 * Math.PI/180)],  // London
-          [500 - 488 * Math.cos(49 * Math.PI/180) * Math.cos(2 * Math.PI/180),  500 - 488 * Math.sin(49 * Math.PI/180)],  // Paris
-          [500 - 488 * Math.cos(52 * Math.PI/180) * Math.cos(13 * Math.PI/180), 500 - 488 * Math.sin(52 * Math.PI/180)],  // Berlin
-          [500 - 488 * Math.cos(38 * Math.PI/180) * Math.cos(-77 * Math.PI/180),500 - 488 * Math.sin(38 * Math.PI/180)],  // DC
-          [500 - 488 * Math.cos(34 * Math.PI/180) * Math.cos(-118 * Math.PI/180),500 - 488 * Math.sin(34 * Math.PI/180)], // LA
-        ].map(([cx, cy], i) => (
-          <g key={i}>
-            <circle cx={cx} cy={cy} r={5} fill="rgba(100,150,255,0.9)" />
-            <circle cx={cx} cy={cy} r={10} fill="none" stroke="rgba(100,150,255,0.35)" strokeWidth={1} />
-          </g>
-        ))}
-      </svg>
-    </div>
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 w-full h-full"
+    />
   )
 }
 
