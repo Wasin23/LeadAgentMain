@@ -4,124 +4,6 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { CheckCircle2, ArrowRight } from 'lucide-react'
 
-// ── Canvas Globe ───────────────────────────────────────────────────────────
-function GlobeGraphic() {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    const draw = () => {
-      const W = canvas.width
-      const H = canvas.height
-      ctx.clearRect(0, 0, W, H)
-
-      const cx = W * 0.5
-      const cy = H * 0.5
-      const R = Math.min(W, H) * 0.85
-
-      const TILT = 20 * Math.PI / 180
-      const cosA = Math.cos(TILT)
-      const sinA = Math.sin(TILT)
-      const proj = (x3: number, y3: number): [number, number] => [
-        cx + R * (x3 * cosA - y3 * sinA),
-        cy - R * (x3 * sinA + y3 * cosA),
-      ]
-
-      ctx.save()
-      ctx.beginPath()
-      ctx.arc(cx, cy, R, 0, Math.PI * 2)
-      ctx.clip()
-
-      const body = ctx.createRadialGradient(cx + R * 0.20, cy - R * 0.35, R * 0.05, cx, cy, R)
-      body.addColorStop(0, '#1e4898')
-      body.addColorStop(0.25, '#0e1f6a')
-      body.addColorStop(0.55, '#07133a')
-      body.addColorStop(1, '#010510')
-      ctx.fillStyle = body
-      ctx.fillRect(0, 0, W, H)
-
-      // latitude lines
-      const LAT_COUNT = 13
-      const sinMax = Math.sin(80 * Math.PI / 180)
-      const lats = Array.from({ length: LAT_COUNT }, (_, i) => {
-        const s = -sinMax + (i / (LAT_COUNT - 1)) * 2 * sinMax
-        return Math.asin(s) * 180 / Math.PI
-      })
-      for (const deg of lats) {
-        const lat = (deg * Math.PI) / 180
-        const cosLat = Math.cos(lat)
-        const sinLat = Math.sin(lat)
-        for (let pass = 0; pass < 2; pass++) {
-          const aStart = pass === 0 ? Math.PI / 2 : -Math.PI / 2
-          const aEnd = pass === 0 ? Math.PI * 3 / 2 : Math.PI / 2
-          ctx.beginPath()
-          const steps = 64
-          for (let k = 0; k <= steps; k++) {
-            const alpha = aStart + (aEnd - aStart) * (k / steps)
-            const [sx, sy] = proj(cosLat * Math.sin(alpha), sinLat)
-            k === 0 ? ctx.moveTo(sx, sy) : ctx.lineTo(sx, sy)
-          }
-          ctx.strokeStyle = pass === 0 ? 'rgba(100,150,255,0.07)' : 'rgba(100,150,255,0.25)'
-          ctx.lineWidth = pass === 0 ? 0.7 : 1.0
-          ctx.stroke()
-        }
-      }
-
-      // meridian lines
-      const NUM = 20
-      const SEGS = 80
-      for (let i = 0; i < NUM; i++) {
-        const theta = (i / NUM) * Math.PI * 2
-        const sinT = Math.sin(theta)
-        const cosT = Math.cos(theta)
-        const isFront = cosT > 0
-        const alpha = isFront ? 0.12 + 0.55 * Math.abs(sinT) : 0.03 + 0.06 * Math.abs(sinT)
-        ctx.beginPath()
-        for (let j = 0; j <= SEGS; j++) {
-          const phi = (j / SEGS) * Math.PI - Math.PI / 2
-          const [sx, sy] = proj(Math.cos(phi) * sinT, Math.sin(phi))
-          j === 0 ? ctx.moveTo(sx, sy) : ctx.lineTo(sx, sy)
-        }
-        ctx.strokeStyle = `rgba(100,150,255,${alpha})`
-        ctx.lineWidth = isFront ? 0.8 + 1.0 * Math.abs(sinT) : 0.4
-        ctx.stroke()
-      }
-
-      ctx.restore()
-
-      // atmosphere glow ring
-      const atmo = ctx.createRadialGradient(cx, cy, R * 0.93, cx, cy, R * 1.08)
-      atmo.addColorStop(0, 'rgba(60,100,255,0)')
-      atmo.addColorStop(0.4, 'rgba(80,140,255,0.28)')
-      atmo.addColorStop(1, 'rgba(40,80,255,0)')
-      ctx.beginPath()
-      ctx.arc(cx, cy, R * 1.08, 0, Math.PI * 2)
-      ctx.fillStyle = atmo
-      ctx.fill()
-
-    }
-
-    const resize = () => {
-      canvas.width = window.innerWidth
-      canvas.height = window.innerHeight
-      draw()
-    }
-    resize()
-    window.addEventListener('resize', resize)
-    return () => window.removeEventListener('resize', resize)
-  }, [])
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className="absolute inset-0 w-full h-full"
-    />
-  )
-}
 
 // ── CRM panel ─────────────────────────────────────────────────────────────
 const CONTACTS = [
@@ -302,9 +184,6 @@ export function GlobeCrmSection() {
   return (
     <div ref={sectionRef} className="relative z-10" style={{ height: '380vh' }}>
       <div className="sticky top-0 h-screen">
-
-        {/* The globe — one big circle */}
-        <GlobeGraphic />
 
         {/* Top fade */}
         <div className="absolute top-0 left-0 right-0 h-36 bg-gradient-to-b from-[#03050d] to-transparent pointer-events-none z-10" />
