@@ -7,7 +7,6 @@ import dynamic from "next/dynamic"
 import { useAuth } from "@/contexts/AuthContext"
 import { StarField } from "@/components/landing/star-field"
 import { AiResearchSection } from "@/components/landing/ai-research-section"
-import { GlobeCrmSection } from "@/components/landing/globe-crm-section"
 import { PricingSection } from "@/components/landing/pricing-section"
 import { FooterSection } from "@/components/landing/footer-section"
 
@@ -48,8 +47,7 @@ export function LandingPageClient() {
       <StarField fixed />
       <HorizonHero />
       <AiResearchSection />
-      <GlobeCrmSection />
-      <PricingSection />
+<PricingSection />
       <FooterSection />
     </div>
   )
