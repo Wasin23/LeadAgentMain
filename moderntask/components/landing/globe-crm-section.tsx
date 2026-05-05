@@ -41,9 +41,9 @@ const CRM_UPDATES = [
 ]
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-const R       = 1.8
-const ARC_SEG = 90
-const TAIL    = 30
+const R       = 3.2
+const ARC_SEG = 120
+const TAIL    = 55
 
 function ll2v(lat: number, lng: number, r: number) {
   const phi   = (90 - lat) * (Math.PI / 180)
@@ -261,20 +261,23 @@ export function GlobeCrmSection() {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
     const scene  = new THREE.Scene()
-    const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 100)
-    camera.position.set(0, 0, 4.2)
+    const camera = new THREE.PerspectiveCamera(68, 1, 0.1, 100)
+    camera.position.set(0, 0, 5.8)
     camera.lookAt(0, 0, 0)
 
     const setSize = () => {
-      renderer.setSize(canvas.clientWidth, canvas.clientHeight)
-      camera.aspect = canvas.clientWidth / canvas.clientHeight
+      const w = canvas.clientWidth || window.innerWidth
+      const h = canvas.clientHeight || window.innerHeight
+      renderer.setSize(w, h)
+      camera.aspect = w / h
       camera.updateProjectionMatrix()
     }
-    setSize()
+    // defer one frame so CSS layout resolves
+    requestAnimationFrame(setSize)
 
     // Globe group — y driven by scroll
     const g = new THREE.Group()
-    g.position.set(0, -1.8, 0)
+    g.position.set(0, -3.2, 0)
     scene.add(g)
 
     // Sphere
@@ -314,12 +317,12 @@ export function GlobeCrmSection() {
     cityVecs.forEach((v, i) => { dPos[i*3]=v.x; dPos[i*3+1]=v.y; dPos[i*3+2]=v.z })
     const dotGeo = new THREE.BufferGeometry()
     dotGeo.setAttribute('position', new THREE.BufferAttribute(dPos, 3))
-    g.add(new THREE.Points(dotGeo, new THREE.PointsMaterial({ color: 0x99aaff, size: 0.024, sizeAttenuation: true })))
+    g.add(new THREE.Points(dotGeo, new THREE.PointsMaterial({ color: 0x99aaff, size: 0.044, sizeAttenuation: true })))
 
     // Source dot (NYC) — glowing sphere
     const src = cityVecs[0]
     const srcMesh = new THREE.Mesh(
-      new THREE.SphereGeometry(0.028, 10, 10),
+      new THREE.SphereGeometry(0.052, 10, 10),
       new THREE.MeshBasicMaterial({ color: 0x5577ff, blending: THREE.AdditiveBlending }),
     )
     srcMesh.position.copy(src)
@@ -327,7 +330,7 @@ export function GlobeCrmSection() {
 
     // Pulsing ring around source
     const ringMat = new THREE.MeshBasicMaterial({ color: 0x4466ff, transparent: true, opacity: 0.5, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false })
-    const ring = new THREE.Mesh(new THREE.RingGeometry(0.032, 0.052, 32), ringMat)
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.060, 0.095, 32), ringMat)
     ring.position.copy(src)
     ring.lookAt(src.clone().multiplyScalar(3))
     g.add(ring)
@@ -364,10 +367,10 @@ export function GlobeCrmSection() {
       const p = scrollProg.current
       // First half: globe rises
       const riseP = Math.min(p * 2, 1)
-      g.position.y = -1.8 + riseP * 1.8
+      g.position.y = -3.2 + riseP * 3.2
       // Second half: globe shifts left for CRM panel
       const shiftP = Math.max(0, (p - 0.5) * 2)
-      g.position.x = -shiftP * 0.75
+      g.position.x = -shiftP * 1.1
 
       // Source ring pulse
       const t = now * 0.001
