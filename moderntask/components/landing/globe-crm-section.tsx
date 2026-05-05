@@ -301,7 +301,7 @@ export function GlobeCrmSection() {
 
   return (
     <div ref={sectionRef} className="relative z-10" style={{ height: '380vh' }}>
-      <div className="sticky top-0 h-screen overflow-hidden">
+      <div className="sticky top-0 h-screen">
 
         {/* The globe — one big circle */}
         <GlobeGraphic />
