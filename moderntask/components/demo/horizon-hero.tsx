@@ -26,11 +26,11 @@ export function HorizonHero() {
     return () => { tl.kill(); };
   }, [isReady]);
 
-  const words = ['Meridian', 'runs', '24/7.'];
+  const words = ['Outbound,', 'fully', 'automated.'];
 
   return (
     <div className="relative w-full h-screen flex flex-col items-center justify-center text-center px-6">
-      <h1 ref={titleRef} className="overflow-hidden mb-6">
+      <h1 ref={titleRef} className="overflow-hidden mb-8">
         <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
           {words.map((word, wi) => (
             <span key={wi} className="overflow-hidden inline-block">
@@ -44,13 +44,20 @@ export function HorizonHero() {
         </div>
       </h1>
 
-      <div ref={subtitleRef} className="space-y-2 mb-10">
-        <p className="line text-xl text-white/50 max-w-xl">
-          AI agents that research leads and write personalized emails
-        </p>
-        <p className="line text-xl text-white/50 max-w-xl">
-          — sent from your own inbox, automatically.
-        </p>
+      <div ref={subtitleRef} className="flex flex-wrap justify-center gap-3 mb-10 max-w-2xl">
+        {[
+          'Runs 24/7',
+          'Researches every lead',
+          'Personalizes every email',
+          'Multi-agent workflows',
+          'Sends from your inbox',
+          'Follows up automatically',
+        ].map(item => (
+          <span key={item} className="line inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/10 bg-white/[0.04] text-white/50 text-sm">
+            <span className="w-1 h-1 rounded-full bg-indigo-400 shrink-0" />
+            {item}
+          </span>
+        ))}
       </div>
 
       <div className="flex gap-4">
