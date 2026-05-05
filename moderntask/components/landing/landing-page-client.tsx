@@ -7,6 +7,7 @@ import dynamic from "next/dynamic"
 import { useAuth } from "@/contexts/AuthContext"
 import { Button } from "@/components/ui/button"
 import { StarField } from "@/components/landing/star-field"
+import { AiResearchSection } from "@/components/landing/ai-research-section"
 
 const HorizonHero = dynamic(
   () => import("@/components/demo/horizon-hero").then((m) => ({ default: m.HorizonHero })),
@@ -65,7 +66,7 @@ export function LandingPageClient() {
 
       <StarField fixed />
       <HorizonHero />
-      <div className="relative z-10 min-h-screen" />
+      <AiResearchSection />
     </div>
   )
 }
