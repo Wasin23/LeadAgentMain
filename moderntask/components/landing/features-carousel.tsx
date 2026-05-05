@@ -6,22 +6,8 @@ export function FeaturesCarousel({ children, labels = [] }: { children: ReactNod
   const steps = Children.toArray(children)
   const total = steps.length
   const [step, setStep] = useState(0)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const isInView = useRef(false)
   const throttleRef = useRef(0)
   const touchStartY = useRef(0)
-
-  // track whether this section is in viewport
-  useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-    const obs = new IntersectionObserver(
-      ([e]) => { isInView.current = e.intersectionRatio >= 0.6 },
-      { threshold: 0.6 }
-    )
-    obs.observe(el)
-    return () => obs.disconnect()
-  }, [])
 
   const advance = useCallback((dir: 1 | -1) => {
     const now = Date.now()
@@ -30,19 +16,15 @@ export function FeaturesCarousel({ children, labels = [] }: { children: ReactNod
     setStep(s => Math.max(0, Math.min(total - 1, s + dir)))
   }, [total])
 
-  // wheel interception
+  // wheel — always intercept since this is the whole page
   useEffect(() => {
     const onWheel = (e: WheelEvent) => {
-      if (!isInView.current) return
-      const next = step + (e.deltaY > 0 ? 1 : -1)
-      // if scrolling past bounds, let page scroll naturally
-      if (next < 0 || next >= total) return
       e.preventDefault()
       advance(e.deltaY > 0 ? 1 : -1)
     }
     window.addEventListener('wheel', onWheel, { passive: false })
     return () => window.removeEventListener('wheel', onWheel)
-  }, [advance, step, total])
+  }, [advance])
 
   // touch swipe
   const onTouchStart = (e: React.TouchEvent) => {
@@ -56,7 +38,6 @@ export function FeaturesCarousel({ children, labels = [] }: { children: ReactNod
   // keyboard
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (!isInView.current) return
       if (e.key === 'ArrowDown') advance(1)
       if (e.key === 'ArrowUp') advance(-1)
     }
@@ -66,7 +47,6 @@ export function FeaturesCarousel({ children, labels = [] }: { children: ReactNod
 
   return (
     <div
-      ref={containerRef}
       className="relative h-screen overflow-hidden"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}

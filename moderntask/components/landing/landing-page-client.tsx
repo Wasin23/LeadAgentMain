@@ -26,7 +26,7 @@ export function LandingPageClient() {
   }, [router, user])
 
   return (
-    <div className="text-foreground overflow-x-hidden">
+    <div className="text-foreground overflow-hidden h-screen">
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 px-6 py-4 backdrop-blur bg-black/40 sm:px-10">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-2.5">
