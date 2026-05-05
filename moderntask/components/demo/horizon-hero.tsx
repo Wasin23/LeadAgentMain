@@ -45,7 +45,7 @@ export function HorizonHero() {
 
     // Scene
     refs.scene = new THREE.Scene();
-    refs.scene.fog = new THREE.FogExp2(0x000000, 0.00025);
+    refs.scene.fog = new THREE.FogExp2(0x03050d, 0.00025);
 
     refs.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
     refs.camera.position.set(0, 20, 100);
@@ -261,7 +261,7 @@ export function HorizonHero() {
   const words = ['Meridian', 'runs', '24/7.'];
 
   return (
-    <div ref={containerRef} className="relative w-full h-screen overflow-hidden bg-black">
+    <div ref={containerRef} className="relative w-full h-screen overflow-hidden bg-[#03050d]">
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
 
       {/* Overlay gradient */}
@@ -300,7 +300,7 @@ export function HorizonHero() {
             Start free <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </Link>
           <button className="px-8 py-4 border border-white/20 hover:border-white/50 text-white rounded-xl font-semibold text-lg transition-all hover:scale-105 backdrop-blur-sm bg-white/5">
-            See demo
+            Learn More
           </button>
         </div>
       </div>

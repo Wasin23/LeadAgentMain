@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 
 const HorizonHero = dynamic(
   () => import("@/components/demo/horizon-hero").then((m) => ({ default: m.HorizonHero })),
-  { ssr: false, loading: () => <div className="h-screen w-full bg-black" /> }
+  { ssr: false, loading: () => <div className="h-screen w-full bg-[#03050d]" /> }
 )
 import {
   ArrowRight,
