@@ -18,7 +18,7 @@ import {
 import { CSS } from "@dnd-kit/utilities"
 
 interface NavItem {
-  icon: React.ElementType
+  icon: React.ComponentType<{ className?: string }>
   label: string
   href: string
   badge?: string

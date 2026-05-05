@@ -3,8 +3,14 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import dynamic from "next/dynamic"
 import { useAuth } from "@/contexts/AuthContext"
 import { Button } from "@/components/ui/button"
+
+const HorizonHero = dynamic(
+  () => import("@/components/demo/horizon-hero").then((m) => ({ default: m.HorizonHero })),
+  { ssr: false, loading: () => <div className="h-screen w-full bg-black" /> }
+)
 import {
   ArrowRight,
   BarChart3,
@@ -207,6 +213,7 @@ export function LandingPageClient() {
   const { user } = useAuth()
   const router = useRouter()
   const [activeEmail, setActiveEmail] = useState(0)
+  const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -214,12 +221,21 @@ export function LandingPageClient() {
     }
   }, [router, user])
 
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 60)
+    window.addEventListener("scroll", onScroll, { passive: true })
+    return () => window.removeEventListener("scroll", onScroll)
+  }, [])
+
   return (
-    <div className="min-h-screen overflow-hidden bg-background text-foreground">
-      <nav className="sticky top-0 z-50 border-b border-border bg-background/95 px-6 py-4 backdrop-blur sm:px-10">
+    <div className="text-foreground">
+      {/* Nav — fixed, transparent over dark hero, solid once scrolled */}
+      <nav className={`fixed top-0 left-0 right-0 z-50 border-b px-6 py-4 backdrop-blur transition-all duration-300 sm:px-10 ${
+        scrolled ? "border-border bg-background/95" : "border-white/10 bg-black/30"
+      }`}>
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-2.5">
-            <svg width="28" height="28" viewBox="0 0 48 48" fill="none" className="text-foreground">
+            <svg width="28" height="28" viewBox="0 0 48 48" fill="none" className={scrolled ? "text-foreground" : "text-white"}>
               <ellipse cx="24" cy="24" rx="6" ry="20" stroke="currentColor" strokeWidth="1.5" />
               <ellipse cx="24" cy="24" rx="14" ry="20" stroke="currentColor" strokeWidth="1.5" />
               <ellipse cx="24" cy="24" rx="20" ry="20" stroke="currentColor" strokeWidth="1.5" />
@@ -227,26 +243,37 @@ export function LandingPageClient() {
               <ellipse cx="24" cy="24" rx="20" ry="16" stroke="currentColor" strokeWidth="1.5" />
               <line x1="4" y1="24" x2="44" y2="24" stroke="currentColor" strokeWidth="1.5" />
             </svg>
-            <span className="text-lg font-bold tracking-tight">Meridian</span>
+            <span className={`text-lg font-bold tracking-tight ${scrolled ? "text-foreground" : "text-white"}`}>Meridian</span>
           </Link>
 
-          <div className="hidden items-center gap-6 text-sm text-muted-foreground sm:flex">
-            <button onClick={() => document.getElementById("how")?.scrollIntoView({ behavior: "smooth" })} className="transition-colors hover:text-foreground">How it works</button>
-            <button onClick={() => document.getElementById("emails")?.scrollIntoView({ behavior: "smooth" })} className="transition-colors hover:text-foreground">Examples</button>
-            <button onClick={() => document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" })} className="transition-colors hover:text-foreground">Pricing</button>
-            <button onClick={() => document.getElementById("faq")?.scrollIntoView({ behavior: "smooth" })} className="transition-colors hover:text-foreground">FAQ</button>
+          <div className={`hidden items-center gap-6 text-sm sm:flex ${scrolled ? "text-muted-foreground" : "text-white/70"}`}>
+            <button onClick={() => document.getElementById("how")?.scrollIntoView({ behavior: "smooth" })} className={`transition-colors ${scrolled ? "hover:text-foreground" : "hover:text-white"}`}>How it works</button>
+            <button onClick={() => document.getElementById("emails")?.scrollIntoView({ behavior: "smooth" })} className={`transition-colors ${scrolled ? "hover:text-foreground" : "hover:text-white"}`}>Examples</button>
+            <button onClick={() => document.getElementById("pricing")?.scrollIntoView({ behavior: "smooth" })} className={`transition-colors ${scrolled ? "hover:text-foreground" : "hover:text-white"}`}>Pricing</button>
+            <button onClick={() => document.getElementById("faq")?.scrollIntoView({ behavior: "smooth" })} className={`transition-colors ${scrolled ? "hover:text-foreground" : "hover:text-white"}`}>FAQ</button>
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/signin">Sign In</Link>
-            </Button>
-            <Button size="sm" asChild>
-              <Link href="/signin">Start Free</Link>
-            </Button>
+            {scrolled ? (
+              <>
+                <Button variant="ghost" size="sm" asChild><Link href="/signin">Sign In</Link></Button>
+                <Button size="sm" asChild><Link href="/signin">Start Free</Link></Button>
+              </>
+            ) : (
+              <>
+                <Link href="/signin" className="px-4 py-1.5 text-sm text-white/80 hover:text-white transition-colors">Sign In</Link>
+                <Link href="/signin" className="px-4 py-1.5 text-sm font-medium bg-white text-black rounded-lg hover:bg-white/90 transition-colors">Start Free</Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
+
+      {/* Full-screen dark hero */}
+      <HorizonHero />
+
+      {/* Light-mode landing content */}
+      <div className="min-h-screen overflow-hidden bg-background">
 
       <section className="relative px-6 py-18 sm:px-10 sm:py-24">
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(7,89,133,0.16),transparent_32%),radial-gradient(circle_at_80%_18%,rgba(16,185,129,0.14),transparent_28%),linear-gradient(180deg,rgba(250,250,249,1),rgba(248,250,252,1))]" />
@@ -789,6 +816,7 @@ export function LandingPageClient() {
           <Link href="/terms" className="transition-colors hover:text-foreground">Terms</Link>
         </div>
       </footer>
+      </div>{/* end bg-background wrapper */}
     </div>
   )
 }

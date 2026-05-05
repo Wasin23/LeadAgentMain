@@ -302,9 +302,9 @@ export function AnalyticsContent() {
     // ── Summary ─────────────────────────────────────────────────────────
     rows.push('SUMMARY')
     rows.push(['Metric', 'Value'].map(q).join(','))
-    rows.push([q('Queued Emails'),    q(totals.queued)].join(','))
-    rows.push([q('Emails Sent'),      q(totals.sent)].join(','))
-    rows.push([q('Replies Received'), q(totals.replied)].join(','))
+    rows.push([q('Queued Emails'),    q(String(totals.queued))].join(','))
+    rows.push([q('Emails Sent'),      q(String(totals.sent))].join(','))
+    rows.push([q('Replies Received'), q(String(totals.replied))].join(','))
     rows.push([q('Reply Rate'),       q(totals.replyRate + '%')].join(','))
     if (creditBalance !== null)
       rows.push([q('Credit Balance'), q(String(creditBalance))].join(','))
@@ -314,7 +314,7 @@ export function AnalyticsContent() {
     rows.push('AGENT PERFORMANCE')
     rows.push(['Agent', 'Queued', 'Sent', 'Replied', 'Reply Rate'].map(q).join(','))
     agents.forEach(a => {
-      rows.push([q(a.name), q(a.queued), q(a.sent), q(a.replied), q(a.replyRate + '%')].join(','))
+      rows.push([q(a.name), q(String(a.queued)), q(String(a.sent)), q(String(a.replied)), q(a.replyRate + '%')].join(','))
     })
     rows.push('')
 

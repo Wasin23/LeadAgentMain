@@ -169,7 +169,7 @@ export function ScrollGlobe() {
       {SECTIONS.map((section, i) => (
         <section
           key={section.id}
-          ref={(el) => { sectionRefs.current[i] = el; }}
+          ref={(el) => { sectionRefs.current[i] = el as HTMLDivElement | null; }}
           className={cn(
             'relative min-h-screen flex flex-col justify-center px-8 md:px-16 z-20 py-20',
             section.align === 'center' && 'items-center text-center',

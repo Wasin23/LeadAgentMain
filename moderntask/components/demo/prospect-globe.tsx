@@ -217,14 +217,19 @@ export function ProspectGlobe() {
       ctx.arc(GCX, GCY, GR, 0, Math.PI * 2)
       ctx.clip()
 
-      // Globe body
-      const gb = ctx.createRadialGradient(GCX + GR * 0.22, GCY + GR * 0.18, GR * 0.04, GCX, GCY, GR)
-      gb.addColorStop(0,   '#1b3f8e')
-      gb.addColorStop(0.22,'#0e2560')
-      gb.addColorStop(0.58,'#07143d')
-      gb.addColorStop(1,   '#02070f')
+      // Globe body — solid base so visible portion is never blended into background
+      ctx.fillStyle = '#061428'
+      ctx.fillRect(0, 0, W, H)
+
+      // Surface sheen from upper-left of visible area
+      const hx = GCX - GR * 0.28
+      const hy = Math.max(H * 0.05, GCY + GR * 0.12)
+      const gb = ctx.createRadialGradient(hx, hy, 0, hx, hy, GR * 1.15)
+      gb.addColorStop(0,   'rgba(55, 100, 245, 0.52)')
+      gb.addColorStop(0.38,'rgba(20, 55, 165, 0.24)')
+      gb.addColorStop(1,   'rgba(0, 5, 20, 0)')
       ctx.fillStyle = gb
-      ctx.fillRect(GCX - GR - 1, GCY - GR - 1, GR * 2 + 2, GR * 2 + 2)
+      ctx.fillRect(0, 0, W, H)
 
       // Latitude lines
       const LATS = [-60,-45,-30,-15,0,15,30,45,60]
@@ -236,8 +241,8 @@ export function ProspectGlobe() {
           const a = (k / 80) * Math.PI * 2
           ctx.lineTo(GCX + GR * cL * Math.cos(a), GCY + GR * sL + GR * cL * Math.sin(a) * 0.22)
         }
-        ctx.strokeStyle = 'rgba(110,160,255,0.10)'
-        ctx.lineWidth = 0.6
+        ctx.strokeStyle = 'rgba(110,160,255,0.16)'
+        ctx.lineWidth = 0.7
         ctx.stroke()
       })
 
@@ -247,7 +252,7 @@ export function ProspectGlobe() {
         const theta = (i / 20) * Math.PI * 2 + t * ROT_SPEED
         const sT = Math.sin(theta), cT = Math.cos(theta)
         const front = cT > 0
-        const a = front ? 0.05 + 0.20 * Math.abs(sT) : 0.01 + 0.025 * Math.abs(sT)
+        const a = front ? 0.08 + 0.28 * Math.abs(sT) : 0.02 + 0.04 * Math.abs(sT)
         ctx.beginPath()
         for (let j = 0; j <= 64; j++) {
           const phi = (j / 64) * Math.PI * 2

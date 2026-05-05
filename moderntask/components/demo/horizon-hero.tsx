@@ -162,7 +162,7 @@ export function HorizonHero() {
       const mesh = new THREE.Mesh(geo, mat);
       mesh.position.z = z;
       mesh.userData = { baseZ: z, index: i };
-      refs.scene.add(mesh);
+      refs.scene!.add(mesh);
       refs.mountains.push(mesh);
     });
     refs.locations = refs.mountains.map(m => m.position.z);
