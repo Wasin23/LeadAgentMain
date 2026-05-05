@@ -150,6 +150,18 @@ const STATUS_LABELS: Record<Phase, string> = {
 
 const TABS: Phase[] = ['profile', 'database', 'linkedin', 'websearch', 'article', 'email', 'report', 'crm']
 
+const PHASE_BG: Record<Phase, string> = {
+  profile:  '#07091c',
+  database: '#0e0e10',
+  linkedin: '#1b1f23',
+  websearch:'#202124',
+  article:  '#07091c',
+  email:    '#1c1c1c',
+  report:   '#07091c',
+  crm:      '#0d0d0f',
+  done:     '#1c1c1c',
+}
+
 export function AiResearchSection() {
   const [phase, setPhase]               = useState<Phase>('profile')
   const [profileItems, setProfileItems] = useState(0)
@@ -226,11 +238,8 @@ export function AiResearchSection() {
       }
       await sleep(300); if (!alive.current) return
       setSubStep(1)
-      for (let i = 1; i <= SEARCH_RESULTS.length; i++) {
-        if (!alive.current) return
-        setWebResults(i); await sleep(380)
-      }
-      setSubStep(2); await sleep(500); if (!alive.current) return
+      await sleep(300); if (!alive.current) return
+      setSubStep(2); await sleep(900); if (!alive.current) return
 
       setPhase('article'); setArtPara(0); setNotesList([])
       for (let i = 0; i < ARTICLE_PARAS.length; i++) {
@@ -353,10 +362,10 @@ export function AiResearchSection() {
             </div>
 
             {/* Content */}
-            <div className={showSplit ? 'flex h-[560px]' : 'min-h-[480px] overflow-y-auto'}>
+            <div className={showSplit ? 'flex h-[520px]' : 'h-[520px]'} style={{ background: PHASE_BG[phase] }}>
               <div
                 ref={articleScrollRef}
-                className={`overflow-y-auto ${showSplit ? 'flex-1 border-r border-white/[0.06]' : 'w-full'}`}
+                className={`overflow-y-auto ${showSplit ? 'flex-1 border-r border-white/[0.06]' : 'w-full h-full'}`}
               >
 
                 {/* ── YOUR PROFILE ── */}
@@ -580,7 +589,7 @@ export function AiResearchSection() {
 
                 {/* ── GOOGLE SEARCH ── */}
                 {phase === 'websearch' && (
-                  <div className="p-5" style={{ background: '#202124' }}>
+                  <div className="p-5 min-h-full" style={{ background: '#202124' }}>
                     {/* Google logo */}
                     <div className="flex justify-center mb-5">
                       <span className="text-[30px] font-bold" style={{ fontFamily: 'arial, sans-serif', letterSpacing: '-0.5px' }}>
@@ -622,7 +631,7 @@ export function AiResearchSection() {
 
                     {subStep >= 1 && (
                       <div className="space-y-5 px-1">
-                        {SEARCH_RESULTS.slice(0, webResults).map((r, i) => (
+                        {SEARCH_RESULTS.map((r, i) => (
                           <div key={i} className={`slide-up rounded-lg p-2.5 transition-all ${subStep >= 2 && r.hi ? 'ring-1' : ''}`} style={subStep >= 2 && r.hi ? { background: 'rgba(138,180,248,0.06)', ring: '1px solid rgba(138,180,248,0.2)' } : {}}>
                             <div className="flex items-center gap-2 mb-1.5">
                               <div className="w-4 h-4 rounded-sm flex items-center justify-center text-[7px] font-black shrink-0" style={{ background: '#303134', color: '#bdc1c6' }}>
