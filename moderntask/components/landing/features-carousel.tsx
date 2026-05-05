@@ -53,6 +53,13 @@ export function FeaturesCarousel({ children, labels = [] }: { children: ReactNod
     return () => window.removeEventListener('keydown', onKey)
   }, [advance])
 
+  // external advance trigger (e.g. "Learn More" button in hero)
+  useEffect(() => {
+    const onAdvance = () => advance(1)
+    window.addEventListener('carousel-advance', onAdvance)
+    return () => window.removeEventListener('carousel-advance', onAdvance)
+  }, [advance])
+
   return (
     <div
       className="relative h-screen overflow-hidden"

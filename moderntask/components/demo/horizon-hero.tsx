@@ -53,7 +53,10 @@ export function HorizonHero() {
         <Link href="/signin" className="group flex items-center gap-2 px-8 py-4 bg-white text-black rounded-xl font-bold text-lg hover:bg-white/90 transition-all hover:scale-105">
           Start free <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
         </Link>
-        <button className="px-8 py-4 border border-white/20 hover:border-white/50 text-white rounded-xl font-semibold text-lg transition-all hover:scale-105 backdrop-blur-sm bg-white/5">
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('carousel-advance'))}
+          className="px-8 py-4 border border-white/20 hover:border-white/50 text-white rounded-xl font-semibold text-lg transition-all hover:scale-105 backdrop-blur-sm bg-white/5"
+        >
           Learn More
         </button>
       </div>
