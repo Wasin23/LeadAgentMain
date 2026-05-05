@@ -74,6 +74,23 @@ export function FeaturesCarousel({ children, labels = [] }: { children: ReactNod
         ))}
       </div>
 
+      {/* top-center tab nav */}
+      <div className="absolute top-[72px] left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 px-2 py-1.5 rounded-full border border-white/[0.08] bg-black/30 backdrop-blur-md">
+        {labels.map((label, i) => label ? (
+          <button
+            key={i}
+            onClick={() => setStep(i)}
+            className={`px-3.5 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
+              i === step
+                ? 'bg-indigo-500/25 text-indigo-300 border border-indigo-500/30'
+                : 'text-white/35 hover:text-white/65 border border-transparent'
+            }`}
+          >
+            {label}
+          </button>
+        ) : null)}
+      </div>
+
       {/* right-side nav dots */}
       <div className="absolute right-6 top-1/2 -translate-y-1/2 z-30 flex flex-col items-center gap-3">
         {steps.map((_, i) => (

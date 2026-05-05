@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 import { StarField } from "@/components/landing/star-field"
 import { HorizonHero } from "@/components/demo/horizon-hero"
+import { AgentSection } from "@/components/landing/agent-section"
 import { AiResearchSection } from "@/components/landing/ai-research-section"
 import { OutreachSection } from "@/components/landing/outreach-section"
 import { CrmPipelineSection } from "@/components/landing/crm-pipeline-section"
@@ -43,8 +44,9 @@ export function LandingPageClient() {
       </nav>
 
       <StarField fixed />
-      <FeaturesCarousel labels={['', 'AI Research', 'Outreach', 'CRM Auditor', 'Pricing', '']}>
+      <FeaturesCarousel labels={['', 'Agents', 'AI Research', 'Outreach', 'CRM Auditor', 'Pricing', '']}>
         <HorizonHero />
+        <AgentSection />
         <AiResearchSection />
         <OutreachSection />
         <CrmPipelineSection />
