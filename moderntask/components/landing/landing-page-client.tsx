@@ -63,12 +63,9 @@ export function LandingPageClient() {
         </div>
       </nav>
 
+      <StarField fixed />
       <HorizonHero />
-
-      <div className="relative bg-[#03050d]">
-        <StarField />
-        <div className="relative z-10 min-h-screen" />
-      </div>
+      <div className="relative z-10 min-h-screen" />
     </div>
   )
 }
