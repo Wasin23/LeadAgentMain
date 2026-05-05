@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
 import { useAuth } from "@/contexts/AuthContext"
 import { Button } from "@/components/ui/button"
+import { StarField } from "@/components/landing/star-field"
 
 const HorizonHero = dynamic(
   () => import("@/components/demo/horizon-hero").then((m) => ({ default: m.HorizonHero })),
@@ -62,6 +63,11 @@ export function LandingPageClient() {
       </nav>
 
       <HorizonHero />
+
+      <div className="relative bg-[#03050d]">
+        <StarField />
+        <div className="relative z-10 min-h-screen" />
+      </div>
     </div>
   )
 }
