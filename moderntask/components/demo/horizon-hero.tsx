@@ -9,20 +9,6 @@ import { ArrowRight } from 'lucide-react';
 
 gsap.registerPlugin(ScrollTrigger);
 
-type ThreeRefs = {
-  scene: THREE.Scene | null;
-  camera: THREE.PerspectiveCamera | null;
-  renderer: THREE.WebGLRenderer | null;
-  stars: THREE.Points[];
-  nebula: THREE.Mesh | null;
-  mountains: THREE.Mesh[];
-  animationId: number | null;
-  targetCameraX: number;
-  targetCameraY: number;
-  targetCameraZ: number;
-  locations: number[];
-};
-
 export function HorizonHero() {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -30,33 +16,25 @@ export function HorizonHero() {
   const subtitleRef = useRef<HTMLDivElement>(null);
   const [isReady, setIsReady] = useState(false);
 
-  const smoothCameraPos = useRef({ x: 0, y: 30, z: 100 });
-  const threeRefs = useRef<ThreeRefs>({
-    scene: null, camera: null, renderer: null,
-    stars: [], nebula: null, mountains: [],
-    animationId: null,
-    targetCameraX: 0, targetCameraY: 30, targetCameraZ: 100,
-    locations: [],
-  });
+  const smoothCameraPos = useRef({ x: 0, y: 30, z: 300 });
+  const targetCamera = useRef({ x: 0, y: 30, z: 300 });
 
   useEffect(() => {
-    const refs = threeRefs.current;
     if (!canvasRef.current) return;
 
-    // Scene
-    refs.scene = new THREE.Scene();
-    refs.scene.fog = new THREE.FogExp2(0x03050d, 0.00025);
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x03050d, 0.00025);
 
-    refs.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
-    refs.camera.position.set(0, 20, 100);
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+    camera.position.set(0, 30, 300);
 
-    refs.renderer = new THREE.WebGLRenderer({ canvas: canvasRef.current, antialias: true, alpha: true });
-    refs.renderer.setSize(window.innerWidth, window.innerHeight);
-    refs.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    refs.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    refs.renderer.toneMappingExposure = 0.6;
+    const renderer = new THREE.WebGLRenderer({ canvas: canvasRef.current, antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 0.6;
 
-    // Stars
+    const starLayers: THREE.Points[] = [];
     for (let i = 0; i < 3; i++) {
       const count = 4000;
       const geo = new THREE.BufferGeometry();
@@ -67,20 +45,20 @@ export function HorizonHero() {
         const r = 200 + Math.random() * 800;
         const theta = Math.random() * Math.PI * 2;
         const phi = Math.acos(Math.random() * 2 - 1);
-        pos[j * 3] = r * Math.sin(phi) * Math.cos(theta);
+        pos[j * 3]     = r * Math.sin(phi) * Math.cos(theta);
         pos[j * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
         pos[j * 3 + 2] = r * Math.cos(phi);
         const c = new THREE.Color();
         const rnd = Math.random();
-        if (rnd < 0.7) c.setHSL(0, 0, 0.8 + Math.random() * 0.2);
-        else if (rnd < 0.85) c.setHSL(0.67, 0.6, 0.75); // blue-ish
-        else c.setHSL(0.8, 0.5, 0.75); // purple-ish
+        if (rnd < 0.7)       c.setHSL(0, 0, 0.8 + Math.random() * 0.2);
+        else if (rnd < 0.85) c.setHSL(0.67, 0.6, 0.75);
+        else                 c.setHSL(0.8,  0.5, 0.75);
         col[j * 3] = c.r; col[j * 3 + 1] = c.g; col[j * 3 + 2] = c.b;
         sizes[j] = Math.random() * 2 + 0.5;
       }
       geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-      geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-      geo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+      geo.setAttribute('color',    new THREE.BufferAttribute(col, 3));
+      geo.setAttribute('size',     new THREE.BufferAttribute(sizes, 1));
       const mat = new THREE.ShaderMaterial({
         uniforms: { time: { value: 0 }, depth: { value: i } },
         vertexShader: `
@@ -105,16 +83,15 @@ export function HorizonHero() {
           }`,
         transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
       });
-      const stars = new THREE.Points(geo, mat);
-      refs.scene.add(stars);
-      refs.stars.push(stars);
+      const points = new THREE.Points(geo, mat);
+      scene.add(points);
+      starLayers.push(points);
     }
 
-    // Nebula plane
     const nebGeo = new THREE.PlaneGeometry(6000, 3000, 60, 60);
     const nebMat = new THREE.ShaderMaterial({
       uniforms: {
-        time: { value: 0 },
+        time:   { value: 0 },
         color1: { value: new THREE.Color(0x1a0066) },
         color2: { value: new THREE.Color(0x4400aa) },
       },
@@ -137,92 +114,54 @@ export function HorizonHero() {
         }`,
       transparent: true, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false,
     });
-    refs.nebula = new THREE.Mesh(nebGeo, nebMat);
-    refs.nebula.position.z = -800;
-    refs.scene.add(refs.nebula);
+    const nebula = new THREE.Mesh(nebGeo, nebMat);
+    nebula.position.z = -800;
+    scene.add(nebula);
 
-    // Mountains
-    const layers = [
-      { z: -50, h: 55, color: 0x0d0d1e },
-      { z: -100, h: 75, color: 0x0a0a2a },
-      { z: -150, h: 95, color: 0x07083a },
-      { z: -200, h: 115, color: 0x050540 },
-    ];
-    layers.forEach(({ z, h, color }, i) => {
-      const pts: THREE.Vector2[] = [];
-      for (let k = 0; k <= 60; k++) {
-        const x = (k / 60 - 0.5) * 1200;
-        const y = Math.sin(k * 0.12) * h + Math.sin(k * 0.06) * h * 0.5 - 90;
-        pts.push(new THREE.Vector2(x, y));
-      }
-      pts.push(new THREE.Vector2(6000, -400), new THREE.Vector2(-6000, -400));
-      const shape = new THREE.Shape(pts);
-      const geo = new THREE.ShapeGeometry(shape);
-      const mat = new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide });
-      const mesh = new THREE.Mesh(geo, mat);
-      mesh.position.z = z;
-      mesh.userData = { baseZ: z, index: i };
-      refs.scene!.add(mesh);
-      refs.mountains.push(mesh);
-    });
-    refs.locations = refs.mountains.map(m => m.position.z);
-
-    // Animate
+    let animId: number;
     const animate = () => {
-      refs.animationId = requestAnimationFrame(animate);
+      animId = requestAnimationFrame(animate);
       const t = Date.now() * 0.001;
-      refs.stars.forEach(s => { (s.material as THREE.ShaderMaterial).uniforms.time.value = t; });
-      if (refs.nebula) (refs.nebula.material as THREE.ShaderMaterial).uniforms.time.value = t * 0.4;
+      starLayers.forEach(s => { (s.material as THREE.ShaderMaterial).uniforms.time.value = t; });
+      (nebMat as THREE.ShaderMaterial).uniforms.time.value = t * 0.4;
 
-      if (refs.camera) {
-        const sf = 0.05;
-        smoothCameraPos.current.x += (refs.targetCameraX - smoothCameraPos.current.x) * sf;
-        smoothCameraPos.current.y += (refs.targetCameraY - smoothCameraPos.current.y) * sf;
-        smoothCameraPos.current.z += (refs.targetCameraZ - smoothCameraPos.current.z) * sf;
-        refs.camera.position.set(
-          smoothCameraPos.current.x + Math.sin(t * 0.1) * 2,
-          smoothCameraPos.current.y + Math.cos(t * 0.15) * 1,
-          smoothCameraPos.current.z,
-        );
-        refs.camera.lookAt(0, 10, -400);
-      }
+      const sf = 0.05;
+      smoothCameraPos.current.x += (targetCamera.current.x - smoothCameraPos.current.x) * sf;
+      smoothCameraPos.current.y += (targetCamera.current.y - smoothCameraPos.current.y) * sf;
+      smoothCameraPos.current.z += (targetCamera.current.z - smoothCameraPos.current.z) * sf;
 
-      refs.mountains.forEach((m, i) => {
-        m.position.x = Math.sin(t * 0.08) * (1 + i * 0.4);
-        m.position.y = 50 + Math.cos(t * 0.12) * (0.8 + i * 0.3);
-      });
-
-      refs.renderer?.render(refs.scene!, refs.camera!);
+      camera.position.set(
+        smoothCameraPos.current.x + Math.sin(t * 0.1) * 2,
+        smoothCameraPos.current.y + Math.cos(t * 0.15) * 1,
+        smoothCameraPos.current.z,
+      );
+      camera.lookAt(0, 10, -400);
+      renderer.render(scene, camera);
     };
     animate();
     setIsReady(true);
 
     const handleResize = () => {
-      if (!refs.camera || !refs.renderer) return;
-      refs.camera.aspect = window.innerWidth / window.innerHeight;
-      refs.camera.updateProjectionMatrix();
-      refs.renderer.setSize(window.innerWidth, window.innerHeight);
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
     };
     window.addEventListener('resize', handleResize);
 
     return () => {
-      if (refs.animationId) cancelAnimationFrame(refs.animationId);
+      cancelAnimationFrame(animId);
       window.removeEventListener('resize', handleResize);
-      refs.stars.forEach(s => { s.geometry.dispose(); (s.material as THREE.Material).dispose(); });
-      refs.mountains.forEach(m => { m.geometry.dispose(); (m.material as THREE.Material).dispose(); });
-      if (refs.nebula) { refs.nebula.geometry.dispose(); (refs.nebula.material as THREE.Material).dispose(); }
-      refs.renderer?.dispose();
+      starLayers.forEach(s => { s.geometry.dispose(); (s.material as THREE.Material).dispose(); });
+      nebGeo.dispose(); nebMat.dispose();
+      renderer.dispose();
     };
   }, []);
 
-  // Scroll → camera
   useEffect(() => {
     const handleScroll = () => {
-      const refs = threeRefs.current;
       const scrollY = window.scrollY;
       const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
       const progress = Math.min(scrollY / Math.max(maxScroll, 1), 1);
-
       const positions = [
         { x: 0, y: 30, z: 300 },
         { x: 0, y: 40, z: -50 },
@@ -232,21 +171,14 @@ export function HorizonHero() {
       const sp = (progress * 2) % 1;
       const cur = positions[section];
       const nxt = positions[section + 1] || cur;
-      refs.targetCameraX = cur.x + (nxt.x - cur.x) * sp;
-      refs.targetCameraY = cur.y + (nxt.y - cur.y) * sp;
-      refs.targetCameraZ = cur.z + (nxt.z - cur.z) * sp;
-
-      refs.mountains.forEach((m, i) => {
-        if (progress > 0.7) m.position.z = 600000;
-        else m.position.z = refs.locations[i];
-      });
-      if (refs.nebula) refs.nebula.position.z = progress > 0.7 ? -800 : -800 - scrollY * 0.5;
+      targetCamera.current.x = cur.x + (nxt.x - cur.x) * sp;
+      targetCamera.current.y = cur.y + (nxt.y - cur.y) * sp;
+      targetCamera.current.z = cur.z + (nxt.z - cur.z) * sp;
     };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // GSAP text
   useEffect(() => {
     if (!isReady || !titleRef.current || !subtitleRef.current) return;
     const tl = gsap.timeline();
@@ -263,11 +195,7 @@ export function HorizonHero() {
   return (
     <div ref={containerRef} className="relative w-full h-screen overflow-hidden bg-[#03050d]">
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
-
-      {/* Overlay gradient */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60 pointer-events-none" />
-
-      {/* Content */}
       <div className="absolute inset-0 flex flex-col items-center justify-center z-10 text-center px-6">
         <h1 ref={titleRef} className="overflow-hidden mb-6">
           <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
@@ -282,7 +210,6 @@ export function HorizonHero() {
             ))}
           </div>
         </h1>
-
         <div ref={subtitleRef} className="space-y-2 mb-10">
           <p className="line text-xl text-white/50 max-w-xl">
             AI agents that research leads and write personalized emails
@@ -291,12 +218,8 @@ export function HorizonHero() {
             — sent from your own inbox, automatically.
           </p>
         </div>
-
         <div className="flex gap-4">
-          <Link
-            href="/signin"
-            className="group flex items-center gap-2 px-8 py-4 bg-white text-black rounded-xl font-bold text-lg hover:bg-white/90 transition-all hover:scale-105"
-          >
+          <Link href="/signin" className="group flex items-center gap-2 px-8 py-4 bg-white text-black rounded-xl font-bold text-lg hover:bg-white/90 transition-all hover:scale-105">
             Start free <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
           </Link>
           <button className="px-8 py-4 border border-white/20 hover:border-white/50 text-white rounded-xl font-semibold text-lg transition-all hover:scale-105 backdrop-blur-sm bg-white/5">
@@ -304,8 +227,6 @@ export function HorizonHero() {
           </button>
         </div>
       </div>
-
-      {/* Scroll hint */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/30 text-xs tracking-widest uppercase">
         <span>Scroll</span>
         <div className="w-px h-12 bg-gradient-to-b from-white/30 to-transparent" />

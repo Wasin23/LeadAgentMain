@@ -111,16 +111,45 @@ export function StarField({ fixed = false }: { fixed?: boolean }) {
     nebula.position.z = -800
     scene.add(nebula)
 
+    const smoothPos = { x: 0, y: 30, z: 300 }
+    const targetPos = { x: 0, y: 30, z: 300 }
+
+    const onScroll = () => {
+      const scrollY = window.scrollY
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight
+      const progress = Math.min(scrollY / Math.max(maxScroll, 1), 1)
+      const positions = [
+        { x: 0, y: 30, z: 300 },
+        { x: 0, y: 40, z: -50 },
+        { x: 0, y: 50, z: -600 },
+      ]
+      const section = Math.min(Math.floor(progress * 2), 1)
+      const sp = (progress * 2) % 1
+      const cur = positions[section]
+      const nxt = positions[section + 1] || cur
+      targetPos.x = cur.x + (nxt.x - cur.x) * sp
+      targetPos.y = cur.y + (nxt.y - cur.y) * sp
+      targetPos.z = cur.z + (nxt.z - cur.z) * sp
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+
     let animId: number
     const animate = () => {
       animId = requestAnimationFrame(animate)
       const t = Date.now() * 0.001
       starLayers.forEach(s => { (s.material as THREE.ShaderMaterial).uniforms.time.value = t });
       (nebMat as THREE.ShaderMaterial).uniforms.time.value = t * 0.4
-      // Match HorizonHero's camera drift exactly so they look continuous
-      camera.position.x = Math.sin(t * 0.1) * 2
-      camera.position.y = 30 + Math.cos(t * 0.15) * 1
-      camera.position.z = 100
+
+      const sf = 0.05
+      smoothPos.x += (targetPos.x - smoothPos.x) * sf
+      smoothPos.y += (targetPos.y - smoothPos.y) * sf
+      smoothPos.z += (targetPos.z - smoothPos.z) * sf
+
+      camera.position.set(
+        smoothPos.x + Math.sin(t * 0.1) * 2,
+        smoothPos.y + Math.cos(t * 0.15) * 1,
+        smoothPos.z,
+      )
       camera.lookAt(0, 10, -400)
       renderer.render(scene, camera)
     }
@@ -135,6 +164,7 @@ export function StarField({ fixed = false }: { fixed?: boolean }) {
 
     return () => {
       cancelAnimationFrame(animId)
+      window.removeEventListener('scroll', onScroll)
       window.removeEventListener('resize', onResize)
       starLayers.forEach(s => { s.geometry.dispose(); (s.material as THREE.Material).dispose() })
       nebGeo.dispose(); nebMat.dispose()
