@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback, Children, isValidElement, ReactNode } from 'react'
+import { useState, useRef, useEffect, useCallback, Children, ReactNode } from 'react'
 
 export function FeaturesCarousel({ children, labels = [] }: { children: ReactNode; labels?: string[] }) {
   const steps = Children.toArray(children)
@@ -80,7 +80,7 @@ export function FeaturesCarousel({ children, labels = [] }: { children: ReactNod
         }}
       >
         {steps.map((child, i) => (
-          <div key={i} className="h-screen w-full overflow-y-auto flex items-center">
+          <div key={i} className="h-screen w-full overflow-hidden">
             {child}
           </div>
         ))}
@@ -92,7 +92,7 @@ export function FeaturesCarousel({ children, labels = [] }: { children: ReactNod
           <button
             key={i}
             onClick={() => setStep(i)}
-            aria-label={STEP_LABELS[i]}
+            aria-label={labels[i] ?? ''}
             className="group flex items-center gap-2"
           >
             <span className={`block rounded-full transition-all duration-300 ${
