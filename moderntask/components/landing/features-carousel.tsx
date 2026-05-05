@@ -2,9 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, Children, isValidElement, ReactNode } from 'react'
 
-const STEP_LABELS = ['AI Research', 'Outreach', 'CRM Pipeline']
-
-export function FeaturesCarousel({ children }: { children: ReactNode }) {
+export function FeaturesCarousel({ children, labels = [] }: { children: ReactNode; labels?: string[] }) {
   const steps = Children.toArray(children)
   const total = steps.length
   const [step, setStep] = useState(0)
@@ -111,9 +109,9 @@ export function FeaturesCarousel({ children }: { children: ReactNode }) {
         <span className="font-mono text-white/20 text-xs tabular-nums">
           {String(step + 1).padStart(2, '0')} / {String(total).padStart(2, '0')}
         </span>
-        <span className="text-white/35 text-xs font-medium">
-          {STEP_LABELS[step]}
-        </span>
+        {labels[step] && (
+          <span className="text-white/35 text-xs font-medium">{labels[step]}</span>
+        )}
       </div>
 
       {/* prev / next arrows */}

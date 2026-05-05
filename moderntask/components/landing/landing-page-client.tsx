@@ -48,14 +48,14 @@ export function LandingPageClient() {
       </nav>
 
       <StarField fixed />
-      <HorizonHero />
-      <FeaturesCarousel>
+      <FeaturesCarousel labels={['', 'AI Research', 'Outreach', 'CRM Auditor', 'Pricing', '']}>
+        <HorizonHero />
         <AiResearchSection />
         <OutreachSection />
         <CrmPipelineSection />
+        <PricingSection />
+        <FooterSection />
       </FeaturesCarousel>
-      <PricingSection />
-      <FooterSection />
     </div>
   )
 }
