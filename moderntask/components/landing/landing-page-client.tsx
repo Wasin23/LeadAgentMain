@@ -24,12 +24,13 @@ export function LandingPageClient() {
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60)
+    onScroll()
     window.addEventListener("scroll", onScroll, { passive: true })
     return () => window.removeEventListener("scroll", onScroll)
   }, [])
 
   return (
-    <div className="text-foreground">
+    <div className="text-foreground overflow-x-hidden">
       <nav className={`fixed top-0 left-0 right-0 z-50 border-b px-6 py-4 backdrop-blur transition-all duration-300 sm:px-10 ${
         scrolled ? "border-border bg-background/95" : "border-white/10 bg-black/30"
       }`}>

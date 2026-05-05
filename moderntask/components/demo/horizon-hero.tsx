@@ -195,7 +195,6 @@ export function HorizonHero() {
   return (
     <div ref={containerRef} className="relative w-full h-screen overflow-hidden bg-[#03050d]">
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/60 pointer-events-none" />
       <div className="absolute inset-0 flex flex-col items-center justify-center z-10 text-center px-6">
         <h1 ref={titleRef} className="overflow-hidden mb-6">
           <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
