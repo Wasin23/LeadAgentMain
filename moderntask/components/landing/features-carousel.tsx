@@ -6,20 +6,21 @@ export function FeaturesCarousel({ children, labels = [] }: { children: ReactNod
   const steps = Children.toArray(children)
   const total = steps.length
   const [step, setStep] = useState(0)
-  const throttleRef = useRef(0)
+  const locked = useRef(false)
   const touchStartY = useRef(0)
 
   const advance = useCallback((dir: 1 | -1) => {
-    const now = Date.now()
-    if (now - throttleRef.current < 700) return
-    throttleRef.current = now
+    if (locked.current) return
+    locked.current = true
     setStep(s => Math.max(0, Math.min(total - 1, s + dir)))
+    setTimeout(() => { locked.current = false }, 750)
   }, [total])
 
   // wheel — always intercept since this is the whole page
   useEffect(() => {
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()
+      if (Math.abs(e.deltaY) < 10) return
       advance(e.deltaY > 0 ? 1 : -1)
     }
     window.addEventListener('wheel', onWheel, { passive: false })
@@ -55,7 +56,7 @@ export function FeaturesCarousel({ children, labels = [] }: { children: ReactNod
       <div
         className="will-change-transform"
         style={{
-          transform: `translateY(-${step * 100}%)`,
+          transform: `translateY(-${step * 100}vh)`,
           transition: 'transform 680ms cubic-bezier(0.76, 0, 0.24, 1)',
         }}
       >
