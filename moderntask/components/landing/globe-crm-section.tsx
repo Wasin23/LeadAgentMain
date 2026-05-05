@@ -13,25 +13,15 @@ function GlobeGraphic() {
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-    let raf: number
-    let t = 0
-
-    const resize = () => {
-      canvas.width = window.innerWidth
-      canvas.height = window.innerHeight
-    }
-    resize()
-    window.addEventListener('resize', resize)
 
     const draw = () => {
       const W = canvas.width
       const H = canvas.height
-      t += 0.003
       ctx.clearRect(0, 0, W, H)
 
       const cx = W * 0.5
       const cy = H * 0.5
-      const R = Math.min(W, H) * 0.42
+      const R = Math.min(W, H) * 0.85
 
       const TILT = 20 * Math.PI / 180
       const cosA = Math.cos(TILT)
@@ -85,7 +75,7 @@ function GlobeGraphic() {
       const NUM = 20
       const SEGS = 80
       for (let i = 0; i < NUM; i++) {
-        const theta = (i / NUM) * Math.PI * 2 + t
+        const theta = (i / NUM) * Math.PI * 2
         const sinT = Math.sin(theta)
         const cosT = Math.cos(theta)
         const isFront = cosT > 0
@@ -113,13 +103,16 @@ function GlobeGraphic() {
       ctx.fillStyle = atmo
       ctx.fill()
 
-      raf = requestAnimationFrame(draw)
     }
-    draw()
-    return () => {
-      cancelAnimationFrame(raf)
-      window.removeEventListener('resize', resize)
+
+    const resize = () => {
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+      draw()
     }
+    resize()
+    window.addEventListener('resize', resize)
+    return () => window.removeEventListener('resize', resize)
   }, [])
 
   return (
