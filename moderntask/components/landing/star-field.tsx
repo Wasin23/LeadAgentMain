@@ -3,9 +3,7 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 
-// Identical star + nebula setup as HorizonHero — no mountains, no text, no scroll camera.
-// Drop this behind any section that needs the same cosmic background.
-export function StarField() {
+export function StarField({ fixed = false }: { fixed?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -16,7 +14,7 @@ export function StarField() {
     scene.fog = new THREE.FogExp2(0x03050d, 0.00025)
 
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000)
-    camera.position.set(0, 20, 100)
+    camera.position.set(0, 30, 100)
 
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true })
     renderer.setSize(window.innerWidth, window.innerHeight)
@@ -24,7 +22,6 @@ export function StarField() {
     renderer.toneMapping = THREE.ACESFilmicToneMapping
     renderer.toneMappingExposure = 0.6
 
-    // 3 layers × 4 000 stars — exact same shaders as HorizonHero
     const starLayers: THREE.Points[] = []
     for (let i = 0; i < 3; i++) {
       const count = 4000
@@ -81,7 +78,6 @@ export function StarField() {
       starLayers.push(points)
     }
 
-    // Nebula — same as HorizonHero
     const nebGeo = new THREE.PlaneGeometry(6000, 3000, 60, 60)
     const nebMat = new THREE.ShaderMaterial({
       uniforms: {
@@ -115,16 +111,16 @@ export function StarField() {
     nebula.position.z = -800
     scene.add(nebula)
 
-    // Slow ambient drift — no scroll binding
     let animId: number
     const animate = () => {
       animId = requestAnimationFrame(animate)
       const t = Date.now() * 0.001
       starLayers.forEach(s => { (s.material as THREE.ShaderMaterial).uniforms.time.value = t });
       (nebMat as THREE.ShaderMaterial).uniforms.time.value = t * 0.4
-      camera.position.x = Math.sin(t * 0.05) * 8
-      camera.position.y = 20 + Math.cos(t * 0.07) * 4
-      camera.position.z = 100 + Math.sin(t * 0.03) * 10
+      // Match HorizonHero's camera drift exactly so they look continuous
+      camera.position.x = Math.sin(t * 0.1) * 2
+      camera.position.y = 30 + Math.cos(t * 0.15) * 1
+      camera.position.z = 100
       camera.lookAt(0, 10, -400)
       renderer.render(scene, camera)
     }
@@ -149,7 +145,9 @@ export function StarField() {
   return (
     <canvas
       ref={canvasRef}
-      className="absolute inset-0 w-full h-full pointer-events-none"
+      className={fixed
+        ? 'fixed inset-0 w-screen h-screen pointer-events-none -z-10'
+        : 'absolute inset-0 w-full h-full pointer-events-none'}
       style={{ background: '#03050d' }}
     />
   )
