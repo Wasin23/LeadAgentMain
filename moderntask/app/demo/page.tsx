@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 const HorizonHero = dynamic(() => import('@/components/demo/horizon-hero').then(m => ({ default: m.HorizonHero })), { ssr: false, loading: () => <Loading label="Loading Horizon…" /> });
 const GlobeHero = dynamic(() => import('@/components/demo/globe-hero').then(m => ({ default: m.GlobeHero })), { ssr: false, loading: () => <Loading label="Loading Globe Hero…" /> });
 const ScrollGlobe = dynamic(() => import('@/components/demo/scroll-globe').then(m => ({ default: m.ScrollGlobe })), { ssr: false, loading: () => <Loading label="Loading ScrollGlobe…" /> });
+const ProspectGlobe = dynamic(() => import('@/components/demo/prospect-globe').then(m => ({ default: m.ProspectGlobe })), { ssr: false, loading: () => <Loading label="Loading Prospect Globe…" /> });
 
 function Loading({ label }: { label: string }) {
   return (
@@ -16,16 +17,17 @@ function Loading({ label }: { label: string }) {
   );
 }
 
-type Demo = 'horizon' | 'globe' | 'scroll';
+type Demo = 'horizon' | 'globe' | 'scroll' | 'prospects';
 
 const DEMOS: { id: Demo; label: string; desc: string }[] = [
+  { id: 'prospects', label: '🛰 Prospect Globe', desc: 'Geolocation → globe → animated lead beams' },
   { id: 'horizon', label: '🌌 Horizon', desc: 'Three.js stars, nebula & mountains with GSAP scroll' },
   { id: 'globe',   label: '🔮 Globe Hero', desc: 'React Three Fiber wireframe globe' },
   { id: 'scroll',  label: '🌍 ScrollGlobe', desc: 'CSS rotating Earth with scroll sections' },
 ];
 
 export default function DemoPage() {
-  const [active, setActive] = useState<Demo>('horizon');
+  const [active, setActive] = useState<Demo>('prospects');
 
   return (
     <div className="relative">
@@ -56,9 +58,10 @@ export default function DemoPage() {
 
       {/* Component */}
       <div className="pt-[52px]">
-        {active === 'horizon' && <HorizonHero />}
-        {active === 'globe'   && <GlobeHero />}
-        {active === 'scroll'  && <ScrollGlobe />}
+        {active === 'prospects' && <ProspectGlobe />}
+        {active === 'horizon'   && <HorizonHero />}
+        {active === 'globe'     && <GlobeHero />}
+        {active === 'scroll'    && <ScrollGlobe />}
       </div>
     </div>
   );
