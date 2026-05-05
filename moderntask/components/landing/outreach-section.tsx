@@ -174,26 +174,31 @@ function NetworkViz() {
         }
       }
 
-      // pulses
+      // pulses — line shoots out, ball rides it, line disconnects on arrival
       pulses.forEach(p => {
         const e = p.t < 0.5 ? 2*p.t*p.t : 1-2*(1-p.t)*(1-p.t)
         const x = p.ax + (p.bx - p.ax) * e
         const y = p.ay + (p.by - p.ay) * e
-        const fade = p.t < 0.12 ? p.t/0.12 : p.t > 0.88 ? (1-p.t)/0.12 : 1
         const [r,g,b] = pulseColor(p.kind)
-        // trail
-        const tx0 = p.ax + (p.bx-p.ax) * Math.max(0, e - 0.1)
-        const ty0 = p.ay + (p.by-p.ay) * Math.max(0, e - 0.1)
+
+        // line from origin → ball: fades out once ball arrives
+        const lineAlpha = p.t > 0.75
+          ? (1 - (p.t - 0.75) / 0.25) * 0.55
+          : 0.55
         ctx.beginPath()
-        ctx.moveTo(tx0, ty0)
+        ctx.moveTo(p.ax, p.ay)
         ctx.lineTo(x, y)
-        ctx.strokeStyle = `rgba(${r},${g},${b},${fade * 0.45})`
-        ctx.lineWidth = 1.3
+        ctx.strokeStyle = `rgba(${r},${g},${b},${lineAlpha})`
+        ctx.lineWidth = 1.0
         ctx.stroke()
-        // dot
+
+        // ball at tip — fades in fast, fades out as line disconnects
+        const ballAlpha = p.t < 0.08 ? p.t / 0.08
+          : p.t > 0.82 ? (1 - (p.t - 0.82) / 0.18)
+          : 1
         ctx.beginPath()
-        ctx.arc(x, y, 2.8, 0, Math.PI * 2)
-        ctx.fillStyle = `rgba(${r},${g},${b},${fade})`
+        ctx.arc(x, y, 3.2, 0, Math.PI * 2)
+        ctx.fillStyle = `rgba(${r},${g},${b},${ballAlpha})`
         ctx.fill()
       })
 
@@ -256,7 +261,7 @@ function NetworkViz() {
 
 export function OutreachSection() {
   return (
-    <section className="relative z-10 py-28 px-6">
+    <section className="relative z-10 pt-36 pb-16 px-6">
       <div className="mx-auto max-w-7xl flex flex-col lg:flex-row items-center gap-16">
 
         <div className="flex-1 max-w-[460px] shrink-0">

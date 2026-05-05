@@ -114,24 +114,24 @@ export function StarField({ fixed = false }: { fixed?: boolean }) {
     const smoothPos = { x: 0, y: 30, z: 300 }
     const targetPos = { x: 0, y: 30, z: 300 }
 
-    const onScroll = () => {
-      const scrollY = window.scrollY
-      const maxScroll = document.documentElement.scrollHeight - window.innerHeight
-      const progress = Math.min(scrollY / Math.max(maxScroll, 1), 1)
-      const positions = [
-        { x: 0, y: 30, z: 300 },
-        { x: 0, y: 40, z: -50 },
-        { x: 0, y: 50, z: -600 },
-      ]
-      const section = Math.min(Math.floor(progress * 2), 1)
-      const sp = (progress * 2) % 1
-      const cur = positions[section]
-      const nxt = positions[section + 1] || cur
-      targetPos.x = cur.x + (nxt.x - cur.x) * sp
-      targetPos.y = cur.y + (nxt.y - cur.y) * sp
-      targetPos.z = cur.z + (nxt.z - cur.z) * sp
+    // one camera position per carousel step
+    const CAM_POSITIONS = [
+      { x: 0, y: 30,  z:  300 }, // hero
+      { x: 0, y: 45,  z:   80 }, // ai research
+      { x: 0, y: 55,  z: -160 }, // outreach
+      { x: 0, y: 65,  z: -380 }, // crm auditor
+      { x: 0, y: 75,  z: -560 }, // pricing
+      { x: 0, y: 85,  z: -740 }, // footer
+    ]
+
+    const onStep = (e: Event) => {
+      const step = (e as CustomEvent).detail.step as number
+      const p = CAM_POSITIONS[step] ?? CAM_POSITIONS[CAM_POSITIONS.length - 1]
+      targetPos.x = p.x
+      targetPos.y = p.y
+      targetPos.z = p.z
     }
-    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener('carousel-step', onStep)
 
     let animId: number
     const animate = () => {
@@ -164,7 +164,7 @@ export function StarField({ fixed = false }: { fixed?: boolean }) {
 
     return () => {
       cancelAnimationFrame(animId)
-      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('carousel-step', onStep)
       window.removeEventListener('resize', onResize)
       starLayers.forEach(s => { s.geometry.dispose(); (s.material as THREE.Material).dispose() })
       nebGeo.dispose(); nebMat.dispose()

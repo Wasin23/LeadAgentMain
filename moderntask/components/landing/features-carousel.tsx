@@ -8,6 +8,13 @@ export function FeaturesCarousel({ children, labels = [] }: { children: ReactNod
   const [step, setStep] = useState(0)
   const locked = useRef(false)
   const touchStartY = useRef(0)
+  const [visitCounts, setVisitCounts] = useState(() => Array(total).fill(0))
+
+  // notify star field + reset slide content on every step change
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('carousel-step', { detail: { step } }))
+    setVisitCounts(prev => { const n = [...prev]; n[step]++; return n })
+  }, [step])
 
   const advance = useCallback((dir: 1 | -1) => {
     if (locked.current) return
@@ -61,7 +68,7 @@ export function FeaturesCarousel({ children, labels = [] }: { children: ReactNod
         }}
       >
         {steps.map((child, i) => (
-          <div key={i} className="h-screen w-full overflow-hidden">
+          <div key={visitCounts[i]} className="h-screen w-full overflow-hidden">
             {child}
           </div>
         ))}

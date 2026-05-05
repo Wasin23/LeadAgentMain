@@ -5,9 +5,9 @@ import { ArrowRight } from 'lucide-react'
 
 export function FooterSection() {
   return (
-    <footer className="relative z-10 border-t border-white/[0.06]">
+    <footer className="relative z-10 border-t border-white/[0.06] h-screen flex flex-col justify-between">
       {/* CTA band */}
-      <div className="px-6 sm:px-12 py-28 text-center">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 sm:px-12 text-center">
         <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight mb-4">
           Start with 250 free credits.
         </h2>
@@ -32,7 +32,7 @@ export function FooterSection() {
         </div>
       </div>
 
-      {/* Footer links */}
+      {/* Footer links — pinned to bottom */}
       <div className="border-t border-white/[0.05] px-6 sm:px-12 py-6">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
