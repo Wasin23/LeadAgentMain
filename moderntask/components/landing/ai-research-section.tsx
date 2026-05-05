@@ -40,7 +40,7 @@ const PARA_NOTES: string[] = [
   'Q2: calendar + CRM → full end-to-end automation',
 ]
 
-const WPS = 20
+const WPS = 200
 
 function sleep(ms: number) {
   return new Promise<void>(r => setTimeout(r, ms))
@@ -422,7 +422,7 @@ export function AiResearchSection() {
                     <div className="text-[12px] leading-relaxed">
                       <ScanText
                         text="AI-powered revenue platform helping B2B teams scale outbound without adding headcount. Trusted by 200+ fast-growing companies across North America and Europe."
-                        speed={13}
+                        speed={130}
                       />
                     </div>
                   </div>
@@ -456,7 +456,7 @@ export function AiResearchSection() {
                         <div key={i} className="flex items-start gap-2">
                           <span className="text-xs shrink-0 mt-px">{a.e}</span>
                           <span className="text-[11px] leading-relaxed flex-1">
-                            <ScanText text={a.t} speed={10} />
+                            <ScanText text={a.t} speed={100} />
                           </span>
                           <span className="text-[10px] text-white/18 shrink-0">{a.d}</span>
                         </div>
