@@ -60,6 +60,18 @@ export function FeaturesCarousel({ children, labels = [] }: { children: ReactNod
     return () => window.removeEventListener('carousel-advance', onAdvance)
   }, [advance])
 
+  // jump to specific step (nav tab clicks)
+  useEffect(() => {
+    const onGoto = (e: Event) => {
+      const s = (e as CustomEvent).detail.step as number
+      locked.current = true
+      setStep(Math.max(0, Math.min(total - 1, s)))
+      setTimeout(() => { locked.current = false }, 750)
+    }
+    window.addEventListener('carousel-goto', onGoto)
+    return () => window.removeEventListener('carousel-goto', onGoto)
+  }, [total])
+
   return (
     <div
       className="relative h-screen overflow-hidden"
@@ -79,23 +91,6 @@ export function FeaturesCarousel({ children, labels = [] }: { children: ReactNod
             {child}
           </div>
         ))}
-      </div>
-
-      {/* top-center tab nav */}
-      <div className="absolute top-[72px] left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 px-2 py-1.5 rounded-full border border-white/[0.08] bg-black/30 backdrop-blur-md">
-        {labels.map((label, i) => label ? (
-          <button
-            key={i}
-            onClick={() => setStep(i)}
-            className={`px-3.5 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
-              i === step
-                ? 'bg-indigo-500/25 text-indigo-300 border border-indigo-500/30'
-                : 'text-white/35 hover:text-white/65 border border-transparent'
-            }`}
-          >
-            {label}
-          </button>
-        ) : null)}
       </div>
 
       {/* right-side nav dots */}

@@ -1,25 +1,38 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { CheckCircle2 } from 'lucide-react'
+import { CheckCircle2, Target, Users, BarChart2, Briefcase, Globe } from 'lucide-react'
 import Link from 'next/link'
+import type { LucideIcon } from 'lucide-react'
 
-const AGENTS = [
+type Agent = {
+  id: string
+  name: string
+  Icon: LucideIcon
+  tagline: string
+  description: string
+  capabilities: string[]
+  traits: string[]
+  stats: { label: string; value: string }[]
+  color: { accent: string; chip: string; border: string; text: string }
+}
+
+const AGENTS: Agent[] = [
   {
     id: 'hunter',
     name: 'Hunter',
-    emoji: '🦁',
+    Icon: Target,
     tagline: 'High-volume prospecting.',
     description: 'Built for scale. Goes wide across your ICP — sourcing large volumes fast, prioritizing pipeline velocity over deep personalization.',
     capabilities: [
-      'Sources 50+ qualified leads per cycle',
+      'Sources thousands of qualified leads per cycle',
       'Auto-adjusts search to avoid source exhaustion',
       'Prioritizes companies with active hiring signals',
       'Optimized for top-of-funnel volume',
     ],
     traits: ['High Volume', 'Fast Cycle', 'Wide Net'],
     stats: [
-      { label: 'Leads / day', value: '50+' },
+      { label: 'Leads / day', value: '3,000' },
       { label: 'Email style', value: 'Direct' },
       { label: 'Research', value: 'Light' },
     ],
@@ -28,7 +41,7 @@ const AGENTS = [
   {
     id: 'relationship',
     name: 'Relationship Builder',
-    emoji: '🤝',
+    Icon: Users,
     tagline: 'Warm, consultative outreach.',
     description: "Moves slower, personalizes harder. Crafts account-specific emails that reference real signals and don't feel automated.",
     capabilities: [
@@ -39,7 +52,7 @@ const AGENTS = [
     ],
     traits: ['High Reply Rate', 'Deep Research', 'Warm Tone'],
     stats: [
-      { label: 'Leads / day', value: '15–20' },
+      { label: 'Leads / day', value: '3,000' },
       { label: 'Email style', value: 'Warm' },
       { label: 'Research', value: 'Deep' },
     ],
@@ -48,7 +61,7 @@ const AGENTS = [
   {
     id: 'analyst',
     name: 'Analyst',
-    emoji: '📊',
+    Icon: BarChart2,
     tagline: 'Data-driven precision targeting.',
     description: 'Scores every lead before writing a word. Heavy on qualification logic — sends fewer emails, wastes fewer credits.',
     capabilities: [
@@ -59,7 +72,7 @@ const AGENTS = [
     ],
     traits: ['High Precision', 'Low Waste', 'Data-Driven'],
     stats: [
-      { label: 'Leads / day', value: '20–30' },
+      { label: 'Leads / day', value: '3,000' },
       { label: 'Email style', value: 'Data-backed' },
       { label: 'Research', value: 'Medium' },
     ],
@@ -68,7 +81,7 @@ const AGENTS = [
   {
     id: 'consultant',
     name: 'Consultant',
-    emoji: '🎯',
+    Icon: Briefcase,
     tagline: 'Strategic advisor positioning.',
     description: 'Frames your offer as the solution to a real business problem. Best for complex deals and long enterprise sales cycles.',
     capabilities: [
@@ -79,7 +92,7 @@ const AGENTS = [
     ],
     traits: ['Enterprise Focus', 'Long-Form', 'Strategic'],
     stats: [
-      { label: 'Leads / day', value: '10–15' },
+      { label: 'Leads / day', value: '3,000' },
       { label: 'Email style', value: 'Strategic' },
       { label: 'Research', value: 'Deep' },
     ],
@@ -88,7 +101,7 @@ const AGENTS = [
   {
     id: 'networker',
     name: 'Networker',
-    emoji: '🌐',
+    Icon: Globe,
     tagline: 'LinkedIn-first, community-driven.',
     description: "Taps LinkedIn signals first — posts, job changes, company news. Writes emails that feel like they came from someone who actually follows them.",
     capabilities: [
@@ -99,7 +112,7 @@ const AGENTS = [
     ],
     traits: ['LinkedIn-Heavy', 'Social Feel', 'Peer-to-Peer'],
     stats: [
-      { label: 'Leads / day', value: '20–25' },
+      { label: 'Leads / day', value: '3,000' },
       { label: 'Email style', value: 'Conversational' },
       { label: 'Research', value: 'Medium' },
     ],
@@ -129,6 +142,7 @@ export function AgentSection() {
   }, [])
 
   const agent = AGENTS[active]
+  const ActiveIcon = agent.Icon
 
   return (
     <section className="relative z-10 py-28 px-6">
@@ -174,36 +188,42 @@ export function AgentSection() {
               <span className="ml-auto text-[9px] text-indigo-400/60 font-mono">1 active</span>
             </div>
 
-            {/* Body: agent list + detail */}
+            {/* Body */}
             <div className="flex" style={{ minHeight: 380 }}>
 
               {/* Agent list */}
               <div className="w-[180px] shrink-0 border-r border-white/[0.06] py-2">
-                {AGENTS.map((a, i) => (
-                  <button
-                    key={a.id}
-                    onClick={() => switchTo(i)}
-                    className={`w-full text-left px-4 py-2.5 flex items-center gap-2.5 transition-all ${
-                      i === active ? 'bg-white/[0.05]' : 'hover:bg-white/[0.02]'
-                    }`}
-                  >
-                    <span className="text-base">{a.emoji}</span>
-                    <div className="min-w-0">
-                      <div className={`text-[11px] font-semibold truncate ${i === active ? 'text-white/85' : 'text-white/35'}`}>
-                        {a.name}
+                {AGENTS.map((a, i) => {
+                  const ListIcon = a.Icon
+                  return (
+                    <button
+                      key={a.id}
+                      onClick={() => switchTo(i)}
+                      className={`w-full text-left px-4 py-2.5 flex items-center gap-2.5 transition-all ${
+                        i === active ? 'bg-white/[0.05]' : 'hover:bg-white/[0.02]'
+                      }`}
+                    >
+                      <ListIcon
+                        className="w-3.5 h-3.5 shrink-0"
+                        style={{ color: i === active ? a.color.text : 'rgba(255,255,255,0.2)' }}
+                      />
+                      <div className="min-w-0">
+                        <div className={`text-[11px] font-semibold truncate ${i === active ? 'text-white/85' : 'text-white/35'}`}>
+                          {a.name}
+                        </div>
+                        {i === active && (
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <span className="w-1 h-1 rounded-full bg-green-400" />
+                            <span className="text-[9px] text-green-400/70">active</span>
+                          </div>
+                        )}
                       </div>
                       {i === active && (
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <span className="w-1 h-1 rounded-full bg-green-400" />
-                          <span className="text-[9px] text-green-400/70">active</span>
-                        </div>
+                        <div className="ml-auto w-0.5 rounded-full self-stretch" style={{ background: agent.color.accent, opacity: 0.6 }} />
                       )}
-                    </div>
-                    {i === active && (
-                      <div className="ml-auto w-1 h-full rounded-full" style={{ background: agent.color.accent, opacity: 0.7, minHeight: 14 }} />
-                    )}
-                  </button>
-                ))}
+                    </button>
+                  )
+                })}
               </div>
 
               {/* Detail panel */}
@@ -214,10 +234,10 @@ export function AgentSection() {
                 {/* Header */}
                 <div className="flex items-center gap-3">
                   <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0"
+                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
                     style={{ background: agent.color.chip, border: `1px solid ${agent.color.border}` }}
                   >
-                    {agent.emoji}
+                    <ActiveIcon className="w-4 h-4" style={{ color: agent.color.accent }} />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
