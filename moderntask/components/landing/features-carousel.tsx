@@ -68,7 +68,7 @@ export function FeaturesCarousel({ children, labels = [] }: { children: ReactNod
         }}
       >
         {steps.map((child, i) => (
-          <div key={visitCounts[i]} className="h-screen w-full overflow-hidden">
+          <div key={`${i}-${visitCounts[i]}`} className="h-screen w-full overflow-hidden">
             {child}
           </div>
         ))}
