@@ -397,7 +397,7 @@ export function AiResearchSection() {
 
         {/* ── Browser window ── */}
         <div className="flex-1 w-full min-w-0">
-          <div className="rounded-2xl border border-white/[0.10] bg-[#07091c]/90 backdrop-blur-2xl overflow-hidden shadow-2xl shadow-black/70 ring-1 ring-white/[0.04]">
+          <div className="card-premium rounded-2xl backdrop-blur-2xl overflow-hidden" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.035) 0%, rgba(7,9,28,0.97) 100%)' }}>
 
             {/* Title bar */}
             <div className="flex items-center gap-2 px-3 border-b border-white/[0.06] bg-[#141414]" style={{ height: 36 }}>

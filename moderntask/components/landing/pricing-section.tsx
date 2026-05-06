@@ -111,13 +111,16 @@ export function PricingSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-px bg-white/[0.06] rounded-2xl overflow-hidden border border-white/[0.06]">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {PLANS.map((plan) => (
             <div
               key={plan.name}
-              className={`relative flex flex-col bg-[#06081a] p-6 ${
-                plan.tag ? 'ring-1 ring-inset ring-indigo-500/50' : ''
-              }`}
+              className="card-premium relative flex flex-col rounded-2xl p-6"
+              style={plan.tag ? {
+                background: 'linear-gradient(180deg, rgba(99,102,241,0.10) 0%, rgba(6,8,26,1) 100%)',
+                border: '1px solid rgba(99,102,241,0.35)',
+                boxShadow: 'inset 0 1px 0 rgba(99,102,241,0.15), 0 2px 4px rgba(0,0,0,0.4), 0 12px 40px rgba(0,0,0,0.6), 0 0 60px rgba(99,102,241,0.08)',
+              } : {}}
             >
               {plan.tag && (
                 <div className="absolute -top-px left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-b-lg bg-indigo-600 text-white text-[10px] font-bold tracking-widest uppercase">

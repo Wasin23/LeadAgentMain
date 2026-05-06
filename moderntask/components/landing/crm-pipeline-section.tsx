@@ -295,7 +295,7 @@ function CrmViz() {
   }, [])
 
   return (
-    <div className="rounded-2xl border border-white/[0.08] bg-[#05070f] overflow-hidden shadow-2xl shadow-black/60" style={{ minHeight: 560 }}>
+    <div className="card-premium rounded-2xl overflow-hidden" style={{ minHeight: 560, background: 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, #05070f 100%)' }}>
       <div className="flex items-center px-3 border-b border-white/[0.06] bg-[#141414]" style={{ height: 36 }}>
         <span className="text-[10px] text-white/20 font-mono">meridian · crm auditor</span>
         <span className="ml-3 text-[9px] text-indigo-400/60 font-mono">

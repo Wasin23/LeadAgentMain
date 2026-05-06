@@ -361,7 +361,7 @@ function TeamViz() {
   }, [])
 
   return (
-    <div className="relative rounded-2xl border border-white/[0.08] bg-[#04060f] overflow-hidden shadow-2xl shadow-black/60 w-full" style={{ height: 560 }}>
+    <div className="card-premium relative rounded-2xl overflow-hidden w-full" style={{ height: 560, background: 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, #04060f 100%)' }}>
       {/* title bar */}
       <div className="flex items-center px-3 border-b border-white/[0.06] bg-[#141414] relative z-10" style={{ height: 36 }}>
         <span className="text-[10px] text-white/20 font-mono">meridian · workspace</span>
