@@ -1,19 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import FormData from 'form-data'
-import Mailgun from 'mailgun.js'
-
-const mailgun = new Mailgun(FormData)
-const mg = mailgun.client({
-  username: 'api',
-  key: process.env.MAILGUN_API_KEY!,
-})
-
-const DOMAIN = process.env.MAILGUN_DOMAIN!
-const TO     = process.env.CONTACT_TO_EMAIL ?? 'colton.fidd@gmail.com'
 
 export async function POST(req: NextRequest) {
   try {
     const { name, email, company, message } = await req.json()
+
+    const FormData = (await import('form-data')).default
+    const Mailgun  = (await import('mailgun.js')).default
+    const mg = new Mailgun(FormData).client({
+      username: 'api',
+      key: process.env.MAILGUN_API_KEY!,
+    })
+    const DOMAIN = process.env.MAILGUN_DOMAIN!
+    const TO     = process.env.CONTACT_TO_EMAIL ?? 'colton.fidd@gmail.com'
 
     if (!name || !email || !message) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
