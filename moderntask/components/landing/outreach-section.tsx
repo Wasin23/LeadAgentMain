@@ -193,14 +193,14 @@ function GlobeViz() {
       color: 0x4466aa, transparent: true, opacity: 0.13,
       depthTest: true, clippingPlanes: [clipPlane],
     })
-    // latitude parallels — every 30°
-    for (const lat of [-30, 0, 30, 60]) {
+    // latitude parallels — every 15°
+    for (let lat = -60; lat <= 75; lat += 15) {
       const pts: THREE.Vector3[] = []
       for (let lon = 0; lon <= 360; lon += 3) pts.push(ll3(lat, lon - 180, R + 0.01))
       group.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), gridMat()))
     }
-    // longitude meridians — every 30°
-    for (let lon = 0; lon < 360; lon += 30) {
+    // longitude meridians — every 15°
+    for (let lon = 0; lon < 360; lon += 15) {
       const pts: THREE.Vector3[] = []
       for (let lat = -90; lat <= 90; lat += 2) pts.push(ll3(lat, lon - 180, R + 0.01))
       group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), gridMat()))

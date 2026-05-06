@@ -130,7 +130,7 @@ export function AgentSection() {
         setActive(a => (a + 1) % AGENTS.length)
         setFading(false)
       }, 160)
-    }, 3800)
+    }, 8000)
     return () => clearInterval(t)
   }, [])
 
