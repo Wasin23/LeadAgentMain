@@ -3,269 +3,227 @@
 import { useEffect, useRef } from 'react'
 import { CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
+import * as THREE from 'three'
 
-const NAMES = [
-  ['Sarah Chen', 'ScaleFlow'], ['Marcus Lee', 'Finova'], ['Jade Morris', 'FleetGrid'],
-  ['Tom Reyes', 'LayerStack'], ['Nina Patel', 'StitchOps'], ['Lena Kwon', 'Driftwork'],
-  ['Alex Park', 'Vantara'], ['Chris Mao', 'Buildbase'], ['Dana Wu', 'Corepath'],
-  ['Sam Ellis', 'Ironveil'], ['Priya Nair', 'Stacklane'], ['Jordan Hill', 'Novafront'],
-  ['Riley Stone', 'Crestmark'], ['Casey Liu', 'Pulsedata'], ['Morgan West', 'Gridpoint'],
-  ['Taylor Yoon', 'Driftco'], ['Quinn Blake', 'Arcflow'], ['Drew Shin', 'Basecamp'],
+// ── geo data ──────────────────────────────────────────────────────────────────
+const HOME = { lat: 40.71, lon: -74.01 }   // New York (sender)
+
+const TARGETS = [
+  { lat: 51.51, lon:  -0.12 },  // London
+  { lat: 48.85, lon:   2.35 },  // Paris
+  { lat: 52.52, lon:  13.40 },  // Berlin
+  { lat: 35.69, lon: 139.69 },  // Tokyo
+  { lat: 25.20, lon:  55.27 },  // Dubai
+  { lat:  1.35, lon: 103.82 },  // Singapore
+  { lat: 55.75, lon:  37.62 },  // Moscow
+  { lat:-33.87, lon: 151.21 },  // Sydney
 ]
 
-type PulseKind = 'send' | 'followup' | 'reply'
-type Pulse = { ax: number; ay: number; bx: number; by: number; t: number; kind: PulseKind }
-type Node  = { x: number; y: number; z: number; name: string; co: string; color: [number,number,number] }
-
-const SEND_COLOR   = [99,  102, 241] as [number,number,number]
-const FOLLOW_COLOR = [148, 163, 248] as [number,number,number]
-const REPLY_COLOR  = [74,  222, 128] as [number,number,number]
-
-function spawnNode(zOverride?: number): Node {
-  const [name, co] = NAMES[Math.floor(Math.random() * NAMES.length)]
-  return {
-    x: (Math.random() - 0.5) * 860,
-    y: (Math.random() - 0.5) * 560,
-    z: zOverride ?? 900 + Math.random() * 300,
-    name, co,
-    color: SEND_COLOR,
-  }
-}
-
-function NetworkViz() {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    let dpr = window.devicePixelRatio || 1
-    const setSize = () => {
-      dpr = window.devicePixelRatio || 1
-      canvas.width  = canvas.offsetWidth  * dpr
-      canvas.height = canvas.offsetHeight * dpr
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-    }
-    setSize()
-    window.addEventListener('resize', setSize)
-
-    const W = () => canvas.offsetWidth
-    const H = () => canvas.offsetHeight
-    const FOCAL = 400
-    const SPEED = 1.0
-
-    let nodes: Node[] = []
-    let pulses: Pulse[] = []
-    let frameN = 0
-
-    for (let i = 0; i < 22; i++) nodes.push(spawnNode(80 + Math.random() * 820))
-
-    const proj = (n: Node): [number, number, number] => {
-      const s = FOCAL / n.z
-      return [W() / 2 + n.x * s, H() / 2 + n.y * s, s]
-    }
-
-    const hubX = () => W() * 0.15
-    const hubY = () => H() * 0.5
-
-    const spawnPulse = () => {
-      if (pulses.length >= 7) return
-      const visible = nodes.filter(n => n.z > 80 && n.z < 480)
-      if (!visible.length) return
-      const target = visible[Math.floor(Math.random() * visible.length)]
-      const [tx, ty] = proj(target)
-      const hx = hubX(), hy = hubY()
-
-      // weight replies less often
-      const roll = Math.random()
-      const kind: PulseKind = roll < 0.45 ? 'send' : roll < 0.75 ? 'followup' : 'reply'
-
-      if (kind === 'reply') {
-        pulses.push({ ax: tx, ay: ty, bx: hx, by: hy, t: 0, kind })
-      } else {
-        pulses.push({ ax: hx, ay: hy, bx: tx, by: ty, t: 0, kind })
-      }
-    }
-
-    const pulseColor = (kind: PulseKind): [number,number,number] =>
-      kind === 'reply' ? REPLY_COLOR : kind === 'followup' ? FOLLOW_COLOR : SEND_COLOR
-
-    const drawHub = () => {
-      const hx = hubX(), hy = hubY()
-
-      // outer glow
-      const grd = ctx.createRadialGradient(hx, hy, 0, hx, hy, 38)
-      grd.addColorStop(0, 'rgba(99,102,241,0.18)')
-      grd.addColorStop(1, 'rgba(99,102,241,0)')
-      ctx.beginPath()
-      ctx.arc(hx, hy, 38, 0, Math.PI * 2)
-      ctx.fillStyle = grd
-      ctx.fill()
-
-      // ring
-      ctx.beginPath()
-      ctx.arc(hx, hy, 14, 0, Math.PI * 2)
-      ctx.strokeStyle = 'rgba(99,102,241,0.7)'
-      ctx.lineWidth = 1.5
-      ctx.stroke()
-
-      // fill
-      ctx.beginPath()
-      ctx.arc(hx, hy, 14, 0, Math.PI * 2)
-      ctx.fillStyle = 'rgba(14,20,60,0.95)'
-      ctx.fill()
-
-      // envelope icon (simple lines)
-      ctx.strokeStyle = 'rgba(165,180,252,0.9)'
-      ctx.lineWidth = 1.2
-      const ex = hx - 7, ey = hy - 4.5
-      ctx.strokeRect(ex, ey, 14, 9)
-      ctx.beginPath()
-      ctx.moveTo(ex, ey)
-      ctx.lineTo(hx, hy + 1)
-      ctx.lineTo(ex + 14, ey)
-      ctx.stroke()
-
-      // label
-      ctx.font = '500 10px Inter, sans-serif'
-      ctx.fillStyle = 'rgba(165,180,252,0.55)'
-      ctx.textAlign = 'center'
-      ctx.fillText('Your inbox', hx, hy + 26)
-      ctx.textAlign = 'left'
-    }
-
-    let raf: number
-    const draw = () => {
-      const w = W(), h = H()
-      ctx.clearRect(0, 0, w, h)
-      frameN++
-
-      nodes.forEach(n => { n.z -= SPEED })
-      nodes = nodes.filter(n => n.z > 20)
-      while (nodes.length < 22) nodes.push(spawnNode())
-
-      if (frameN % 48 === 0) spawnPulse()
-
-      pulses.forEach(p => { p.t += 0.014 })
-      pulses = pulses.filter(p => p.t < 1)
-
-      const sorted = [...nodes].sort((a, b) => b.z - a.z)
-
-      // lines between close nodes
-      for (let i = 0; i < sorted.length; i++) {
-        for (let j = i + 1; j < sorted.length; j++) {
-          const a = sorted[i], b = sorted[j]
-          const dx = a.x-b.x, dy = a.y-b.y, dz = a.z-b.z
-          const d3 = Math.sqrt(dx*dx+dy*dy+dz*dz)
-          if (d3 > 360) continue
-          const [ax, ay, as_] = proj(a)
-          const [bx, by, bs]  = proj(b)
-          const fade = Math.min(as_, bs)
-          const alpha = (1 - d3/360) * Math.min(fade * 0.65, 0.28) * Math.min(1, (900 - a.z)/180)
-          if (alpha < 0.01) continue
-          ctx.beginPath()
-          ctx.moveTo(ax, ay)
-          ctx.lineTo(bx, by)
-          ctx.strokeStyle = `rgba(99,102,241,${alpha})`
-          ctx.lineWidth = 0.5
-          ctx.stroke()
-        }
-      }
-
-      // pulses — line shoots out, ball rides it, line disconnects on arrival
-      pulses.forEach(p => {
-        const e = p.t < 0.5 ? 2*p.t*p.t : 1-2*(1-p.t)*(1-p.t)
-        const x = p.ax + (p.bx - p.ax) * e
-        const y = p.ay + (p.by - p.ay) * e
-        const [r,g,b] = pulseColor(p.kind)
-
-        // line from origin → ball: fades out once ball arrives
-        const lineAlpha = p.t > 0.75
-          ? (1 - (p.t - 0.75) / 0.25) * 0.55
-          : 0.55
-        ctx.beginPath()
-        ctx.moveTo(p.ax, p.ay)
-        ctx.lineTo(x, y)
-        ctx.strokeStyle = `rgba(${r},${g},${b},${lineAlpha})`
-        ctx.lineWidth = 1.0
-        ctx.stroke()
-
-        // ball at tip — fades in fast, fades out as line disconnects
-        const ballAlpha = p.t < 0.08 ? p.t / 0.08
-          : p.t > 0.82 ? (1 - (p.t - 0.82) / 0.18)
-          : 1
-        ctx.beginPath()
-        ctx.arc(x, y, 3.2, 0, Math.PI * 2)
-        ctx.fillStyle = `rgba(${r},${g},${b},${ballAlpha})`
-        ctx.fill()
-      })
-
-      // nodes
-      sorted.forEach(n => {
-        const [sx, sy, scale] = proj(n)
-        if (sx < -80 || sx > w+80 || sy < -80 || sy > h+80) return
-        const alpha = Math.min(1, (900 - n.z) / 200)
-        if (alpha < 0.02) return
-        const r_ = Math.max(2.5, scale * 7)
-
-        const grd = ctx.createRadialGradient(sx, sy, 0, sx, sy, r_*3)
-        grd.addColorStop(0, `rgba(99,102,241,${alpha * 0.22})`)
-        grd.addColorStop(1, 'rgba(99,102,241,0)')
-        ctx.beginPath()
-        ctx.arc(sx, sy, r_*3, 0, Math.PI*2)
-        ctx.fillStyle = grd
-        ctx.fill()
-
-        ctx.beginPath()
-        ctx.arc(sx, sy, r_, 0, Math.PI*2)
-        ctx.fillStyle = `rgba(129,140,248,${alpha})`
-        ctx.fill()
-
-        if (scale > 0.26 && alpha > 0.2) {
-          const fs = Math.min(12, Math.max(8, scale * 11))
-          ctx.font = `600 ${fs}px Inter, sans-serif`
-          ctx.fillStyle = `rgba(255,255,255,${alpha * 0.82})`
-          ctx.fillText(n.name, sx + r_ + 5, sy + 1)
-          ctx.font = `${fs-1}px Inter, sans-serif`
-          ctx.fillStyle = `rgba(255,255,255,${alpha * 0.32})`
-          ctx.fillText(n.co, sx + r_ + 5, sy + fs + 2)
-        }
-      })
-
-      // hub always on top
-      drawHub()
-
-      raf = requestAnimationFrame(draw)
-    }
-    draw()
-    return () => {
-      cancelAnimationFrame(raf)
-      window.removeEventListener('resize', setSize)
-    }
-  }, [])
-
-  return (
-    <div className="relative rounded-2xl border border-white/[0.1] bg-[#04060f] overflow-hidden shadow-2xl shadow-black/60 w-full" style={{ height: 560 }}>
-      <div className="flex items-center px-3 border-b border-white/[0.06] absolute top-0 left-0 right-0 z-10 bg-[#141414]" style={{ height: 36 }}>
-        <span className="text-[10px] text-white/20 font-mono">outreach · live</span>
-        <div className="ml-auto flex items-center">
-          <button className="w-9 h-9 flex items-center justify-center text-white/25 hover:bg-white/[0.07] text-[13px] leading-none">─</button>
-          <button className="w-9 h-9 flex items-center justify-center text-white/25 hover:bg-white/[0.07] text-[11px] leading-none">□</button>
-          <button className="w-9 h-9 flex items-center justify-center text-white/25 hover:bg-red-600/70 hover:text-white text-[15px] leading-none rounded-tr-2xl">✕</button>
-        </div>
-      </div>
-      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{ top: 36 }} />
-    </div>
+function ll3(lat: number, lon: number, r: number): THREE.Vector3 {
+  const phi   = (90 - lat) * (Math.PI / 180)
+  const theta = (lon + 180) * (Math.PI / 180)
+  return new THREE.Vector3(
+    -r * Math.sin(phi) * Math.cos(theta),
+     r * Math.cos(phi),
+     r * Math.sin(phi) * Math.sin(theta),
   )
 }
 
+const N = 90  // arc segments
+
+function arcBuf(aLat: number, aLon: number, bLat: number, bLon: number, r: number): Float32Array {
+  const a   = ll3(aLat, aLon, r)
+  const b   = ll3(bLat, bLon, r)
+  const mid = a.clone().add(b).multiplyScalar(0.5).normalize().multiplyScalar(r * 1.55)
+  const crv = new THREE.QuadraticBezierCurve3(a, mid, b)
+  const pts = crv.getPoints(N)
+  const buf = new Float32Array((N + 1) * 3)
+  pts.forEach((p, i) => { buf[i * 3] = p.x; buf[i * 3 + 1] = p.y; buf[i * 3 + 2] = p.z })
+  return buf
+}
+
+// ── globe component ───────────────────────────────────────────────────────────
+function GlobeViz() {
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const W = el.clientWidth, H = el.clientHeight
+
+    // renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
+    renderer.setSize(W, H)
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
+    renderer.setClearColor(0x000000, 0)
+    el.appendChild(renderer.domElement)
+
+    // scene / camera
+    const scene  = new THREE.Scene()
+    const camera = new THREE.PerspectiveCamera(40, W / H, 0.1, 200)
+    camera.position.set(0, 0, 7)
+
+    // ── globe group — pushed to bottom-right so only top-left arc is visible ──
+    const R     = 3.9
+    const group = new THREE.Group()
+    group.position.set(3.0, -3.4, 0)
+    scene.add(group)
+
+    // earth sphere
+    const sGeo = new THREE.SphereGeometry(R, 64, 64)
+    const sMat = new THREE.MeshPhongMaterial({ color: 0x1a3a5c, shininess: 10 })
+    new THREE.TextureLoader().load(
+      'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg',
+      tx => { sMat.map = tx; sMat.needsUpdate = true },
+    )
+    group.add(new THREE.Mesh(sGeo, sMat))
+
+    // atmosphere glow layers
+    for (const [scale, opacity, color] of [
+      [1.018, 0.13, 0x2255cc],
+      [1.045, 0.05, 0x4488ff],
+    ] as [number, number, number][]) {
+      const m = new THREE.MeshBasicMaterial({
+        color, transparent: true, opacity,
+        side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false,
+      })
+      group.add(new THREE.Mesh(new THREE.SphereGeometry(R * scale, 32, 32), m))
+    }
+
+    // lights
+    scene.add(new THREE.AmbientLight(0xffffff, 0.38))
+    const sun = new THREE.DirectionalLight(0xddeeff, 1.1)
+    sun.position.set(-5, 3, 6)
+    scene.add(sun)
+
+    // city dots
+    const addDot = (lat: number, lon: number, color: number, size: number) => {
+      const m = new THREE.Mesh(
+        new THREE.SphereGeometry(size, 8, 8),
+        new THREE.MeshBasicMaterial({ color }),
+      )
+      m.position.copy(ll3(lat, lon, R + 0.03))
+      group.add(m)
+    }
+    addDot(HOME.lat, HOME.lon, 0x99aaff, 0.058)
+    TARGETS.forEach(t => addDot(t.lat, t.lon, 0x44ee88, 0.044))
+
+    // ── arcs ──────────────────────────────────────────────────────────────────
+    interface Arc {
+      geo:    THREE.BufferGeometry
+      buf:    Float32Array
+      head:   THREE.Mesh
+      prog:   number
+      speed:  number
+      delay:  number
+      total:  number
+      active: boolean
+    }
+    const arcs: Arc[] = []
+
+    const makeArc = (
+      aLat: number, aLon: number,
+      bLat: number, bLon: number,
+      color: number, headColor: number,
+      speed: number, delay: number,
+    ) => {
+      const buf = arcBuf(aLat, aLon, bLat, bLon, R)
+      const geo = new THREE.BufferGeometry()
+      geo.setAttribute('position', new THREE.BufferAttribute(buf, 3))
+      geo.setDrawRange(0, 0)
+      const line = new THREE.Line(
+        geo,
+        new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.85 }),
+      )
+      group.add(line)
+
+      // traveling head dot
+      const head = new THREE.Mesh(
+        new THREE.SphereGeometry(0.045, 8, 8),
+        new THREE.MeshBasicMaterial({ color: headColor }),
+      )
+      head.visible = false
+      group.add(head)
+
+      arcs.push({ geo, buf, head, prog: 0, speed, delay, total: N + 1, active: false })
+    }
+
+    TARGETS.forEach(t => {
+      // outgoing blue — all launch at t=0
+      makeArc(HOME.lat, HOME.lon, t.lat, t.lon, 0x4466ff, 0x88aaff, 0.020, 0)
+      // incoming green — random reply delay
+      makeArc(t.lat, t.lon, HOME.lat, HOME.lon, 0x22dd77, 0x66ffaa, 0.017, 1.8 + Math.random() * 3.5)
+    })
+
+    // ── animation loop ────────────────────────────────────────────────────────
+    let cycleT  = 0
+    const CYCLE = 8.5
+    let lastMs  = performance.now()
+    let raf: number
+
+    const tick = () => {
+      raf = requestAnimationFrame(tick)
+      const now = performance.now()
+      const dt  = (now - lastMs) / 1000
+      lastMs    = now
+
+      group.rotation.y += 0.00045
+
+      cycleT += dt
+      if (cycleT > CYCLE) {
+        cycleT = 0
+        arcs.forEach(a => {
+          a.prog = 0
+          a.active = false
+          a.geo.setDrawRange(0, 0)
+          a.head.visible = false
+        })
+      }
+
+      arcs.forEach(a => {
+        if (!a.active && cycleT >= a.delay) a.active = true
+        if (!a.active) return
+
+        a.prog = Math.min(1, a.prog + a.speed)
+        const shown = Math.max(2, Math.ceil(a.prog * a.total))
+        a.geo.setDrawRange(0, shown)
+
+        // move head to leading point
+        const hi = (shown - 1) * 3
+        a.head.visible = a.prog < 0.98
+        a.head.position.set(a.buf[hi], a.buf[hi + 1], a.buf[hi + 2])
+      })
+
+      renderer.render(scene, camera)
+    }
+    tick()
+
+    const onResize = () => {
+      const w = el.clientWidth, h = el.clientHeight
+      camera.aspect = w / h
+      camera.updateProjectionMatrix()
+      renderer.setSize(w, h)
+    }
+    window.addEventListener('resize', onResize)
+
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('resize', onResize)
+      renderer.dispose()
+      if (el.contains(renderer.domElement)) el.removeChild(renderer.domElement)
+    }
+  }, [])
+
+  return <div ref={ref} className="absolute inset-0" style={{ top: 36 }} />
+}
+
+// ── section ───────────────────────────────────────────────────────────────────
 export function OutreachSection() {
   return (
     <section className="relative z-10 pt-36 pb-16 px-6">
       <div className="mx-auto max-w-7xl flex flex-col lg:flex-row items-center gap-16">
 
+        {/* left copy */}
         <div className="flex-1 max-w-[460px] shrink-0">
           <p className="text-indigo-400 text-sm font-semibold tracking-widest uppercase mb-4">Outreach</p>
           <h2 className="text-5xl xl:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6">
@@ -287,13 +245,47 @@ export function OutreachSection() {
               </div>
             ))}
           </div>
-          <Link href="/signin" className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all hover:scale-105">
+          <Link
+            href="/signin"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all hover:scale-105"
+          >
             Start free
           </Link>
         </div>
 
+        {/* right: globe display */}
         <div className="flex-1 w-full min-w-0">
-          <NetworkViz />
+          <div
+            className="relative rounded-2xl border border-white/[0.1] bg-[#04060f] overflow-hidden shadow-2xl shadow-black/60 w-full"
+            style={{ height: 560 }}
+          >
+            {/* title bar */}
+            <div
+              className="absolute top-0 left-0 right-0 z-10 flex items-center px-3 border-b border-white/[0.06] bg-[#141414]"
+              style={{ height: 36 }}
+            >
+              <span className="text-[10px] text-white/20 font-mono">outreach · live</span>
+              <div className="ml-auto flex items-center">
+                <button className="w-9 h-9 flex items-center justify-center text-white/25 hover:bg-white/[0.07] text-[13px] leading-none">─</button>
+                <button className="w-9 h-9 flex items-center justify-center text-white/25 hover:bg-white/[0.07] text-[11px] leading-none">□</button>
+                <button className="w-9 h-9 flex items-center justify-center text-white/25 hover:bg-red-600/70 hover:text-white text-[15px] leading-none rounded-tr-2xl">✕</button>
+              </div>
+            </div>
+
+            {/* legend */}
+            <div className="absolute bottom-3 left-4 z-10 flex items-center gap-4">
+              <div className="flex items-center gap-1.5">
+                <div className="w-5 h-px" style={{ background: 'rgba(68,102,255,0.8)' }} />
+                <span className="text-[9px] text-white/25">Outgoing</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-5 h-px" style={{ background: 'rgba(34,221,119,0.8)' }} />
+                <span className="text-[9px] text-white/25">Replies</span>
+              </div>
+            </div>
+
+            <GlobeViz />
+          </div>
         </div>
 
       </div>
