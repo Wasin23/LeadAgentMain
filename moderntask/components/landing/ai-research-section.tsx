@@ -106,12 +106,12 @@ function AgentReadText({ text, speed = 22 }: { text: string; speed?: number }) {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/avatars/Hunter.png" alt="" className="w-3.5 h-3.5 rounded-full object-cover shrink-0" />
-          <span className="text-[9px] text-white/50 font-medium whitespace-nowrap">Hunter</span>
+          <span className="text-[13px] text-white/50 font-medium whitespace-nowrap">Hunter</span>
         </div>
       )}
       {words.map((w, i) => (
         <span key={i} ref={el => { wordRefs.current[i] = el }}>
-          <span className={i < idx ? 'text-white/62' : i === idx ? 'bg-indigo-500/55 text-white rounded-sm px-0.5 ring-1 ring-indigo-400/40' : 'text-white/18'}>{w}</span>
+          <span className={i < idx ? 'text-white/62' : i === idx ? 'bg-indigo-500/55 text-white rounded-sm px-0.5 ring-1 ring-indigo-400/40' : 'text-white/35'}>{w}</span>
           {i < words.length - 1 ? ' ' : ''}
         </span>
       ))}
@@ -132,7 +132,7 @@ function TypedChip({ text }: { text: string }) {
     return () => clearInterval(t)
   }, [text])
   return (
-    <span className="inline-flex items-center gap-0.5 px-2.5 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/25 text-indigo-300 text-[11px] font-medium">
+    <span className="inline-flex items-center gap-0.5 px-2.5 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/25 text-indigo-300 text-[13px] font-medium">
       {shown}
       {shown.length < text.length && (
         <span className="inline-block w-px h-[10px] bg-indigo-400/80 animate-pulse ml-px" />
@@ -153,7 +153,7 @@ function ScanText({ text, speed = 14 }: { text: string; speed?: number }) {
     <>
       {words.map((w, i) => (
         <span key={i}>
-          <span className={i < idx ? 'text-white/62' : i === idx ? 'bg-indigo-500/30 text-white/90 rounded-sm px-0.5' : 'text-white/18'}>{w}</span>
+          <span className={i < idx ? 'text-white/62' : i === idx ? 'bg-indigo-500/30 text-white/90 rounded-sm px-0.5' : 'text-white/35'}>{w}</span>
           {i < words.length - 1 ? ' ' : ''}
         </span>
       ))}
@@ -171,12 +171,12 @@ function ArticlePara({ text, state, setRef }: { text: string; state: 'past' | 'c
     return () => clearInterval(t)
   }, [state, words.length])
   return (
-    <p ref={setRef} className={`text-[12px] leading-[1.75] transition-opacity duration-500 ${state === 'future' ? 'opacity-20' : 'opacity-100'}`}>
+    <p ref={setRef} className={`text-[13px] leading-[1.75] transition-opacity duration-500 ${state === 'future' ? 'opacity-20' : 'opacity-100'}`}>
       {state === 'past' ? <span className="text-white/58">{text}</span>
       : state === 'future' ? <span className="text-white/50">{text}</span>
       : words.map((w, i) => (
           <span key={i}>
-            <span className={i < idx ? 'text-white/62' : i === idx ? 'bg-indigo-500/30 text-white/92 rounded-sm px-0.5' : 'text-white/18'}>{w}</span>
+            <span className={i < idx ? 'text-white/62' : i === idx ? 'bg-indigo-500/30 text-white/92 rounded-sm px-0.5' : 'text-white/35'}>{w}</span>
             {i < words.length - 1 ? ' ' : ''}
           </span>
         ))}
@@ -403,31 +403,31 @@ export function AiResearchSection() {
             <div className="flex items-center gap-2 px-3 border-b border-white/[0.06] bg-[#141414]" style={{ height: 36 }}>
               <div className="flex items-center gap-1.5 shrink-0">
                 <span className={`w-1.5 h-1.5 rounded-full ${phase === 'done' ? 'bg-green-400' : 'bg-indigo-400 animate-pulse'}`} />
-                <span className={`text-[10px] font-medium whitespace-nowrap ${phase === 'done' ? 'text-green-400' : 'text-indigo-400/80'}`}>
+                <span className={`text-[13px] font-medium whitespace-nowrap ${phase === 'done' ? 'text-green-400' : 'text-indigo-400/80'}`}>
                   {STATUS_LABELS[phase]}
                 </span>
               </div>
-              <div className="flex-1 mx-2 px-3 py-[3px] rounded bg-white/[0.05] border border-white/[0.06] text-white/20 text-[10px] font-mono text-center truncate">
+              <div className="flex-1 mx-2 px-3 py-[3px] rounded bg-white/[0.05] border border-white/[0.06] text-white/38 text-[13px] font-mono text-center truncate">
                 {URL_LABELS[activeTab]}
               </div>
               <div className="flex items-center shrink-0">
-                <button className="w-9 h-9 flex items-center justify-center text-white/25 hover:bg-white/[0.07] text-[13px] leading-none">─</button>
-                <button className="w-9 h-9 flex items-center justify-center text-white/25 hover:bg-white/[0.07] text-[11px] leading-none">□</button>
-                <button className="w-9 h-9 flex items-center justify-center text-white/25 hover:bg-red-600/70 hover:text-white text-[15px] leading-none rounded-tr-2xl">✕</button>
+                <button className="w-9 h-9 flex items-center justify-center text-white/45 hover:bg-white/[0.07] text-[13px] leading-none">─</button>
+                <button className="w-9 h-9 flex items-center justify-center text-white/45 hover:bg-white/[0.07] text-[13px] leading-none">□</button>
+                <button className="w-9 h-9 flex items-center justify-center text-white/45 hover:bg-red-600/70 hover:text-white text-[15px] leading-none rounded-tr-2xl">✕</button>
               </div>
             </div>
 
             {/* Tabs */}
-            <div className="flex text-[11px] border-b border-white/[0.06] bg-black/10 overflow-x-auto">
+            <div className="flex text-[13px] border-b border-white/[0.06] bg-black/10 overflow-x-auto">
               {TABS.map(tab => (
-                <div key={tab} className={`px-3.5 py-2.5 border-r border-white/[0.04] whitespace-nowrap shrink-0 transition-colors ${activeTab === tab ? 'text-white/80 bg-white/[0.05] border-b-2 border-b-indigo-500' : 'text-white/18'}`}>
+                <div key={tab} className={`px-3.5 py-2.5 border-r border-white/[0.04] whitespace-nowrap shrink-0 transition-colors ${activeTab === tab ? 'text-white/80 bg-white/[0.05] border-b-2 border-b-indigo-500' : 'text-white/35'}`}>
                   {TAB_LABELS[tab]}
                 </div>
               ))}
             </div>
 
             {/* Content */}
-            <div className={showSplit ? 'flex h-[520px]' : 'h-[520px]'} style={{ background: PHASE_BG[phase] }}>
+            <div className={showSplit ? 'flex h-[600px]' : 'h-[600px]'} style={{ background: PHASE_BG[phase] }}>
               <div
                 ref={articleScrollRef}
                 className={`overflow-y-auto ${showSplit ? 'flex-1 border-r border-white/[0.06]' : 'w-full h-full'}`}
@@ -450,16 +450,16 @@ export function AiResearchSection() {
                               <svg width="8" height="8" viewBox="0 0 8 8"><path d="M1.5 4l1.8 1.8L6.5 2" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
                             </span>
                           </div>
-                          <div className="text-white/40 text-[10px]">AI-powered outbound · San Francisco, CA</div>
+                          <div className="text-white/40 text-[13px]">AI-powered outbound · San Francisco, CA</div>
                         </div>
                         <div className="ml-auto pb-1 flex gap-1.5">
-                          <button className="px-3 py-1 rounded-full text-[10px] font-bold border border-white/[0.15] text-white/40">Edit profile</button>
+                          <button className="px-3 py-1 rounded-full text-[13px] font-bold border border-white/[0.15] text-white/40">Edit profile</button>
                         </div>
                       </div>
 
                       {/* bio */}
                       {profileItems >= 1 && (
-                        <p className="text-[11px] leading-relaxed mb-3">
+                        <p className="text-[13px] leading-relaxed mb-3">
                           <ScanText text="AI-powered outbound platform for B2B sales teams. We help revenue teams find, research, and close more pipeline without adding headcount." speed={22} />
                         </p>
                       )}
@@ -474,7 +474,7 @@ export function AiResearchSection() {
                           ].map(s => (
                             <div key={s.label} className="text-center">
                               <div className="text-white font-bold text-[13px]">{s.value}</div>
-                              <div className="text-white/25 text-[9px]">{s.label}</div>
+                              <div className="text-white/45 text-[13px]">{s.label}</div>
                             </div>
                           ))}
                         </div>
@@ -495,13 +495,13 @@ export function AiResearchSection() {
                         >
                           <span className="text-[14px] shrink-0">{f.icon}</span>
                           <div className="min-w-0">
-                            <div className="text-[9px] text-white/25 uppercase tracking-widest">{f.label}</div>
-                            <div className="text-[12px] font-medium mt-0.5">
+                            <div className="text-[13px] text-white/45 uppercase tracking-widest">{f.label}</div>
+                            <div className="text-[13px] font-medium mt-0.5">
                               {profileItems > i + 2 && <ScanText text={f.value} speed={18} />}
                             </div>
                           </div>
                           {profileItems > i + 2 && (
-                            <span className="ml-auto text-[9px] text-indigo-400/50 shrink-0">✓</span>
+                            <span className="ml-auto text-[13px] text-indigo-400/50 shrink-0">✓</span>
                           )}
                         </div>
                       ))}
@@ -511,7 +511,7 @@ export function AiResearchSection() {
                     {profileKw > 0 && (
                       <div className="px-4 py-3 border-t border-white/[0.06] space-y-2">
                         <div className="flex items-center gap-2">
-                          <div className="text-[9px] text-white/25 uppercase tracking-widest font-bold">
+                          <div className="text-[13px] text-white/45 uppercase tracking-widest font-bold">
                             {profileKw >= EXTRACTED_KEYWORDS.length ? 'Search targets' : 'Extracting criteria'}
                           </div>
                           {profileKw < EXTRACTED_KEYWORDS.length && (
@@ -521,7 +521,7 @@ export function AiResearchSection() {
                                 style={{ background: 'rgba(10,9,30,0.92)', border: '1px solid rgba(99,102,241,0.35)' }}>
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img src="/avatars/Hunter.png" alt="" className="w-3.5 h-3.5 rounded-full object-cover shrink-0" />
-                                <span className="text-[9px] text-white/50 font-medium whitespace-nowrap">Hunter</span>
+                                <span className="text-[13px] text-white/50 font-medium whitespace-nowrap">Hunter</span>
                               </div>
                             </>
                           )}
@@ -532,8 +532,8 @@ export function AiResearchSection() {
                           ))}
                         </div>
                         {profileKw >= EXTRACTED_KEYWORDS.length && (
-                          <div className="flex items-center gap-2 text-[11px] text-indigo-400/70 pt-1">
-                            <span className="text-[9px]">→</span>
+                          <div className="flex items-center gap-2 text-[13px] text-indigo-400/70 pt-1">
+                            <span className="text-[13px]">→</span>
                             Searching prospect engine with these terms…
                           </div>
                         )}
@@ -548,14 +548,14 @@ export function AiResearchSection() {
                     {/* Apollo nav */}
                     <div className="flex items-center gap-2 px-4 py-2.5 bg-[#0e0e10] border-b border-white/[0.06]">
                       <div className="w-6 h-6 rounded flex items-center justify-center shrink-0" style={{ background: '#ffe234' }}>
-                        <span className="font-black text-[10px]" style={{ color: '#1a1600' }}>A</span>
+                        <span className="font-black text-[13px]" style={{ color: '#1a1600' }}>A</span>
                       </div>
-                      <span className="text-[11px] font-bold text-white/60">apollo</span>
-                      <span className="text-white/15 text-[11px] mx-1">/</span>
-                      <span className="text-[11px] text-white/35">People</span>
-                      <span className="text-white/15 text-[11px] mx-1">/</span>
-                      <span className="text-[11px]" style={{ color: '#ffe234' }}>Search</span>
-                      <div className="ml-auto text-[10px] text-white/25">
+                      <span className="text-[13px] font-bold text-white/60">apollo</span>
+                      <span className="text-white/15 text-[13px] mx-1">/</span>
+                      <span className="text-[13px] text-white/35">People</span>
+                      <span className="text-white/15 text-[13px] mx-1">/</span>
+                      <span className="text-[13px]" style={{ color: '#ffe234' }}>Search</span>
+                      <div className="ml-auto text-[13px] text-white/45">
                         {dbRows > 0 ? `${(dbRows * 847).toLocaleString()} results` : 'searching…'}
                       </div>
                     </div>
@@ -563,7 +563,7 @@ export function AiResearchSection() {
                     {/* Filters */}
                     <div className="flex flex-wrap gap-1.5 px-4 py-2.5 bg-[#0e0e10] border-b border-white/[0.05] min-h-[42px]">
                       {EXTRACTED_KEYWORDS.slice(0, dbKeywords).map(kw => (
-                        <span key={kw} className="slide-up flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium" style={{ background: 'rgba(255,226,52,0.12)', border: '1px solid rgba(255,226,52,0.28)', color: '#ffe234' }}>
+                        <span key={kw} className="slide-up flex items-center gap-1 px-2 py-0.5 rounded text-[13px] font-medium" style={{ background: 'rgba(255,226,52,0.12)', border: '1px solid rgba(255,226,52,0.28)', color: '#ffe234' }}>
                           {kw} <span className="text-[8px] opacity-50 ml-0.5">×</span>
                         </span>
                       ))}
@@ -571,7 +571,7 @@ export function AiResearchSection() {
 
                     {/* Table header */}
                     {dbRows > 0 && (
-                      <div className="grid grid-cols-[1fr_1fr_1fr_44px] gap-x-3 px-4 py-1.5 text-[9px] font-bold text-white/20 uppercase tracking-widest border-b border-white/[0.04] bg-[#0e0e10]">
+                      <div className="grid grid-cols-[1fr_1fr_1fr_44px] gap-x-3 px-4 py-1.5 text-[13px] font-bold text-white/38 uppercase tracking-widest border-b border-white/[0.04] bg-[#0e0e10]">
                         <span>Name</span><span>Title</span><span>Company</span><span className="text-right">Fit</span>
                       </div>
                     )}
@@ -585,19 +585,19 @@ export function AiResearchSection() {
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <div className="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold shrink-0" style={lead.top ? { background: 'rgba(255,226,52,0.2)', color: '#ffe234' } : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.3)' }}>{lead.initials}</div>
-                          <span className={`text-[11px] font-medium truncate ${lead.top ? 'text-white/85' : 'text-white/50'}`}>{lead.name}</span>
+                          <span className={`text-[13px] font-medium truncate ${lead.top ? 'text-white/85' : 'text-white/50'}`}>{lead.name}</span>
                         </div>
-                        <span className={`text-[11px] truncate ${lead.top ? 'text-white/55' : 'text-white/30'}`}>{lead.title}</span>
-                        <span className={`text-[11px] truncate ${lead.top ? 'text-white/55' : 'text-white/30'}`}>{lead.company}</span>
+                        <span className={`text-[13px] truncate ${lead.top ? 'text-white/55' : 'text-white/30'}`}>{lead.title}</span>
+                        <span className={`text-[13px] truncate ${lead.top ? 'text-white/55' : 'text-white/30'}`}>{lead.company}</span>
                         <div className="flex justify-end">
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={lead.top ? { background: 'rgba(255,226,52,0.18)', color: '#ffe234' } : { color: 'rgba(255,255,255,0.2)' }}>{lead.score}</span>
+                          <span className="text-[13px] font-bold px-1.5 py-0.5 rounded" style={lead.top ? { background: 'rgba(255,226,52,0.18)', color: '#ffe234' } : { color: 'rgba(255,255,255,0.2)' }}>{lead.score}</span>
                         </div>
                       </div>
                     ))}
 
                     {subStep >= 1 && dbRows >= DB_LEADS.length && (
-                      <div className="px-4 py-2.5 flex items-center gap-2 text-[11px]" style={{ color: '#ffe234', background: 'rgba(255,226,52,0.05)', borderTop: '1px solid rgba(255,226,52,0.1)' }}>
-                        <span className="text-[9px]">→</span>
+                      <div className="px-4 py-2.5 flex items-center gap-2 text-[13px]" style={{ color: '#ffe234', background: 'rgba(255,226,52,0.05)', borderTop: '1px solid rgba(255,226,52,0.1)' }}>
+                        <span className="text-[13px]">→</span>
                         Top match selected: Sarah Chen · ScaleFlow, beginning deep research
                       </div>
                     )}
@@ -633,7 +633,7 @@ export function AiResearchSection() {
 
                     {/* Tabs */}
                     {subStep >= 1 && (
-                      <div className="flex items-center gap-1 text-[11px] mb-3" style={{ borderBottom: '1px solid #3c4043' }}>
+                      <div className="flex items-center gap-1 text-[13px] mb-3" style={{ borderBottom: '1px solid #3c4043' }}>
                         {['All', 'News', 'Images', 'Videos'].map((t, i) => (
                           <div key={t} className="px-3 py-2 cursor-pointer" style={i === 0 ? { color: '#8ab4f8', borderBottom: '2px solid #8ab4f8' } : { color: '#bdc1c6' }}>{t}</div>
                         ))}
@@ -641,7 +641,7 @@ export function AiResearchSection() {
                     )}
 
                     {subStep >= 1 && (
-                      <div className="text-[11px] mb-3 px-1" style={{ color: '#bdc1c6', fontFamily: 'arial, sans-serif' }}>
+                      <div className="text-[13px] mb-3 px-1" style={{ color: '#bdc1c6', fontFamily: 'arial, sans-serif' }}>
                         About 8,420 results <span style={{ color: '#9aa0a6' }}>(0.31 seconds)</span>
                       </div>
                     )}
@@ -654,12 +654,12 @@ export function AiResearchSection() {
                               <div className="w-4 h-4 rounded-sm flex items-center justify-center text-[7px] font-black shrink-0" style={{ background: '#303134', color: '#bdc1c6' }}>
                                 {r.url.includes('techcrunch') ? 'TC' : r.url.includes('linkedin') ? 'in' : 'F'}
                               </div>
-                              <span className="text-[11px] truncate" style={{ color: '#bdc1c6', fontFamily: 'arial, sans-serif' }}>{r.url}</span>
+                              <span className="text-[13px] truncate" style={{ color: '#bdc1c6', fontFamily: 'arial, sans-serif' }}>{r.url}</span>
                             </div>
                             <div className="text-[14px] font-medium leading-snug mb-1 cursor-pointer hover:underline" style={{ color: '#8ab4f8', fontFamily: 'arial, sans-serif' }}>{r.title}</div>
-                            <div className="text-[12px] leading-relaxed" style={{ color: '#bdc1c6', fontFamily: 'arial, sans-serif' }}>{r.snippet}</div>
+                            <div className="text-[13px] leading-relaxed" style={{ color: '#bdc1c6', fontFamily: 'arial, sans-serif' }}>{r.snippet}</div>
                             {subStep >= 2 && r.hi && (
-                              <div className="mt-2 text-[10px] flex items-center gap-1.5" style={{ color: '#81c995' }}>
+                              <div className="mt-2 text-[13px] flex items-center gap-1.5" style={{ color: '#81c995' }}>
                                 <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: '#81c995' }} />Opening article…
                               </div>
                             )}
@@ -676,16 +676,16 @@ export function AiResearchSection() {
                     {/* TechCrunch header */}
                     <div className="flex items-center gap-3 -mx-6 -mt-6 px-5 py-2.5 mb-4" style={{ background: '#0a0a0a', borderBottom: '1px solid #333' }}>
                       <div className="flex items-center gap-1.5">
-                        <div className="w-6 h-6 rounded flex items-center justify-center font-black text-[11px]" style={{ background: '#0d9b25', color: 'white' }}>TC</div>
+                        <div className="w-6 h-6 rounded flex items-center justify-center font-black text-[13px]" style={{ background: '#0d9b25', color: 'white' }}>TC</div>
                         <span className="font-black text-[13px]" style={{ color: '#0d9b25', fontFamily: 'helvetica, arial, sans-serif' }}>TechCrunch</span>
                       </div>
-                      <div className="ml-auto flex items-center gap-3 text-[10px] text-white/25">
+                      <div className="ml-auto flex items-center gap-3 text-[13px] text-white/45">
                         <span>Startups</span><span>Venture</span><span>AI</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold text-white/35">STARTUPS</span>
-                      <span className="text-[10px] text-white/20">· 3 days ago</span>
+                      <span className="text-[13px] font-bold text-white/35">STARTUPS</span>
+                      <span className="text-[13px] text-white/38">· 3 days ago</span>
                     </div>
                     <h3 className="text-white/88 font-black text-[16px] leading-snug" style={{ fontFamily: 'helvetica, arial, sans-serif' }}>ScaleFlow raises $12M Series A to triple US outbound sales capacity</h3>
                     <div className="space-y-3.5">
@@ -703,13 +703,13 @@ export function AiResearchSection() {
                     <div className="flex items-center px-4 py-2 shrink-0" style={{ background: '#3c4043' }}>
                       <div className="flex items-center gap-2 flex-1">
                         <div className="w-5 h-5 rounded flex items-center justify-center shrink-0" style={{ background: '#EA4335' }}>
-                          <span className="text-white font-black text-[9px]">M</span>
+                          <span className="text-white font-black text-[13px]">M</span>
                         </div>
-                        <span className="text-[12px] font-medium" style={{ color: '#e8eaed' }}>New Message</span>
+                        <span className="text-[13px] font-medium" style={{ color: '#e8eaed' }}>New Message</span>
                       </div>
                       <div className="flex items-center gap-1">
                         {['—', '⤢', '×'].map(icon => (
-                          <button key={icon} className="w-5 h-5 rounded flex items-center justify-center text-[11px]" style={{ color: '#bdc1c6' }}>{icon}</button>
+                          <button key={icon} className="w-5 h-5 rounded flex items-center justify-center text-[13px]" style={{ color: '#bdc1c6' }}>{icon}</button>
                         ))}
                       </div>
                     </div>
@@ -721,16 +721,16 @@ export function AiResearchSection() {
                         { l: 'Subject', v: "ScaleFlow's Q3 SDR expansion", style: { color: '#e8eaed' } },
                       ].map(f => (
                         <div key={f.l} className="flex items-center px-4 py-2" style={{ borderBottom: '1px solid #3c4043' }}>
-                          <span className="text-[12px] w-14 shrink-0" style={{ color: '#9aa0a6' }}>{f.l}</span>
-                          <span className="text-[12px]" style={f.style}>{f.v}</span>
-                          {f.l === 'To' && <span className="ml-auto text-[10px]" style={{ color: '#8ab4f8' }}>Cc Bcc</span>}
+                          <span className="text-[13px] w-14 shrink-0" style={{ color: '#9aa0a6' }}>{f.l}</span>
+                          <span className="text-[13px]" style={f.style}>{f.v}</span>
+                          {f.l === 'To' && <span className="ml-auto text-[13px]" style={{ color: '#8ab4f8' }}>Cc Bcc</span>}
                         </div>
                       ))}
                     </div>
 
                     {/* Body */}
                     <div className="flex-1 px-4 py-3">
-                      <div className="text-[12px] leading-relaxed whitespace-pre-wrap" style={{ color: '#e8eaed', fontFamily: 'arial, sans-serif' }}>
+                      <div className="text-[13px] leading-relaxed whitespace-pre-wrap" style={{ color: '#e8eaed', fontFamily: 'arial, sans-serif' }}>
                         {phase === 'done' ? EMAIL_BODY : EMAIL_BODY.slice(0, typed)}
                         {phase === 'email' && typed < EMAIL_BODY.length && <span className="inline-block w-px h-[13px] animate-pulse align-text-bottom ml-px" style={{ background: '#8ab4f8' }} />}
                       </div>
@@ -739,21 +739,21 @@ export function AiResearchSection() {
                     {/* Gmail toolbar */}
                     <div className="flex items-center gap-1 px-3 py-2 shrink-0" style={{ background: '#1c1c1c', borderTop: '1px solid #3c4043' }}>
                       <button
-                        className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[12px] font-medium transition-all"
+                        className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[13px] font-medium transition-all"
                         style={{ background: phase === 'done' ? '#1a73e8' : 'rgba(26,115,232,0.35)', color: phase === 'done' ? 'white' : 'rgba(255,255,255,0.35)' }}
                       >
                         Send {phase === 'done' && <ArrowRight className="w-3 h-3" />}
                       </button>
                       <div className="flex items-center gap-0.5 ml-2" style={{ color: '#9aa0a6' }}>
                         {['B', 'I', 'U'].map(t => (
-                          <button key={t} className="w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold hover:bg-white/10">{t}</button>
+                          <button key={t} className="w-6 h-6 rounded flex items-center justify-center text-[13px] font-bold hover:bg-white/10">{t}</button>
                         ))}
                         <div className="w-px h-4 mx-1" style={{ background: '#3c4043' }} />
-                        <button className="w-6 h-6 rounded flex items-center justify-center text-[12px] hover:bg-white/10">≡</button>
-                        <button className="w-6 h-6 rounded flex items-center justify-center text-[11px] hover:bg-white/10">@</button>
+                        <button className="w-6 h-6 rounded flex items-center justify-center text-[13px] hover:bg-white/10">≡</button>
+                        <button className="w-6 h-6 rounded flex items-center justify-center text-[13px] hover:bg-white/10">@</button>
                       </div>
                       {phase === 'done' && (
-                        <span className="ml-auto text-[11px] flex items-center gap-1.5" style={{ color: '#81c995' }}>
+                        <span className="ml-auto text-[13px] flex items-center gap-1.5" style={{ color: '#81c995' }}>
                           <span className="w-1.5 h-1.5 rounded-full" style={{ background: '#81c995', display: 'inline-block' }} />Ready to send
                         </span>
                       )}
@@ -768,18 +768,18 @@ export function AiResearchSection() {
                       <div className="w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-300 font-black text-xs shrink-0">SC</div>
                       <div>
                         <div className="text-white/80 font-bold text-sm">ScaleFlow · Sarah Chen</div>
-                        <div className="text-white/30 text-[11px]">Head of Growth · San Francisco</div>
+                        <div className="text-white/30 text-[13px]">Head of Growth · San Francisco</div>
                       </div>
-                      <span className="ml-auto text-[10px] font-bold text-indigo-400/50 uppercase tracking-widest">Research Report</span>
+                      <span className="ml-auto text-[13px] font-bold text-indigo-400/50 uppercase tracking-widest">Research Report</span>
                     </div>
                     {REPORT_SECTIONS.slice(0, reportSec).map((sec, si) => {
                       const shown = Math.max(0, reportItems - si * 10)
                       return (
                         <div key={si} className="slide-up space-y-2">
-                          <div className={`text-[10px] font-bold uppercase tracking-widest ${sec.accent ? 'text-green-400/70' : 'text-white/25'}`}>{sec.label}</div>
+                          <div className={`text-[13px] font-bold uppercase tracking-widest ${sec.accent ? 'text-green-400/70' : 'text-white/45'}`}>{sec.label}</div>
                           {sec.items.slice(0, shown).map((item, ii) => (
-                            <div key={ii} className={`slide-up flex items-center gap-2 text-[12px] ${sec.accent ? 'text-green-400' : 'text-white/55'}`}>
-                              <span className={`text-[9px] shrink-0 ${sec.accent ? 'text-green-400' : 'text-indigo-400'}`}>→</span>{item}
+                            <div key={ii} className={`slide-up flex items-center gap-2 text-[13px] ${sec.accent ? 'text-green-400' : 'text-white/55'}`}>
+                              <span className={`text-[13px] shrink-0 ${sec.accent ? 'text-green-400' : 'text-indigo-400'}`}>→</span>{item}
                             </div>
                           ))}
                         </div>
@@ -805,13 +805,13 @@ export function AiResearchSection() {
                         <rect x="63" y="15" width="14" height="22" rx="7" fill="#FF7A59" transform="rotate(45 70 26)"/>
                         <rect x="63" y="63" width="14" height="22" rx="7" fill="#FF7A59" transform="rotate(-45 70 74)"/>
                       </svg>
-                      <span className="text-[12px] font-bold" style={{ color: '#FF7A59' }}>HubSpot</span>
-                      <span className="text-white/15 text-[11px] mx-1">/</span>
-                      <span className="text-[11px] text-white/35">CRM</span>
-                      <span className="text-white/15 text-[11px] mx-1">/</span>
-                      <span className="text-[11px] text-white/35">Contacts</span>
-                      <span className="text-white/15 text-[11px] mx-1">/</span>
-                      <span className="text-[11px]" style={{ color: '#FF7A59' }}>Sarah Chen</span>
+                      <span className="text-[13px] font-bold" style={{ color: '#FF7A59' }}>HubSpot</span>
+                      <span className="text-white/15 text-[13px] mx-1">/</span>
+                      <span className="text-[13px] text-white/35">CRM</span>
+                      <span className="text-white/15 text-[13px] mx-1">/</span>
+                      <span className="text-[13px] text-white/35">Contacts</span>
+                      <span className="text-white/15 text-[13px] mx-1">/</span>
+                      <span className="text-[13px]" style={{ color: '#FF7A59' }}>Sarah Chen</span>
                     </div>
 
                     {/* Contact header */}
@@ -819,17 +819,17 @@ export function AiResearchSection() {
                       <div className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm shrink-0" style={{ background: 'rgba(255,122,89,0.15)', border: '1px solid rgba(255,122,89,0.3)', color: '#FF7A59' }}>SC</div>
                       <div className="flex-1 min-w-0">
                         <div className="text-white/85 font-bold text-[14px]">Sarah Chen</div>
-                        <div className="text-white/35 text-[11px]">Head of Growth · ScaleFlow</div>
+                        <div className="text-white/35 text-[13px]">Head of Growth · ScaleFlow</div>
                       </div>
-                      <button className="px-3 py-1.5 rounded text-white text-[10px] font-bold shrink-0" style={{ background: '#FF7A59' }}>+ Enroll in Sequence</button>
+                      <button className="px-3 py-1.5 rounded text-white text-[13px] font-bold shrink-0" style={{ background: '#FF7A59' }}>+ Enroll in Sequence</button>
                     </div>
 
                     {/* Deal stage pipeline */}
                     <div className="px-4 py-3 border-b border-white/[0.06]">
-                      <div className="text-[10px] font-bold text-white/25 uppercase tracking-widest mb-2.5">Deal Stage</div>
+                      <div className="text-[13px] font-bold text-white/45 uppercase tracking-widest mb-2.5">Deal Stage</div>
                       <div className="flex gap-1">
                         {['Prospect', 'Contacted', 'Meeting', 'Proposal', 'Closed'].map((stage, i) => (
-                          <div key={stage} className="flex-1 py-1.5 text-center text-[9px] font-bold rounded transition-all" style={i <= 1 ? { background: '#FF7A59', color: 'white' } : { background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.2)' }}>
+                          <div key={stage} className="flex-1 py-1.5 text-center text-[13px] font-bold rounded transition-all" style={i <= 1 ? { background: '#FF7A59', color: 'white' } : { background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.2)' }}>
                             {stage}
                           </div>
                         ))}
@@ -838,13 +838,13 @@ export function AiResearchSection() {
 
                     {/* Properties */}
                     <div className="px-4 py-3">
-                      <div className="text-[10px] font-bold text-white/25 uppercase tracking-widest mb-2.5">Contact Properties</div>
+                      <div className="text-[13px] font-bold text-white/45 uppercase tracking-widest mb-2.5">Contact Properties</div>
                       <div className="rounded-xl border border-white/[0.08] overflow-hidden">
                         {CRM_FIELDS.map((f, i) => (
                           <div key={f.label} className={`flex items-center gap-3 px-4 py-2.5 border-b border-white/[0.05] last:border-0 transition-all duration-300 ${crmField > i ? 'opacity-100' : 'opacity-20'}`}>
-                            <span className="text-white/28 text-[11px] w-18 shrink-0">{f.label}</span>
-                            <span className={`text-[12px] font-medium flex-1 ${crmField > i ? 'text-white/70' : 'text-white/10'}`}>{crmField > i ? f.value : '—'}</span>
-                            {crmField > i && <span className="ml-auto text-[9px]" style={{ color: 'rgba(255,122,89,0.6)' }}>✓</span>}
+                            <span className="text-white/28 text-[13px] w-18 shrink-0">{f.label}</span>
+                            <span className={`text-[13px] font-medium flex-1 ${crmField > i ? 'text-white/70' : 'text-white/10'}`}>{crmField > i ? f.value : '—'}</span>
+                            {crmField > i && <span className="ml-auto text-[13px]" style={{ color: 'rgba(255,122,89,0.6)' }}>✓</span>}
                           </div>
                         ))}
                       </div>
@@ -853,7 +853,7 @@ export function AiResearchSection() {
                     {/* Sync bar */}
                     {crmField >= CRM_FIELDS.length && (
                       <div className="px-4 pb-3">
-                        <div className="flex justify-between text-[10px] text-white/25 mb-1.5">
+                        <div className="flex justify-between text-[13px] text-white/45 mb-1.5">
                           <span>Syncing to HubSpot</span>
                           <span style={{ color: '#FF7A59' }}>{crmBar === 100 ? '100%' : '…'}</span>
                         </div>
@@ -867,8 +867,8 @@ export function AiResearchSection() {
                     {crmActions > 0 && (
                       <div className="px-4 pb-4 space-y-2">
                         {CRM_ACTIONS.slice(0, crmActions).map((action, i) => (
-                          <div key={i} className="slide-up flex items-center gap-2 text-[12px]" style={{ color: 'rgba(255,122,89,0.8)' }}>
-                            <span className="text-[10px]">✓</span>{action}
+                          <div key={i} className="slide-up flex items-center gap-2 text-[13px]" style={{ color: 'rgba(255,122,89,0.8)' }}>
+                            <span className="text-[13px]">✓</span>{action}
                           </div>
                         ))}
                       </div>
@@ -881,23 +881,23 @@ export function AiResearchSection() {
               {/* Notes panel */}
               {showSplit && (
                 <div className="w-[200px] shrink-0 p-4 overflow-y-auto flex flex-col gap-2.5">
-                  <div className="text-[10px] font-bold text-white/25 uppercase tracking-widest flex items-center gap-1.5 mb-1">
+                  <div className="text-[13px] font-bold text-white/45 uppercase tracking-widest flex items-center gap-1.5 mb-1">
                     <span className="text-indigo-400">✦</span>Research Notes
                   </div>
                   {notesList.length === 0 ? (
-                    <div className="text-[11px] text-white/15 italic">Collecting signals…</div>
+                    <div className="text-[13px] text-white/15 italic">Collecting signals…</div>
                   ) : (
                     notesList.map((note, i) => (
-                      <div key={i} className={`note-item flex items-start gap-1.5 text-[11px] leading-snug ${(phase === 'email' || phase === 'done' || phase === 'report') ? 'text-white/38' : 'text-white/60'}`}>
-                        <span className="text-indigo-400/70 text-[9px] mt-[3px] shrink-0">✦</span>
+                      <div key={i} className={`note-item flex items-start gap-1.5 text-[13px] leading-snug ${(phase === 'email' || phase === 'done' || phase === 'report') ? 'text-white/38' : 'text-white/60'}`}>
+                        <span className="text-indigo-400/70 text-[13px] mt-[3px] shrink-0">✦</span>
                         <span>{note}</span>
                       </div>
                     ))
                   )}
                   {(phase === 'email' || phase === 'done') && notesList.length > 0 && (
                     <div className="mt-2 pt-2.5 border-t border-white/[0.06]">
-                      <div className="text-[10px] text-indigo-400/70 font-semibold mb-1.5">Building from</div>
-                      <div className="text-[11px] text-white/40 leading-snug space-y-1">
+                      <div className="text-[13px] text-indigo-400/70 font-semibold mb-1.5">Building from</div>
+                      <div className="text-[13px] text-white/40 leading-snug space-y-1">
                         <div>→ SDR expansion signal</div>
                         <div>→ Series A context</div>
                         <div>→ Growth quote</div>

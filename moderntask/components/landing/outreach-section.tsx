@@ -52,46 +52,59 @@ function rrect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h
 }
 
 function makeProfileSprite(name: string, title: string, init: string): THREE.Sprite {
-  const CW = 210, CH = 58
+  const CW = 240, CH = 64
   const cv = document.createElement('canvas')
   cv.width = CW; cv.height = CH
   const ctx = cv.getContext('2d')!
 
-  // card bg
-  ctx.fillStyle = 'rgba(8, 13, 32, 0.93)'
+  // card bg — fully opaque gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, CH)
+  grad.addColorStop(0, 'rgb(18, 24, 58)')
+  grad.addColorStop(1, 'rgb(9, 13, 40)')
+  ctx.fillStyle = grad
   rrect(ctx, 0, 0, CW, CH, 10); ctx.fill()
-  ctx.strokeStyle = 'rgba(90, 110, 255, 0.32)'
-  ctx.lineWidth = 1.5
+
+  // border glow
+  ctx.strokeStyle = 'rgba(100, 130, 255, 0.55)'
+  ctx.lineWidth = 1.8
   rrect(ctx, 1, 1, CW - 2, CH - 2, 9); ctx.stroke()
 
+  // inner top-edge highlight
+  ctx.strokeStyle = 'rgba(160, 180, 255, 0.18)'
+  ctx.lineWidth = 1
+  ctx.beginPath(); ctx.moveTo(10, 1); ctx.lineTo(CW - 10, 1); ctx.stroke()
+
   // avatar bg
-  ctx.fillStyle = 'rgba(70, 90, 220, 0.28)'
-  ctx.beginPath(); ctx.arc(32, CH / 2, 17, 0, Math.PI * 2); ctx.fill()
-  ctx.strokeStyle = 'rgba(100, 130, 255, 0.5)'
-  ctx.lineWidth = 1.2
-  ctx.beginPath(); ctx.arc(32, CH / 2, 17, 0, Math.PI * 2); ctx.stroke()
+  const avGrad = ctx.createRadialGradient(34, CH / 2, 4, 34, CH / 2, 18)
+  avGrad.addColorStop(0, 'rgba(100, 120, 255, 0.60)')
+  avGrad.addColorStop(1, 'rgba(60, 80, 200, 0.30)')
+  ctx.fillStyle = avGrad
+  ctx.beginPath(); ctx.arc(34, CH / 2, 18, 0, Math.PI * 2); ctx.fill()
+  ctx.strokeStyle = 'rgba(140, 165, 255, 0.65)'
+  ctx.lineWidth = 1.4
+  ctx.beginPath(); ctx.arc(34, CH / 2, 18, 0, Math.PI * 2); ctx.stroke()
 
   // initials
-  ctx.fillStyle = 'rgba(170, 190, 255, 1)'
-  ctx.font = 'bold 12px sans-serif'
+  ctx.fillStyle = 'rgba(200, 215, 255, 1)'
+  ctx.font = 'bold 13px sans-serif'
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-  ctx.fillText(init, 32, CH / 2)
+  ctx.fillText(init, 34, CH / 2)
 
   // name
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.90)'
-  ctx.font = 'bold 12.5px sans-serif'
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.95)'
+  ctx.font = 'bold 13px sans-serif'
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'
-  ctx.fillText(name, 58, CH / 2 - 3)
+  ctx.fillText(name, 62, CH / 2 - 3)
 
   // title
-  ctx.fillStyle = 'rgba(180, 190, 255, 0.42)'
-  ctx.font = '10px sans-serif'
-  ctx.fillText(title, 58, CH / 2 + 13)
+  ctx.fillStyle = 'rgba(170, 185, 255, 0.55)'
+  ctx.font = '11px sans-serif'
+  ctx.fillText(title, 62, CH / 2 + 14)
 
   const tex = new THREE.CanvasTexture(cv)
-  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: true })
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: false, depthTest: true })
   const sprite = new THREE.Sprite(mat)
-  sprite.scale.set(CW / CH * 0.22, 0.22, 1)
+  sprite.scale.set(CW / CH * 0.24, 0.24, 1)
   return sprite
 }
 
@@ -101,8 +114,8 @@ function makeOpenedSprite(): THREE.Sprite {
   cv.width = CW; cv.height = CH
   const ctx = cv.getContext('2d')!
 
-  // subtle dark bg pill
-  ctx.fillStyle = 'rgba(4, 22, 10, 0.82)'
+  // dark bg pill — fully opaque
+  ctx.fillStyle = 'rgb(5, 28, 14)'
   rrect(ctx, 0, 0, CW, CH, 18); ctx.fill()
 
   // green dot
@@ -179,7 +192,11 @@ function GlobeViz() {
     // earth sphere
     const sGeo = new THREE.SphereGeometry(R, 64, 64)
     const sMat = new THREE.MeshPhongMaterial({
-      color: 0x1a3a5c, shininess: 10,
+      color: 0x0e2a50,
+      emissive: 0x071830,
+      emissiveIntensity: 0.7,
+      shininess: 22,
+      specular: new THREE.Color(0x334488),
       clippingPlanes: [clipPlane],
     })
     new THREE.TextureLoader().load(
@@ -188,10 +205,11 @@ function GlobeViz() {
     )
     group.add(new THREE.Mesh(sGeo, sMat))
 
-    // ── lat / lon grid lines ───────────────────────────────────────────────────
+    // ── lat / lon grid lines — additive so they glow ───────────────────────────
     const gridMat = () => new THREE.LineBasicMaterial({
-      color: 0x4466aa, transparent: true, opacity: 0.13,
+      color: 0x4488cc, transparent: true, opacity: 0.28,
       depthTest: true, clippingPlanes: [clipPlane],
+      blending: THREE.AdditiveBlending, depthWrite: false,
     })
     // latitude parallels — every 15°
     for (let lat = -60; lat <= 75; lat += 15) {
@@ -206,10 +224,12 @@ function GlobeViz() {
       group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), gridMat()))
     }
 
-    // atmosphere glow layers
+    // atmosphere glow layers — inner tight + outer halo
     for (const [scale, opacity, color] of [
-      [1.018, 0.13, 0x2255cc],
-      [1.045, 0.05, 0x4488ff],
+      [1.015, 0.28, 0x1a44cc],
+      [1.035, 0.14, 0x2255ee],
+      [1.065, 0.07, 0x3366ff],
+      [1.10,  0.03, 0x5588ff],
     ] as [number, number, number][]) {
       const m = new THREE.MeshBasicMaterial({
         color, transparent: true, opacity,
@@ -219,16 +239,19 @@ function GlobeViz() {
       group.add(new THREE.Mesh(new THREE.SphereGeometry(R * scale, 32, 32), m))
     }
 
-    // lights
-    scene.add(new THREE.AmbientLight(0xffffff, 0.38))
-    const sun = new THREE.DirectionalLight(0xddeeff, 1.1)
-    sun.position.set(-5, 3, 6)
+    // lights — key from front-left, rim from behind-right for edge pop
+    scene.add(new THREE.AmbientLight(0x8899cc, 0.55))
+    const sun = new THREE.DirectionalLight(0xddeeff, 1.4)
+    sun.position.set(-5, 4, 8)
     scene.add(sun)
+    const rimLight = new THREE.DirectionalLight(0x2244aa, 0.7)
+    rimLight.position.set(6, -2, -8)
+    scene.add(rimLight)
 
     // sender dot (New York)
     const homeDot = new THREE.Mesh(
-      new THREE.SphereGeometry(0.07, 10, 10),
-      new THREE.MeshBasicMaterial({ color: 0x99aaff }),
+      new THREE.SphereGeometry(0.09, 12, 12),
+      new THREE.MeshBasicMaterial({ color: 0xaabbff }),
     )
     homeDot.position.copy(ll3(HOME.lat, HOME.lon, R + 0.04))
     group.add(homeDot)
@@ -237,8 +260,8 @@ function GlobeViz() {
     TARGETS.forEach((t, i) => {
       // surface landing dot
       const dot = new THREE.Mesh(
-        new THREE.SphereGeometry(0.055, 10, 10),
-        new THREE.MeshBasicMaterial({ color: 0x6688ff, depthTest: true, clippingPlanes: [clipPlane] }),
+        new THREE.SphereGeometry(0.07, 12, 12),
+        new THREE.MeshBasicMaterial({ color: 0x7799ff, depthTest: true, clippingPlanes: [clipPlane] }),
       )
       dot.position.copy(ll3(t.lat, t.lon, R + 0.03))
       group.add(dot)
@@ -283,7 +306,7 @@ function GlobeViz() {
       const geo = new THREE.BufferGeometry()
       geo.setAttribute('position', new THREE.BufferAttribute(buf, 3))
       geo.setDrawRange(0, 0)
-      const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.85, depthTest: true, clippingPlanes: [clipPlane] })
+      const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.92, depthTest: true, clippingPlanes: [clipPlane], blending: THREE.AdditiveBlending, depthWrite: false })
       group.add(new THREE.Line(geo, mat))
 
       const head = new THREE.Mesh(
@@ -297,7 +320,7 @@ function GlobeViz() {
     }
 
     TARGETS.forEach(t => {
-      makeArc(HOME.lat, HOME.lon, t.lat, t.lon, 0x4466ff, 0x88aaff, 0.008, 0)
+      makeArc(HOME.lat, HOME.lon, t.lat, t.lon, 0x5577ff, 0xaabbff, 0.008, 0)
       const replyDelay = 1.8 + Math.random() * 3.5
       const os = makeOpenedSprite()
       const cardPos = ll3(t.lat, t.lon, R + 0.28)
