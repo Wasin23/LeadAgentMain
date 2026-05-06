@@ -69,6 +69,56 @@ const CRM_ACTIONS  = ['Contact record created', 'Email sequence enrolled', 'Foll
 
 function sleep(ms: number) { return new Promise<void>(r => setTimeout(r, ms)) }
 
+function AgentReadText({ text, speed = 22 }: { text: string; speed?: number }) {
+  const [idx, setIdx] = useState(0)
+  const words = useMemo(() => text.split(' '), [text])
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const wordRefs = useRef<(HTMLSpanElement | null)[]>([])
+  const [chipPos, setChipPos] = useState<{ x: number; y: number } | null>(null)
+
+  useEffect(() => {
+    setIdx(0); wordRefs.current = []; let i = 0
+    const t = setInterval(() => { i++; setIdx(i); if (i >= words.length) clearInterval(t) }, 1000 / speed)
+    return () => clearInterval(t)
+  }, [text, speed, words.length])
+
+  useEffect(() => {
+    if (idx === 0 || idx >= words.length) { setChipPos(null); return }
+    const wordEl = wordRefs.current[idx]
+    const wrap = wrapRef.current
+    if (!wordEl || !wrap) return
+    const wRect = wordEl.getBoundingClientRect()
+    const cRect = wrap.getBoundingClientRect()
+    setChipPos({ x: wRect.left - cRect.left, y: wRect.top - cRect.top - 22 })
+  }, [idx, words.length])
+
+  return (
+    <div ref={wrapRef} className="relative">
+      {chipPos && (
+        <div
+          className="absolute z-20 flex items-center gap-1 rounded-full px-1.5 py-0.5 pointer-events-none"
+          style={{
+            left: chipPos.x, top: chipPos.y,
+            background: 'rgba(10,9,30,0.92)',
+            border: '1px solid rgba(99,102,241,0.35)',
+            transition: 'left 80ms ease-out, top 80ms ease-out',
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/avatars/Hunter.png" alt="" className="w-3.5 h-3.5 rounded-full object-cover shrink-0" />
+          <span className="text-[9px] text-white/50 font-medium whitespace-nowrap">Hunter</span>
+        </div>
+      )}
+      {words.map((w, i) => (
+        <span key={i} ref={el => { wordRefs.current[i] = el }}>
+          <span className={i < idx ? 'text-white/62' : i === idx ? 'bg-indigo-500/55 text-white rounded-sm px-0.5 ring-1 ring-indigo-400/40' : 'text-white/18'}>{w}</span>
+          {i < words.length - 1 ? ' ' : ''}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 function TypedChip({ text }: { text: string }) {
   const [shown, setShown] = useState('')
   useEffect(() => {
@@ -330,7 +380,7 @@ export function AiResearchSection() {
             Reads the room<br />before writing.
           </h2>
           <p className="text-white/50 text-lg leading-relaxed mb-8">
-            Your agent pulls company profiles, recent news, hiring signals, and role context — then writes from that research. Not a template.
+            Your agent pulls company profiles, recent news, hiring signals, and role context — then writes from that research. Fully personalized. Not a template.
           </p>
           <div className="space-y-3 mb-10">
             {['Company profile and role intelligence', 'Funding rounds and hiring signals', 'Recent news and web signals', 'Tech stack and buyer intent data'].map(f => (
@@ -409,9 +459,9 @@ export function AiResearchSection() {
 
                       {/* bio */}
                       {profileItems >= 1 && (
-                        <p className="text-[11px] leading-relaxed mb-3">
-                          <ScanText text="AI-powered outbound platform for B2B sales teams. We help revenue teams find, research, and close more pipeline — without adding headcount." speed={22} />
-                        </p>
+                        <div className="text-[11px] leading-relaxed mb-3">
+                          <AgentReadText text="AI-powered outbound platform for B2B sales teams. We help revenue teams find, research, and close more pipeline — without adding headcount." speed={22} />
+                        </div>
                       )}
 
                       {/* stats row */}
@@ -447,7 +497,7 @@ export function AiResearchSection() {
                           <div className="min-w-0">
                             <div className="text-[9px] text-white/25 uppercase tracking-widest">{f.label}</div>
                             <div className="text-[12px] font-medium mt-0.5">
-                              {profileItems > i + 2 && <ScanText text={f.value} speed={18} />}
+                              {profileItems > i + 2 && <AgentReadText text={f.value} speed={18} />}
                             </div>
                           </div>
                           {profileItems > i + 2 && (
