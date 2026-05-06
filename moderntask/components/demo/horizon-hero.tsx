@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Link from 'next/link';
@@ -40,8 +40,7 @@ export function HorizonHero() {
           {words.map((word, wi) => (
             <span key={wi} className="overflow-hidden inline-block">
               {word.split('').map((ch, ci) => (
-                <span key={ci} className="char inline-block text-6xl md:text-8xl font-black tracking-tight"
-                  style={{ color: 'white', textShadow: '0 0 80px rgba(99,102,241,0.4), 0 2px 20px rgba(0,0,0,0.8)' }}>
+                <span key={ci} className="char inline-block text-6xl md:text-8xl font-black tracking-tight text-white">
                   {ch}
                 </span>
               ))}

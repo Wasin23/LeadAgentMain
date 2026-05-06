@@ -244,7 +244,7 @@ export function AgentSection() {
               style={{ borderColor: `rgba(${hexToRgb(agent.accent)},0.14)`, background: `rgba(${hexToRgb(agent.accent)},0.05)` }}
             >
               <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: agent.accent }} />
-              <span className="text-[10px] font-mono" style={{ color: `rgba(${hexToRgb(agent.accent)},0.7)` }}>
+              <span className="text-[10px]" style={{ color: `rgba(${hexToRgb(agent.accent)},0.7)` }}>
                 draft · {agent.name.toLowerCase()}
               </span>
             </div>
