@@ -118,7 +118,7 @@ function makeOpenedSprite(): THREE.Sprite {
   const tex = new THREE.CanvasTexture(cv)
   const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, opacity: 1 })
   const sprite = new THREE.Sprite(mat)
-  sprite.scale.set(CW / CH * 0.26, 0.26, 1)
+  sprite.scale.set(CW / CH * 0.14, 0.14, 1)
   return sprite
 }
 
@@ -170,7 +170,7 @@ function GlobeViz() {
     const R     = 5.8
     const group = new THREE.Group()
     group.position.set(0, -7.8, 0)
-    group.rotation.z = 4 * Math.PI / 180
+    group.rotation.z = 0
     scene.add(group)
 
     renderer.localClippingEnabled = true

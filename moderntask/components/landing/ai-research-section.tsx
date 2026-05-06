@@ -115,7 +115,6 @@ function ArticlePara({ text, state, setRef }: { text: string; state: 'past' | 'c
 const TAB_LABELS: Record<Phase, string> = {
   profile:  'Your Profile',
   database: 'apollo · People',
-  linkedin: 'LinkedIn · ScaleFlow',
   websearch:'Google Search',
   article:  'TechCrunch',
   email:    'Gmail · Compose',
@@ -127,7 +126,6 @@ const TAB_LABELS: Record<Phase, string> = {
 const URL_LABELS: Record<Phase, string> = {
   profile:  'meridian://your-profile',
   database: 'app.apollo.io/#/people?q=B2B+SaaS+Head+of+Growth+Series+A',
-  linkedin: 'linkedin.com/company/scaleflow',
   websearch:'google.com/search?q=ScaleFlow+Series+A+funding+2024',
   article:  'techcrunch.com › 2024 › scaleflow-raises-12m-series-a',
   email:    'mail.google.com/mail/u/0/#compose',
@@ -367,11 +365,11 @@ export function AiResearchSection() {
                 {phase === 'profile' && (
                   <div className="overflow-hidden">
                     {/* cover banner */}
-                    <div className="h-[72px] relative" style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 100%)' }}>
-                      <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 70% 50%, #818cf8 0%, transparent 60%)' }} />
+                    <div className="h-[64px] relative overflow-hidden" style={{ background: 'linear-gradient(160deg, #0b0a1e 0%, #0d0c28 60%, #10102e 100%)' }}>
+                      <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(ellipse at 30% 50%, rgba(99,102,241,0.08) 0%, transparent 70%), radial-gradient(ellipse at 80% 30%, rgba(79,70,229,0.06) 0%, transparent 60%)' }} />
                       <div className="absolute top-2 right-3 flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-300 animate-pulse" />
-                        <span className="text-[9px] text-indigo-300/70 font-mono">reading profile…</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400/60 animate-pulse" />
+                        <span className="text-[9px] text-indigo-400/40 font-mono">reading profile…</span>
                       </div>
                     </div>
 
