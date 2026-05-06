@@ -188,6 +188,24 @@ function GlobeViz() {
     )
     group.add(new THREE.Mesh(sGeo, sMat))
 
+    // ── lat / lon grid lines ───────────────────────────────────────────────────
+    const gridMat = () => new THREE.LineBasicMaterial({
+      color: 0x4466aa, transparent: true, opacity: 0.13,
+      depthTest: true, clippingPlanes: [clipPlane],
+    })
+    // latitude parallels — every 30°
+    for (const lat of [-30, 0, 30, 60]) {
+      const pts: THREE.Vector3[] = []
+      for (let lon = 0; lon <= 360; lon += 3) pts.push(ll3(lat, lon - 180, R + 0.01))
+      group.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts), gridMat()))
+    }
+    // longitude meridians — every 30°
+    for (let lon = 0; lon < 360; lon += 30) {
+      const pts: THREE.Vector3[] = []
+      for (let lat = -90; lat <= 90; lat += 2) pts.push(ll3(lat, lon - 180, R + 0.01))
+      group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), gridMat()))
+    }
+
     // atmosphere glow layers
     for (const [scale, opacity, color] of [
       [1.018, 0.13, 0x2255cc],
@@ -215,8 +233,17 @@ function GlobeViz() {
     homeDot.position.copy(ll3(HOME.lat, HOME.lon, R + 0.04))
     group.add(homeDot)
 
-    // destination profile sprites
+    // destination dots + profile sprites
     TARGETS.forEach((t, i) => {
+      // surface landing dot
+      const dot = new THREE.Mesh(
+        new THREE.SphereGeometry(0.055, 10, 10),
+        new THREE.MeshBasicMaterial({ color: 0x6688ff, depthTest: true, clippingPlanes: [clipPlane] }),
+      )
+      dot.position.copy(ll3(t.lat, t.lon, R + 0.03))
+      group.add(dot)
+
+      // profile card sprite above dot
       const p = PROFILES[i]
       const sprite = makeProfileSprite(p.name, p.title, p.init)
       sprite.position.copy(ll3(t.lat, t.lon, R + 0.28))
