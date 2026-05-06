@@ -425,13 +425,13 @@ export function OutreachSection() {
             Sends. Tracks.<br />Follows up.
           </h2>
           <p className="text-white/50 text-lg leading-relaxed mb-8">
-            Every email fires from your real inbox. Opens get tracked, follow-ups go out automatically, and the moment someone replies — all sequences stop instantly.
+            Every email fires from your real inbox. Opens get tracked, follow-ups go out automatically, and the moment someone replies, all sequences stop instantly.
           </p>
           <div className="space-y-3 mb-10">
             {[
-              'Sends from Gmail or Outlook — your real domain',
+              'Sends from Gmail or Outlook, your real domain',
               'Open and click tracking per email',
-              'Smart follow-ups — pause on reply, resume on silence',
+              'Smart follow-ups: pause on reply, resume on silence',
               'Every reply routes back to your inbox',
             ].map(f => (
               <div key={f} className="flex items-center gap-3 text-white/55 text-[15px]">

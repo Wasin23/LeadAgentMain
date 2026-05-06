@@ -408,13 +408,13 @@ export function TeamSection() {
             One team.<br />Infinite scale.
           </h2>
           <p className="text-white/50 text-lg leading-relaxed mb-8">
-            Every rep gets their own agents. Every agent shares data with the team. Your whole org moves in concert — no duplicated effort, no dropped balls.
+            Every rep gets their own agents. Every agent shares data with the team. Your whole org moves in concert, no duplicated effort, no dropped balls.
           </p>
           <div className="space-y-3 mb-10">
             {[
               'Assign agents to reps, territories, or campaigns',
               'Shared pipeline visibility across the whole team',
-              'Agents coordinate — no duplicate leads sent',
+              'Agents coordinate, no duplicate leads sent',
               'Manager view: all activity in one dashboard',
             ].map(f => (
               <div key={f} className="flex items-center gap-3 text-white/55 text-[15px]">

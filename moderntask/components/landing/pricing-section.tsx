@@ -107,7 +107,7 @@ export function PricingSection() {
             Simple, credit-based pricing.
           </h2>
           <p className="text-white/45 text-lg max-w-xl mx-auto">
-            Start free, validate the workflow, then scale up — no seat-count games, no per-user fees.
+            Start free, validate the workflow, then scale up. No seat-count games, no per-user fees.
           </p>
         </div>
 

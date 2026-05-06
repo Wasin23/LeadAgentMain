@@ -32,9 +32,9 @@ const EMAIL_BODY = `Hi Sarah,
 
 Saw ScaleFlow just closed $12M Series A and you're scaling the team from 12 to 35 by Q3. That usually means outbound volume becomes the bottleneck right as the board starts expecting pipeline numbers.
 
-The SDR expansion is the tell — you need those reps producing fast, not spending the first 60 days building a prospecting workflow from scratch.
+The SDR expansion is the tell. You need those reps producing fast, not spending the first 60 days building a prospecting workflow from scratch.
 
-Your agent sources leads, researches each account, and writes the email from real context — funding news, hiring signals, the exact role. Your SDRs hit the ground with a full sequence already running.
+Your agent sources leads, researches each account, and writes the email from real context: funding news, hiring signals, the exact role. Your SDRs hit the ground with a full sequence already running.
 
 Worth 15 minutes to see how it fits the Q3 push?
 
@@ -42,26 +42,26 @@ Alex`
 
 const ARTICLE_PARAS = [
   "ScaleFlow, the San Francisco-based revenue intelligence platform, announced today a $12M Series A led by Sequoia Capital, with participation from Y Combinator and a group of strategic angels with backgrounds in enterprise GTM and outbound sales infrastructure.",
-  "The raise will fund an aggressive US expansion — growing the go-to-market team from 12 to 35 by Q3, with the first hiring wave focused on Senior SDRs to anchor a new enterprise outbound motion targeting B2B SaaS and services companies.",
-  `"We're not buying another point solution," said Sarah Chen, Head of Growth at ScaleFlow. "We need outbound that actually works at scale — something that researches the account, writes a real email, and doesn't require someone babysitting every sequence all day."`,
+  "The raise will fund an aggressive US expansion, growing the go-to-market team from 12 to 35 by Q3, with the first hiring wave focused on Senior SDRs to anchor a new enterprise outbound motion targeting B2B SaaS and services companies.",
+  `"We're not buying another point solution," said Sarah Chen, Head of Growth at ScaleFlow. "We need outbound that actually works at scale, something that researches the account, writes a real email, and doesn't require someone babysitting every sequence all day."`,
 ]
 
 const PARA_NOTES = [
   '$12M Series A · Sequoia + YC',
   'Team: 12 → 35 by Q3 · 3 Senior SDRs',
-  '"Need outbound at scale" — Sarah Chen, HoG',
+  '"Need outbound at scale" - Sarah Chen, HoG',
 ]
 
 const SEARCH_RESULTS = [
   { url: 'techcrunch.com › 2024 › scaleflow-series-a', title: 'ScaleFlow raises $12M Series A to triple US outbound sales capacity', snippet: 'The startup plans to expand from 12 to 35 employees by Q3, focusing on senior SDRs and enterprise AEs…', hi: true },
-  { url: 'linkedin.com › company › scaleflow › posts',  title: 'ScaleFlow is hiring — 3 Senior SDRs for US enterprise expansion',   snippet: "We're scaling fast and looking for experienced outbound reps to anchor our new US enterprise motion…", hi: false },
+  { url: 'linkedin.com › company › scaleflow › posts',  title: 'ScaleFlow is hiring: 3 Senior SDRs for US enterprise expansion',   snippet: "We're scaling fast and looking for experienced outbound reps to anchor our new US enterprise motion…", hi: false },
   { url: 'forbes.com › startups › 2024',                title: 'Top RevOps startups to watch: ScaleFlow, Outplay, and Apollo',          snippet: 'ScaleFlow among companies reshaping how B2B teams approach outbound automation…', hi: false },
 ]
 
 const REPORT_SECTIONS = [
   { label: 'Company signals', accent: false, items: ['$12M Series A · Sequoia Capital', 'Headcount: 12 → 35 by Q3', 'Hiring 3 Senior SDRs (enterprise)', '340% ARR growth in Q4'] },
   { label: 'Contact intel',   accent: false, items: ['Role: Head of Growth', 'Influence: Budget holder, decision-maker', 'Pain point: Outbound at scale, fast ramp'] },
-  { label: 'Verdict',         accent: true,  items: ['Fit score: 94 / 100', '✓ High fit — proceed with outreach'] },
+  { label: 'Verdict',         accent: true,  items: ['Fit score: 94 / 100', '✓ High fit. Proceed with outreach'] },
 ]
 
 const CRM_FIELDS   = [{ label: 'Contact', value: 'Sarah Chen' }, { label: 'Company', value: 'ScaleFlow' }, { label: 'Stage', value: 'Outreach Queued' }, { label: 'Tags', value: 'Series A · Hiring · Fast Growth' }]
@@ -380,7 +380,7 @@ export function AiResearchSection() {
             Reads the room<br />before writing.
           </h2>
           <p className="text-white/50 text-lg leading-relaxed mb-8">
-            Your agent pulls company profiles, recent news, hiring signals, and role context — then writes from that research. Fully personalized. Not a template.
+            Your agent pulls company profiles, recent news, hiring signals, and role context, then writes an email from that research. All in ~15 seconds per prospect. Fully personalized. Not templated.
           </p>
           <div className="space-y-3 mb-10">
             {['Company profile and role intelligence', 'Funding rounds and hiring signals', 'Recent news and web signals', 'Tech stack and buyer intent data'].map(f => (
@@ -459,9 +459,9 @@ export function AiResearchSection() {
 
                       {/* bio */}
                       {profileItems >= 1 && (
-                        <div className="text-[11px] leading-relaxed mb-3">
-                          <AgentReadText text="AI-powered outbound platform for B2B sales teams. We help revenue teams find, research, and close more pipeline — without adding headcount." speed={22} />
-                        </div>
+                        <p className="text-[11px] leading-relaxed mb-3">
+                          <ScanText text="AI-powered outbound platform for B2B sales teams. We help revenue teams find, research, and close more pipeline without adding headcount." speed={22} />
+                        </p>
                       )}
 
                       {/* stats row */}
@@ -497,7 +497,7 @@ export function AiResearchSection() {
                           <div className="min-w-0">
                             <div className="text-[9px] text-white/25 uppercase tracking-widest">{f.label}</div>
                             <div className="text-[12px] font-medium mt-0.5">
-                              {profileItems > i + 2 && <AgentReadText text={f.value} speed={18} />}
+                              {profileItems > i + 2 && <ScanText text={f.value} speed={18} />}
                             </div>
                           </div>
                           {profileItems > i + 2 && (
@@ -515,7 +515,15 @@ export function AiResearchSection() {
                             {profileKw >= EXTRACTED_KEYWORDS.length ? 'Search targets' : 'Extracting criteria'}
                           </div>
                           {profileKw < EXTRACTED_KEYWORDS.length && (
-                            <span className="w-1 h-1 rounded-full bg-indigo-400 animate-pulse" />
+                            <>
+                              <span className="w-1 h-1 rounded-full bg-indigo-400 animate-pulse" />
+                              <div className="flex items-center gap-1 rounded-full px-1.5 py-0.5 ml-1"
+                                style={{ background: 'rgba(10,9,30,0.92)', border: '1px solid rgba(99,102,241,0.35)' }}>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src="/avatars/Hunter.png" alt="" className="w-3.5 h-3.5 rounded-full object-cover shrink-0" />
+                                <span className="text-[9px] text-white/50 font-medium whitespace-nowrap">Hunter</span>
+                              </div>
+                            </>
                           )}
                         </div>
                         <div className="flex flex-wrap gap-1.5">
@@ -590,7 +598,7 @@ export function AiResearchSection() {
                     {subStep >= 1 && dbRows >= DB_LEADS.length && (
                       <div className="px-4 py-2.5 flex items-center gap-2 text-[11px]" style={{ color: '#ffe234', background: 'rgba(255,226,52,0.05)', borderTop: '1px solid rgba(255,226,52,0.1)' }}>
                         <span className="text-[9px]">→</span>
-                        Top match selected: Sarah Chen · ScaleFlow — beginning deep research
+                        Top match selected: Sarah Chen · ScaleFlow, beginning deep research
                       </div>
                     )}
                   </div>

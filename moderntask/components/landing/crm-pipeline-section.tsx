@@ -26,7 +26,7 @@ const CRM_RECORDS = [
 ]
 
 const ARTICLE_PARAS = [
-  'ScaleFlow announced a $12M Series A led by Sequoia Capital, with plans to triple headcount by Q3 — specifically hiring outbound sales infrastructure and senior SDRs.',
+  'ScaleFlow announced a $12M Series A led by Sequoia Capital, with plans to triple headcount by Q3, specifically hiring outbound sales infrastructure and senior SDRs.',
   'Head of Growth Sarah Chen noted the team needs outbound tooling that "researches the account and writes a real email" rather than generic sequences.',
   'The company grew 340% ARR in Q4, expanding from 60 to 200+ revenue teams across 18 countries with a new enterprise motion focused on B2B SaaS.',
 ]
@@ -35,7 +35,7 @@ const SIGNALS = [
   { label: 'Series A closed',       value: '$12M · Sequoia'           },
   { label: 'Hiring 3 Senior SDRs',  value: 'posted 4 days ago'        },
   { label: 'Headcount',             value: '12 → 35 by Q3'            },
-  { label: 'Verdict',               value: '✓ High fit — re-engage'   },
+  { label: 'Verdict',               value: '✓ High fit. Re-engage'    },
 ]
 
 const FIT_SCORES = [94, 88, 91, 86, 79, 83, 90, 85, 77, 92]
@@ -354,7 +354,7 @@ export function CrmPipelineSection() {
             Audits your CRM.<br />Verifies every lead.
           </h2>
           <p className="text-white/50 text-lg leading-relaxed mb-8">
-            Meridian works through your existing CRM records one by one — re-researching each contact with live signals, verifying fit, and flagging anyone worth re-engaging before you waste a send.
+            Meridian works through your existing CRM records one by one, re-researching each contact with live signals, verifying fit, and flagging anyone worth re-engaging before you waste a send.
           </p>
           <div className="space-y-3 mb-10">
             {[

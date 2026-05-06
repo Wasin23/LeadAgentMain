@@ -25,10 +25,10 @@ const AGENTS: Agent[] = [
     ring: 'rgba(251,146,60,0.6)',
     traits: ['Competitive', 'Relentless', 'Confident'],
     email: {
-      subject: "Scaling Rippling's pipeline — fast",
+      subject: "Scaling Rippling's pipeline, fast",
       body: `Hey Marcus,
 
-Noticed Rippling just closed its Series B — congrats. Growth stage is exactly when pipeline velocity becomes the bottleneck.
+Noticed Rippling just closed its Series B. Growth stage is exactly when pipeline velocity becomes the bottleneck.
 
 We get companies like yours 2,000+ qualified leads/month. No new headcount, no manual prospecting.
 
@@ -44,12 +44,12 @@ We get companies like yours 2,000+ qualified leads/month. No new headcount, no m
     ring: 'rgba(74,222,128,0.6)',
     traits: ['Empathetic', 'Genuine', 'Patient'],
     email: {
-      subject: 'Your post on async workflows — wanted to reach out',
+      subject: 'Your post on async workflows, wanted to reach out',
       body: `Hi Sarah,
 
-I came across Notion while researching SaaS leaders — specifically the work you've been doing around the AI-powered docs rollout. Really thoughtful approach.
+I came across Notion while researching SaaS leaders, specifically the work you've been doing around the AI-powered docs rollout. Really thoughtful approach.
 
-We've helped a few similar teams build more sustainable outbound. Not a pitch — I'd genuinely love to hear where you're taking things this year.
+We've helped a few similar teams build more sustainable outbound. Not a pitch. I'd genuinely love to hear where you're taking things this year.
 
 Open for a quick call?`,
     },
@@ -63,7 +63,7 @@ Open for a quick call?`,
     ring: 'rgba(96,165,250,0.6)',
     traits: ['Precise', 'Methodical', 'Skeptical'],
     email: {
-      subject: "Figma's outbound efficiency — a data point",
+      subject: "Figma's outbound efficiency: a data point",
       body: `Jordan,
 
 Companies at Figma's stage average 1.2% cold reply rates. Our clients in the same product-led SaaS cohort average 4.7%.
@@ -101,14 +101,14 @@ I've helped a few companies solve this. Would it be worth a conversation?`,
     ring: 'rgba(129,140,248,0.6)',
     traits: ['Charismatic', 'Curious', 'Social'],
     email: {
-      subject: 'Connected through James Chen — quick note',
+      subject: 'Connected through James Chen, quick note',
       body: `Alex,
 
-Saw we're both connected to James Chen and you've been active in Revenue Collective lately — loved your take on the PLG-to-enterprise motion.
+Saw we're both connected to James Chen and you've been active in Revenue Collective lately. Loved your take on the PLG-to-enterprise motion.
 
 I've been working with a few people from that group on something I think you'd find relevant, and wanted to reach out directly.
 
-Happy to keep it informal — a quick call or even just a message back works.`,
+Happy to keep it informal. A quick call or even just a message back works.`,
     },
   },
 ]
@@ -147,7 +147,7 @@ export function AgentSection() {
             Your agent.<br />Five personalities.
           </h2>
           <p className="text-white/50 text-lg leading-relaxed mb-8">
-            Every agent runs autonomously — finding leads, researching accounts, writing personalized emails, and managing follow-ups. Pick the personality that fits your sales motion.
+            Every agent runs autonomously: finding leads, researching accounts, writing personalized emails, and managing follow-ups. Pick the personality that fits your sales motion.
           </p>
           <div className="space-y-3 mb-10">
             {[

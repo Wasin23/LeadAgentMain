@@ -11,11 +11,11 @@ const FAQ = [
   },
   {
     q: 'Can I use my own inbox?',
-    a: 'Yes — Meridian connects to Gmail or Outlook via OAuth. Every email sends from your actual address, your actual domain. There are no shared sending pools and no ESP subdomains.',
+    a: 'Meridian connects to Gmail or Outlook via OAuth. Every email sends from your actual address, your actual domain. No shared sending pools, no ESP subdomains.',
   },
   {
     q: 'What happens when someone replies?',
-    a: 'The moment a reply lands, all follow-up sequences for that contact stop automatically. The reply routes directly to your inbox like any other email — no platform middleman.',
+    a: 'The moment a reply lands, all follow-up sequences for that contact stop automatically. The reply routes directly to your inbox like any other email, no platform middleman.',
   },
   {
     q: 'Is the Enterprise plan customizable?',
@@ -23,11 +23,11 @@ const FAQ = [
   },
   {
     q: 'How does agent research actually work?',
-    a: 'Agents pull from Apollo for lead sourcing, then independently search the web, scan LinkedIn signals, and read recent news before writing. Nothing is templated — each email is written from the research gathered on that specific account.',
+    a: 'Agents pull from Apollo for lead sourcing, then independently search the web, scan LinkedIn signals, and read recent news before writing. Nothing is templated. Each email is written from the research gathered on that specific account.',
   },
   {
     q: 'Can multiple reps share one account?',
-    a: 'Yes — the Teams plan lets you invite members, each with their own connected inbox and agent assignments. Pipeline visibility is shared, but sends go out from each rep\'s own address.',
+    a: 'The Teams plan lets you invite members, each with their own connected inbox and agent assignments. Pipeline visibility is shared, but sends go out from each rep\'s own address.',
   },
 ]
 
@@ -60,7 +60,7 @@ function InquiryForm() {
       <p className="text-indigo-400 text-xs font-semibold tracking-widest uppercase mb-4">Enterprise</p>
       <h3 className="text-xl font-black text-white mb-2">Need something custom?</h3>
       <p className="text-white/40 text-[13px] leading-relaxed mb-6">
-        Higher volume, custom integrations, or dedicated onboarding — send us a note and we'll scope it together.
+        Higher volume, custom integrations, or dedicated onboarding. Send us a note and we'll scope it together.
       </p>
 
       {status === 'sent' ? (
@@ -85,7 +85,7 @@ function InquiryForm() {
             className={`${inputCls} resize-none`}
           />
           {status === 'error' && (
-            <p className="text-red-400/80 text-[12px]">Something went wrong — try emailing colton.fidd@gmail.com directly.</p>
+            <p className="text-red-400/80 text-[12px]">Something went wrong. Try emailing colton.fidd@gmail.com directly.</p>
           )}
           <button
             type="submit"
@@ -172,7 +172,7 @@ export function FooterSection() {
           Start with 250 free credits.
         </h2>
         <p className="text-white/45 text-lg max-w-lg mx-auto mb-8">
-          Connect your inbox, define your audience, and launch a real outbound workflow — no credit card, no bloated sales stack.
+          Connect your inbox, define your audience, and launch a real outbound workflow. No credit card, no bloated sales stack.
         </p>
         <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
           <Link
