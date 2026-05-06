@@ -192,11 +192,11 @@ function GlobeViz() {
     // earth sphere
     const sGeo = new THREE.SphereGeometry(R, 64, 64)
     const sMat = new THREE.MeshPhongMaterial({
-      color: 0x0e2a50,
-      emissive: 0x071830,
-      emissiveIntensity: 0.7,
+      color: 0x223355,
+      emissive: 0x071525,
+      emissiveIntensity: 0.22,
       shininess: 22,
-      specular: new THREE.Color(0x334488),
+      specular: new THREE.Color(0x223366),
       clippingPlanes: [clipPlane],
     })
     new THREE.TextureLoader().load(
@@ -224,17 +224,16 @@ function GlobeViz() {
       group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), gridMat()))
     }
 
-    // atmosphere glow layers — inner tight + outer halo
+    // atmosphere glow layers — no clipping so they fade naturally, no hard edge
     for (const [scale, opacity, color] of [
-      [1.015, 0.28, 0x1a44cc],
-      [1.035, 0.14, 0x2255ee],
-      [1.065, 0.07, 0x3366ff],
-      [1.10,  0.03, 0x5588ff],
+      [1.015, 0.22, 0x1a44cc],
+      [1.038, 0.11, 0x2255ee],
+      [1.07,  0.05, 0x3366ff],
+      [1.12,  0.02, 0x4477ff],
     ] as [number, number, number][]) {
       const m = new THREE.MeshBasicMaterial({
         color, transparent: true, opacity,
         side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false,
-        clippingPlanes: [clipPlane],
       })
       group.add(new THREE.Mesh(new THREE.SphereGeometry(R * scale, 32, 32), m))
     }
