@@ -1,122 +1,109 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { CheckCircle2, Target, Users, BarChart2, Briefcase, Globe } from 'lucide-react'
+import { CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
-import type { LucideIcon } from 'lucide-react'
 
 type Agent = {
   id: string
   name: string
-  Icon: LucideIcon
-  tagline: string
-  description: string
-  capabilities: string[]
-  traits: string[]
-  stats: { label: string; value: string }[]
-  color: { accent: string; chip: string; border: string; text: string }
+  title: string
+  avatar: string
+  email: { subject: string; body: string }
+  accent: string
+  ring: string
 }
 
 const AGENTS: Agent[] = [
   {
     id: 'hunter',
     name: 'Hunter',
-    Icon: Target,
-    tagline: 'High-volume prospecting.',
-    description: 'Built for scale. Goes wide across your ICP — sourcing large volumes fast, prioritizing pipeline velocity over deep personalization.',
-    capabilities: [
-      'Sources thousands of qualified leads per cycle',
-      'Auto-adjusts search to avoid source exhaustion',
-      'Prioritizes companies with active hiring signals',
-      'Optimized for top-of-funnel volume',
-    ],
-    traits: ['High Volume', 'Fast Cycle', 'Wide Net'],
-    stats: [
-      { label: 'Leads / day', value: '3,000' },
-      { label: 'Email style', value: 'Direct' },
-      { label: 'Research', value: 'Light' },
-    ],
-    color: { accent: '#fb923c', chip: 'rgba(251,146,60,0.12)', border: 'rgba(251,146,60,0.22)', text: '#fdba74' },
+    title: 'High-Volume Prospector',
+    avatar: '/avatars/Hunter.png',
+    accent: '#fb923c',
+    ring: 'rgba(251,146,60,0.6)',
+    email: {
+      subject: 'Scaling [Company]\'s pipeline — fast',
+      body: `Hey [First Name],
+
+Noticed [Company] just closed its Series B — congrats. Growth stage is exactly when pipeline velocity becomes the bottleneck.
+
+We get companies like yours 2,000+ qualified leads/month. No new headcount, no manual prospecting.
+
+15 minutes this week?`,
+    },
   },
   {
     id: 'relationship',
     name: 'Relationship Builder',
-    Icon: Users,
-    tagline: 'Warm, consultative outreach.',
-    description: "Moves slower, personalizes harder. Crafts account-specific emails that reference real signals and don't feel automated.",
-    capabilities: [
-      'Reads funding news and LinkedIn before writing',
-      'References specific company signals in every email',
-      'Follows up with context — not copy-paste templates',
-      'Optimized for reply rate over raw volume',
-    ],
-    traits: ['High Reply Rate', 'Deep Research', 'Warm Tone'],
-    stats: [
-      { label: 'Leads / day', value: '3,000' },
-      { label: 'Email style', value: 'Warm' },
-      { label: 'Research', value: 'Deep' },
-    ],
-    color: { accent: '#4ade80', chip: 'rgba(74,222,128,0.12)', border: 'rgba(74,222,128,0.22)', text: '#86efac' },
+    title: 'Warm Outreach Specialist',
+    avatar: '/avatars/Relationship-Builder.png',
+    accent: '#4ade80',
+    ring: 'rgba(74,222,128,0.6)',
+    email: {
+      subject: 'Your post on [topic] — wanted to reach out',
+      body: `Hi [First Name],
+
+I came across [Company] while researching [industry] leaders — specifically the work you've been doing around [recent initiative].
+
+We've helped a few similar teams build more sustainable outbound. Not a pitch — I'd genuinely love to hear where you're taking things this year.
+
+Open for a quick call?`,
+    },
   },
   {
     id: 'analyst',
     name: 'Analyst',
-    Icon: BarChart2,
-    tagline: 'Data-driven precision targeting.',
-    description: 'Scores every lead before writing a word. Heavy on qualification logic — sends fewer emails, wastes fewer credits.',
-    capabilities: [
-      'Pre-qualifies every lead against your ICP',
-      'Scores by funding stage, tech stack, and headcount',
-      'Writes ROI-framed emails with specific numbers',
-      'Flags low-fit leads before they waste a credit',
-    ],
-    traits: ['High Precision', 'Low Waste', 'Data-Driven'],
-    stats: [
-      { label: 'Leads / day', value: '3,000' },
-      { label: 'Email style', value: 'Data-backed' },
-      { label: 'Research', value: 'Medium' },
-    ],
-    color: { accent: '#60a5fa', chip: 'rgba(96,165,250,0.12)', border: 'rgba(96,165,250,0.22)', text: '#93c5fd' },
+    title: 'Data-Driven Targeting',
+    avatar: '/avatars/Analyst.png',
+    accent: '#60a5fa',
+    ring: 'rgba(96,165,250,0.6)',
+    email: {
+      subject: '[Company]\'s outbound efficiency — a data point',
+      body: `[First Name],
+
+Companies at [Company]'s stage average 1.2% cold reply rates. Our clients in the same cohort average 4.7%.
+
+The delta comes down to research depth and send timing. I pulled a breakdown specific to [industry] that you might find useful.
+
+Worth 20 minutes?`,
+    },
   },
   {
     id: 'consultant',
     name: 'Consultant',
-    Icon: Briefcase,
-    tagline: 'Strategic advisor positioning.',
-    description: 'Frames your offer as the solution to a real business problem. Best for complex deals and long enterprise sales cycles.',
-    capabilities: [
-      'Reads press releases, earnings calls, and job postings',
-      'Frames outreach around outcomes — not features',
-      'Tailored for VP+ and C-suite buyers',
-      'Supports multi-step sequences with context carry-over',
-    ],
-    traits: ['Enterprise Focus', 'Long-Form', 'Strategic'],
-    stats: [
-      { label: 'Leads / day', value: '3,000' },
-      { label: 'Email style', value: 'Strategic' },
-      { label: 'Research', value: 'Deep' },
-    ],
-    color: { accent: '#c084fc', chip: 'rgba(192,132,252,0.12)', border: 'rgba(192,132,252,0.22)', text: '#d8b4fe' },
+    title: 'Strategic Advisor',
+    avatar: '/avatars/consultant.png',
+    accent: '#c084fc',
+    ring: 'rgba(192,132,252,0.6)',
+    email: {
+      subject: 'Q3 pipeline architecture for [Company]',
+      body: `[First Name],
+
+Based on [Company]'s recent hiring in sales and the push into [market], it looks like you're scaling outbound hard this quarter.
+
+Most VPs I work with at this stage hit the same structural constraint: top-of-funnel can't keep pace with what the team can actually close.
+
+I've helped a few companies solve this. Would it be worth a conversation?`,
+    },
   },
   {
     id: 'networker',
     name: 'Networker',
-    Icon: Globe,
-    tagline: 'LinkedIn-first, community-driven.',
-    description: "Taps LinkedIn signals first — posts, job changes, company news. Writes emails that feel like they came from someone who actually follows them.",
-    capabilities: [
-      'Pulls LinkedIn activity, posts, and company announcements',
-      'References specific milestones and recent news',
-      'Writes peer-to-peer tone that avoids "salesy" triggers',
-      'Great for founder-led sales and SMB markets',
-    ],
-    traits: ['LinkedIn-Heavy', 'Social Feel', 'Peer-to-Peer'],
-    stats: [
-      { label: 'Leads / day', value: '3,000' },
-      { label: 'Email style', value: 'Conversational' },
-      { label: 'Research', value: 'Medium' },
-    ],
-    color: { accent: '#818cf8', chip: 'rgba(99,102,241,0.12)', border: 'rgba(99,102,241,0.22)', text: '#a5b4fc' },
+    title: 'LinkedIn-First Outreach',
+    avatar: '/avatars/Networker.png',
+    accent: '#818cf8',
+    ring: 'rgba(129,140,248,0.6)',
+    email: {
+      subject: 'Connected through [Mutual] — quick note',
+      body: `[First Name],
+
+Saw we're both connected to [Mutual] and you've been active in the [Community] lately — loved your take on [topic].
+
+I've been working with a few people from that group on something I think you'd find relevant, and wanted to reach out directly.
+
+Happy to keep it informal — a quick call or even just a message back works.`,
+    },
   },
 ]
 
@@ -127,7 +114,7 @@ export function AgentSection() {
   const switchTo = (i: number) => {
     if (i === active) return
     setFading(true)
-    setTimeout(() => { setActive(i); setFading(false) }, 150)
+    setTimeout(() => { setActive(i); setFading(false) }, 160)
   }
 
   useEffect(() => {
@@ -136,19 +123,18 @@ export function AgentSection() {
       setTimeout(() => {
         setActive(a => (a + 1) % AGENTS.length)
         setFading(false)
-      }, 150)
+      }, 160)
     }, 3800)
     return () => clearInterval(t)
   }, [])
 
   const agent = AGENTS[active]
-  const ActiveIcon = agent.Icon
 
   return (
     <section className="relative z-10 py-28 px-6">
       <div className="mx-auto max-w-7xl flex flex-col lg:flex-row items-center gap-16">
 
-        {/* ── Left copy ── */}
+        {/* left copy */}
         <div className="flex-1 max-w-[460px] shrink-0">
           <p className="text-indigo-400 text-sm font-semibold tracking-widest uppercase mb-4">Agents</p>
           <h2 className="text-5xl xl:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6">
@@ -175,117 +161,98 @@ export function AgentSection() {
           </Link>
         </div>
 
-        {/* ── Right: agent panel ── */}
-        <div className="flex-1 w-full min-w-0">
-          <div className="rounded-2xl border border-white/[0.08] bg-[#05070f] overflow-hidden shadow-2xl shadow-black/60">
+        {/* right: face lineup + email preview */}
+        <div className="flex-1 w-full min-w-0 flex flex-col gap-8">
 
-            {/* Title bar */}
-            <div className="flex items-center px-3 py-0 border-b border-white/[0.06] bg-[#141414]" style={{ height: 36 }}>
-              <span className="text-[10px] text-white/20 font-mono">meridian · agents</span>
-              <span className="ml-3 text-[9px] text-indigo-400/60 font-mono">1 active</span>
-              <div className="ml-auto flex items-center">
-                <button className="w-9 h-9 flex items-center justify-center text-white/25 hover:bg-white/[0.07] text-[13px] leading-none">─</button>
-                <button className="w-9 h-9 flex items-center justify-center text-white/25 hover:bg-white/[0.07] text-[11px] leading-none">□</button>
-                <button className="w-9 h-9 flex items-center justify-center text-white/25 hover:bg-red-600/70 hover:text-white text-[15px] leading-none rounded-tr-2xl">✕</button>
-              </div>
+          {/* face row */}
+          <div className="flex items-end justify-between gap-2">
+            {AGENTS.map((a, i) => {
+              const isActive = i === active
+              return (
+                <button
+                  key={a.id}
+                  onClick={() => switchTo(i)}
+                  className="flex flex-col items-center gap-2.5 group"
+                  style={{ transition: 'transform 0.2s', transform: isActive ? 'scale(1.08)' : 'scale(0.93)' }}
+                >
+                  {/* avatar */}
+                  <div
+                    className="rounded-full overflow-hidden transition-all duration-300"
+                    style={{
+                      width: 80,
+                      height: 80,
+                      boxShadow: isActive ? `0 0 0 3px ${a.ring}, 0 0 24px ${a.ring}` : '0 0 0 2px rgba(255,255,255,0.06)',
+                      opacity: isActive ? 1 : 0.38,
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={a.avatar} alt={a.name} className="w-full h-full object-cover" />
+                  </div>
+                  {/* name */}
+                  <div className="text-center">
+                    <div
+                      className="text-[12px] font-bold leading-tight transition-colors duration-200"
+                      style={{ color: isActive ? '#fff' : 'rgba(255,255,255,0.28)' }}
+                    >
+                      {a.name}
+                    </div>
+                    <div
+                      className="text-[9px] leading-tight mt-0.5 transition-colors duration-200"
+                      style={{ color: isActive ? a.accent : 'rgba(255,255,255,0.15)' }}
+                    >
+                      {a.title}
+                    </div>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* email preview */}
+          <div
+            className="rounded-2xl border bg-[#05070f] overflow-hidden transition-all duration-160"
+            style={{
+              borderColor: `rgba(${hexToRgb(agent.accent)},0.22)`,
+              opacity: fading ? 0 : 1,
+              transform: fading ? 'translateY(6px)' : 'translateY(0)',
+            }}
+          >
+            {/* email header bar */}
+            <div
+              className="px-4 py-2.5 border-b flex items-center gap-3"
+              style={{ borderColor: `rgba(${hexToRgb(agent.accent)},0.14)`, background: `rgba(${hexToRgb(agent.accent)},0.05)` }}
+            >
+              <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: agent.accent }} />
+              <span className="text-[10px] font-mono" style={{ color: `rgba(${hexToRgb(agent.accent)},0.7)` }}>
+                draft · {agent.name.toLowerCase()}
+              </span>
             </div>
 
-            {/* Body */}
-            <div className="flex" style={{ minHeight: 520 }}>
+            {/* subject */}
+            <div className="px-5 pt-4 pb-2 border-b border-white/[0.04]">
+              <span className="text-[10px] text-white/20 uppercase tracking-widest mr-2">Subject</span>
+              <span className="text-[13px] text-white/75 font-semibold">{agent.email.subject}</span>
+            </div>
 
-              {/* Agent list */}
-              <div className="w-[180px] shrink-0 border-r border-white/[0.06] py-2">
-                {AGENTS.map((a, i) => {
-                  const ListIcon = a.Icon
-                  return (
-                    <button
-                      key={a.id}
-                      onClick={() => switchTo(i)}
-                      className={`w-full text-left px-4 py-2.5 flex items-center gap-2.5 transition-all ${
-                        i === active ? 'bg-white/[0.05]' : 'hover:bg-white/[0.02]'
-                      }`}
-                    >
-                      <ListIcon
-                        className="w-3.5 h-3.5 shrink-0"
-                        style={{ color: i === active ? a.color.text : 'rgba(255,255,255,0.2)' }}
-                      />
-                      <div className="min-w-0">
-                        <div className={`text-[11px] font-semibold truncate ${i === active ? 'text-white/85' : 'text-white/35'}`}>
-                          {a.name}
-                        </div>
-                        {i === active && (
-                          <div className="flex items-center gap-1 mt-0.5">
-                            <span className="w-1 h-1 rounded-full bg-green-400" />
-                            <span className="text-[9px] text-green-400/70">active</span>
-                          </div>
-                        )}
-                      </div>
-                      {i === active && (
-                        <div className="ml-auto w-0.5 rounded-full self-stretch" style={{ background: agent.color.accent, opacity: 0.6 }} />
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
-
-              {/* Detail panel */}
-              <div
-                className="flex-1 p-5 flex flex-col gap-4 transition-all duration-150"
-                style={{ opacity: fading ? 0 : 1, transform: fading ? 'translateY(4px)' : 'translateY(0)' }}
+            {/* body */}
+            <div className="px-5 py-4">
+              <pre
+                className="text-[12.5px] leading-relaxed whitespace-pre-wrap font-sans text-white/55"
               >
-                {/* Header */}
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                    style={{ background: agent.color.chip, border: `1px solid ${agent.color.border}` }}
-                  >
-                    <ActiveIcon className="w-4 h-4" style={{ color: agent.color.accent }} />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-white/85 font-bold text-sm">{agent.name}</span>
-                      <span
-                        className="text-[9px] font-semibold px-2 py-0.5 rounded-full border"
-                        style={{ background: agent.color.chip, color: agent.color.text, borderColor: agent.color.border }}
-                      >
-                        {agent.traits[0]}
-                      </span>
-                    </div>
-                    <p className="text-white/35 text-[11px]">{agent.tagline}</p>
-                  </div>
-                </div>
-
-                <p className="text-white/45 text-[12px] leading-relaxed">{agent.description}</p>
-
-                {/* Capabilities */}
-                <div className="space-y-2">
-                  {agent.capabilities.map(cap => (
-                    <div key={cap} className="flex items-start gap-2">
-                      <span className="text-[9px] mt-[3px] shrink-0" style={{ color: agent.color.accent }}>✦</span>
-                      <span className="text-white/55 text-[11px] leading-snug">{cap}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Stats */}
-                <div className="grid grid-cols-3 rounded-xl overflow-hidden border mt-auto" style={{ borderColor: agent.color.border }}>
-                  {agent.stats.map((s, i) => (
-                    <div
-                      key={s.label}
-                      className={`px-3 py-2.5 ${i < agent.stats.length - 1 ? 'border-r' : ''}`}
-                      style={{ background: agent.color.chip, borderColor: agent.color.border }}
-                    >
-                      <div className="text-[9px] text-white/25 uppercase tracking-widest mb-0.5">{s.label}</div>
-                      <div className="text-[11px] font-bold" style={{ color: agent.color.text }}>{s.value}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                {agent.email.body}
+              </pre>
             </div>
           </div>
-        </div>
 
+        </div>
       </div>
     </section>
   )
+}
+
+function hexToRgb(hex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `${r},${g},${b}`
 }

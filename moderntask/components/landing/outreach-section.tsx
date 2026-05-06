@@ -245,7 +245,7 @@ function GlobeViz() {
 
     // ── animation loop ────────────────────────────────────────────────────────
     let cycleT  = 0
-    const CYCLE = 18.0   // longer cycle to accommodate slower arcs
+    const CYCLE = 11.0
     let lastMs  = performance.now()
     let raf: number
 
