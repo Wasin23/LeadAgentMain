@@ -91,7 +91,7 @@ function makeProfileSprite(name: string, title: string, init: string): THREE.Spr
   const tex = new THREE.CanvasTexture(cv)
   const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: true })
   const sprite = new THREE.Sprite(mat)
-  sprite.scale.set(CW / CH * 0.18, 0.18, 1)   // maintain aspect ratio
+  sprite.scale.set(CW / CH * 0.38, 0.38, 1)
   return sprite
 }
 
@@ -110,7 +110,7 @@ const N = 90  // arc segments
 function arcBuf(aLat: number, aLon: number, bLat: number, bLon: number, r: number): Float32Array {
   const a   = ll3(aLat, aLon, r)
   const b   = ll3(bLat, bLon, r)
-  const mid = a.clone().add(b).multiplyScalar(0.5).normalize().multiplyScalar(r * 1.22)
+  const mid = a.clone().add(b).multiplyScalar(0.5).normalize().multiplyScalar(r * 1.18)
   const crv = new THREE.QuadraticBezierCurve3(a, mid, b)
   const pts = crv.getPoints(N)
   const buf = new Float32Array((N + 1) * 3)
@@ -136,18 +136,19 @@ function GlobeViz() {
 
     // scene / camera
     const scene  = new THREE.Scene()
-    const camera = new THREE.PerspectiveCamera(40, W / H, 0.1, 200)
-    camera.position.set(0, 0, 6.5)
+    const camera = new THREE.PerspectiveCamera(52, W / H, 0.1, 200)
+    camera.position.set(0, 3.0, 12)
+    camera.lookAt(0, -3.0, 0)
 
-    // ── globe group — centered, nudged down so arcs have room above ──
-    const R     = 1.8
+    // ── globe group — pushed down so clipped equator lands at canvas bottom ──
+    const R     = 4.0
     const group = new THREE.Group()
-    group.position.set(0, -0.25, 0)
+    group.position.set(0, -5.0, 0)
     scene.add(group)
 
-    // clip plane — show only top hemisphere (world y >= equator of globe)
+    // clip plane — show only top hemisphere (world y >= -5.0)
     renderer.localClippingEnabled = true
-    const clipPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0.25)
+    const clipPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 5.0)
 
     // earth sphere
     const sGeo = new THREE.SphereGeometry(R, 64, 64)
@@ -182,17 +183,17 @@ function GlobeViz() {
 
     // sender dot (New York)
     const homeDot = new THREE.Mesh(
-      new THREE.SphereGeometry(0.055, 10, 10),
+      new THREE.SphereGeometry(0.12, 10, 10),
       new THREE.MeshBasicMaterial({ color: 0x99aaff }),
     )
-    homeDot.position.copy(ll3(HOME.lat, HOME.lon, R + 0.03))
+    homeDot.position.copy(ll3(HOME.lat, HOME.lon, R + 0.06))
     group.add(homeDot)
 
     // destination profile sprites
     TARGETS.forEach((t, i) => {
       const p = PROFILES[i]
       const sprite = makeProfileSprite(p.name, p.title, p.init)
-      sprite.position.copy(ll3(t.lat, t.lon, R + 0.22))
+      sprite.position.copy(ll3(t.lat, t.lon, R + 0.28))
       group.add(sprite)
     })
 
@@ -227,7 +228,7 @@ function GlobeViz() {
       group.add(new THREE.Line(geo, mat))
 
       const head = new THREE.Mesh(
-        new THREE.SphereGeometry(0.04, 8, 8),
+        new THREE.SphereGeometry(0.09, 8, 8),
         new THREE.MeshBasicMaterial({ color: headColor }),
       )
       head.visible = false
@@ -321,14 +322,14 @@ function GlobeViz() {
     }
   }, [])
 
-  return <div ref={ref} className="absolute inset-0" style={{ top: 36 }} />
+  return <div ref={ref} className="absolute inset-0" />
 }
 
 // ── section ───────────────────────────────────────────────────────────────────
 export function OutreachSection() {
   return (
-    <section className="relative z-10 pt-36 pb-16 px-6">
-      <div className="mx-auto max-w-7xl flex flex-col lg:flex-row items-center gap-16">
+    <section className="relative z-10 px-6 py-24 overflow-hidden">
+      <div className="mx-auto max-w-7xl flex flex-col lg:flex-row items-center gap-12">
 
         {/* left copy */}
         <div className="flex-1 max-w-[460px] shrink-0">
@@ -360,38 +361,19 @@ export function OutreachSection() {
           </Link>
         </div>
 
-        {/* right: globe display */}
-        <div className="flex-1 w-full min-w-0">
-          <div
-            className="relative rounded-2xl border border-white/[0.1] bg-[#04060f] overflow-hidden shadow-2xl shadow-black/60 w-full"
-            style={{ height: 560 }}
-          >
-            {/* title bar */}
-            <div
-              className="absolute top-0 left-0 right-0 z-10 flex items-center px-3 border-b border-white/[0.06] bg-[#141414]"
-              style={{ height: 36 }}
-            >
-              <span className="text-[10px] text-white/20 font-mono">outreach · live</span>
-              <div className="ml-auto flex items-center">
-                <button className="w-9 h-9 flex items-center justify-center text-white/25 hover:bg-white/[0.07] text-[13px] leading-none">─</button>
-                <button className="w-9 h-9 flex items-center justify-center text-white/25 hover:bg-white/[0.07] text-[11px] leading-none">□</button>
-                <button className="w-9 h-9 flex items-center justify-center text-white/25 hover:bg-red-600/70 hover:text-white text-[15px] leading-none rounded-tr-2xl">✕</button>
-              </div>
+        {/* right: floating globe — no frame */}
+        <div className="flex-1 w-full min-w-0 relative" style={{ height: 620 }}>
+          <GlobeViz />
+          {/* legend */}
+          <div className="absolute bottom-3 left-4 z-10 flex items-center gap-4 pointer-events-none">
+            <div className="flex items-center gap-1.5">
+              <div className="w-5 h-px" style={{ background: 'rgba(68,102,255,0.8)' }} />
+              <span className="text-[9px] text-white/25">Outgoing</span>
             </div>
-
-            {/* legend */}
-            <div className="absolute bottom-3 left-4 z-10 flex items-center gap-4">
-              <div className="flex items-center gap-1.5">
-                <div className="w-5 h-px" style={{ background: 'rgba(68,102,255,0.8)' }} />
-                <span className="text-[9px] text-white/25">Outgoing</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-5 h-px" style={{ background: 'rgba(34,221,119,0.8)' }} />
-                <span className="text-[9px] text-white/25">Replies</span>
-              </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-5 h-px" style={{ background: 'rgba(34,221,119,0.8)' }} />
+              <span className="text-[9px] text-white/25">Replies</span>
             </div>
-
-            <GlobeViz />
           </div>
         </div>
 

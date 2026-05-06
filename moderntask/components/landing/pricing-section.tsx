@@ -3,6 +3,9 @@
 import Link from 'next/link'
 import { ArrowRight, Check } from 'lucide-react'
 
+const goToFaq = () =>
+  window.dispatchEvent(new CustomEvent('carousel-goto', { detail: { step: 7 } }))
+
 const PLANS = [
   {
     name:    'Free Trial',
@@ -90,7 +93,7 @@ const PLANS = [
       'Priority support',
     ],
     cta:   'Contact us',
-    href:  '/signin',
+    href:  null,
     dim:   false,
   },
 ]
@@ -144,17 +147,27 @@ export function PricingSection() {
                 ))}
               </div>
 
-              <Link
-                href={plan.href}
-                className={`flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg text-[13px] font-semibold transition-all ${
-                  plan.tag
-                    ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
-                    : 'bg-white/[0.06] hover:bg-white/[0.10] text-white/70 hover:text-white border border-white/[0.08]'
-                }`}
-              >
-                {plan.cta}
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
+              {plan.href ? (
+                <Link
+                  href={plan.href}
+                  className={`flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg text-[13px] font-semibold transition-all ${
+                    plan.tag
+                      ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                      : 'bg-white/[0.06] hover:bg-white/[0.10] text-white/70 hover:text-white border border-white/[0.08]'
+                  }`}
+                >
+                  {plan.cta}
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              ) : (
+                <button
+                  onClick={goToFaq}
+                  className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg text-[13px] font-semibold transition-all bg-white/[0.06] hover:bg-white/[0.10] text-white/70 hover:text-white border border-white/[0.08] w-full"
+                >
+                  {plan.cta}
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           ))}
         </div>
