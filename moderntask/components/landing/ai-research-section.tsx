@@ -69,6 +69,28 @@ const CRM_ACTIONS  = ['Contact record created', 'Email sequence enrolled', 'Foll
 
 function sleep(ms: number) { return new Promise<void>(r => setTimeout(r, ms)) }
 
+function TypedChip({ text }: { text: string }) {
+  const [shown, setShown] = useState('')
+  useEffect(() => {
+    setShown('')
+    let i = 0
+    const t = setInterval(() => {
+      i++
+      setShown(text.slice(0, i))
+      if (i >= text.length) clearInterval(t)
+    }, 38)
+    return () => clearInterval(t)
+  }, [text])
+  return (
+    <span className="inline-flex items-center gap-0.5 px-2.5 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/25 text-indigo-300 text-[11px] font-medium">
+      {shown}
+      {shown.length < text.length && (
+        <span className="inline-block w-px h-[10px] bg-indigo-400/80 animate-pulse ml-px" />
+      )}
+    </span>
+  )
+}
+
 function ScanText({ text, speed = 14 }: { text: string; speed?: number }) {
   const [idx, setIdx] = useState(0)
   const words = useMemo(() => text.split(' '), [text])
@@ -364,18 +386,9 @@ export function AiResearchSection() {
                 {/* ── YOUR PROFILE ── */}
                 {phase === 'profile' && (
                   <div className="overflow-hidden">
-                    {/* cover banner */}
-                    <div className="h-[64px] relative overflow-hidden" style={{ background: 'linear-gradient(160deg, #0b0a1e 0%, #0d0c28 60%, #10102e 100%)' }}>
-                      <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(ellipse at 30% 50%, rgba(99,102,241,0.08) 0%, transparent 70%), radial-gradient(ellipse at 80% 30%, rgba(79,70,229,0.06) 0%, transparent 60%)' }} />
-                      <div className="absolute top-2 right-3 flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400/60 animate-pulse" />
-                        <span className="text-[9px] text-indigo-400/40 font-mono">reading profile…</span>
-                      </div>
-                    </div>
-
                     {/* avatar + name row */}
-                    <div className="px-4 pb-3 bg-[#07091c]">
-                      <div className="flex items-end gap-3 -mt-7 mb-3">
+                    <div className="px-4 pt-4 pb-3 bg-[#07091c]">
+                      <div className="flex items-end gap-3 mb-3">
                         <div className="w-[52px] h-[52px] rounded-full border-[3px] border-[#07091c] flex items-center justify-center font-black text-[16px] text-white shrink-0"
                           style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>
                           AR
@@ -397,8 +410,8 @@ export function AiResearchSection() {
 
                       {/* bio */}
                       {profileItems >= 1 && (
-                        <p className="text-[11px] text-white/50 leading-relaxed mb-3">
-                          AI-powered outbound platform for B2B sales teams. We help revenue teams find, research, and close more pipeline — without adding headcount.
+                        <p className="text-[11px] leading-relaxed mb-3">
+                          <ScanText text="AI-powered outbound platform for B2B sales teams. We help revenue teams find, research, and close more pipeline — without adding headcount." speed={22} />
                         </p>
                       )}
 
@@ -434,7 +447,9 @@ export function AiResearchSection() {
                           <span className="text-[14px] shrink-0">{f.icon}</span>
                           <div className="min-w-0">
                             <div className="text-[9px] text-white/25 uppercase tracking-widest">{f.label}</div>
-                            <div className="text-[12px] text-white/65 font-medium mt-0.5">{f.value}</div>
+                            <div className="text-[12px] font-medium mt-0.5">
+                              {profileItems > i + 2 && <ScanText text={f.value} speed={18} />}
+                            </div>
                           </div>
                           {profileItems > i + 2 && (
                             <span className="ml-auto text-[9px] text-indigo-400/50 shrink-0">✓</span>
@@ -446,10 +461,17 @@ export function AiResearchSection() {
                     {/* keywords as skills */}
                     {profileKw > 0 && (
                       <div className="px-4 py-3 border-t border-white/[0.06] space-y-2">
-                        <div className="text-[9px] text-white/25 uppercase tracking-widest font-bold">Search targets</div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-[9px] text-white/25 uppercase tracking-widest font-bold">
+                            {profileKw >= EXTRACTED_KEYWORDS.length ? 'Search targets' : 'Extracting criteria'}
+                          </div>
+                          {profileKw < EXTRACTED_KEYWORDS.length && (
+                            <span className="w-1 h-1 rounded-full bg-indigo-400 animate-pulse" />
+                          )}
+                        </div>
                         <div className="flex flex-wrap gap-1.5">
                           {EXTRACTED_KEYWORDS.slice(0, profileKw).map(kw => (
-                            <span key={kw} className="slide-up px-2.5 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/25 text-indigo-300 text-[11px] font-medium">{kw}</span>
+                            <TypedChip key={kw} text={kw} />
                           ))}
                         </div>
                         {profileKw >= EXTRACTED_KEYWORDS.length && (
