@@ -95,6 +95,44 @@ function makeProfileSprite(name: string, title: string, init: string): THREE.Spr
   return sprite
 }
 
+function makeOpenedSprite(): THREE.Sprite {
+  const CW = 108, CH = 28
+  const cv = document.createElement('canvas')
+  cv.width = CW; cv.height = CH
+  const ctx = cv.getContext('2d')!
+
+  ctx.fillStyle = 'rgba(5, 18, 10, 0.96)'
+  rrect(ctx, 0, 0, CW, CH, 14); ctx.fill()
+  ctx.strokeStyle = 'rgba(34, 221, 100, 0.5)'
+  ctx.lineWidth = 1.5
+  rrect(ctx, 1, 1, CW - 2, CH - 2, 13); ctx.stroke()
+
+  // check circle
+  ctx.fillStyle = 'rgba(34, 221, 100, 0.18)'
+  ctx.beginPath(); ctx.arc(15, CH / 2, 8, 0, Math.PI * 2); ctx.fill()
+  ctx.strokeStyle = 'rgba(34, 221, 100, 0.55)'
+  ctx.lineWidth = 1
+  ctx.beginPath(); ctx.arc(15, CH / 2, 8, 0, Math.PI * 2); ctx.stroke()
+
+  // checkmark
+  ctx.strokeStyle = 'rgba(60, 240, 130, 1)'
+  ctx.lineWidth = 1.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round'
+  ctx.beginPath()
+  ctx.moveTo(10.5, CH / 2); ctx.lineTo(13.5, CH / 2 + 3); ctx.lineTo(19.5, CH / 2 - 3.5)
+  ctx.stroke()
+
+  ctx.fillStyle = 'rgba(80, 240, 150, 0.9)'
+  ctx.font = 'bold 11px sans-serif'
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
+  ctx.fillText('opened', 29, CH / 2)
+
+  const tex = new THREE.CanvasTexture(cv)
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, opacity: 1 })
+  const sprite = new THREE.Sprite(mat)
+  sprite.scale.set(CW / CH * 0.17, 0.17, 1)
+  return sprite
+}
+
 function ll3(lat: number, lon: number, r: number): THREE.Vector3 {
   const phi   = (90 - lat) * (Math.PI / 180)
   const theta = (lon + 180) * (Math.PI / 180)
@@ -198,18 +236,22 @@ function GlobeViz() {
 
     // ── arcs ──────────────────────────────────────────────────────────────────
     interface Arc {
-      geo:    THREE.BufferGeometry
-      mat:    THREE.LineBasicMaterial
-      buf:    Float32Array
-      head:   THREE.Mesh
-      baseOp: number
-      prog:   number
-      speed:  number
-      delay:  number
-      total:  number
-      active: boolean
-      done:   boolean
-      holdT:  number   // seconds since arc completed
+      geo:          THREE.BufferGeometry
+      mat:          THREE.LineBasicMaterial
+      buf:          Float32Array
+      head:         THREE.Mesh
+      baseOp:       number
+      prog:         number
+      speed:        number
+      delay:        number
+      total:        number
+      active:       boolean
+      done:         boolean
+      holdT:        number
+      openedSprite: THREE.Sprite | null
+      showOpenedAt: number
+      openedStartT: number
+      openedDone:   boolean
     }
     const arcs: Arc[] = []
 
@@ -218,6 +260,8 @@ function GlobeViz() {
       bLat: number, bLon: number,
       color: number, headColor: number,
       speed: number, delay: number,
+      openedSprite: THREE.Sprite | null = null,
+      showOpenedAt = 0,
     ) => {
       const buf = arcBuf(aLat, aLon, bLat, bLon, R)
       const geo = new THREE.BufferGeometry()
@@ -233,14 +277,17 @@ function GlobeViz() {
       head.visible = false
       group.add(head)
 
-      arcs.push({ geo, mat, buf, head, baseOp: 0.85, prog: 0, speed, delay, total: N + 1, active: false, done: false, holdT: 0 })
+      arcs.push({ geo, mat, buf, head, baseOp: 0.85, prog: 0, speed, delay, total: N + 1, active: false, done: false, holdT: 0, openedSprite, showOpenedAt, openedStartT: 0, openedDone: false })
     }
 
     TARGETS.forEach(t => {
-      // outgoing blue — all launch at t=0, slower speed
       makeArc(HOME.lat, HOME.lon, t.lat, t.lon, 0x4466ff, 0x88aaff, 0.008, 0)
-      // incoming green — random reply delay, slower
-      makeArc(t.lat, t.lon, HOME.lat, HOME.lon, 0x22dd77, 0x66ffaa, 0.007, 1.8 + Math.random() * 3.5)
+      const replyDelay = 1.8 + Math.random() * 3.5
+      const os = makeOpenedSprite()
+      os.position.copy(ll3(t.lat, t.lon, R + 0.52))
+      os.visible = false
+      group.add(os)
+      makeArc(t.lat, t.lon, HOME.lat, HOME.lon, 0x22dd77, 0x66ffaa, 0.007, replyDelay, os, replyDelay - 1.3)
     })
 
     // ── animation loop ────────────────────────────────────────────────────────
@@ -266,10 +313,33 @@ function GlobeViz() {
           a.mat.opacity = a.baseOp
           a.geo.setDrawRange(0, 0)
           a.head.visible = false
+          if (a.openedSprite) {
+            a.openedSprite.visible = false
+            ;(a.openedSprite.material as THREE.SpriteMaterial).opacity = 1
+          }
+          a.openedStartT = 0
+          a.openedDone   = false
         })
       }
 
       arcs.forEach(a => {
+        // opened notification — show before reply fires, then fade
+        if (a.openedSprite && !a.openedDone) {
+          if (a.openedStartT === 0 && cycleT >= a.showOpenedAt) {
+            a.openedSprite.visible = true
+            a.openedStartT = cycleT
+          }
+          if (a.openedStartT > 0) {
+            const elapsed = cycleT - a.openedStartT
+            const fadeStart = 0.85, fadeDur = 0.35
+            if (elapsed >= fadeStart) {
+              const ft = Math.min(1, (elapsed - fadeStart) / fadeDur)
+              ;(a.openedSprite.material as THREE.SpriteMaterial).opacity = 1 - ft
+              if (ft >= 1) { a.openedSprite.visible = false; a.openedDone = true }
+            }
+          }
+        }
+
         if (!a.active && cycleT >= a.delay) a.active = true
         if (!a.active) return
 

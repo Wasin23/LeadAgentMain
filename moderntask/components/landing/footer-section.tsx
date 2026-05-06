@@ -85,7 +85,7 @@ function InquiryForm() {
             className={`${inputCls} resize-none`}
           />
           {status === 'error' && (
-            <p className="text-red-400/80 text-[12px]">Something went wrong — try emailing hello@usemeridian.com directly.</p>
+            <p className="text-red-400/80 text-[12px]">Something went wrong — try emailing colton.fidd@gmail.com directly.</p>
           )}
           <button
             type="submit"
