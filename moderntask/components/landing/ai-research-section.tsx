@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useMemo } from 'react'
 import { ArrowRight, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 
-type Phase = 'profile' | 'database' | 'linkedin' | 'websearch' | 'article' | 'email' | 'report' | 'crm' | 'done'
+type Phase = 'profile' | 'database' | 'websearch' | 'article' | 'email' | 'report' | 'crm' | 'done'
 
 const SEARCH_QUERY = 'ScaleFlow Series A funding 2024'
 const WPS = 70
@@ -139,7 +139,6 @@ const URL_LABELS: Record<Phase, string> = {
 const STATUS_LABELS: Record<Phase, string> = {
   profile:  'Reading your profile…',
   database: 'Searching prospects…',
-  linkedin: 'Scanning company…',
   websearch:'Finding signals…',
   article:  'Reading article…',
   email:    'Drafting email…',
@@ -148,12 +147,11 @@ const STATUS_LABELS: Record<Phase, string> = {
   done:     'All done',
 }
 
-const TABS: Phase[] = ['profile', 'database', 'linkedin', 'websearch', 'article', 'email', 'report', 'crm']
+const TABS: Phase[] = ['profile', 'database', 'websearch', 'article', 'email', 'report', 'crm']
 
 const PHASE_BG: Record<Phase, string> = {
   profile:  '#07091c',
   database: '#0e0e10',
-  linkedin: '#1b1f23',
   websearch:'#202124',
   article:  '#07091c',
   email:    '#1c1c1c',
@@ -226,9 +224,6 @@ export function AiResearchSection() {
         setDbRows(i); await sleep(260)
       }
       setSubStep(1); await sleep(900); if (!alive.current) return
-
-      setPhase('linkedin')
-      await sleep(4200); if (!alive.current) return
 
       setPhase('websearch'); setSubStep(0); setQueryIdx(0); setWebResults(0)
       await sleep(200); if (!alive.current) return
@@ -318,7 +313,7 @@ export function AiResearchSection() {
             Your agent pulls company profiles, recent news, hiring signals, and role context — then writes from that research. Not a template.
           </p>
           <div className="space-y-3 mb-10">
-            {['Company profile and role intelligence', 'Funding rounds and hiring signals', 'Recent news and LinkedIn activity', 'Tech stack and buyer intent data'].map(f => (
+            {['Company profile and role intelligence', 'Funding rounds and hiring signals', 'Recent news and web signals', 'Tech stack and buyer intent data'].map(f => (
               <div key={f} className="flex items-center gap-3 text-white/55 text-[15px]">
                 <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" />
                 {f}
@@ -462,131 +457,6 @@ export function AiResearchSection() {
                         Top match selected: Sarah Chen · ScaleFlow — beginning deep research
                       </div>
                     )}
-                  </div>
-                )}
-
-                {/* ── LINKEDIN ── */}
-                {phase === 'linkedin' && (
-                  <div className="overflow-hidden bg-[#1b1f23]">
-                    {/* LinkedIn top nav */}
-                    <div className="flex items-center gap-3 px-4 py-2 bg-[#1b1f23] border-b border-white/[0.08]">
-                      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" className="shrink-0">
-                        <rect width="28" height="28" rx="4" fill="#0A66C2"/>
-                        <rect x="6" y="6" width="4" height="4" fill="white"/>
-                        <rect x="6" y="12" width="4" height="10" fill="white"/>
-                        <path d="M13.5 12h3.6v1.8c.7-1.2 2-2.1 3.6-2.1 2.8 0 3.8 1.9 3.8 4.9V22h-3.7v-4.7c0-1.4-.5-2.3-1.6-2.3-1.2 0-1.9.9-1.9 2.5V22h-3.8V12z" fill="white"/>
-                      </svg>
-                      <div className="flex-1 px-2.5 py-1 rounded bg-[#2d333b] text-[10px] text-white/30 max-w-[120px]">ScaleFlow</div>
-                      <div className="ml-auto flex items-center gap-3 text-[10px]">
-                        <span className="text-white/30">Home</span>
-                        <span className="text-white/30">My Network</span>
-                        <span className="text-[#70b5f9] font-semibold">Jobs</span>
-                        <span className="text-white/30">Messaging</span>
-                      </div>
-                    </div>
-
-                    {/* Cover banner */}
-                    <div className="h-[72px]" style={{ background: 'linear-gradient(135deg, #0A66C2 0%, #084d93 50%, #063a70 100%)' }} />
-
-                    {/* Company header */}
-                    <div className="px-4 pb-3 bg-[#1b1f23] border-b border-white/[0.06]">
-                      <div className="flex items-end gap-3 -mt-8 mb-2.5">
-                        <div className="w-16 h-16 rounded-lg border-2 border-[#1b1f23] flex items-center justify-center text-white font-black text-xl shrink-0" style={{ background: '#0A66C2' }}>SF</div>
-                        <div className="flex-1 min-w-0 pb-1">
-                          <div className="flex items-center gap-1.5 mb-0.5">
-                            <span className="text-white font-bold text-[14px]">ScaleFlow</span>
-                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                              <circle cx="7" cy="7" r="7" fill="#0A66C2"/>
-                              <path d="M4 7l2.2 2.2L10 5" stroke="white" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                          </div>
-                          <div className="text-[10px] text-white/45 leading-snug">Revenue Intelligence · San Francisco, CA</div>
-                        </div>
-                        <div className="flex gap-1.5 pb-1 shrink-0">
-                          <button className="px-3.5 py-1 rounded-full text-white text-[10px] font-bold" style={{ background: '#0A66C2' }}>Connect</button>
-                          <button className="px-3.5 py-1 rounded-full border text-[10px] font-bold" style={{ borderColor: '#0A66C2', color: '#70b5f9' }}>Follow</button>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 text-[10px] flex-wrap">
-                        <span className="text-white/35">Software Development</span>
-                        <span className="text-white/20">·</span>
-                        <span className="cursor-pointer hover:underline" style={{ color: '#70b5f9' }}>2,347 followers</span>
-                        <span className="text-white/20">·</span>
-                        <span className="text-white/35">47 employees</span>
-                        <span className="text-white/20">·</span>
-                        <span className="px-1.5 py-0.5 rounded-sm text-[9px] font-semibold" style={{ background: 'rgba(5,118,66,0.15)', color: '#5cb85c', border: '1px solid rgba(5,118,66,0.25)' }}>Series A</span>
-                        <span className="px-1.5 py-0.5 rounded-sm text-[9px] font-semibold" style={{ background: 'rgba(10,102,194,0.15)', color: '#70b5f9', border: '1px solid rgba(10,102,194,0.25)' }}>B2B SaaS</span>
-                      </div>
-                    </div>
-
-                    {/* LinkedIn tab nav */}
-                    <div className="flex text-[11px] bg-[#1b1f23] border-b border-white/[0.06] px-2">
-                      {['About', 'Posts', 'People', 'Jobs'].map((t, i) => (
-                        <div key={t} className={`px-4 py-2.5 cursor-pointer font-medium ${i === 0 ? 'text-white border-b-2 border-white' : 'text-white/30 hover:text-white/55'}`}>{t}</div>
-                      ))}
-                    </div>
-
-                    <div className="p-4 space-y-3 bg-[#1b1f23]">
-                      {/* About card */}
-                      <div className="rounded-lg border border-white/[0.06] bg-[#23272e] p-4">
-                        <div className="text-[11px] font-bold text-white/70 mb-2">About</div>
-                        <div className="text-[12px] text-white/55 leading-relaxed">
-                          <ScanText text="AI-powered revenue platform helping B2B teams scale outbound without adding headcount. Trusted by 200+ fast-growing companies across North America and Europe." speed={60} />
-                        </div>
-                      </div>
-
-                      {/* Posts card */}
-                      <div className="rounded-lg border border-white/[0.06] bg-[#23272e] overflow-hidden">
-                        <div className="px-4 pt-3 pb-1 text-[11px] font-bold text-white/70">Posts</div>
-                        {[
-                          { text: "We're hiring 3 Senior SDRs to anchor our new US enterprise outbound motion. If you've run complex multi-touch sequences at scale, we want to talk.", likes: 24, comments: 8, ago: '2d' },
-                          { text: "340% ARR growth in Q4. We stopped sending generic blasts and started researching every account before the first send. The difference was immediate.", likes: 87, comments: 31, ago: '5d' },
-                        ].map((post, i) => (
-                          <div key={i} className="px-4 py-3 border-t border-white/[0.05]">
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0" style={{ background: '#0A66C2' }}>SF</div>
-                              <div>
-                                <div className="text-[10px] font-semibold text-white/65">ScaleFlow</div>
-                                <div className="text-[9px] text-white/25">{post.ago} ago</div>
-                              </div>
-                            </div>
-                            <div className="text-[11px] text-white/50 leading-relaxed mb-2.5">
-                              <ScanText text={post.text} speed={50} />
-                            </div>
-                            <div className="flex gap-4 text-[9px] text-white/25 pt-2 border-t border-white/[0.05]">
-                              <span className="cursor-pointer hover:text-[#70b5f9]">Like · {post.likes}</span>
-                              <span className="cursor-pointer hover:text-[#70b5f9]">Comment · {post.comments}</span>
-                              <span className="cursor-pointer hover:text-[#70b5f9]">Repost</span>
-                              <span className="cursor-pointer hover:text-[#70b5f9]">Send</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* People card */}
-                      <div className="rounded-lg border border-white/[0.06] bg-[#23272e] overflow-hidden">
-                        <div className="px-4 pt-3 pb-1 text-[11px] font-bold text-white/70">People at ScaleFlow</div>
-                        {[
-                          { i: 'SC', n: 'Sarah Chen',  r: 'Head of Growth',      target: true },
-                          { i: 'ML', n: 'Marcus Lee',  r: 'VP of Sales',          target: false },
-                          { i: 'PN', n: 'Priya Nair',  r: 'Dir. of Revenue Ops',  target: false },
-                        ].map(p => (
-                          <div key={p.n} className={`flex items-center gap-3 px-4 py-3 border-t border-white/[0.05] ${p.target ? 'bg-[#0A66C2]/8' : ''}`}>
-                            <div className={`w-9 h-9 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${p.target ? 'text-white' : 'bg-white/[0.08] text-white/35'}`} style={p.target ? { background: '#0A66C2' } : {}}>
-                              {p.i}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className={`text-[12px] font-semibold ${p.target ? 'text-[#70b5f9]' : 'text-white/55'}`}>{p.n}</div>
-                              <div className="text-[10px] text-white/28">{p.r}</div>
-                            </div>
-                            {p.target
-                              ? <span className="text-[9px] font-bold px-2 py-0.5 rounded-full shrink-0" style={{ background: 'rgba(10,102,194,0.2)', color: '#70b5f9', border: '1px solid rgba(10,102,194,0.3)' }}>Target contact</span>
-                              : <button className="text-[9px] text-white/30 border border-white/[0.10] px-2.5 py-0.5 rounded-full shrink-0 hover:border-white/25">+ Connect</button>
-                            }
-                          </div>
-                        ))}
-                      </div>
-                    </div>
                   </div>
                 )}
 
