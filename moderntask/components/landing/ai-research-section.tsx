@@ -365,30 +365,97 @@ export function AiResearchSection() {
 
                 {/* ── YOUR PROFILE ── */}
                 {phase === 'profile' && (
-                  <div className="p-6 space-y-5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-white/40 uppercase tracking-widest">Your Company Profile</span>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/20">Reading</span>
+                  <div className="overflow-hidden">
+                    {/* cover banner */}
+                    <div className="h-[72px] relative" style={{ background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 100%)' }}>
+                      <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 70% 50%, #818cf8 0%, transparent 60%)' }} />
+                      <div className="absolute top-2 right-3 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-300 animate-pulse" />
+                        <span className="text-[9px] text-indigo-300/70 font-mono">reading profile…</span>
+                      </div>
                     </div>
-                    <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] overflow-hidden">
-                      {PROFILE_FIELDS.map((f, i) => (
-                        <div key={f.label} className={`flex items-start gap-3 px-4 py-2.5 border-b border-white/[0.05] last:border-0 transition-all duration-300 ${profileItems > i ? 'opacity-100' : 'opacity-0'}`}>
-                          <span className="text-white/25 text-[11px] w-28 shrink-0 pt-px">{f.label}</span>
-                          <span className="text-white/70 text-[12px] font-medium leading-snug">{f.value}</span>
-                          {profileItems > i && <span className="ml-auto text-[9px] text-indigo-400/50 shrink-0 pt-px">✓ read</span>}
+
+                    {/* avatar + name row */}
+                    <div className="px-4 pb-3 bg-[#07091c]">
+                      <div className="flex items-end gap-3 -mt-7 mb-3">
+                        <div className="w-[52px] h-[52px] rounded-full border-[3px] border-[#07091c] flex items-center justify-center font-black text-[16px] text-white shrink-0"
+                          style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>
+                          AR
+                        </div>
+                        <div className="pb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-white font-bold text-[14px]">Apex Revenue</span>
+                            <span className="w-3.5 h-3.5 rounded-full bg-indigo-500 flex items-center justify-center shrink-0">
+                              <svg width="8" height="8" viewBox="0 0 8 8"><path d="M1.5 4l1.8 1.8L6.5 2" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
+                            </span>
+                          </div>
+                          <div className="text-white/40 text-[10px]">AI-powered outbound · San Francisco, CA</div>
+                        </div>
+                        <div className="ml-auto pb-1 flex gap-1.5">
+                          <button className="px-3 py-1 rounded-full text-[10px] font-bold text-white" style={{ background: '#4f46e5' }}>Follow</button>
+                          <button className="px-3 py-1 rounded-full text-[10px] font-bold border border-white/[0.15] text-white/50">Message</button>
+                        </div>
+                      </div>
+
+                      {/* bio */}
+                      {profileItems >= 1 && (
+                        <p className="text-[11px] text-white/50 leading-relaxed mb-3">
+                          AI-powered outbound platform for B2B sales teams. We help revenue teams find, research, and close more pipeline — without adding headcount.
+                        </p>
+                      )}
+
+                      {/* stats row */}
+                      {profileItems >= 2 && (
+                        <div className="flex items-center gap-4 py-2.5 border-t border-white/[0.06]">
+                          {[
+                            { label: 'Connections', value: '1,240' },
+                            { label: 'Employees', value: '28' },
+                            { label: 'Founded', value: '2022' },
+                          ].map(s => (
+                            <div key={s.label} className="text-center">
+                              <div className="text-white font-bold text-[13px]">{s.value}</div>
+                              <div className="text-white/25 text-[9px]">{s.label}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* ICP fields as profile sections */}
+                    <div className="border-t border-white/[0.06] divide-y divide-white/[0.04]">
+                      {[
+                        { label: 'Target buyer', value: 'Head of Growth · VP Sales · CRO', icon: '🎯' },
+                        { label: 'Target company', value: 'B2B SaaS · 11–500 employees', icon: '🏢' },
+                        { label: 'Funding stage', value: 'Series A – C', icon: '💰' },
+                        { label: 'Geography', value: 'North America · Western Europe', icon: '🌍' },
+                      ].map((f, i) => (
+                        <div
+                          key={f.label}
+                          className={`flex items-center gap-3 px-4 py-2.5 transition-all duration-300 ${profileItems > i + 2 ? 'opacity-100' : 'opacity-0'}`}
+                        >
+                          <span className="text-[14px] shrink-0">{f.icon}</span>
+                          <div className="min-w-0">
+                            <div className="text-[9px] text-white/25 uppercase tracking-widest">{f.label}</div>
+                            <div className="text-[12px] text-white/65 font-medium mt-0.5">{f.value}</div>
+                          </div>
+                          {profileItems > i + 2 && (
+                            <span className="ml-auto text-[9px] text-indigo-400/50 shrink-0">✓</span>
+                          )}
                         </div>
                       ))}
                     </div>
+
+                    {/* keywords as skills */}
                     {profileKw > 0 && (
-                      <div className="slide-up space-y-2.5">
-                        <div className="text-[10px] font-bold text-white/25 uppercase tracking-widest">Keywords extracted</div>
+                      <div className="px-4 py-3 border-t border-white/[0.06] space-y-2">
+                        <div className="text-[9px] text-white/25 uppercase tracking-widest font-bold">Search targets</div>
                         <div className="flex flex-wrap gap-1.5">
                           {EXTRACTED_KEYWORDS.slice(0, profileKw).map(kw => (
                             <span key={kw} className="slide-up px-2.5 py-1 rounded-full bg-indigo-500/15 border border-indigo-500/25 text-indigo-300 text-[11px] font-medium">{kw}</span>
                           ))}
                         </div>
                         {profileKw >= EXTRACTED_KEYWORDS.length && (
-                          <div className="flex items-center gap-2 text-[11px] text-indigo-400/70 mt-1">
+                          <div className="flex items-center gap-2 text-[11px] text-indigo-400/70 pt-1">
                             <span className="text-[9px]">→</span>
                             Searching prospect engine with these terms…
                           </div>

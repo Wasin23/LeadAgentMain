@@ -96,40 +96,29 @@ function makeProfileSprite(name: string, title: string, init: string): THREE.Spr
 }
 
 function makeOpenedSprite(): THREE.Sprite {
-  const CW = 108, CH = 28
+  const CW = 160, CH = 36
   const cv = document.createElement('canvas')
   cv.width = CW; cv.height = CH
   const ctx = cv.getContext('2d')!
 
-  ctx.fillStyle = 'rgba(5, 18, 10, 0.96)'
-  rrect(ctx, 0, 0, CW, CH, 14); ctx.fill()
-  ctx.strokeStyle = 'rgba(34, 221, 100, 0.5)'
-  ctx.lineWidth = 1.5
-  rrect(ctx, 1, 1, CW - 2, CH - 2, 13); ctx.stroke()
+  // subtle dark bg pill
+  ctx.fillStyle = 'rgba(4, 22, 10, 0.82)'
+  rrect(ctx, 0, 0, CW, CH, 18); ctx.fill()
 
-  // check circle
-  ctx.fillStyle = 'rgba(34, 221, 100, 0.18)'
-  ctx.beginPath(); ctx.arc(15, CH / 2, 8, 0, Math.PI * 2); ctx.fill()
-  ctx.strokeStyle = 'rgba(34, 221, 100, 0.55)'
-  ctx.lineWidth = 1
-  ctx.beginPath(); ctx.arc(15, CH / 2, 8, 0, Math.PI * 2); ctx.stroke()
+  // green dot
+  ctx.fillStyle = 'rgba(52, 211, 110, 1)'
+  ctx.beginPath(); ctx.arc(18, CH / 2, 5, 0, Math.PI * 2); ctx.fill()
 
-  // checkmark
-  ctx.strokeStyle = 'rgba(60, 240, 130, 1)'
-  ctx.lineWidth = 1.6; ctx.lineCap = 'round'; ctx.lineJoin = 'round'
-  ctx.beginPath()
-  ctx.moveTo(10.5, CH / 2); ctx.lineTo(13.5, CH / 2 + 3); ctx.lineTo(19.5, CH / 2 - 3.5)
-  ctx.stroke()
-
-  ctx.fillStyle = 'rgba(80, 240, 150, 0.9)'
-  ctx.font = 'bold 11px sans-serif'
+  // "✓ opened" text — big and clear
+  ctx.fillStyle = 'rgba(52, 211, 110, 1)'
+  ctx.font = 'bold 14px sans-serif'
   ctx.textAlign = 'left'; ctx.textBaseline = 'middle'
-  ctx.fillText('opened', 29, CH / 2)
+  ctx.fillText('✓  opened', 30, CH / 2)
 
   const tex = new THREE.CanvasTexture(cv)
   const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, opacity: 1 })
   const sprite = new THREE.Sprite(mat)
-  sprite.scale.set(CW / CH * 0.17, 0.17, 1)
+  sprite.scale.set(CW / CH * 0.26, 0.26, 1)
   return sprite
 }
 
@@ -267,12 +256,12 @@ function GlobeViz() {
       const geo = new THREE.BufferGeometry()
       geo.setAttribute('position', new THREE.BufferAttribute(buf, 3))
       geo.setDrawRange(0, 0)
-      const mat  = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.85 })
+      const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.85, depthTest: true, clippingPlanes: [clipPlane] })
       group.add(new THREE.Line(geo, mat))
 
       const head = new THREE.Mesh(
         new THREE.SphereGeometry(0.05, 8, 8),
-        new THREE.MeshBasicMaterial({ color: headColor }),
+        new THREE.MeshBasicMaterial({ color: headColor, depthTest: true, clippingPlanes: [clipPlane] }),
       )
       head.visible = false
       group.add(head)
@@ -284,7 +273,8 @@ function GlobeViz() {
       makeArc(HOME.lat, HOME.lon, t.lat, t.lon, 0x4466ff, 0x88aaff, 0.008, 0)
       const replyDelay = 1.8 + Math.random() * 3.5
       const os = makeOpenedSprite()
-      os.position.copy(ll3(t.lat, t.lon, R + 0.52))
+      const cardPos = ll3(t.lat, t.lon, R + 0.28)
+      os.position.set(cardPos.x, cardPos.y - 0.28, cardPos.z)
       os.visible = false
       group.add(os)
       makeArc(t.lat, t.lon, HOME.lat, HOME.lon, 0x22dd77, 0x66ffaa, 0.007, replyDelay, os, replyDelay - 1.3)
