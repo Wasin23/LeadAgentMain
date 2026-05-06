@@ -180,16 +180,18 @@ export function AgentSection() {
           <div className="rounded-2xl border border-white/[0.08] bg-[#05070f] overflow-hidden shadow-2xl shadow-black/60">
 
             {/* Title bar */}
-            <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-white/[0.06] bg-[#05070f]">
-              <div className="w-2 h-2 rounded-full bg-[#ff5f57]" />
-              <div className="w-2 h-2 rounded-full bg-[#febc2e]" />
-              <div className="w-2 h-2 rounded-full bg-[#28c840]" />
-              <span className="ml-2 text-[10px] text-white/20 font-mono">meridian · agents</span>
-              <span className="ml-auto text-[9px] text-indigo-400/60 font-mono">1 active</span>
+            <div className="flex items-center px-3 py-0 border-b border-white/[0.06] bg-[#141414]" style={{ height: 36 }}>
+              <span className="text-[10px] text-white/20 font-mono">meridian · agents</span>
+              <span className="ml-3 text-[9px] text-indigo-400/60 font-mono">1 active</span>
+              <div className="ml-auto flex items-center">
+                <button className="w-9 h-9 flex items-center justify-center text-white/25 hover:bg-white/[0.07] text-[13px] leading-none">─</button>
+                <button className="w-9 h-9 flex items-center justify-center text-white/25 hover:bg-white/[0.07] text-[11px] leading-none">□</button>
+                <button className="w-9 h-9 flex items-center justify-center text-white/25 hover:bg-red-600/70 hover:text-white text-[15px] leading-none rounded-tr-2xl">✕</button>
+              </div>
             </div>
 
             {/* Body */}
-            <div className="flex" style={{ minHeight: 380 }}>
+            <div className="flex" style={{ minHeight: 520 }}>
 
               {/* Agent list */}
               <div className="w-[180px] shrink-0 border-r border-white/[0.06] py-2">

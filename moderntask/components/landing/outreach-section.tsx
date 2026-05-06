@@ -247,14 +247,16 @@ function NetworkViz() {
   }, [])
 
   return (
-    <div className="relative rounded-2xl border border-white/[0.1] bg-[#04060f] overflow-hidden shadow-2xl shadow-black/60 w-full" style={{ height: 420 }}>
-      <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-white/[0.06] absolute top-0 left-0 right-0 z-10 bg-[#04060f]">
-        <div className="w-2 h-2 rounded-full bg-[#ff5f57]" />
-        <div className="w-2 h-2 rounded-full bg-[#febc2e]" />
-        <div className="w-2 h-2 rounded-full bg-[#28c840]" />
-        <span className="ml-2 text-[10px] text-white/20 font-mono">outreach · live</span>
+    <div className="relative rounded-2xl border border-white/[0.1] bg-[#04060f] overflow-hidden shadow-2xl shadow-black/60 w-full" style={{ height: 560 }}>
+      <div className="flex items-center px-3 border-b border-white/[0.06] absolute top-0 left-0 right-0 z-10 bg-[#141414]" style={{ height: 36 }}>
+        <span className="text-[10px] text-white/20 font-mono">outreach · live</span>
+        <div className="ml-auto flex items-center">
+          <button className="w-9 h-9 flex items-center justify-center text-white/25 hover:bg-white/[0.07] text-[13px] leading-none">─</button>
+          <button className="w-9 h-9 flex items-center justify-center text-white/25 hover:bg-white/[0.07] text-[11px] leading-none">□</button>
+          <button className="w-9 h-9 flex items-center justify-center text-white/25 hover:bg-red-600/70 hover:text-white text-[15px] leading-none rounded-tr-2xl">✕</button>
+        </div>
       </div>
-      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{ top: 32 }} />
+      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{ top: 36 }} />
     </div>
   )
 }
