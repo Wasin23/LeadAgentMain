@@ -403,8 +403,7 @@ export function AiResearchSection() {
                           <div className="text-white/40 text-[10px]">AI-powered outbound · San Francisco, CA</div>
                         </div>
                         <div className="ml-auto pb-1 flex gap-1.5">
-                          <button className="px-3 py-1 rounded-full text-[10px] font-bold text-white" style={{ background: '#4f46e5' }}>Follow</button>
-                          <button className="px-3 py-1 rounded-full text-[10px] font-bold border border-white/[0.15] text-white/50">Message</button>
+                          <button className="px-3 py-1 rounded-full text-[10px] font-bold border border-white/[0.15] text-white/40">Edit profile</button>
                         </div>
                       </div>
 
