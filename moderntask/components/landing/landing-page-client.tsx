@@ -37,6 +37,21 @@ export function LandingPageClient() {
 
   return (
     <div className="text-foreground overflow-hidden h-screen">
+      {/* Fixed ambient environment — persists across all sections */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        {/* Primary bloom — center */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[700px]"
+          style={{ background: 'radial-gradient(ellipse at center, rgba(99,102,241,0.13) 0%, rgba(79,70,229,0.06) 40%, transparent 70%)' }} />
+        {/* Secondary bloom — top right */}
+        <div className="absolute -top-32 right-0 w-[600px] h-[500px]"
+          style={{ background: 'radial-gradient(ellipse at top right, rgba(139,92,246,0.09) 0%, transparent 65%)' }} />
+        {/* Ground glow — bottom center */}
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[350px]"
+          style={{ background: 'radial-gradient(ellipse at bottom, rgba(99,102,241,0.10) 0%, transparent 70%)' }} />
+        {/* Noise grain overlay */}
+        <div className="absolute inset-0 opacity-[0.032]"
+          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E\")", backgroundRepeat: 'repeat', backgroundSize: '200px 200px' }} />
+      </div>
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 px-6 py-4 backdrop-blur bg-black/40 sm:px-10">
         <div className="mx-auto max-w-7xl flex items-center">
 

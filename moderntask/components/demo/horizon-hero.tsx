@@ -30,12 +30,18 @@ export function HorizonHero() {
 
   return (
     <div className="relative w-full h-screen flex flex-col items-center justify-center text-center px-6">
-      <h1 ref={titleRef} className="overflow-hidden mb-8">
+
+      {/* tight glow behind the headline */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[60%] w-[700px] h-[400px] pointer-events-none"
+        style={{ background: 'radial-gradient(ellipse at center, rgba(99,102,241,0.18) 0%, rgba(79,70,229,0.08) 45%, transparent 70%)' }} />
+
+      <h1 ref={titleRef} className="overflow-hidden mb-8 relative z-10">
         <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
           {words.map((word, wi) => (
             <span key={wi} className="overflow-hidden inline-block">
               {word.split('').map((ch, ci) => (
-                <span key={ci} className="char inline-block text-6xl md:text-8xl font-black tracking-tight text-white">
+                <span key={ci} className="char inline-block text-6xl md:text-8xl font-black tracking-tight"
+                  style={{ color: 'white', textShadow: '0 0 80px rgba(99,102,241,0.4), 0 2px 20px rgba(0,0,0,0.8)' }}>
                   {ch}
                 </span>
               ))}
@@ -44,24 +50,26 @@ export function HorizonHero() {
         </div>
       </h1>
 
-      <div ref={subtitleRef} className="space-y-2 mb-10">
+      <div ref={subtitleRef} className="space-y-2 mb-10 relative z-10">
         <p className="line text-xl text-white/50">Runs 24/7. Multi-agent. Fully personalized.</p>
         <p className="line text-xl text-white/50">Researches leads, writes emails, sends from your inbox, follows up automatically.</p>
       </div>
 
-      <div className="flex gap-4">
-        <Link href="/signin" className="group flex items-center gap-2 px-8 py-4 bg-white text-black rounded-xl font-bold text-lg hover:bg-white/90 transition-all hover:scale-105">
+      <div className="flex gap-4 relative z-10">
+        <Link href="/signin" className="group flex items-center gap-2 px-8 py-4 bg-white text-black rounded-xl font-bold text-lg hover:bg-white/90 transition-all hover:scale-105"
+          style={{ boxShadow: '0 0 40px rgba(255,255,255,0.15), 0 4px 24px rgba(0,0,0,0.4)' }}>
           Start free <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
         </Link>
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('carousel-advance'))}
-          className="px-8 py-4 border border-white/20 hover:border-white/50 text-white rounded-xl font-semibold text-lg transition-all hover:scale-105 backdrop-blur-sm bg-white/5"
+          className="px-8 py-4 text-white rounded-xl font-semibold text-lg transition-all hover:scale-105 backdrop-blur-sm"
+          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.14)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 4px 16px rgba(0,0,0,0.3)' }}
         >
           Learn More
         </button>
       </div>
 
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/30 text-xs tracking-widest uppercase">
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/30 text-xs tracking-widest uppercase z-10">
         <span>Scroll</span>
         <div className="w-px h-12 bg-gradient-to-b from-white/30 to-transparent" />
       </div>
