@@ -136,19 +136,20 @@ function GlobeViz() {
 
     // scene / camera
     const scene  = new THREE.Scene()
-    const camera = new THREE.PerspectiveCamera(52, W / H, 0.1, 200)
-    camera.position.set(0, 3.0, 12)
-    camera.lookAt(0, -3.0, 0)
+    const camera = new THREE.PerspectiveCamera(58, W / H, 0.1, 300)
+    camera.position.set(0, 4, 17)
+    camera.lookAt(0, -7, 0)
 
-    // ── globe group — pushed down so clipped equator lands at canvas bottom ──
-    const R     = 4.0
+    // ── globe group — large radius, pushed way down so equator is at canvas bottom ──
+    const R     = 9
     const group = new THREE.Group()
-    group.position.set(0, -5.0, 0)
+    group.position.set(0, -12, 0)
+    group.rotation.z = 10 * Math.PI / 180   // 10° tilt — right side rises
     scene.add(group)
 
-    // clip plane — show only top hemisphere (world y >= -5.0)
+    // clip plane — show only top hemisphere (world y >= -12)
     renderer.localClippingEnabled = true
-    const clipPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 5.0)
+    const clipPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 12)
 
     // earth sphere
     const sGeo = new THREE.SphereGeometry(R, 64, 64)
@@ -328,11 +329,11 @@ function GlobeViz() {
 // ── section ───────────────────────────────────────────────────────────────────
 export function OutreachSection() {
   return (
-    <section className="relative z-10 px-6 py-24 overflow-hidden">
-      <div className="mx-auto max-w-7xl flex flex-col lg:flex-row items-center gap-12">
+    <section className="relative z-10 h-full overflow-hidden">
 
-        {/* left copy */}
-        <div className="flex-1 max-w-[460px] shrink-0">
+      {/* left copy — centered vertically, above the globe layer */}
+      <div className="relative z-10 h-full flex items-center px-6 sm:px-12 pointer-events-none">
+        <div className="max-w-[440px] pointer-events-auto">
           <p className="text-indigo-400 text-sm font-semibold tracking-widest uppercase mb-4">Outreach</p>
           <h2 className="text-5xl xl:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6">
             Sends. Tracks.<br />Follows up.
@@ -360,24 +361,23 @@ export function OutreachSection() {
             Start free
           </Link>
         </div>
+      </div>
 
-        {/* right: floating globe — no frame */}
-        <div className="flex-1 w-full min-w-0 relative" style={{ height: 620 }}>
-          <GlobeViz />
-          {/* legend */}
-          <div className="absolute bottom-3 left-4 z-10 flex items-center gap-4 pointer-events-none">
-            <div className="flex items-center gap-1.5">
-              <div className="w-5 h-px" style={{ background: 'rgba(68,102,255,0.8)' }} />
-              <span className="text-[9px] text-white/25">Outgoing</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-5 h-px" style={{ background: 'rgba(34,221,119,0.8)' }} />
-              <span className="text-[9px] text-white/25">Replies</span>
-            </div>
+      {/* globe — absolutely fills right 62% of section, full height */}
+      <div className="absolute top-0 bottom-0 right-0" style={{ left: '38%' }}>
+        <GlobeViz />
+        <div className="absolute bottom-4 left-4 z-10 flex items-center gap-4 pointer-events-none">
+          <div className="flex items-center gap-1.5">
+            <div className="w-5 h-px" style={{ background: 'rgba(68,102,255,0.8)' }} />
+            <span className="text-[9px] text-white/25">Outgoing</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-5 h-px" style={{ background: 'rgba(34,221,119,0.8)' }} />
+            <span className="text-[9px] text-white/25">Replies</span>
           </div>
         </div>
-
       </div>
+
     </section>
   )
 }
