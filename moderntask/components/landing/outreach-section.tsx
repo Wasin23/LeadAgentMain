@@ -91,7 +91,7 @@ function makeProfileSprite(name: string, title: string, init: string): THREE.Spr
   const tex = new THREE.CanvasTexture(cv)
   const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: true })
   const sprite = new THREE.Sprite(mat)
-  sprite.scale.set(CW / CH * 0.38, 0.38, 1)
+  sprite.scale.set(CW / CH * 0.22, 0.22, 1)
   return sprite
 }
 
@@ -137,18 +137,17 @@ function GlobeViz() {
     // camera sits BELOW the globe's top surface → horizon view, not arctic bowl
     const scene  = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(55, W / H, 0.1, 300)
-    camera.position.set(0, -6, 14)
-    camera.lookAt(0, -11, 0)
+    camera.position.set(0, -3, 12)
+    camera.lookAt(0, -6, 0)
 
-    // R=9, group at -12 → top of globe at y=-3; camera at y=-6 is well below that
-    const R     = 9
+    const R     = 5
     const group = new THREE.Group()
-    group.position.set(0, -12, 0)
+    group.position.set(0, -6.5, 0)
     group.rotation.z = 4 * Math.PI / 180
     scene.add(group)
 
     renderer.localClippingEnabled = true
-    const clipPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 12)
+    const clipPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 6.5)
 
     // earth sphere
     const sGeo = new THREE.SphereGeometry(R, 64, 64)
@@ -183,10 +182,10 @@ function GlobeViz() {
 
     // sender dot (New York)
     const homeDot = new THREE.Mesh(
-      new THREE.SphereGeometry(0.12, 10, 10),
+      new THREE.SphereGeometry(0.07, 10, 10),
       new THREE.MeshBasicMaterial({ color: 0x99aaff }),
     )
-    homeDot.position.copy(ll3(HOME.lat, HOME.lon, R + 0.06))
+    homeDot.position.copy(ll3(HOME.lat, HOME.lon, R + 0.04))
     group.add(homeDot)
 
     // destination profile sprites
@@ -228,7 +227,7 @@ function GlobeViz() {
       group.add(new THREE.Line(geo, mat))
 
       const head = new THREE.Mesh(
-        new THREE.SphereGeometry(0.09, 8, 8),
+        new THREE.SphereGeometry(0.05, 8, 8),
         new THREE.MeshBasicMaterial({ color: headColor }),
       )
       head.visible = false
