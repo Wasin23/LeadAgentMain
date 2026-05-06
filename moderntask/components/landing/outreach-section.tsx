@@ -20,10 +20,80 @@ const TARGETS = [
   { lat: 51.51, lon:   -0.12 },  // London
   { lat: 48.85, lon:    2.35 },  // Paris
   { lat: 19.43, lon:  -99.13 },  // Mexico City
-  { lat:-23.55, lon:  -46.63 },  // São Paulo
   { lat: 43.65, lon:  -79.38 },  // Toronto
   { lat: 35.69, lon:  139.69 },  // Tokyo
+  { lat: 55.75, lon:   37.62 },  // Moscow
 ]
+
+const PROFILES = [
+  { name: 'Jake Torres',     title: 'Head of Marketing',  init: 'JT' },
+  { name: 'Priya Shah',      title: 'VP Sales',           init: 'PS' },
+  { name: 'Carlos Reyes',    title: 'Dir. of Growth',     init: 'CR' },
+  { name: 'Mia Chen',        title: 'CRO',                init: 'MC' },
+  { name: 'Derek Mills',     title: 'VP Revenue',         init: 'DM' },
+  { name: 'Lisa Park',       title: 'Head of BD',         init: 'LP' },
+  { name: 'James Whitfield', title: 'Chief Revenue Off.', init: 'JW' },
+  { name: 'Sophie Laurent',  title: 'VP Commercial',      init: 'SL' },
+  { name: 'Ana Morales',     title: 'Dir. Comercial',     init: 'AM' },
+  { name: 'Ethan Brooks',    title: 'VP Growth',          init: 'EB' },
+  { name: 'Kenji Tanaka',    title: 'Sales Director',     init: 'KT' },
+  { name: 'Ivan Petrov',     title: 'Head of Revenue',    init: 'IP' },
+]
+
+// ── profile sprite helpers ─────────────────────────────────────────────────────
+function rrect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.lineTo(x + w - r, y); ctx.arcTo(x + w, y, x + w, y + r, r)
+  ctx.lineTo(x + w, y + h - r); ctx.arcTo(x + w, y + h, x + w - r, y + h, r)
+  ctx.lineTo(x + r, y + h); ctx.arcTo(x, y + h, x, y + h - r, r)
+  ctx.lineTo(x, y + r); ctx.arcTo(x, y, x + r, y, r)
+  ctx.closePath()
+}
+
+function makeProfileSprite(name: string, title: string, init: string): THREE.Sprite {
+  const CW = 210, CH = 58
+  const cv = document.createElement('canvas')
+  cv.width = CW; cv.height = CH
+  const ctx = cv.getContext('2d')!
+
+  // card bg
+  ctx.fillStyle = 'rgba(8, 13, 32, 0.93)'
+  rrect(ctx, 0, 0, CW, CH, 10); ctx.fill()
+  ctx.strokeStyle = 'rgba(90, 110, 255, 0.32)'
+  ctx.lineWidth = 1.5
+  rrect(ctx, 1, 1, CW - 2, CH - 2, 9); ctx.stroke()
+
+  // avatar bg
+  ctx.fillStyle = 'rgba(70, 90, 220, 0.28)'
+  ctx.beginPath(); ctx.arc(32, CH / 2, 17, 0, Math.PI * 2); ctx.fill()
+  ctx.strokeStyle = 'rgba(100, 130, 255, 0.5)'
+  ctx.lineWidth = 1.2
+  ctx.beginPath(); ctx.arc(32, CH / 2, 17, 0, Math.PI * 2); ctx.stroke()
+
+  // initials
+  ctx.fillStyle = 'rgba(170, 190, 255, 1)'
+  ctx.font = 'bold 12px sans-serif'
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+  ctx.fillText(init, 32, CH / 2)
+
+  // name
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.90)'
+  ctx.font = 'bold 12.5px sans-serif'
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'
+  ctx.fillText(name, 58, CH / 2 - 3)
+
+  // title
+  ctx.fillStyle = 'rgba(180, 190, 255, 0.42)'
+  ctx.font = '10px sans-serif'
+  ctx.fillText(title, 58, CH / 2 + 13)
+
+  const tex = new THREE.CanvasTexture(cv)
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: true })
+  const sprite = new THREE.Sprite(mat)
+  sprite.scale.set(CW / CH * 0.18, 0.18, 1)   // maintain aspect ratio
+  return sprite
+}
 
 function ll3(lat: number, lon: number, r: number): THREE.Vector3 {
   const phi   = (90 - lat) * (Math.PI / 180)
@@ -40,7 +110,7 @@ const N = 90  // arc segments
 function arcBuf(aLat: number, aLon: number, bLat: number, bLon: number, r: number): Float32Array {
   const a   = ll3(aLat, aLon, r)
   const b   = ll3(bLat, bLon, r)
-  const mid = a.clone().add(b).multiplyScalar(0.5).normalize().multiplyScalar(r * 1.55)
+  const mid = a.clone().add(b).multiplyScalar(0.5).normalize().multiplyScalar(r * 1.22)
   const crv = new THREE.QuadraticBezierCurve3(a, mid, b)
   const pts = crv.getPoints(N)
   const buf = new Float32Array((N + 1) * 3)
@@ -67,17 +137,24 @@ function GlobeViz() {
     // scene / camera
     const scene  = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(40, W / H, 0.1, 200)
-    camera.position.set(0, 0, 5)
+    camera.position.set(0, 0, 6.5)
 
-    // ── globe group — centered, fills the display ──
-    const R     = 2.0
+    // ── globe group — centered, nudged down so arcs have room above ──
+    const R     = 1.8
     const group = new THREE.Group()
-    group.position.set(0, 0, 0)
+    group.position.set(0, -0.25, 0)
     scene.add(group)
+
+    // clip plane — show only top hemisphere (world y >= equator of globe)
+    renderer.localClippingEnabled = true
+    const clipPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0.25)
 
     // earth sphere
     const sGeo = new THREE.SphereGeometry(R, 64, 64)
-    const sMat = new THREE.MeshPhongMaterial({ color: 0x1a3a5c, shininess: 10 })
+    const sMat = new THREE.MeshPhongMaterial({
+      color: 0x1a3a5c, shininess: 10,
+      clippingPlanes: [clipPlane],
+    })
     new THREE.TextureLoader().load(
       'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg',
       tx => { sMat.map = tx; sMat.needsUpdate = true },
@@ -92,6 +169,7 @@ function GlobeViz() {
       const m = new THREE.MeshBasicMaterial({
         color, transparent: true, opacity,
         side: THREE.BackSide, blending: THREE.AdditiveBlending, depthWrite: false,
+        clippingPlanes: [clipPlane],
       })
       group.add(new THREE.Mesh(new THREE.SphereGeometry(R * scale, 32, 32), m))
     }
@@ -102,28 +180,36 @@ function GlobeViz() {
     sun.position.set(-5, 3, 6)
     scene.add(sun)
 
-    // city dots
-    const addDot = (lat: number, lon: number, color: number, size: number) => {
-      const m = new THREE.Mesh(
-        new THREE.SphereGeometry(size, 8, 8),
-        new THREE.MeshBasicMaterial({ color }),
-      )
-      m.position.copy(ll3(lat, lon, R + 0.03))
-      group.add(m)
-    }
-    addDot(HOME.lat, HOME.lon, 0x99aaff, 0.058)
-    TARGETS.forEach(t => addDot(t.lat, t.lon, 0x44ee88, 0.044))
+    // sender dot (New York)
+    const homeDot = new THREE.Mesh(
+      new THREE.SphereGeometry(0.055, 10, 10),
+      new THREE.MeshBasicMaterial({ color: 0x99aaff }),
+    )
+    homeDot.position.copy(ll3(HOME.lat, HOME.lon, R + 0.03))
+    group.add(homeDot)
+
+    // destination profile sprites
+    TARGETS.forEach((t, i) => {
+      const p = PROFILES[i]
+      const sprite = makeProfileSprite(p.name, p.title, p.init)
+      sprite.position.copy(ll3(t.lat, t.lon, R + 0.22))
+      group.add(sprite)
+    })
 
     // ── arcs ──────────────────────────────────────────────────────────────────
     interface Arc {
       geo:    THREE.BufferGeometry
+      mat:    THREE.LineBasicMaterial
       buf:    Float32Array
       head:   THREE.Mesh
+      baseOp: number
       prog:   number
       speed:  number
       delay:  number
       total:  number
       active: boolean
+      done:   boolean
+      holdT:  number   // seconds since arc completed
     }
     const arcs: Arc[] = []
 
@@ -137,33 +223,29 @@ function GlobeViz() {
       const geo = new THREE.BufferGeometry()
       geo.setAttribute('position', new THREE.BufferAttribute(buf, 3))
       geo.setDrawRange(0, 0)
-      const line = new THREE.Line(
-        geo,
-        new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.85 }),
-      )
-      group.add(line)
+      const mat  = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0.85 })
+      group.add(new THREE.Line(geo, mat))
 
-      // traveling head dot
       const head = new THREE.Mesh(
-        new THREE.SphereGeometry(0.045, 8, 8),
+        new THREE.SphereGeometry(0.04, 8, 8),
         new THREE.MeshBasicMaterial({ color: headColor }),
       )
       head.visible = false
       group.add(head)
 
-      arcs.push({ geo, buf, head, prog: 0, speed, delay, total: N + 1, active: false })
+      arcs.push({ geo, mat, buf, head, baseOp: 0.85, prog: 0, speed, delay, total: N + 1, active: false, done: false, holdT: 0 })
     }
 
     TARGETS.forEach(t => {
-      // outgoing blue — all launch at t=0
-      makeArc(HOME.lat, HOME.lon, t.lat, t.lon, 0x4466ff, 0x88aaff, 0.020, 0)
-      // incoming green — random reply delay
-      makeArc(t.lat, t.lon, HOME.lat, HOME.lon, 0x22dd77, 0x66ffaa, 0.017, 1.8 + Math.random() * 3.5)
+      // outgoing blue — all launch at t=0, slower speed
+      makeArc(HOME.lat, HOME.lon, t.lat, t.lon, 0x4466ff, 0x88aaff, 0.008, 0)
+      // incoming green — random reply delay, slower
+      makeArc(t.lat, t.lon, HOME.lat, HOME.lon, 0x22dd77, 0x66ffaa, 0.007, 1.8 + Math.random() * 3.5)
     })
 
     // ── animation loop ────────────────────────────────────────────────────────
     let cycleT  = 0
-    const CYCLE = 8.5
+    const CYCLE = 18.0   // longer cycle to accommodate slower arcs
     let lastMs  = performance.now()
     let raf: number
 
@@ -177,8 +259,11 @@ function GlobeViz() {
       if (cycleT > CYCLE) {
         cycleT = 0
         arcs.forEach(a => {
-          a.prog = 0
+          a.prog   = 0
           a.active = false
+          a.done   = false
+          a.holdT  = 0
+          a.mat.opacity = a.baseOp
           a.geo.setDrawRange(0, 0)
           a.head.visible = false
         })
@@ -188,14 +273,32 @@ function GlobeViz() {
         if (!a.active && cycleT >= a.delay) a.active = true
         if (!a.active) return
 
+        if (a.done) {
+          a.holdT += dt
+          // fade out over 0.6s starting after 1s hold
+          const fadeStart = 1.0
+          const fadeDur   = 0.6
+          if (a.holdT >= fadeStart) {
+            const t = Math.min(1, (a.holdT - fadeStart) / fadeDur)
+            a.mat.opacity = a.baseOp * (1 - t)
+            if (t >= 1) a.geo.setDrawRange(0, 0)
+          }
+          return
+        }
+
         a.prog = Math.min(1, a.prog + a.speed)
         const shown = Math.max(2, Math.ceil(a.prog * a.total))
         a.geo.setDrawRange(0, shown)
 
-        // move head to leading point
         const hi = (shown - 1) * 3
         a.head.visible = a.prog < 0.98
         a.head.position.set(a.buf[hi], a.buf[hi + 1], a.buf[hi + 2])
+
+        if (a.prog >= 1) {
+          a.done = true
+          a.holdT = 0
+          a.head.visible = false
+        }
       })
 
       renderer.render(scene, camera)
