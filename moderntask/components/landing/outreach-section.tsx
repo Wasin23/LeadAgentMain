@@ -142,7 +142,7 @@ function GlobeViz() {
 
     const R     = 5.8
     const group = new THREE.Group()
-    group.position.set(0, -8.5, 0)
+    group.position.set(0, -7.8, 0)
     group.rotation.z = 4 * Math.PI / 180
     scene.add(group)
 
