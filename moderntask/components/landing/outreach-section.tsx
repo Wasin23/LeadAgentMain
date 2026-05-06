@@ -140,14 +140,14 @@ function GlobeViz() {
     camera.position.set(0, -3, 12)
     camera.lookAt(0, -6, 0)
 
-    const R     = 5
+    const R     = 6.5
     const group = new THREE.Group()
-    group.position.set(0, -6.5, 0)
+    group.position.set(0, -8.5, 0)
     group.rotation.z = 4 * Math.PI / 180
     scene.add(group)
 
     renderer.localClippingEnabled = true
-    const clipPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 6.5)
+    const clipPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 8.5)
 
     // earth sphere
     const sGeo = new THREE.SphereGeometry(R, 64, 64)
