@@ -13,9 +13,9 @@ import { CrmPipelineSection } from "@/components/landing/crm-pipeline-section"
 import { TeamSection } from "@/components/landing/team-section"
 import { FeaturesCarousel } from "@/components/landing/features-carousel"
 import { PricingSection } from "@/components/landing/pricing-section"
-import { FooterSection } from "@/components/landing/footer-section"
+import { FaqSection, FooterSection } from "@/components/landing/footer-section"
 
-const LABELS = ['', 'Agents', 'AI Research', 'Outreach', 'CRM Auditor', 'Teams', 'Pricing', '']
+const LABELS = ['', 'Agents', 'AI Research', 'Outreach', 'CRM Auditor', 'Teams', 'Pricing', 'FAQ', '']
 
 export function LandingPageClient() {
   const { user } = useAuth()
@@ -90,6 +90,7 @@ export function LandingPageClient() {
         <CrmPipelineSection />
         <TeamSection />
         <PricingSection />
+        <FaqSection />
         <FooterSection />
       </FeaturesCarousel>
     </div>

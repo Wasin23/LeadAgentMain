@@ -132,40 +132,42 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   )
 }
 
-export function FooterSection() {
+export function FaqSection() {
   return (
-    <footer className="relative z-10 border-t border-white/[0.06] min-h-screen flex flex-col">
+    <section className="relative z-10 h-full flex items-center border-t border-white/[0.06] px-6 sm:px-12 py-20">
+      <div className="max-w-5xl mx-auto w-full">
+        <div className="flex flex-col lg:flex-row gap-16">
 
-      {/* FAQ + inquiry */}
-      <div className="flex-1 px-6 sm:px-12 py-20">
-        <div className="max-w-5xl mx-auto">
-
-          <div className="flex flex-col lg:flex-row gap-16">
-
-            {/* left: FAQ */}
-            <div className="flex-1">
-              <p className="text-indigo-400 text-xs font-semibold tracking-widest uppercase mb-4">FAQ</p>
-              <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight mb-8">
-                Common questions.
-              </h2>
-              <div>
-                {FAQ.map(item => (
-                  <FaqItem key={item.q} q={item.q} a={item.a} />
-                ))}
-              </div>
+          {/* left: FAQ */}
+          <div className="flex-1">
+            <p className="text-indigo-400 text-xs font-semibold tracking-widest uppercase mb-4">FAQ</p>
+            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight mb-8">
+              Common questions.
+            </h2>
+            <div>
+              {FAQ.map(item => (
+                <FaqItem key={item.q} q={item.q} a={item.a} />
+              ))}
             </div>
-
-            {/* right: inquiry form */}
-            <div className="lg:w-[360px] shrink-0">
-              <InquiryForm />
-            </div>
-
           </div>
+
+          {/* right: inquiry form */}
+          <div className="lg:w-[360px] shrink-0">
+            <InquiryForm />
+          </div>
+
         </div>
       </div>
+    </section>
+  )
+}
 
-      {/* CTA band */}
-      <div className="border-t border-white/[0.06] flex flex-col items-center justify-center px-6 sm:px-12 py-20 text-center">
+export function FooterSection() {
+  return (
+    <footer className="relative z-10 h-full flex flex-col border-t border-white/[0.06]">
+
+      {/* CTA */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 sm:px-12 py-20 text-center">
         <h2 className="text-4xl sm:text-5xl font-black text-white tracking-tight mb-4">
           Start with 250 free credits.
         </h2>
