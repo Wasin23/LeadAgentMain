@@ -67,13 +67,12 @@ function GlobeViz() {
     // scene / camera
     const scene  = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(40, W / H, 0.1, 200)
-    camera.position.set(0, 0, 7)
+    camera.position.set(0, 0, 5)
 
-    // ── globe group — pushed to bottom-left so top-right arc is visible on left side ──
-    const R     = 3.9
+    // ── globe group — centered, fills the display ──
+    const R     = 2.0
     const group = new THREE.Group()
-    group.position.set(-3.0, -3.4, 0)
-    // no rotation — New York (lon≈-74°) naturally faces the camera at this position
+    group.position.set(0, 0, 0)
     scene.add(group)
 
     // earth sphere
