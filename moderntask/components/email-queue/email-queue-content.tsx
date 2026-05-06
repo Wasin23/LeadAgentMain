@@ -997,7 +997,7 @@ function AIReportModal({ report, onClose }: { report: AIReport; onClose: () => v
                     <div key={i} className="rounded p-3 border border-border bg-background hover:border-primary/30 transition-colors">
                       <p className="text-xs mb-2 leading-relaxed text-muted-foreground">{evidence.fact}</p>
                       <a
-                        href={evidence.source}
+                        href={evidence.source && !/^https?:\/\//i.test(evidence.source) ? `https://${evidence.source}` : evidence.source}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1.5 text-[10px] text-primary hover:text-primary/70 transition-colors"
