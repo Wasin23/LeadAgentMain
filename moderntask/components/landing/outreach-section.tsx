@@ -134,20 +134,19 @@ function GlobeViz() {
     renderer.setClearColor(0x000000, 0)
     el.appendChild(renderer.domElement)
 
-    // scene / camera — at surface level so we see the curved horizon, not down at the arctic
+    // camera sits BELOW the globe's top surface → horizon view, not arctic bowl
     const scene  = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(55, W / H, 0.1, 300)
-    camera.position.set(0, -1, 16)
-    camera.lookAt(0, -9, 0)
+    camera.position.set(0, -6, 14)
+    camera.lookAt(0, -11, 0)
 
-    // R=9, group at -12 → top of globe at y=-3, camera at y=-1 (just above surface)
+    // R=9, group at -12 → top of globe at y=-3; camera at y=-6 is well below that
     const R     = 9
     const group = new THREE.Group()
     group.position.set(0, -12, 0)
-    group.rotation.z = 4 * Math.PI / 180   // subtle tilt → ~10° apparent slope on screen
+    group.rotation.z = 4 * Math.PI / 180
     scene.add(group)
 
-    // clip plane — equator at world y = -12
     renderer.localClippingEnabled = true
     const clipPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 12)
 
@@ -332,7 +331,8 @@ export function OutreachSection() {
     <section className="relative z-10 h-full overflow-hidden">
 
       {/* left copy — centered vertically, above the globe layer */}
-      <div className="relative z-10 h-full flex items-center px-6 pointer-events-none">
+      <div className="relative z-10 h-full flex items-center pointer-events-none">
+        <div className="w-full max-w-7xl mx-auto px-6 sm:px-12">
         <div className="max-w-[440px] pointer-events-auto">
           <p className="text-indigo-400 text-sm font-semibold tracking-widest uppercase mb-4">Outreach</p>
           <h2 className="text-5xl xl:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6">
@@ -360,6 +360,7 @@ export function OutreachSection() {
           >
             Start free
           </Link>
+        </div>
         </div>
       </div>
 
