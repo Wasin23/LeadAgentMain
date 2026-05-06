@@ -38,7 +38,7 @@ export function LandingPageClient() {
   return (
     <div className="text-foreground overflow-hidden h-screen">
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 px-6 py-4 backdrop-blur bg-black/40 sm:px-10">
-        <div className="mx-auto max-w-7xl relative flex items-center">
+        <div className="mx-auto max-w-7xl flex items-center">
 
           {/* Left: logo */}
           <Link href="/" className="flex items-center gap-2.5 shrink-0">
@@ -54,7 +54,7 @@ export function LandingPageClient() {
           </Link>
 
           {/* Center: section tabs */}
-          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-0.5">
+          <div className="flex-1 flex items-center justify-center gap-0.5">
             {LABELS.map((label, i) =>
               label ? (
                 <button
@@ -73,7 +73,7 @@ export function LandingPageClient() {
           </div>
 
           {/* Right: auth */}
-          <div className="ml-auto flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <Link href="/signin" className="px-4 py-1.5 text-sm text-white/70 hover:text-white transition-colors">Sign In</Link>
             <Link href="/signin" className="px-4 py-1.5 text-sm font-medium bg-white text-black rounded-lg hover:bg-white/90 transition-colors">Start Free</Link>
           </div>
