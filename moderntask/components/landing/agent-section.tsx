@@ -9,6 +9,7 @@ type Agent = {
   name: string
   title: string
   avatar: string
+  traits: string[]
   email: { subject: string; body: string }
   accent: string
   ring: string
@@ -22,11 +23,12 @@ const AGENTS: Agent[] = [
     avatar: '/avatars/Hunter.png',
     accent: '#fb923c',
     ring: 'rgba(251,146,60,0.6)',
+    traits: ['Competitive', 'Relentless', 'Confident'],
     email: {
-      subject: 'Scaling [Company]\'s pipeline — fast',
-      body: `Hey [First Name],
+      subject: "Scaling Rippling's pipeline — fast",
+      body: `Hey Marcus,
 
-Noticed [Company] just closed its Series B — congrats. Growth stage is exactly when pipeline velocity becomes the bottleneck.
+Noticed Rippling just closed its Series B — congrats. Growth stage is exactly when pipeline velocity becomes the bottleneck.
 
 We get companies like yours 2,000+ qualified leads/month. No new headcount, no manual prospecting.
 
@@ -40,11 +42,12 @@ We get companies like yours 2,000+ qualified leads/month. No new headcount, no m
     avatar: '/avatars/Relationship-Builder.png',
     accent: '#4ade80',
     ring: 'rgba(74,222,128,0.6)',
+    traits: ['Empathetic', 'Genuine', 'Patient'],
     email: {
-      subject: 'Your post on [topic] — wanted to reach out',
-      body: `Hi [First Name],
+      subject: 'Your post on async workflows — wanted to reach out',
+      body: `Hi Sarah,
 
-I came across [Company] while researching [industry] leaders — specifically the work you've been doing around [recent initiative].
+I came across Notion while researching SaaS leaders — specifically the work you've been doing around the AI-powered docs rollout. Really thoughtful approach.
 
 We've helped a few similar teams build more sustainable outbound. Not a pitch — I'd genuinely love to hear where you're taking things this year.
 
@@ -58,13 +61,14 @@ Open for a quick call?`,
     avatar: '/avatars/Analyst.png',
     accent: '#60a5fa',
     ring: 'rgba(96,165,250,0.6)',
+    traits: ['Precise', 'Methodical', 'Skeptical'],
     email: {
-      subject: '[Company]\'s outbound efficiency — a data point',
-      body: `[First Name],
+      subject: "Figma's outbound efficiency — a data point",
+      body: `Jordan,
 
-Companies at [Company]'s stage average 1.2% cold reply rates. Our clients in the same cohort average 4.7%.
+Companies at Figma's stage average 1.2% cold reply rates. Our clients in the same product-led SaaS cohort average 4.7%.
 
-The delta comes down to research depth and send timing. I pulled a breakdown specific to [industry] that you might find useful.
+The delta comes down to research depth and send timing. I pulled a breakdown specific to your segment that you might find useful.
 
 Worth 20 minutes?`,
     },
@@ -76,11 +80,12 @@ Worth 20 minutes?`,
     avatar: '/avatars/consultant.png',
     accent: '#c084fc',
     ring: 'rgba(192,132,252,0.6)',
+    traits: ['Authoritative', 'Thoughtful', 'Measured'],
     email: {
-      subject: 'Q3 pipeline architecture for [Company]',
-      body: `[First Name],
+      subject: 'Q3 pipeline architecture for Brex',
+      body: `David,
 
-Based on [Company]'s recent hiring in sales and the push into [market], it looks like you're scaling outbound hard this quarter.
+Based on Brex's recent sales hiring and the push into enterprise, it looks like you're scaling outbound hard this quarter.
 
 Most VPs I work with at this stage hit the same structural constraint: top-of-funnel can't keep pace with what the team can actually close.
 
@@ -94,11 +99,12 @@ I've helped a few companies solve this. Would it be worth a conversation?`,
     avatar: '/avatars/Networker.png',
     accent: '#818cf8',
     ring: 'rgba(129,140,248,0.6)',
+    traits: ['Charismatic', 'Curious', 'Social'],
     email: {
-      subject: 'Connected through [Mutual] — quick note',
-      body: `[First Name],
+      subject: 'Connected through James Chen — quick note',
+      body: `Alex,
 
-Saw we're both connected to [Mutual] and you've been active in the [Community] lately — loved your take on [topic].
+Saw we're both connected to James Chen and you've been active in Revenue Collective lately — loved your take on the PLG-to-enterprise motion.
 
 I've been working with a few people from that group on something I think you'd find relevant, and wanted to reach out directly.
 
@@ -188,7 +194,7 @@ export function AgentSection() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={a.avatar} alt={a.name} className="w-full h-full object-cover" />
                   </div>
-                  {/* name */}
+                  {/* name + traits */}
                   <div className="text-center">
                     <div
                       className="text-[12px] font-bold leading-tight transition-colors duration-200"
@@ -202,6 +208,19 @@ export function AgentSection() {
                     >
                       {a.title}
                     </div>
+                    {isActive && (
+                      <div className="flex flex-wrap justify-center gap-1 mt-2">
+                        {a.traits.map(t => (
+                          <span
+                            key={t}
+                            className="text-[9px] px-1.5 py-0.5 rounded-full font-medium"
+                            style={{ background: `rgba(${hexToRgb(a.accent)},0.12)`, color: a.accent }}
+                          >
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </button>
               )
@@ -235,12 +254,12 @@ export function AgentSection() {
             </div>
 
             {/* body */}
-            <div className="px-5 py-4">
-              <pre
-                className="text-[12.5px] leading-relaxed whitespace-pre-wrap font-sans text-white/55"
-              >
-                {agent.email.body}
-              </pre>
+            <div className="px-5 py-4 space-y-3">
+              {agent.email.body.split('\n\n').map((para, i) => (
+                <p key={i} className="text-[13px] leading-relaxed text-white/60">
+                  {para}
+                </p>
+              ))}
             </div>
           </div>
 
