@@ -405,7 +405,7 @@ export function TeamSection() {
         <div className="flex-1 max-w-[460px] shrink-0">
           <p className="text-indigo-400 text-sm font-semibold tracking-widest uppercase mb-4">Teams</p>
           <h2 className="text-5xl xl:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6">
-            One team.<br />Infinite scale.
+            One team.<br />Endless opportunities.
           </h2>
           <p className="text-white/50 text-lg leading-relaxed mb-8">
             Every rep gets their own agents. Every agent shares data with the team. Your whole org moves in concert, no duplicated effort, no dropped balls.
