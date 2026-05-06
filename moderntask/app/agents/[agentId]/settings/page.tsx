@@ -895,6 +895,9 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                     placeholder="Search or type an industry…"
                     helpText="Not in the list? Type it and press Enter to add."
                   />
+                  <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 text-xs text-amber-700 dark:text-amber-400">
+                    <span className="font-semibold">Each industry is paired with each job title below during search.</span> Make sure the combinations make sense — e.g. &ldquo;Real Estate&rdquo; + &ldquo;Investor&rdquo; are almost never real Apollo titles and will return almost nothing. Use titles people actually put on their LinkedIn profiles at those companies.
+                  </div>
                 </>
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

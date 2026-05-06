@@ -161,11 +161,7 @@ router.get('/google/callback', async (req, res) => {
       }
     }
 
-    const token = generateToken({
-      userId: user.userId,
-      username: user.username,
-      email: user.email
-    });
+    const token = generateToken(user);
 
     const redirectPath = isNewUser ? '/onboarding' : '/home';
     const userPayload = JSON.stringify({

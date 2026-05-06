@@ -5618,7 +5618,33 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       // Reset search counters on successful new search
       this.memory.consecutiveDuplicateSearches = 0;
       this.memory.consecutiveDisqualifications = 0;
-      
+
+      // Validate that this keyword+position pair makes sense before burning Apollo credits
+      const pairKey = `${selectedKeyword}#${targetPosition}`.toLowerCase();
+      if (!this.memory.validatedPairs) this.memory.validatedPairs = {};
+      if (this.memory.validatedPairs[pairKey] === false) {
+        this.logOperation(
+          '⚠️ Pair Skipped',
+          `"${selectedKeyword}" + "${targetPosition}" was flagged as an invalid search pair — rotating`,
+          'info',
+          { keyword: selectedKeyword, position: targetPosition }
+        );
+        return { found: 0, leads: [], skipped: true, reason: `Invalid pair: "${selectedKeyword}" + "${targetPosition}"` };
+      }
+      if (!(pairKey in this.memory.validatedPairs)) {
+        const valid = await this.validateSearchPair(selectedKeyword, targetPosition);
+        this.memory.validatedPairs[pairKey] = valid;
+        if (!valid) {
+          this.logOperation(
+            '⚠️ Pair Skipped',
+            `"${selectedKeyword}" + "${targetPosition}" doesn't match real-world titles — rotating to next pair`,
+            'info',
+            { keyword: selectedKeyword, position: targetPosition }
+          );
+          return { found: 0, leads: [], skipped: true, reason: `Invalid pair: "${selectedKeyword}" + "${targetPosition}"` };
+        }
+      }
+
       // Calculate how many leads we still need
       const leadsNeeded = this.memory.currentCycle.targetLeads - this.memory.currentCycle.leadsProcessed;
       const remainingInQueue = this.memory.currentCycle.leadQueue.length;
@@ -6291,6 +6317,43 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       parameters
     };
   }
+  async validateSearchPair(keyword, position) {
+    try {
+      const company = this.memory.userSettings?.companyProfile || this.memory.userSettings || {};
+      const companyContext = [
+        company.companyName && `Company: ${company.companyName}`,
+        company.services && `Sells: ${company.services}`,
+        company.targetMarket && `Target market: ${company.targetMarket}`,
+      ].filter(Boolean).join(' | ') || 'Not specified';
+
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [{
+          role: 'user',
+          content: `Does the job title "${position}" realistically appear on LinkedIn/Apollo profiles at companies in the "${keyword}" industry? Would someone actually list this exact title (or a close variant)?
+
+Context about the company doing outreach: ${companyContext}
+
+Answer with JSON: {"valid": true/false, "reason": "one sentence"}`
+        }],
+        temperature: 0,
+        max_tokens: 80,
+      });
+
+      const raw = response.choices[0].message.content.trim();
+      const match = raw.match(/\{[\s\S]*\}/);
+      if (match) {
+        const result = JSON.parse(match[0]);
+        console.log(`[PAIR VALIDATE] "${keyword}" + "${position}": ${result.valid ? '✅' : '❌'} — ${result.reason}`);
+        return result.valid !== false;
+      }
+      return true; // default allow on parse failure
+    } catch (err) {
+      console.warn(`[PAIR VALIDATE] Error validating "${keyword}" + "${position}", allowing:`, err.message);
+      return true;
+    }
+  }
+
   async generateRelatedIndustryKeywordsAndPositions(userIndustries, basePositions) {
     try {
       const userSettings = this.memory.userSettings;
@@ -9133,11 +9196,16 @@ Target Positions:`;
         if (reasoningResult.action === 'lead_search') {
           if (!actionResult?.leads?.length && !actionResult?.skipped) {
             consecutiveEmptySearches++;
-            if (consecutiveEmptySearches >= MAX_EMPTY_SEARCHES) {
-              this.logOperation('⚠️ Search Exhausted', `No new leads found after ${MAX_EMPTY_SEARCHES} consecutive searches — ending cycle`, 'warning', {
+            const targetMet = this.memory.currentCycle.targetLeads > 0
+              && this.memory.currentCycle.leadsProcessed >= this.memory.currentCycle.targetLeads;
+            const hardLimit = consecutiveEmptySearches >= 8;
+            if (targetMet || hardLimit) {
+              this.logOperation('⚠️ Search Exhausted', `No new leads found after ${consecutiveEmptySearches} consecutive searches — ending cycle`, 'warning', {
                 cycleNumber: this.cycleCount,
                 stepNumber: stepCount,
-                consecutiveEmptySearches
+                consecutiveEmptySearches,
+                targetMet,
+                hardLimit
               });
               break;
             }
