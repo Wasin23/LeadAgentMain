@@ -470,9 +470,12 @@ export function AiResearchSection() {
                   <div className="overflow-hidden bg-[#1b1f23]">
                     {/* LinkedIn top nav */}
                     <div className="flex items-center gap-3 px-4 py-2 bg-[#1b1f23] border-b border-white/[0.08]">
-                      <div className="w-7 h-7 rounded flex items-center justify-center shrink-0" style={{ background: '#0A66C2' }}>
-                        <span className="text-white font-black text-[14px] leading-none" style={{ fontFamily: 'Georgia, serif', letterSpacing: '-0.5px' }}>in</span>
-                      </div>
+                      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" className="shrink-0">
+                        <rect width="28" height="28" rx="4" fill="#0A66C2"/>
+                        <rect x="6" y="6" width="4" height="4" fill="white"/>
+                        <rect x="6" y="12" width="4" height="10" fill="white"/>
+                        <path d="M13.5 12h3.6v1.8c.7-1.2 2-2.1 3.6-2.1 2.8 0 3.8 1.9 3.8 4.9V22h-3.7v-4.7c0-1.4-.5-2.3-1.6-2.3-1.2 0-1.9.9-1.9 2.5V22h-3.8V12z" fill="white"/>
+                      </svg>
                       <div className="flex-1 px-2.5 py-1 rounded bg-[#2d333b] text-[10px] text-white/30 max-w-[120px]">ScaleFlow</div>
                       <div className="ml-auto flex items-center gap-3 text-[10px]">
                         <span className="text-white/30">Home</span>

@@ -1447,8 +1447,15 @@ Call the appropriate function to continue the workflow.`;
           // Reset duplicate counter when we find new leads
           this.memory.consecutiveDuplicateSearches = 0;
           
-          // Add all leads to the queue for sequential processing
-          actionResult.leads.forEach(lead => {
+          // Add leads to the queue, capped to remaining capacity
+          const capacity = this.memory.currentCycle.targetLeads > 0
+            ? Math.max(0, this.memory.currentCycle.targetLeads
+                - this.memory.currentCycle.leadsProcessed
+                - (this.memory.currentCycle.currentLead ? 1 : 0)
+                - this.memory.currentCycle.leadQueue.length)
+            : actionResult.leads.length;
+          const leadsToAdd = actionResult.leads.slice(0, capacity);
+          leadsToAdd.forEach(lead => {
             // Detect generic company names (industry terms)
             const genericTerms = ['Real Estate', 'Technology', 'Finance', 'Healthcare', 'Retail', 'Manufacturing'];
             let companyName = lead.organization?.name || lead.company || 'Unknown Company';
@@ -1588,7 +1595,9 @@ Call the appropriate function to continue the workflow.`;
           
           // Check if we still need more leads for our target
           const totalLeadsNeeded = this.memory.currentCycle.targetLeads;
-          const currentLeadCount = this.memory.currentCycle.leadQueue.length + this.memory.currentCycle.leadsProcessed;
+          const currentLeadCount = this.memory.currentCycle.leadQueue.length
+            + this.memory.currentCycle.leadsProcessed
+            + (this.memory.currentCycle.currentLead ? 1 : 0);
           
           if (currentLeadCount < totalLeadsNeeded) {
             // Stay in search phase to keep looking for more NEW leads
@@ -1874,13 +1883,15 @@ Call the appropriate function to continue the workflow.`;
             });
           }
           this.memory.currentCycle.currentLead = null;
-          
+
           // Get next lead from queue or search for more
-          if (this.memory.currentCycle.leadQueue.length > 0) {
+          const targetReached = this.memory.currentCycle.targetLeads > 0
+            && this.memory.currentCycle.leadsProcessed >= this.memory.currentCycle.targetLeads;
+          if (!targetReached && this.memory.currentCycle.leadQueue.length > 0) {
             // Process next lead from queue
             this.memory.currentCycle.currentLead = this.memory.currentCycle.leadQueue.shift();
             this.memory.currentCycle.processingPhase = 'research';
-            
+
             // Broadcast location update immediately when starting new lead
             this.broadcastAgentActivity({
               agentId: this.agentId,
@@ -1891,11 +1902,12 @@ Call the appropriate function to continue the workflow.`;
             }).catch(err => {
               console.error('⚠️ [SSE] Failed to broadcast new lead activity:', err.message);
             });
-          } else if (!this.isCrmMode && this.memory.currentCycle.leadsProcessed < this.memory.currentCycle.targetLeads) {
+          } else if (!targetReached && !this.isCrmMode) {
             // Need more leads - search again
             this.memory.currentCycle.processingPhase = 'search';
           } else {
-            // Cycle complete
+            // Cycle complete - clear any remaining queued leads
+            this.memory.currentCycle.leadQueue = [];
             this.memory.currentCycle.processingPhase = 'complete';
           }
           
@@ -9023,7 +9035,8 @@ Target Positions:`;
           currentLead: this.memory.currentCycle.currentLead,
           leadQueue: this.memory.currentCycle.leadQueue,
           processingPhase: this.memory.currentCycle.processingPhase,
-          cycleComplete: this.memory.currentCycle.leadsProcessed >= this.memory.currentCycle.targetLeads
+          cycleComplete: this.memory.currentCycle.targetLeads > 0
+            && this.memory.currentCycle.leadsProcessed >= this.memory.currentCycle.targetLeads
         };
 
         // Check if settings have errors and need to be fetched
