@@ -641,7 +641,7 @@ export function AiResearchSection() {
                     {subStep >= 1 && (
                       <div className="space-y-5 px-1">
                         {SEARCH_RESULTS.map((r, i) => (
-                          <div key={i} className={`slide-up rounded-lg p-2.5 transition-all ${subStep >= 2 && r.hi ? 'ring-1' : ''}`} style={subStep >= 2 && r.hi ? { background: 'rgba(138,180,248,0.06)', ring: '1px solid rgba(138,180,248,0.2)' } : {}}>
+                          <div key={i} className={`slide-up rounded-lg p-2.5 transition-all ${subStep >= 2 && r.hi ? 'ring-1' : ''}`} style={subStep >= 2 && r.hi ? { background: 'rgba(138,180,248,0.06)' } : {}}>
                             <div className="flex items-center gap-2 mb-1.5">
                               <div className="w-4 h-4 rounded-sm flex items-center justify-center text-[7px] font-black shrink-0" style={{ background: '#303134', color: '#bdc1c6' }}>
                                 {r.url.includes('techcrunch') ? 'TC' : r.url.includes('linkedin') ? 'in' : 'F'}
