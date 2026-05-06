@@ -9,14 +9,20 @@ import * as THREE from 'three'
 const HOME = { lat: 40.71, lon: -74.01 }   // New York (sender)
 
 const TARGETS = [
-  { lat: 51.51, lon:  -0.12 },  // London
-  { lat: 48.85, lon:   2.35 },  // Paris
-  { lat: 52.52, lon:  13.40 },  // Berlin
-  { lat: 35.69, lon: 139.69 },  // Tokyo
-  { lat: 25.20, lon:  55.27 },  // Dubai
-  { lat:  1.35, lon: 103.82 },  // Singapore
-  { lat: 55.75, lon:  37.62 },  // Moscow
-  { lat:-33.87, lon: 151.21 },  // Sydney
+  // US
+  { lat: 34.05, lon: -118.24 },  // Los Angeles
+  { lat: 41.88, lon:  -87.63 },  // Chicago
+  { lat: 25.77, lon:  -80.19 },  // Miami
+  { lat: 47.61, lon: -122.33 },  // Seattle
+  { lat: 29.76, lon:  -95.37 },  // Houston
+  { lat: 33.75, lon:  -84.39 },  // Atlanta
+  // International
+  { lat: 51.51, lon:   -0.12 },  // London
+  { lat: 48.85, lon:    2.35 },  // Paris
+  { lat: 19.43, lon:  -99.13 },  // Mexico City
+  { lat:-23.55, lon:  -46.63 },  // São Paulo
+  { lat: 43.65, lon:  -79.38 },  // Toronto
+  { lat: 35.69, lon:  139.69 },  // Tokyo
 ]
 
 function ll3(lat: number, lon: number, r: number): THREE.Vector3 {
@@ -63,10 +69,11 @@ function GlobeViz() {
     const camera = new THREE.PerspectiveCamera(40, W / H, 0.1, 200)
     camera.position.set(0, 0, 7)
 
-    // ── globe group — pushed to bottom-right so only top-left arc is visible ──
+    // ── globe group — pushed to bottom-left so top-right arc is visible on left side ──
     const R     = 3.9
     const group = new THREE.Group()
-    group.position.set(3.0, -3.4, 0)
+    group.position.set(-3.0, -3.4, 0)
+    // no rotation — New York (lon≈-74°) naturally faces the camera at this position
     scene.add(group)
 
     // earth sphere
@@ -166,8 +173,6 @@ function GlobeViz() {
       const now = performance.now()
       const dt  = (now - lastMs) / 1000
       lastMs    = now
-
-      group.rotation.y += 0.00045
 
       cycleT += dt
       if (cycleT > CYCLE) {
