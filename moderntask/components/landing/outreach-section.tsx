@@ -140,7 +140,7 @@ function GlobeViz() {
     camera.position.set(0, -3, 12)
     camera.lookAt(0, -6, 0)
 
-    const R     = 6.5
+    const R     = 5.8
     const group = new THREE.Group()
     group.position.set(0, -8.5, 0)
     group.rotation.z = 4 * Math.PI / 180
