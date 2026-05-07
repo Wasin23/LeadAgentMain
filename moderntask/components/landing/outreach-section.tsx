@@ -180,7 +180,7 @@ function GlobeViz() {
     camera.position.set(0, -3, 12)
     camera.lookAt(0, -6, 0)
 
-    const R      = 6.5
+    const R      = 8.8
     const CY     = -10.0          // globe center y in world space
     const group  = new THREE.Group()
     group.position.set(0, CY, 0)
@@ -475,7 +475,7 @@ export function OutreachSection() {
       </div>
 
       {/* globe — absolutely fills right 62% of section, full height */}
-      <div className="absolute top-0 bottom-0 right-0" style={{ left: '38%' }}>
+      <div className="absolute top-0 bottom-0 right-0" style={{ left: '38%', top: '15%' }}>
         <GlobeViz />
         <div className="absolute bottom-4 left-4 z-10 flex items-center gap-4 pointer-events-none">
           <div className="flex items-center gap-1.5">
