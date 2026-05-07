@@ -475,7 +475,7 @@ export function OutreachSection() {
       </div>
 
       {/* globe — absolutely fills right 62% of section, full height */}
-      <div className="absolute top-0 bottom-0 right-0" style={{ left: '38%', clipPath: 'inset(0 0 50px 0)' }}>
+      <div className="absolute top-0 bottom-0 right-0" style={{ left: '38%' }}>
         <GlobeViz />
         <div className="absolute bottom-4 left-4 z-10 flex items-center gap-4 pointer-events-none">
           <div className="flex items-center gap-1.5">
