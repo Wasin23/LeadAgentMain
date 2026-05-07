@@ -10,6 +10,12 @@ import OutlookManager from '../utils/outlookManager.js';
 
 // Initialize AWS Manager for API usage tracking
 const awsManager = new AWSManager();
+
+function filterValidEmails(input) {
+  if (!input) return null;
+  const valid = String(input).split(',').map(s => s.trim()).filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+  return valid.length ? valid.join(', ') : null;
+}
 const gmailManager = new GmailManager();
 const outlookManager = new OutlookManager();
 
@@ -463,16 +469,18 @@ export async function sendEmailMailgun(to, subject, body, enableTracking = true,
       console.log(`[MAILGUN] Adding References header for threading: ${replyOptions.references}`);
     }
     
-    // Add CC if provided
-    if (ccEmails) {
-      emailData.cc = ccEmails;
-      console.log(`[MAILGUN] Adding CC: ${ccEmails}`);
+    // Add CC if provided (validate addresses first)
+    const validCc = filterValidEmails(ccEmails);
+    if (validCc) {
+      emailData.cc = validCc;
+      console.log(`[MAILGUN] Adding CC: ${validCc}`);
     }
-    
-    // Add BCC if provided
-    if (bccEmails) {
-      emailData.bcc = bccEmails;
-      console.log(`[MAILGUN] Adding BCC: ${bccEmails}`);
+
+    // Add BCC if provided (validate addresses first)
+    const validBcc = filterValidEmails(bccEmails);
+    if (validBcc) {
+      emailData.bcc = validBcc;
+      console.log(`[MAILGUN] Adding BCC: ${validBcc}`);
     }
     
     // Disable Mailgun's tracking to avoid conflicts

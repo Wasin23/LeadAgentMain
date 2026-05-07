@@ -6,6 +6,12 @@ dotenv.config();
 
 const awsManager = new AWSManager();
 
+function filterValidEmails(input) {
+  if (!input) return null;
+  const valid = String(input).split(',').map(s => s.trim()).filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
+  return valid.length ? valid.join(', ') : null;
+}
+
 class GmailManager {
   constructor() {
     // Force Gmail-specific redirect URI, don't use shared env variable
@@ -241,12 +247,14 @@ class GmailManager {
         messageParts.push(`References: ${inReplyTo}`);
       }
 
-      if (ccEmails) {
-        messageParts.push(`Cc: ${ccEmails}`);
+      const validCc = filterValidEmails(ccEmails);
+      if (validCc) {
+        messageParts.push(`Cc: ${validCc}`);
       }
 
-      if (bccEmails) {
-        messageParts.push(`Bcc: ${bccEmails}`);
+      const validBcc = filterValidEmails(bccEmails);
+      if (validBcc) {
+        messageParts.push(`Bcc: ${validBcc}`);
       }
 
       if (replyTo) {
