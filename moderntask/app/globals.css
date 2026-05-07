@@ -149,14 +149,14 @@
   from { opacity: 0; }
   to   { opacity: 1; }
 }
-.enter-0  { opacity:0; animation: fadeUp 0.6s cubic-bezier(0.22,1,0.36,1) 0.00s forwards; }
-.enter-1  { opacity:0; animation: fadeUp 0.6s cubic-bezier(0.22,1,0.36,1) 0.08s forwards; }
-.enter-2  { opacity:0; animation: fadeUp 0.6s cubic-bezier(0.22,1,0.36,1) 0.16s forwards; }
-.enter-3  { opacity:0; animation: fadeUp 0.6s cubic-bezier(0.22,1,0.36,1) 0.24s forwards; }
-.enter-4  { opacity:0; animation: fadeUp 0.6s cubic-bezier(0.22,1,0.36,1) 0.34s forwards; }
-.enter-5  { opacity:0; animation: fadeUp 0.6s cubic-bezier(0.22,1,0.36,1) 0.44s forwards; }
-.enter-6  { opacity:0; animation: fadeUp 0.6s cubic-bezier(0.22,1,0.36,1) 0.54s forwards; }
-.enter-fade { opacity:0; animation: fadeIn 0.7s ease-out 0.2s forwards; }
+.enter-0  { opacity:0; animation: fadeUp 0.55s cubic-bezier(0.22,1,0.36,1) 0.72s forwards; }
+.enter-1  { opacity:0; animation: fadeUp 0.55s cubic-bezier(0.22,1,0.36,1) 0.82s forwards; }
+.enter-2  { opacity:0; animation: fadeUp 0.55s cubic-bezier(0.22,1,0.36,1) 0.92s forwards; }
+.enter-3  { opacity:0; animation: fadeUp 0.55s cubic-bezier(0.22,1,0.36,1) 1.02s forwards; }
+.enter-4  { opacity:0; animation: fadeUp 0.55s cubic-bezier(0.22,1,0.36,1) 1.12s forwards; }
+.enter-5  { opacity:0; animation: fadeUp 0.55s cubic-bezier(0.22,1,0.36,1) 1.24s forwards; }
+.enter-6  { opacity:0; animation: fadeUp 0.55s cubic-bezier(0.22,1,0.36,1) 1.36s forwards; }
+.enter-fade { opacity:0; animation: fadeIn 0.6s ease-out 0.74s forwards; }
 
 /* Custom animations for smooth card interactions */
 @keyframes float {
