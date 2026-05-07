@@ -181,7 +181,7 @@ function GlobeViz() {
     camera.lookAt(0, -6, 0)
 
     const R      = 8.0
-    const CY     = -8.0          // globe center y in world space
+    const CY     = -10.0          // globe center y in world space
     const group  = new THREE.Group()
     group.position.set(0, CY, 0)
     group.rotation.z = 0
@@ -189,7 +189,7 @@ function GlobeViz() {
 
     renderer.localClippingEnabled = true
     // clip at exactly the equator (group center y) → perfect flat bottom edge
-    const clipPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -CY)
+    const clipPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 10)
 
     // earth sphere
     const sGeo = new THREE.SphereGeometry(R, 64, 64)
