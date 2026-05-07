@@ -176,12 +176,12 @@ function GlobeViz() {
 
     // camera sits BELOW the globe's top surface → horizon view, not arctic bowl
     const scene  = new THREE.Scene()
-    const camera = new THREE.PerspectiveCamera(52, W / H, 0.1, 300)
-    camera.position.set(0, -2, 13)
-    camera.lookAt(0, -7, 0)
+    const camera = new THREE.PerspectiveCamera(55, W / H, 0.1, 300)
+    camera.position.set(0, -3, 12)
+    camera.lookAt(0, -6, 0)
 
-    const R      = 9.2
-    const CY     = -14.8          // globe center y in world space
+    const R      = 8.0
+    const CY     = -13.5          // globe center y in world space
     const group  = new THREE.Group()
     group.position.set(0, CY, 0)
     group.rotation.z = 0
