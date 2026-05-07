@@ -53,5 +53,8 @@
     "stripe": "^20.0.0",
     "uuid": "^11.1.0",
     "winston": "^3.17.0"
+  },
+  "devDependencies": {
+    "baseline-browser-mapping": "^2.10.27"
   }
 }
