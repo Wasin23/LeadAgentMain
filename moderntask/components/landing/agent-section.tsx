@@ -231,7 +231,7 @@ export function AgentSection() {
           <div
             className="rounded-2xl overflow-hidden transition-all duration-160"
             style={{
-              background: 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(5,7,15,1) 100%)',
+              background: 'linear-gradient(180deg, rgb(14,16,36) 0%, rgb(5,7,15) 100%)',
               border: `1px solid rgba(${hexToRgb(agent.accent)},0.28)`,
               boxShadow: `inset 0 1px 0 rgba(255,255,255,0.08), 0 2px 4px rgba(0,0,0,0.4), 0 12px 40px rgba(0,0,0,0.6), 0 0 40px rgba(${hexToRgb(agent.accent)},0.04)`,
               opacity: fading ? 0 : 1,

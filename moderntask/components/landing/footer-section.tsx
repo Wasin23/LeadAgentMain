@@ -56,7 +56,7 @@ function InquiryForm() {
   const inputCls = 'w-full px-3.5 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.10] text-white/80 text-[13px] placeholder:text-white/20 focus:outline-none focus:border-indigo-500/60 transition-colors'
 
   return (
-    <div className="card-premium rounded-2xl p-8 sticky top-8" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(6,8,26,0.98) 100%)' }}>
+    <div className="card-premium rounded-2xl p-8 sticky top-8" style={{ background: 'linear-gradient(180deg, rgb(14,16,42) 0%, rgb(6,8,26) 100%)' }}>
       <p className="text-indigo-400 text-xs font-semibold tracking-widest uppercase mb-4">Enterprise</p>
       <h3 className="text-xl font-black text-white mb-2">Need something custom?</h3>
       <p className="text-white/40 text-[13px] leading-relaxed mb-6">
