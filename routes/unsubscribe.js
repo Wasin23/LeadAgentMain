@@ -162,13 +162,14 @@ router.post('/', async (req, res) => {
     
     // Add to unsubscribe list
     const result = await awsManager.addUnsubscribe(
-      emailToUnsubscribe, 
+      emailToUnsubscribe,
       reason || 'User request',
       {
         timestamp: new Date().toISOString(),
         source: token ? 'email_link' : 'manual',
         userAgent: req.headers['user-agent']
-      }
+      },
+      userId || null
     );
     
     if (!result.success) {
@@ -286,9 +287,9 @@ router.get('/check', async (req, res) => {
  */
 router.get('/list', async (req, res) => {
   try {
-    // TODO: Add admin authentication check
-    const unsubscribes = await awsManager.getUnsubscribes(1000);
-    
+    const userId = req.user?.userId || req.query.userId || null;
+    const unsubscribes = await awsManager.getUnsubscribes(1000, userId);
+
     res.json({
       success: true,
       count: unsubscribes.length,

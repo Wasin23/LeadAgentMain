@@ -2777,11 +2777,11 @@ class AWSManager {
   /**
    * Add email to unsubscribe list
    */
-  async addUnsubscribe(email, reason = 'User request', metadata = {}) {
+  async addUnsubscribe(email, reason = 'User request', metadata = {}, userId = null) {
     try {
       const normalizedEmail = email.toLowerCase().trim();
       const timestamp = new Date().toISOString();
-      
+
       const item = {
         PK: `UNSUBSCRIBE#${normalizedEmail}`,
         SK: timestamp,
@@ -2789,7 +2789,8 @@ class AWSManager {
         reason,
         unsubscribedAt: timestamp,
         metadata: metadata || {},
-        type: 'unsubscribe'
+        type: 'unsubscribe',
+        ...(userId && { userId })
       };
 
       await this.dynamodb.send(new PutCommand({
@@ -2836,13 +2837,14 @@ class AWSManager {
   /**
    * Get all unsubscribed emails for a user's campaigns
    */
-  async getUnsubscribes(limit = 100) {
+  async getUnsubscribes(limit = 100, userId = null) {
     try {
-      const result = await this.dynamodb.send(new ScanCommand({
-        TableName: this.tables.unsubscribes,
-        Limit: limit
-      }));
-
+      const params = { TableName: this.tables.unsubscribes, Limit: limit };
+      if (userId) {
+        params.FilterExpression = 'userId = :uid';
+        params.ExpressionAttributeValues = { ':uid': userId };
+      }
+      const result = await this.dynamodb.send(new ScanCommand(params));
       return result.Items || [];
     } catch (error) {
       console.error('❌ [AWS] Error fetching unsubscribes:', error);
