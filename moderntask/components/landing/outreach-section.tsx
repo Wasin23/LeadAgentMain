@@ -442,7 +442,7 @@ export function OutreachSection() {
 
       {/* left copy — centered vertically, above the globe layer */}
       <div className="relative z-10 h-full flex items-center pointer-events-none">
-        <div className="w-full max-w-7xl mx-auto px-6 sm:px-12">
+        <div className="w-full max-w-7xl mx-auto px-6 sm:px-12 -ml-8">
         <div className="max-w-[440px] pointer-events-auto">
           <p className="text-indigo-400 text-sm font-semibold tracking-widest uppercase mb-4">Outreach</p>
           <h2 className="text-5xl xl:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6">
