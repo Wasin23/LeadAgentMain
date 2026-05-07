@@ -444,14 +444,14 @@ export function OutreachSection() {
       <div className="relative z-10 h-full flex items-center pointer-events-none">
         <div className="w-full max-w-7xl mx-auto px-6 sm:px-12">
         <div className="max-w-[440px] pointer-events-auto">
-          <p className="text-indigo-400 text-sm font-semibold tracking-widest uppercase mb-4">Outreach</p>
-          <h2 className="text-5xl xl:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6">
+          <p className="enter-0 text-indigo-400 text-sm font-semibold tracking-widest uppercase mb-4">Outreach</p>
+          <h2 className="enter-1 text-5xl xl:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6">
             Sends. Tracks.<br />Follows up.
           </h2>
-          <p className="text-white/50 text-lg leading-relaxed mb-8">
+          <p className="enter-2 text-white/50 text-lg leading-relaxed mb-8">
             Every email fires from your real inbox. Opens get tracked, follow-ups go out automatically, and the moment someone replies, all sequences stop instantly.
           </p>
-          <div className="space-y-3 mb-10">
+          <div className="enter-3 space-y-3 mb-10">
             {[
               'Sends from Gmail or Outlook, your real domain',
               'Open and click tracking per email',
@@ -466,7 +466,7 @@ export function OutreachSection() {
           </div>
           <Link
             href="/signin"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all hover:scale-105"
+            className="enter-4 inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all hover:scale-105"
           >
             Start free
           </Link>

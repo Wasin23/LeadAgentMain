@@ -103,15 +103,15 @@ export function PricingSection() {
     <section className="relative z-10 px-6 sm:px-12 py-32">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-4xl sm:text-5xl font-black text-white tracking-tight mb-4">
+          <h2 className="enter-0 text-4xl sm:text-5xl font-black text-white tracking-tight mb-4">
             Simple, credit-based pricing.
           </h2>
-          <p className="text-white/45 text-lg max-w-xl mx-auto">
+          <p className="enter-1 text-white/45 text-lg max-w-xl mx-auto">
             Start free, validate the workflow, then scale up. No seat-count games, no per-user fees.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="enter-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {PLANS.map((plan) => (
             <div
               key={plan.name}

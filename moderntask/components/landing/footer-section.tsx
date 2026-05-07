@@ -140,11 +140,11 @@ export function FaqSection() {
 
           {/* left: FAQ */}
           <div className="flex-1">
-            <p className="text-indigo-400 text-xs font-semibold tracking-widest uppercase mb-4">FAQ</p>
-            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight mb-8">
+            <p className="enter-0 text-indigo-400 text-xs font-semibold tracking-widest uppercase mb-4">FAQ</p>
+            <h2 className="enter-1 text-3xl sm:text-4xl font-black text-white tracking-tight mb-8">
               Common questions.
             </h2>
-            <div>
+            <div className="enter-2">
               {FAQ.map(item => (
                 <FaqItem key={item.q} q={item.q} a={item.a} />
               ))}
@@ -152,7 +152,7 @@ export function FaqSection() {
           </div>
 
           {/* right: inquiry form */}
-          <div className="lg:w-[360px] shrink-0">
+          <div className="enter-3 lg:w-[360px] shrink-0">
             <InquiryForm />
           </div>
 
@@ -168,13 +168,13 @@ export function FooterSection() {
 
       {/* CTA */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 sm:px-12 py-20 text-center">
-        <h2 className="text-4xl sm:text-5xl font-black text-white tracking-tight mb-4">
+        <h2 className="enter-0 text-4xl sm:text-5xl font-black text-white tracking-tight mb-4">
           Start with 250 free credits.
         </h2>
-        <p className="text-white/45 text-lg max-w-lg mx-auto mb-8">
+        <p className="enter-1 text-white/45 text-lg max-w-lg mx-auto mb-8">
           Connect your inbox, define your audience, and launch a real outbound workflow. No credit card, no bloated sales stack.
         </p>
-        <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
+        <div className="enter-2 flex flex-wrap items-center justify-center gap-3 mb-8">
           <Link
             href="/signin"
             className="inline-flex items-center gap-2 px-8 py-4 bg-white text-black rounded-xl font-bold text-lg hover:bg-white/90 transition-all hover:scale-105"

@@ -375,14 +375,14 @@ export function AiResearchSection() {
 
         {/* ── Left copy ── */}
         <div className="flex-1 max-w-[420px] shrink-0">
-          <p className="text-indigo-400 text-sm font-semibold tracking-widest uppercase mb-4">AI Research</p>
-          <h2 className="text-5xl xl:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6">
+          <p className="enter-0 text-indigo-400 text-sm font-semibold tracking-widest uppercase mb-4">AI Research</p>
+          <h2 className="enter-1 text-5xl xl:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6">
             Reads the room<br />before writing.
           </h2>
-          <p className="text-white/50 text-lg leading-relaxed mb-8">
+          <p className="enter-2 text-white/50 text-lg leading-relaxed mb-8">
             Your agent pulls company profiles, recent news, hiring signals, and role context, then writes an email from that research. All in ~15 seconds per prospect. Fully personalized. Not templated.
           </p>
-          <div className="space-y-3 mb-10">
+          <div className="enter-3 space-y-3 mb-10">
             {['Company profile and role intelligence', 'Funding rounds and hiring signals', 'Recent news and web signals', 'Tech stack and buyer intent data'].map(f => (
               <div key={f} className="flex items-center gap-3 text-white/55 text-[15px]">
                 <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" />
@@ -390,13 +390,13 @@ export function AiResearchSection() {
               </div>
             ))}
           </div>
-          <Link href="/signin" className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all hover:scale-105">
+          <Link href="/signin" className="enter-4 inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all hover:scale-105">
             Start free <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
 
         {/* ── Browser window ── */}
-        <div className="flex-1 w-full min-w-0">
+        <div className="enter-5 flex-1 w-full min-w-0">
           <div className="card-premium rounded-2xl overflow-hidden" style={{ background: 'rgb(7, 9, 28)' }}>
 
             {/* Title bar */}

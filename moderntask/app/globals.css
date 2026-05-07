@@ -140,6 +140,24 @@
     0 32px 64px rgba(0,0,0,0.4);
 }
 
+/* Section entrance animations — re-run on every carousel mount */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.enter-0  { opacity:0; animation: fadeUp 0.6s cubic-bezier(0.22,1,0.36,1) 0.00s forwards; }
+.enter-1  { opacity:0; animation: fadeUp 0.6s cubic-bezier(0.22,1,0.36,1) 0.08s forwards; }
+.enter-2  { opacity:0; animation: fadeUp 0.6s cubic-bezier(0.22,1,0.36,1) 0.16s forwards; }
+.enter-3  { opacity:0; animation: fadeUp 0.6s cubic-bezier(0.22,1,0.36,1) 0.24s forwards; }
+.enter-4  { opacity:0; animation: fadeUp 0.6s cubic-bezier(0.22,1,0.36,1) 0.34s forwards; }
+.enter-5  { opacity:0; animation: fadeUp 0.6s cubic-bezier(0.22,1,0.36,1) 0.44s forwards; }
+.enter-6  { opacity:0; animation: fadeUp 0.6s cubic-bezier(0.22,1,0.36,1) 0.54s forwards; }
+.enter-fade { opacity:0; animation: fadeIn 0.7s ease-out 0.2s forwards; }
+
 /* Custom animations for smooth card interactions */
 @keyframes float {
   0%,

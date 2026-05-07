@@ -403,14 +403,14 @@ export function TeamSection() {
 
         {/* left copy */}
         <div className="flex-1 max-w-[460px] shrink-0">
-          <p className="text-indigo-400 text-sm font-semibold tracking-widest uppercase mb-4">Teams</p>
-          <h2 className="text-5xl xl:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6">
+          <p className="enter-0 text-indigo-400 text-sm font-semibold tracking-widest uppercase mb-4">Teams</p>
+          <h2 className="enter-1 text-5xl xl:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6">
             One team.<br />Endless opportunities.
           </h2>
-          <p className="text-white/50 text-lg leading-relaxed mb-8">
+          <p className="enter-2 text-white/50 text-lg leading-relaxed mb-8">
             Every rep gets their own agents. Every agent shares data with the team. Your whole org moves in concert, no duplicated effort, no dropped balls.
           </p>
-          <div className="space-y-3 mb-10">
+          <div className="enter-3 space-y-3 mb-10">
             {[
               'Assign agents to reps, territories, or campaigns',
               'Shared pipeline visibility across the whole team',
@@ -425,14 +425,14 @@ export function TeamSection() {
           </div>
           <Link
             href="/signin"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all hover:scale-105"
+            className="enter-4 inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all hover:scale-105"
           >
             Start free
           </Link>
         </div>
 
         {/* right viz */}
-        <div className="flex-1 w-full min-w-0">
+        <div className="enter-5 flex-1 w-full min-w-0">
           <TeamViz />
         </div>
 
