@@ -102,7 +102,7 @@ function makeProfileSprite(name: string, title: string, init: string): THREE.Spr
   ctx.fillText(title, 62, CH / 2 + 14)
 
   const tex = new THREE.CanvasTexture(cv)
-  const mat = new THREE.SpriteMaterial({ map: tex, transparent: false, depthTest: true })
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: true, alphaTest: 0.01 })
   const sprite = new THREE.Sprite(mat)
   sprite.scale.set(CW / CH * 0.24, 0.24, 1)
   return sprite
@@ -176,27 +176,29 @@ function GlobeViz() {
 
     // camera sits BELOW the globe's top surface → horizon view, not arctic bowl
     const scene  = new THREE.Scene()
-    const camera = new THREE.PerspectiveCamera(55, W / H, 0.1, 300)
-    camera.position.set(0, -3, 12)
-    camera.lookAt(0, -6, 0)
+    const camera = new THREE.PerspectiveCamera(52, W / H, 0.1, 300)
+    camera.position.set(0, -2, 13)
+    camera.lookAt(0, -7, 0)
 
-    const R     = 5.8
-    const group = new THREE.Group()
-    group.position.set(0, -7.8, 0)
+    const R      = 7.4
+    const CY     = -10.2          // globe center y in world space
+    const group  = new THREE.Group()
+    group.position.set(0, CY, 0)
     group.rotation.z = 0
     scene.add(group)
 
     renderer.localClippingEnabled = true
-    const clipPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 8.5)
+    // clip at exactly the equator (group center y) → perfect flat bottom edge
+    const clipPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -CY)
 
     // earth sphere
     const sGeo = new THREE.SphereGeometry(R, 64, 64)
     const sMat = new THREE.MeshPhongMaterial({
-      color: 0x223355,
-      emissive: 0x071525,
-      emissiveIntensity: 0.22,
-      shininess: 22,
-      specular: new THREE.Color(0x223366),
+      color: 0x7799bb,
+      emissive: 0x050f1c,
+      emissiveIntensity: 0.12,
+      shininess: 20,
+      specular: new THREE.Color(0x1a2e55),
       clippingPlanes: [clipPlane],
     })
     new THREE.TextureLoader().load(
@@ -238,13 +240,13 @@ function GlobeViz() {
       group.add(new THREE.Mesh(new THREE.SphereGeometry(R * scale, 32, 32), m))
     }
 
-    // lights — key from front-left, rim from behind-right for edge pop
-    scene.add(new THREE.AmbientLight(0x8899cc, 0.55))
-    const sun = new THREE.DirectionalLight(0xddeeff, 1.4)
-    sun.position.set(-5, 4, 8)
+    // lights — bright key from front-left so continents read, rim for edge glow
+    scene.add(new THREE.AmbientLight(0xaabbdd, 0.85))
+    const sun = new THREE.DirectionalLight(0xeef4ff, 2.2)
+    sun.position.set(-6, 5, 10)
     scene.add(sun)
-    const rimLight = new THREE.DirectionalLight(0x2244aa, 0.7)
-    rimLight.position.set(6, -2, -8)
+    const rimLight = new THREE.DirectionalLight(0x2244cc, 0.8)
+    rimLight.position.set(6, -2, -10)
     scene.add(rimLight)
 
     // sender dot (New York)

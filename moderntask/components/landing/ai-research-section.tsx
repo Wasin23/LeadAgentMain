@@ -397,7 +397,7 @@ export function AiResearchSection() {
 
         {/* ── Browser window ── */}
         <div className="flex-1 w-full min-w-0">
-          <div className="card-premium rounded-2xl backdrop-blur-2xl overflow-hidden" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.035) 0%, rgba(7,9,28,0.97) 100%)' }}>
+          <div className="card-premium rounded-2xl overflow-hidden" style={{ background: 'rgb(7, 9, 28)' }}>
 
             {/* Title bar */}
             <div className="flex items-center gap-2 px-3 border-b border-white/[0.06] bg-[#141414]" style={{ height: 36 }}>
@@ -418,7 +418,7 @@ export function AiResearchSection() {
             </div>
 
             {/* Tabs */}
-            <div className="flex text-[13px] border-b border-white/[0.06] bg-black/10 overflow-x-auto">
+            <div className="flex text-[13px] border-b border-white/[0.06] bg-black/10 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
               {TABS.map(tab => (
                 <div key={tab} className={`px-3.5 py-2.5 border-r border-white/[0.04] whitespace-nowrap shrink-0 transition-colors ${activeTab === tab ? 'text-white/80 bg-white/[0.05] border-b-2 border-b-indigo-500' : 'text-white/35'}`}>
                   {TAB_LABELS[tab]}
