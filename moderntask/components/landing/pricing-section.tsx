@@ -117,7 +117,7 @@ export function PricingSection() {
               key={plan.name}
               className="card-premium relative flex flex-col rounded-2xl p-6"
               style={plan.tag ? {
-                background: 'linear-gradient(180deg, rgba(99,102,241,0.10) 0%, rgba(6,8,26,1) 100%)',
+                background: 'linear-gradient(180deg, rgb(28, 30, 90) 0%, rgb(9, 10, 32) 100%)',
                 border: '1px solid rgba(99,102,241,0.35)',
                 boxShadow: 'inset 0 1px 0 rgba(99,102,241,0.15), 0 2px 4px rgba(0,0,0,0.4), 0 12px 40px rgba(0,0,0,0.6), 0 0 60px rgba(99,102,241,0.08)',
               } : {}}

@@ -56,7 +56,7 @@ function ScanLine({ text, active, done }: { text: string; active: boolean; done:
   }, [active, done, words.length])
 
   return (
-    <p className={`text-[10.5px] leading-[1.7] transition-opacity duration-300 ${!active && !done ? 'opacity-20' : 'opacity-100'}`}>
+    <p className={`text-[13px] leading-[1.7] transition-opacity duration-300 ${!active && !done ? 'opacity-30' : 'opacity-100'}`}>
       {done ? (
         <span className="text-white/55">{text}</span>
       ) : (
@@ -117,11 +117,11 @@ function CrmUnverified({ active, currentIdx }: { active: boolean; currentIdx: nu
 
   return (
     <div className="flex flex-col gap-2 w-[148px]">
-      <div className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${active ? 'text-indigo-400' : 'text-white/25'}`}>
+      <div className={`text-[12px] font-bold uppercase tracking-widest transition-colors ${active ? 'text-indigo-400' : 'text-white/25'}`}>
         Your CRM
       </div>
       <div className="rounded-xl border border-white/[0.08] bg-[#080c20] overflow-hidden">
-        <div className="px-3 py-1.5 border-b border-white/[0.05] text-[9px] text-white/20 font-mono flex justify-between">
+        <div className="px-3 py-1.5 border-b border-white/[0.05] text-[11px] text-white/20 font-mono flex justify-between">
           <span>unaudited</span>
           <span>{remaining.length}</span>
         </div>
@@ -131,13 +131,13 @@ function CrmUnverified({ active, currentIdx }: { active: boolean; currentIdx: nu
             className={`px-3 py-2 border-b border-white/[0.04] last:border-0 transition-all ${i === 0 && active ? 'bg-indigo-500/10' : ''}`}
           >
             <div className="flex items-center justify-between gap-1">
-              <div className="text-[10px] font-semibold text-white/60 truncate">{r.name}</div>
+              <div className="text-[13px] font-semibold text-white/60 truncate">{r.name}</div>
               {i === 0 && active
-                ? <span className="text-[8px] text-indigo-400 shrink-0">↑ auditing</span>
-                : <span className="text-[8px] text-white/15 shrink-0">?</span>
+                ? <span className="text-[11px] text-indigo-400 shrink-0">↑ auditing</span>
+                : <span className="text-[11px] text-white/15 shrink-0">?</span>
               }
             </div>
-            <div className="text-[9px] text-white/25">{r.co}</div>
+            <div className="text-[12px] text-white/25">{r.co}</div>
           </div>
         ))}
       </div>
@@ -151,12 +151,12 @@ function AuditStation({ phase, paraIdx }: { phase: Phase; paraIdx: number }) {
   const signalsShown = active ? Math.min(SIGNALS.length, paraIdx + 1) : 0
 
   return (
-    <div className={`flex flex-col gap-2 w-[252px] transition-all duration-500 ${active ? 'opacity-100' : 'opacity-35'}`}>
-      <div className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${active ? 'text-indigo-400' : 'text-white/25'}`}>
+    <div className={`flex flex-col gap-2 w-[252px] transition-all duration-500 ${active ? 'opacity-100' : 'opacity-70'}`}>
+      <div className={`text-[12px] font-bold uppercase tracking-widest transition-colors ${active ? 'text-indigo-400' : 'text-white/25'}`}>
         Audit station
       </div>
       <div className="rounded-xl border border-white/[0.08] bg-[#080c20] p-3 space-y-2">
-        <div className={`text-[9px] font-mono truncate transition-colors ${active ? 'text-indigo-400/70' : 'text-white/15'}`}>
+        <div className={`text-[12px] font-mono truncate transition-colors ${active ? 'text-indigo-400/70' : 'text-white/15'}`}>
           {active ? '⟳ verifying · scaleflow.com' : '── waiting for record ──'}
         </div>
         {ARTICLE_PARAS.map((para, i) => (
@@ -169,10 +169,10 @@ function AuditStation({ phase, paraIdx }: { phase: Phase; paraIdx: number }) {
         ))}
       </div>
       {signalsShown > 0 && (
-        <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/[0.05] p-3 space-y-1.5">
-          <div className="text-[9px] font-bold text-indigo-400/60 uppercase tracking-widest mb-1">Audit findings</div>
+        <div className="rounded-xl border border-indigo-500/20 bg-[#080c20] p-3 space-y-1.5">
+          <div className="text-[11px] font-bold text-indigo-400/60 uppercase tracking-widest mb-1">Audit findings</div>
           {SIGNALS.slice(0, signalsShown).map((s, i) => (
-            <div key={i} className="flex items-center justify-between gap-2 text-[10px]">
+            <div key={i} className="flex items-center justify-between gap-2 text-[12px]">
               <span className="text-white/40">{s.label}</span>
               <span className={`font-medium ${i === SIGNALS.length - 1 ? 'text-green-400' : 'text-indigo-300/80'}`}>{s.value}</span>
             </div>
@@ -189,26 +189,26 @@ function CrmVerified({ verifiedCount, currentIdx }: { verifiedCount: number; cur
 
   return (
     <div className="flex flex-col gap-2 w-[148px]">
-      <div className="text-[10px] font-bold uppercase tracking-widest text-white/25">
+      <div className="text-[12px] font-bold uppercase tracking-widest text-white/25">
         Audited
       </div>
       <div className="rounded-xl border border-white/[0.08] bg-[#080c20] overflow-hidden">
-        <div className="px-3 py-1.5 border-b border-white/[0.05] text-[9px] text-white/20 font-mono flex justify-between">
+        <div className="px-3 py-1.5 border-b border-white/[0.05] text-[11px] text-white/20 font-mono flex justify-between">
           <span>verified</span>
           <span className="text-green-400/60">{verifiedCount}</span>
         </div>
         {rows.length === 0 && (
-          <div className="px-3 py-4 text-[9px] text-white/12 italic text-center">none yet</div>
+          <div className="px-3 py-4 text-[11px] text-white/20 italic text-center">none yet</div>
         )}
         {rows.map((r, i) => (
           <div key={i} className="px-3 py-2 border-b border-white/[0.04] last:border-0">
             <div className="flex items-center justify-between gap-1">
-              <div className="text-[10px] font-semibold text-white/70 truncate">{r.name}</div>
-              <span className="text-[8px] font-bold text-green-400 shrink-0">
+              <div className="text-[13px] font-semibold text-white/70 truncate">{r.name}</div>
+              <span className="text-[11px] font-bold text-green-400 shrink-0">
                 {FIT_SCORES[(i + verifiedCount) % FIT_SCORES.length]}%
               </span>
             </div>
-            <div className="text-[9px] text-white/25">{r.co}</div>
+            <div className="text-[12px] text-white/25">{r.co}</div>
           </div>
         ))}
       </div>
