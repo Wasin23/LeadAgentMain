@@ -180,7 +180,7 @@ function GlobeViz() {
     camera.position.set(0, -3, 12)
     camera.lookAt(0, -6, 0)
 
-    const R      = 8.8
+    const R      = 7.6
     const CY     = -10.0          // globe center y in world space
     const group  = new THREE.Group()
     group.position.set(0, CY, 0)
