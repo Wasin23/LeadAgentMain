@@ -1432,9 +1432,12 @@ router.get('/scheduled-batches', async (req, res) => {
           count: 0,
           agentName: agentNames[job.agentId] || '',
           agentId:   job.agentId || '',
+          emailIds:  [],
         });
       }
-      batchMap.get(key).count++;
+      const entry = batchMap.get(key);
+      entry.count++;
+      entry.emailIds.push({ id: job.emailId, agentId: job.agentId });
     }
 
     const batches = Array.from(batchMap.entries())
@@ -1445,12 +1448,63 @@ router.get('/scheduled-batches', async (req, res) => {
         count:     info.count,
         agentName: info.agentName,
         agentId:   info.agentId,
+        emailIds:  info.emailIds,
       }));
 
     res.json({ batches });
   } catch (error) {
     console.error('[EMAIL QUEUE API] Error getting scheduled batches:', error);
     res.status(500).json({ error: 'Failed to get scheduled batches', batches: [] });
+  }
+});
+
+// PATCH /scheduled-batches — reschedule all emails in a batch to a new time
+router.patch('/scheduled-batches', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { emailIds, newScheduledAt } = req.body;
+    if (!Array.isArray(emailIds) || !newScheduledAt) {
+      return res.status(400).json({ error: 'emailIds and newScheduledAt are required' });
+    }
+    const { getScheduledEmailJobs } = await import('../utils/scheduledEmailJobs.js');
+    const scheduledJobs = getScheduledEmailJobs();
+    const awsQueue = (await import('../utils/awsEmailQueue.js')).default;
+    const queue = new awsQueue();
+
+    await Promise.all(emailIds.map(async ({ id, agentId }) => {
+      await queue.updateEmail(userId, agentId, id, { scheduledAt: newScheduledAt });
+      await scheduledJobs.upsertScheduledEmail({ userId, agentId, emailId: id, scheduledAt: newScheduledAt, scheduleType: 'manual' });
+    }));
+
+    res.json({ success: true, updated: emailIds.length });
+  } catch (error) {
+    console.error('[EMAIL QUEUE API] Error updating batch schedule:', error);
+    res.status(500).json({ error: 'Failed to update batch schedule' });
+  }
+});
+
+// DELETE /scheduled-batches — cancel (unschedule) all emails in a batch
+router.delete('/scheduled-batches', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { emailIds } = req.body;
+    if (!Array.isArray(emailIds)) {
+      return res.status(400).json({ error: 'emailIds is required' });
+    }
+    const { getScheduledEmailJobs } = await import('../utils/scheduledEmailJobs.js');
+    const scheduledJobs = getScheduledEmailJobs();
+    const awsQueue = (await import('../utils/awsEmailQueue.js')).default;
+    const queue = new awsQueue();
+
+    await Promise.all(emailIds.map(async ({ id, agentId }) => {
+      await queue.updateEmail(userId, agentId, id, { scheduledAt: null });
+      await scheduledJobs.deleteScheduledEmail(userId, agentId, id);
+    }));
+
+    res.json({ success: true, deleted: emailIds.length });
+  } catch (error) {
+    console.error('[EMAIL QUEUE API] Error deleting batch schedule:', error);
+    res.status(500).json({ error: 'Failed to delete batch schedule' });
   }
 });
 

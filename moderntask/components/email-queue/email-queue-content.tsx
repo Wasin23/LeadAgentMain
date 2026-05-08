@@ -13,7 +13,7 @@ import {
   CheckSquare, Square, ChevronsLeft, ChevronLeft,
   ChevronRight, ChevronsRight, X, CalendarClock, Calendar,
   Settings2, Save, Search, FileText, ExternalLink,
-  MoreHorizontal, Wrench, Loader2, Sparkles,
+  MoreHorizontal, Wrench, Loader2, Sparkles, Trash2, ListChecks,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -25,6 +25,14 @@ interface SendingSchedule {
   sendTime:    string    // "HH:MM" e.g. "09:00"
   dailyLimit:  number
   timezone:    string
+}
+
+interface ScheduledBatch {
+  scheduledSendTime: string  // "YYYY-MM-DDTHH:MM" UTC
+  count:    number
+  agentName: string
+  agentId:  string
+  emailIds: { id: string; agentId: string }[]
 }
 
 interface QueueEmail {
@@ -196,6 +204,151 @@ const DEFAULT_SCHEDULE: SendingSchedule = {
   sendTime: '09:00',
   dailyLimit: 50,
   timezone: BROWSER_TZ,
+}
+
+function ScheduledBatchesModal({ onClose, onChanged }: { onClose: () => void; onChanged: () => void }) {
+  const { toast } = useToast()
+  const [batches, setBatches] = useState<ScheduledBatch[]>([])
+  const [loading, setLoading] = useState(true)
+  const [editingTime, setEditingTime] = useState<Record<number, string>>({})
+  const [saving, setSaving] = useState<Record<number, boolean>>({})
+  const [deleting, setDeleting] = useState<Record<number, boolean>>({})
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const r = await api.get('/api/email-queue/scheduled-batches')
+      setBatches(r.data.batches ?? [])
+    } catch {
+      toast({ title: 'Failed to load schedules', variant: 'destructive', duration: 2000 })
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  const toLocalInput = (utcSlot: string) => {
+    // "YYYY-MM-DDTHH:MM" is treated as UTC — convert to local datetime-local value
+    const d = new Date(utcSlot + ':00Z')
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  }
+
+  const formatDisplay = (utcSlot: string) => {
+    const d = new Date(utcSlot + ':00Z')
+    return d.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+  }
+
+  const save = async (idx: number, batch: ScheduledBatch) => {
+    const raw = editingTime[idx]
+    if (!raw) return
+    const newUtc = new Date(raw).toISOString()
+    setSaving(s => ({ ...s, [idx]: true }))
+    try {
+      await api.patch('/api/email-queue/scheduled-batches', { emailIds: batch.emailIds, newScheduledAt: newUtc })
+      toast({ title: 'Schedule updated', duration: 2000 })
+      setEditingTime(s => { const n = { ...s }; delete n[idx]; return n })
+      onChanged()
+      await load()
+    } catch {
+      toast({ title: 'Failed to update schedule', variant: 'destructive', duration: 2000 })
+    } finally {
+      setSaving(s => ({ ...s, [idx]: false }))
+    }
+  }
+
+  const deleteBatch = async (idx: number, batch: ScheduledBatch) => {
+    setDeleting(s => ({ ...s, [idx]: true }))
+    try {
+      await api.delete('/api/email-queue/scheduled-batches', { data: { emailIds: batch.emailIds } })
+      toast({ title: `Removed ${batch.count} scheduled email${batch.count !== 1 ? 's' : ''}`, duration: 2000 })
+      onChanged()
+      await load()
+    } catch {
+      toast({ title: 'Failed to delete schedule', variant: 'destructive', duration: 2000 })
+    } finally {
+      setDeleting(s => ({ ...s, [idx]: false }))
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-background rounded-xl shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <div className="flex items-center gap-2">
+            <ListChecks className="w-4 h-4 text-primary" />
+            <h2 className="text-sm font-semibold">Active Schedules</h2>
+            {!loading && <span className="text-[10px] px-1.5 rounded-full bg-primary/10 text-primary font-semibold">{batches.length}</span>}
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded hover:bg-muted transition-colors">
+            <X className="w-4 h-4 text-muted-foreground" />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 px-5 py-4 space-y-3">
+          {loading ? (
+            <div className="flex items-center justify-center py-10 text-muted-foreground text-xs gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" /> Loading…
+            </div>
+          ) : batches.length === 0 ? (
+            <p className="text-center text-xs text-muted-foreground py-10">No active schedules.</p>
+          ) : batches.map((batch, idx) => {
+            const isEditing = idx in editingTime
+            return (
+              <div key={batch.scheduledSendTime} className="rounded-lg border border-border p-3 space-y-2.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-xs font-medium">
+                      {batch.count} email{batch.count !== 1 ? 's' : ''}
+                      {batch.agentName && <span className="text-muted-foreground font-normal"> · {batch.agentName}</span>}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {isEditing ? 'Editing…' : formatDisplay(batch.scheduledSendTime)}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => deleteBatch(idx, batch)}
+                    disabled={deleting[idx]}
+                    className="p-1.5 rounded hover:bg-destructive/10 text-destructive transition-colors shrink-0"
+                    title="Delete this schedule"
+                  >
+                    {deleting[idx] ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+
+                {isEditing ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="datetime-local"
+                      className="flex-1 h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                      value={editingTime[idx]}
+                      onChange={e => setEditingTime(s => ({ ...s, [idx]: e.target.value }))}
+                    />
+                    <Button size="sm" className="h-8 text-xs gap-1" disabled={saving[idx]} onClick={() => save(idx, batch)}>
+                      {saving[idx] ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                      Save
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setEditingTime(s => { const n = { ...s }; delete n[idx]; return n })}>
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setEditingTime(s => ({ ...s, [idx]: toLocalInput(batch.scheduledSendTime) }))}
+                    className="text-[11px] text-primary hover:underline"
+                  >
+                    Edit time
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function AgentScheduleCard({ agent, onSaved }: { agent: Agent; onSaved?: (s: SendingSchedule) => void }) {
@@ -1392,6 +1545,8 @@ export function EmailQueueContent() {
   const [fontSize, setFontSize]           = useState(12)
   const [showSchedule, setShowSchedule]   = useState(false)
   const [savedSchedule, setSavedSchedule] = useState<SendingSchedule | null>(null)
+  const [showBatchesModal, setShowBatchesModal] = useState(false)
+  const [batchCount, setBatchCount]             = useState(0)
   const activeScheduledAgentsCount = agents.filter(a => a.settings?.sendingSchedule?.activeDays?.length).length
   const hasAnyActiveSchedules = activeScheduledAgentsCount > 0
   const hasSelectedAgentSchedule = !!savedSchedule?.activeDays?.length
@@ -1411,10 +1566,16 @@ export function EmailQueueContent() {
     toast({ title: 'Sending schedule cancelled', duration: 2000 })
   }
 
+  const refreshBatchCount = useCallback(() => {
+    api.get('/api/email-queue/scheduled-batches').then(r => {
+      setBatchCount((r.data.batches ?? []).length)
+    }).catch(() => {})
+  }, [])
+
   useEffect(() => {
     api.get('/api/auth/agents').then(r => {
       setAgents(r.data.agents ?? [])
-      
+
       // Load saved schedule for current agent
       if (selectedAgent !== 'all') {
         const agent = r.data.agents?.find((a: Agent) => a.agentId === selectedAgent)
@@ -1423,6 +1584,7 @@ export function EmailQueueContent() {
         }
       }
     }).catch(() => {})
+    refreshBatchCount()
   }, [])
   
   // Load schedule when agent changes
@@ -1504,23 +1666,36 @@ export function EmailQueueContent() {
               </button>
             </span>
           )}
-          <button
-            onClick={() => setShowSchedule(s => !s)}
-            className="ml-auto flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-colors"
-          >
-            <Calendar className="w-3.5 h-3.5" />
-            Schedule for Send
-          </button>
+          <div className="ml-auto flex items-center gap-2">
+            {batchCount > 0 && (
+              <button
+                onClick={() => setShowBatchesModal(true)}
+                className="flex items-center gap-1.5 text-xs text-primary hover:underline"
+              >
+                <ListChecks className="w-3.5 h-3.5" />
+                {batchCount} active schedule{batchCount !== 1 ? 's' : ''} planned
+              </button>
+            )}
+            <button
+              onClick={() => setShowSchedule(s => !s)}
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-colors"
+            >
+              <Calendar className="w-3.5 h-3.5" />
+              Schedule for Send
+            </button>
+          </div>
         </div>
 
         {showSchedule && (
-          <div className="mb-5 pb-5 border-b border-border">
+          <div className="mb-5 pb-5 border-b border-border space-y-3">
             {selectedAgent === 'all' ? (
-              <p className="text-xs text-muted-foreground py-2">Select a specific agent above to configure its sending schedule.</p>
+              <p className="text-xs text-muted-foreground py-2">
+                Select an agent from the dropdown above to configure its sending schedule.
+              </p>
             ) : (
               (() => {
                 const agent = agents.find(a => a.agentId === selectedAgent)
-                return agent ? <AgentScheduleCard agent={agent} onSaved={s => { setSavedSchedule(s); }} /> : null
+                return agent ? <AgentScheduleCard agent={agent} onSaved={s => { setSavedSchedule(s); refreshBatchCount() }} /> : null
               })()
             )}
           </div>
@@ -1533,6 +1708,13 @@ export function EmailQueueContent() {
           activeSchedule={savedSchedule}
         />
       </Card>
+
+      {showBatchesModal && (
+        <ScheduledBatchesModal
+          onClose={() => setShowBatchesModal(false)}
+          onChanged={refreshBatchCount}
+        />
+      )}
     </div>
   )
 }
