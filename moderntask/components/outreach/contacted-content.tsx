@@ -439,9 +439,9 @@ function ReplyRow({ reply, highlighted, onOpen }: { reply: ReplyConversation; hi
           <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{reply.preview || 'Reply received'}</p>
           <div className="flex flex-wrap items-center gap-1.5 mt-2 text-[11px]">
             <span className="text-muted-foreground flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{timeAgo(reply.lastActivityAt || reply.lastReplyAt)}</span>
-            <Badge variant="outline" className={cn('text-[9px] px-1.5 h-4', replyBadgeClasses('classification', reply.classification))}>{replyClassText(reply.classification)}</Badge>
-            <Badge variant="outline" className={cn('text-[9px] px-1.5 h-4', replyBadgeClasses('status', reply.status))}>{replyClassText(reply.status)}</Badge>
-            <Badge variant="outline" className={cn('text-[9px] px-1.5 h-4', replyBadgeClasses('sentiment', reply.sentiment))}>{replyClassText(reply.sentiment)}</Badge>
+            {reply.classification && reply.classification !== 'neutral' && <Badge variant="outline" className={cn('text-[9px] px-1.5 h-4', replyBadgeClasses('classification', reply.classification))}>{replyClassText(reply.classification)}</Badge>}
+            {reply.status && <Badge variant="outline" className={cn('text-[9px] px-1.5 h-4', replyBadgeClasses('status', reply.status))}>{replyClassText(reply.status)}</Badge>}
+            {reply.sentiment && reply.sentiment !== 'neutral' && reply.sentiment !== reply.classification && <Badge variant="outline" className={cn('text-[9px] px-1.5 h-4', replyBadgeClasses('sentiment', reply.sentiment))}>{replyClassText(reply.sentiment)}</Badge>}
           </div>
         </div>
         <div className="shrink-0 flex items-center gap-2 text-muted-foreground text-[11px] pt-0.5">
@@ -465,9 +465,9 @@ function ReplyDetailModal({ reply, onClose }: { reply: ReplyConversation; onClos
             </div>
             <p className="text-sm text-foreground truncate">{reply.subject || '(no subject)'}</p>
             <div className="flex flex-wrap items-center gap-1.5 mt-2 text-[11px]">
-              <Badge variant="outline" className={cn('text-[10px] px-1.5 h-5', replyBadgeClasses('classification', reply.classification))}>{replyClassText(reply.classification)}</Badge>
-              <Badge variant="outline" className={cn('text-[10px] px-1.5 h-5', replyBadgeClasses('status', reply.status))}>{replyClassText(reply.status)}</Badge>
-              <Badge variant="outline" className={cn('text-[10px] px-1.5 h-5', replyBadgeClasses('sentiment', reply.sentiment))}>{replyClassText(reply.sentiment)}</Badge>
+              {reply.classification && reply.classification !== 'neutral' && <Badge variant="outline" className={cn('text-[10px] px-1.5 h-5', replyBadgeClasses('classification', reply.classification))}>{replyClassText(reply.classification)}</Badge>}
+              {reply.status && <Badge variant="outline" className={cn('text-[10px] px-1.5 h-5', replyBadgeClasses('status', reply.status))}>{replyClassText(reply.status)}</Badge>}
+              {reply.sentiment && reply.sentiment !== 'neutral' && reply.sentiment !== reply.classification && <Badge variant="outline" className={cn('text-[10px] px-1.5 h-5', replyBadgeClasses('sentiment', reply.sentiment))}>{replyClassText(reply.sentiment)}</Badge>}
               <span className="text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" />{timeAgo(reply.lastActivityAt || reply.lastReplyAt)}</span>
             </div>
           </div>
