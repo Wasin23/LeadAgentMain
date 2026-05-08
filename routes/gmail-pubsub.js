@@ -301,20 +301,6 @@ router.post('/gmail-notification', async (req, res) => {
                       timestamp: new Date().toISOString(),
                     });
                     console.log(`✅ [GMAIL PUBSUB] Logged manual reply event`);
-
-                    // Mark original email as REPLIED so follow-ups are suppressed
-                    const AWSEmailQueue = (await import('../utils/awsEmailQueue.js')).default;
-                    const queue = new AWSEmailQueue();
-                    const sentEmails = await queue.getSentEmails(manualUserId, manualAgentId);
-                    const orig = sentEmails.find(e => e.trackingId === trackingId);
-                    if (orig?.id && orig.status !== 'REPLIED') {
-                      await queue.markEmailAsReplied(manualUserId, manualAgentId, orig.id, {
-                        from: fullMessage.from,
-                        subject: fullMessage.subject,
-                        body: fullMessage.body?.substring(0, 500),
-                      });
-                      console.log(`✅ [GMAIL PUBSUB] Marked email ${orig.id} as REPLIED (manual reply)`);
-                    }
                   } else {
                     console.log(`⏭️  [GMAIL PUBSUB] Manual reply already logged for messageId ${fullMessage.messageId}, skipping`);
                   }
