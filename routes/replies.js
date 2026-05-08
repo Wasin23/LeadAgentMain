@@ -386,6 +386,9 @@ function summarizeConversation(events) {
   else if (latestEvent?.eventType === 'manual') status = 'manual_replied';
   else if (aiReplyEvents.length > 0) status = 'ai_responded';
 
+  const manualReplyEvents = canonicalEvents.filter((event) => event.eventType === 'manual');
+  const latestManualReply = manualReplyEvents[manualReplyEvents.length - 1] || null;
+
   return {
     trackingId: latestEvent?.trackingId || null,
     originalTrackingId: latestEvent?.trackingId || null,
@@ -396,7 +399,7 @@ function summarizeConversation(events) {
     leadName: normalizeLeadName(latestLeadReply?.leadName, latestLeadReply?.recipientEmail, latestLeadReply?.email, latestLeadReply?.from, latestEvent?.leadName, latestEvent?.recipientEmail, latestEvent?.email, latestEvent?.from),
     company: latestLeadReply?.company || latestEvent?.company || null,
     subject: normalizeSubject(latestLeadReply?.subject || firstOutbound?.subject || latestEvent?.subject, latestEvent?.trackingId),
-    timestamp: latestLeadReply?.timestamp || latestEvent?.timestamp || null,
+    timestamp: latestLeadReply?.timestamp || latestManualReply?.timestamp || latestEvent?.timestamp || null,
     firstReplyAt: firstLeadReply?.timestamp || null,
     lastReplyAt: latestLeadReply?.timestamp || null,
     lastActivityAt: latestEvent?.timestamp || null,
@@ -404,9 +407,10 @@ function summarizeConversation(events) {
     status,
     classification: classification.label,
     sentiment: classification.sentiment,
-    preview: latestLeadReply ? compactPreview(normalizeMessageContent(latestLeadReply), 140) : '',
+    preview: latestLeadReply ? compactPreview(normalizeMessageContent(latestLeadReply), 140) : compactPreview(normalizeMessageContent(latestManualReply), 140),
     hasAIReply: aiReplyEvents.length > 0,
     hasLeadMessage: leadReplyEvents.length > 0,
+    hasManualReply: manualReplyEvents.length > 0,
     replyCount: leadReplyEvents.length,
     aiReplyCount: aiReplyEvents.length,
     references: latestEvent?.trackingId || null,
@@ -487,7 +491,7 @@ function buildConversationList(events) {
 
   return [...grouped.values()]
     .map(summarizeConversation)
-    .filter((conversation) => conversation.hasLeadMessage)
+    .filter((conversation) => conversation.hasLeadMessage || conversation.hasManualReply)
     .sort((a, b) => new Date(b.lastActivityAt || 0) - new Date(a.lastActivityAt || 0));
 }
 

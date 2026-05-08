@@ -278,6 +278,13 @@ router.post('/gmail-notification', async (req, res) => {
             if (emailAddress) ownAddresses.push(emailAddress.toLowerCase());
 
             if (ownAddresses.includes(fromEmail)) {
+              // Gmail fires history events for outbound (sent) mail too, not just incoming replies.
+              // Skip the original sent message — it has our custom header but no In-Reply-To.
+              if (!fullMessage.inReplyTo) {
+                console.log(`📤 [GMAIL PUBSUB] Ignoring outbound (non-reply) message from ${fromEmail} — not a manual reply`);
+                continue;
+              }
+
               // User sent a manual reply from Gmail — log as 'manual' event so it shows in the timeline
               // and mark the original email as REPLIED to suppress follow-ups.
               console.log(`✍️  [GMAIL PUBSUB] Manual reply from ${fromEmail} on tracked thread — logging event`);
