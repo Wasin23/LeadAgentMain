@@ -278,7 +278,50 @@ router.post('/gmail-notification', async (req, res) => {
             if (emailAddress) ownAddresses.push(emailAddress.toLowerCase());
 
             if (ownAddresses.includes(fromEmail)) {
-              console.log(`📤 [GMAIL PUBSUB] Skipping own sent message from ${fromEmail}`);
+              // User sent a manual reply from Gmail — log as 'manual' event so it shows in the timeline
+              // and mark the original email as REPLIED to suppress follow-ups.
+              console.log(`✍️  [GMAIL PUBSUB] Manual reply from ${fromEmail} on tracked thread — logging event`);
+              const manualUserId = trackingId.match(/tracking-([a-f0-9-]+)_/)?.[1] ?? null;
+              const manualAgentId = trackingId.match(/tracking-[a-f0-9-]+_([^_]+)_/)?.[1] ?? null;
+              if (manualUserId && manualAgentId) {
+                try {
+                  // Dedup: skip if we already stored this exact messageId
+                  let alreadyStored = false;
+                  if (fullMessage.messageId) {
+                    const existing = await awsManager.getEmailTrackingByTracking(trackingId);
+                    alreadyStored = existing.some(e => e.messageId === fullMessage.messageId && e.eventType === 'manual');
+                  }
+                  if (!alreadyStored) {
+                    await awsManager.logEmailTracking(manualUserId, manualAgentId, trackingId, {
+                      eventType: 'manual',
+                      recipientEmail: fullMessage.to,
+                      content: fullMessage.body,
+                      subject: fullMessage.subject,
+                      messageId: fullMessage.messageId,
+                      timestamp: new Date().toISOString(),
+                    });
+                    console.log(`✅ [GMAIL PUBSUB] Logged manual reply event`);
+
+                    // Mark original email as REPLIED so follow-ups are suppressed
+                    const AWSEmailQueue = (await import('../utils/awsEmailQueue.js')).default;
+                    const queue = new AWSEmailQueue();
+                    const sentEmails = await queue.getSentEmails(manualUserId, manualAgentId);
+                    const orig = sentEmails.find(e => e.trackingId === trackingId);
+                    if (orig?.id && orig.status !== 'REPLIED') {
+                      await queue.markEmailAsReplied(manualUserId, manualAgentId, orig.id, {
+                        from: fullMessage.from,
+                        subject: fullMessage.subject,
+                        body: fullMessage.body?.substring(0, 500),
+                      });
+                      console.log(`✅ [GMAIL PUBSUB] Marked email ${orig.id} as REPLIED (manual reply)`);
+                    }
+                  } else {
+                    console.log(`⏭️  [GMAIL PUBSUB] Manual reply already logged for messageId ${fullMessage.messageId}, skipping`);
+                  }
+                } catch (err) {
+                  console.error('[GMAIL PUBSUB] Failed to log manual reply:', err.message);
+                }
+              }
               continue;
             }
 

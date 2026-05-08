@@ -501,7 +501,21 @@ export default function SignInPage() {
           </Alert>
         )}
 
-        <Card className="shadow-2xl border-slate-200/70 bg-white/95 backdrop-blur-sm">
+        <Card className="shadow-2xl border-slate-200/70 bg-white/95 backdrop-blur-sm" style={{
+          '--background': 'oklch(0.98 0.003 255)',
+          '--foreground': 'oklch(0.22 0.02 255)',
+          '--card': 'oklch(1 0 0)',
+          '--card-foreground': 'oklch(0.22 0.02 255)',
+          '--input': 'oklch(0.91 0.008 255)',
+          '--border': 'oklch(0.91 0.008 255)',
+          '--muted': 'oklch(0.96 0.008 255)',
+          '--muted-foreground': 'oklch(0.54 0.015 255)',
+          '--secondary': 'oklch(0.96 0.008 255)',
+          '--secondary-foreground': 'oklch(0.22 0.02 255)',
+          '--accent': 'oklch(0.56 0.15 255)',
+          '--accent-foreground': 'oklch(0.98 0.01 255)',
+          colorScheme: 'light',
+        } as React.CSSProperties}>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg">Welcome back</CardTitle>
             <CardDescription>Sign in to your account or create a new one</CardDescription>
