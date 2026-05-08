@@ -166,7 +166,7 @@ function SidebarInner() {
   return (
     <aside className="fixed top-0 left-0 w-64 bg-card border-r border-border p-4 h-screen overflow-y-auto lg:block">
       <div className="flex items-center gap-2 mb-6 group cursor-pointer">
-        <Link href="/" className="flex items-center gap-2">
+        <Link href="/home" className="flex items-center gap-2">
           <div className="w-8 h-8 shrink-0 transition-transform group-hover:scale-110 duration-300">
             <svg width="32" height="32" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
               <ellipse cx="24" cy="24" rx="6"  ry="20" stroke="currentColor" strokeWidth="1.5"/>

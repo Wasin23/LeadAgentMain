@@ -551,10 +551,19 @@ const publicEmailEndpoints = [
   '/api/auth/outlook/callback' // Outlook OAuth callback
 ];
 
+// Sub-paths of otherwise-public prefixes that must require auth
+const authRequiredPaths = [
+  '/api/unsubscribe/list',
+  '/api/unsubscribe/resubscribe',
+];
+
 // Middleware to check if endpoint should be public
 const isPublicEndpoint = (req) => {
   const requestPath = (req.originalUrl || req.path || '').split('?')[0];
-  return publicEmailEndpoints.some(endpoint => 
+  if (authRequiredPaths.some(p => requestPath === p || requestPath.startsWith(p + '/'))) {
+    return false;
+  }
+  return publicEmailEndpoints.some(endpoint =>
     requestPath === endpoint || requestPath.startsWith(endpoint)
   );
 };
