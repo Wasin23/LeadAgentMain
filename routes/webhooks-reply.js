@@ -1032,9 +1032,9 @@ export async function processGmailReply(userId, message) {
     console.log(`[GMAIL REPLY] Processing Gmail reply from ${message.from}`);
     
     // Extract tracking ID from message headers
-    let trackingId = null;
+    let trackingId = message.resolvedTrackingId || null;
 
-    if (message.xMeridianTrackingId && message.xMeridianTrackingId.includes('tracking-')) {
+    if (!trackingId && message.xMeridianTrackingId && message.xMeridianTrackingId.includes('tracking-')) {
       const match = message.xMeridianTrackingId.match(/(tracking-[a-f0-9-]+_[^_@]+_\d+_[a-z0-9]+)/i);
       if (match) trackingId = match[1];
       console.log(`[GMAIL REPLY] Found tracking ID in X-Meridian-Tracking-Id: ${trackingId}`);

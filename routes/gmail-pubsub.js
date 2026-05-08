@@ -330,8 +330,33 @@ router.post('/gmail-notification', async (req, res) => {
             // Process through webhook logic
             const { processGmailReply } = await import('./webhooks-reply.js');
             await processGmailReply(user.userId, fullMessage);
-          } else {
-            console.log(`📭 [GMAIL PUBSUB] Message is not a reply to tracked email: ${fullMessage.from}`);
+          } else if (fullMessage.threadId) {
+            // No tracking ID in body/headers — try matching by Gmail threadId
+            console.log(`🧵 [GMAIL PUBSUB] No tracking ID found, trying threadId fallback: ${fullMessage.threadId}`);
+            let resolvedTrackingId = null;
+
+            try {
+              const AWSEmailQueue = (await import('../utils/awsEmailQueue.js')).default;
+              const queue = new AWSEmailQueue();
+              const agents = await awsManager.getUserAgents(user.userId);
+              for (const agent of (agents || [])) {
+                if (resolvedTrackingId) break;
+                const sentEmails = await queue.getSentEmails(user.userId, agent.agentId);
+                const match = sentEmails.find(e => e.gmailThreadId === fullMessage.threadId);
+                if (match?.trackingId) resolvedTrackingId = match.trackingId;
+              }
+            } catch (err) {
+              console.error('[GMAIL PUBSUB] threadId lookup failed:', err.message);
+            }
+
+            if (resolvedTrackingId) {
+              console.log(`✅ [GMAIL PUBSUB] Resolved via threadId: ${resolvedTrackingId}`);
+              fullMessage.resolvedTrackingId = resolvedTrackingId;
+              const { processGmailReply } = await import('./webhooks-reply.js');
+              await processGmailReply(user.userId, fullMessage);
+            } else {
+              console.log(`📭 [GMAIL PUBSUB] Message is not a reply to tracked email: ${fullMessage.from}`);
+            }
           }
         }
       }
