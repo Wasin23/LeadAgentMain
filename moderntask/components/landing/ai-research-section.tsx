@@ -220,13 +220,13 @@ const STATUS_LABELS: Record<Phase, string> = {
 const TABS: Phase[] = ['profile', 'database', 'websearch', 'article', 'email', 'report', 'crm']
 
 const PHASE_BG: Record<Phase, string> = {
-  profile:  '#07091c',
-  database: '#0e0e10',
+  profile:  'white',
+  database: 'white',
   websearch:'#202124',
-  article:  '#07091c',
+  article:  'white',
   email:    '#1c1c1c',
-  report:   '#07091c',
-  crm:      '#0d0d0f',
+  report:   'white',
+  crm:      'white',
   done:     '#1c1c1c',
 }
 
@@ -400,46 +400,46 @@ export function AiResearchSection() {
           <div className="card-premium rounded-2xl overflow-hidden" style={{ background: 'white' }}>
 
             {/* Title bar */}
-            <div className="flex items-center gap-2 px-3 border-b border-white/[0.06] bg-[#141414]" style={{ height: 36 }}>
+            <div className="flex items-center gap-2 px-3 border-b border-gray-100 bg-gray-100" style={{ height: 36 }}>
               <div className="flex items-center gap-1.5 shrink-0">
                 <span className={`w-1.5 h-1.5 rounded-full ${phase === 'done' ? 'bg-green-400' : 'bg-indigo-400 animate-pulse'}`} />
                 <span className={`text-[13px] font-medium whitespace-nowrap ${phase === 'done' ? 'text-green-400' : 'text-indigo-400/80'}`}>
                   {STATUS_LABELS[phase]}
                 </span>
               </div>
-              <div className="flex-1 mx-2 px-3 py-[3px] rounded bg-white/[0.05] border border-white/[0.06] text-black/38 text-[13px] font-mono text-center truncate">
+              <div className="flex-1 mx-2 px-3 py-[3px] rounded bg-white border border-gray-200 text-black/45 text-[13px] font-mono text-center truncate">
                 {URL_LABELS[activeTab]}
               </div>
               <div className="flex items-center shrink-0">
-                <button className="w-9 h-9 flex items-center justify-center text-black/45 hover:bg-white/[0.07] text-[13px] leading-none">─</button>
-                <button className="w-9 h-9 flex items-center justify-center text-black/45 hover:bg-white/[0.07] text-[13px] leading-none">□</button>
+                <button className="w-9 h-9 flex items-center justify-center text-black/45 hover:bg-gray-100 text-[13px] leading-none">─</button>
+                <button className="w-9 h-9 flex items-center justify-center text-black/45 hover:bg-gray-100 text-[13px] leading-none">□</button>
                 <button className="w-9 h-9 flex items-center justify-center text-black/45 hover:bg-red-600/70 hover:text-gray-900 text-[15px] leading-none rounded-tr-2xl">✕</button>
               </div>
             </div>
 
             {/* Tabs */}
-            <div className="flex text-[13px] border-b border-white/[0.06] bg-black/10 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+            <div className="flex text-[13px] border-b border-gray-100 bg-gray-100 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
               {TABS.map(tab => (
-                <div key={tab} className={`px-3.5 py-2.5 border-r border-white/[0.04] whitespace-nowrap shrink-0 transition-colors ${activeTab === tab ? 'text-black/80 bg-white/[0.05] border-b-2 border-b-indigo-500' : 'text-black/35'}`}>
+                <div key={tab} className={`px-3.5 py-2.5 border-r border-gray-100 whitespace-nowrap shrink-0 transition-colors ${activeTab === tab ? 'text-black/80 bg-white/[0.05] border-b-2 border-b-indigo-500' : 'text-black/35'}`}>
                   {TAB_LABELS[tab]}
                 </div>
               ))}
             </div>
 
             {/* Content */}
-            <div className={showSplit ? 'flex h-[600px]' : 'h-[600px]'} style={{ background: PHASE_BG[phase] }}>
+            <div className={showSplit ? "flex h-[500px]" : "h-[500px]"} style={{ background: PHASE_BG[phase] }}>
               <div
                 ref={articleScrollRef}
-                className={`overflow-y-auto ${showSplit ? 'flex-1 border-r border-white/[0.06]' : 'w-full h-full'}`}
+                className={`overflow-y-auto ${showSplit ? 'flex-1 border-r border-gray-100' : 'w-full h-full'}`}
               >
 
                 {/* ── YOUR PROFILE ── */}
                 {phase === 'profile' && (
                   <div className="overflow-hidden">
                     {/* avatar + name row */}
-                    <div className="px-4 pt-4 pb-3 bg-[#07091c]">
+                    <div className="px-4 pt-4 pb-3 bg-white">
                       <div className="flex items-end gap-3 mb-3">
-                        <div className="w-[52px] h-[52px] rounded-full border-[3px] border-[#07091c] flex items-center justify-center font-black text-[16px] text-gray-900 shrink-0"
+                        <div className="w-[52px] h-[52px] rounded-full border-[3px] border-white flex items-center justify-center font-black text-[16px] text-gray-900 shrink-0"
                           style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>
                           AR
                         </div>
@@ -466,7 +466,7 @@ export function AiResearchSection() {
 
                       {/* stats row */}
                       {profileItems >= 2 && (
-                        <div className="flex items-center gap-4 py-2.5 border-t border-white/[0.06]">
+                        <div className="flex items-center gap-4 py-2.5 border-t border-gray-100">
                           {[
                             { label: 'Connections', value: '1,240' },
                             { label: 'Employees', value: '28' },
@@ -482,7 +482,7 @@ export function AiResearchSection() {
                     </div>
 
                     {/* ICP fields as profile sections */}
-                    <div className="border-t border-white/[0.06] divide-y divide-white/[0.04]">
+                    <div className="border-t border-gray-100 divide-y divide-white/[0.04]">
                       {[
                         { label: 'Target buyer', value: 'Head of Growth · VP Sales · CRO', icon: '🎯' },
                         { label: 'Target company', value: 'B2B SaaS · 11–500 employees', icon: '🏢' },
@@ -509,7 +509,7 @@ export function AiResearchSection() {
 
                     {/* keywords as skills */}
                     {profileKw > 0 && (
-                      <div className="px-4 py-3 border-t border-white/[0.06] space-y-2">
+                      <div className="px-4 py-3 border-t border-gray-100 space-y-2">
                         <div className="flex items-center gap-2">
                           <div className="text-[13px] text-black/45 uppercase tracking-widest font-bold">
                             {profileKw >= EXTRACTED_KEYWORDS.length ? 'Search targets' : 'Extracting criteria'}
@@ -546,7 +546,7 @@ export function AiResearchSection() {
                 {phase === 'database' && (
                   <div className="overflow-hidden">
                     {/* Apollo nav */}
-                    <div className="flex items-center gap-2 px-4 py-2.5 bg-[#0e0e10] border-b border-white/[0.06]">
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100">
                       <div className="w-6 h-6 rounded flex items-center justify-center shrink-0" style={{ background: '#ffe234' }}>
                         <span className="font-black text-[13px]" style={{ color: '#1a1600' }}>A</span>
                       </div>
@@ -561,7 +561,7 @@ export function AiResearchSection() {
                     </div>
 
                     {/* Filters */}
-                    <div className="flex flex-wrap gap-1.5 px-4 py-2.5 bg-[#0e0e10] border-b border-white/[0.05] min-h-[42px]">
+                    <div className="flex flex-wrap gap-1.5 px-4 py-2.5 bg-gray-50 border-b border-gray-100 min-h-[42px]">
                       {EXTRACTED_KEYWORDS.slice(0, dbKeywords).map(kw => (
                         <span key={kw} className="slide-up flex items-center gap-1 px-2 py-0.5 rounded text-[13px] font-medium" style={{ background: 'rgba(255,226,52,0.12)', border: '1px solid rgba(255,226,52,0.28)', color: '#ffe234' }}>
                           {kw} <span className="text-[8px] opacity-50 ml-0.5">×</span>
@@ -571,7 +571,7 @@ export function AiResearchSection() {
 
                     {/* Table header */}
                     {dbRows > 0 && (
-                      <div className="grid grid-cols-[1fr_1fr_1fr_44px] gap-x-3 px-4 py-1.5 text-[13px] font-bold text-black/38 uppercase tracking-widest border-b border-white/[0.04] bg-[#0e0e10]">
+                      <div className="grid grid-cols-[1fr_1fr_1fr_44px] gap-x-3 px-4 py-1.5 text-[13px] font-bold text-black/38 uppercase tracking-widest border-b border-gray-100 bg-gray-50">
                         <span>Name</span><span>Title</span><span>Company</span><span className="text-right">Fit</span>
                       </div>
                     )}
@@ -580,7 +580,7 @@ export function AiResearchSection() {
                     {DB_LEADS.slice(0, dbRows).map((lead, i) => (
                       <div
                         key={lead.name}
-                        className={`slide-up grid grid-cols-[1fr_1fr_1fr_44px] gap-x-3 items-center px-4 py-2.5 border-b border-white/[0.04] transition-all cursor-pointer hover:bg-white/[0.02]`}
+                        className={`slide-up grid grid-cols-[1fr_1fr_1fr_44px] gap-x-3 items-center px-4 py-2.5 border-b border-gray-100 transition-all cursor-pointer hover:bg-gray-50`}
                         style={subStep >= 1 && lead.top ? { background: 'rgba(255,226,52,0.06)', borderLeft: '2px solid #ffe234' } : {}}
                       >
                         <div className="flex items-center gap-2 min-w-0">
@@ -764,7 +764,7 @@ export function AiResearchSection() {
                 {/* ── RESEARCH REPORT ── */}
                 {phase === 'report' && (
                   <div className="p-6 space-y-5">
-                    <div className="flex items-center gap-3 pb-3 border-b border-white/[0.06]">
+                    <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
                       <div className="w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-300 font-black text-xs shrink-0">SC</div>
                       <div>
                         <div className="text-black/80 font-bold text-sm">ScaleFlow · Sarah Chen</div>
@@ -792,7 +792,7 @@ export function AiResearchSection() {
                 {phase === 'crm' && (
                   <div className="overflow-hidden">
                     {/* HubSpot nav */}
-                    <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/[0.06]" style={{ background: '#1a1410' }}>
+                    <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-100" style={{ background: '#fff8f6' }}>
                       {/* HubSpot sprocket */}
                       <svg width="18" height="18" viewBox="0 0 100 100" fill="none">
                         <circle cx="50" cy="50" r="18" fill="#FF7A59"/>
@@ -815,7 +815,7 @@ export function AiResearchSection() {
                     </div>
 
                     {/* Contact header */}
-                    <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06]">
+                    <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
                       <div className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm shrink-0" style={{ background: 'rgba(255,122,89,0.15)', border: '1px solid rgba(255,122,89,0.3)', color: '#FF7A59' }}>SC</div>
                       <div className="flex-1 min-w-0">
                         <div className="text-black/85 font-bold text-[14px]">Sarah Chen</div>
@@ -825,7 +825,7 @@ export function AiResearchSection() {
                     </div>
 
                     {/* Deal stage pipeline */}
-                    <div className="px-4 py-3 border-b border-white/[0.06]">
+                    <div className="px-4 py-3 border-b border-gray-100">
                       <div className="text-[13px] font-bold text-black/45 uppercase tracking-widest mb-2.5">Deal Stage</div>
                       <div className="flex gap-1">
                         {['Prospect', 'Contacted', 'Meeting', 'Proposal', 'Closed'].map((stage, i) => (
@@ -841,7 +841,7 @@ export function AiResearchSection() {
                       <div className="text-[13px] font-bold text-black/45 uppercase tracking-widest mb-2.5">Contact Properties</div>
                       <div className="rounded-xl border border-white/[0.08] overflow-hidden">
                         {CRM_FIELDS.map((f, i) => (
-                          <div key={f.label} className={`flex items-center gap-3 px-4 py-2.5 border-b border-white/[0.05] last:border-0 transition-all duration-300 ${crmField > i ? 'opacity-100' : 'opacity-20'}`}>
+                          <div key={f.label} className={`flex items-center gap-3 px-4 py-2.5 border-b border-gray-100 last:border-0 transition-all duration-300 ${crmField > i ? 'opacity-100' : 'opacity-20'}`}>
                             <span className="text-black/28 text-[13px] w-18 shrink-0">{f.label}</span>
                             <span className={`text-[13px] font-medium flex-1 ${crmField > i ? 'text-black/70' : 'text-black/10'}`}>{crmField > i ? f.value : '—'}</span>
                             {crmField > i && <span className="ml-auto text-[13px]" style={{ color: 'rgba(255,122,89,0.6)' }}>✓</span>}
@@ -895,7 +895,7 @@ export function AiResearchSection() {
                     ))
                   )}
                   {(phase === 'email' || phase === 'done') && notesList.length > 0 && (
-                    <div className="mt-2 pt-2.5 border-t border-white/[0.06]">
+                    <div className="mt-2 pt-2.5 border-t border-gray-100">
                       <div className="text-[13px] text-indigo-400/70 font-semibold mb-1.5">Building from</div>
                       <div className="text-[13px] text-black/40 leading-snug space-y-1">
                         <div>→ SDR expansion signal</div>
