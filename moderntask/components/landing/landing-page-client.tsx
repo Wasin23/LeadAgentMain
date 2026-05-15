@@ -6,8 +6,8 @@ import Image from "next/image"
 import { MeridianWordmark } from "@/components/ui/meridian-wordmark"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
-import { StarField } from "@/components/landing/star-field"
 import { HorizonHero } from "@/components/demo/horizon-hero"
+import { BlobField } from "@/components/landing/blob-field"
 import { AgentSection } from "@/components/landing/agent-section"
 import { AiResearchSection } from "@/components/landing/ai-research-section"
 import { OutreachSection } from "@/components/landing/outreach-section"
@@ -39,28 +39,13 @@ export function LandingPageClient() {
 
   return (
     <div className="text-foreground overflow-hidden h-screen">
-      {/* Fixed ambient environment — persists across all sections */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        {/* Primary bloom — center */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[700px]"
-          style={{ background: 'radial-gradient(ellipse at center, rgba(99,102,241,0.13) 0%, rgba(79,70,229,0.06) 40%, transparent 70%)' }} />
-        {/* Secondary bloom — top right */}
-        <div className="absolute -top-32 right-0 w-[600px] h-[500px]"
-          style={{ background: 'radial-gradient(ellipse at top right, rgba(139,92,246,0.09) 0%, transparent 65%)' }} />
-        {/* Ground glow — bottom center */}
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[350px]"
-          style={{ background: 'radial-gradient(ellipse at bottom, rgba(99,102,241,0.10) 0%, transparent 70%)' }} />
-        {/* Noise grain overlay */}
-        <div className="absolute inset-0 opacity-[0.032]"
-          style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E\")", backgroundRepeat: 'repeat', backgroundSize: '200px 200px' }} />
-      </div>
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 px-4 py-1.5 backdrop-blur bg-black/40 sm:px-10">
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-black/10 px-4 py-1.5 backdrop-blur bg-white/80 sm:px-10">
         <div className="relative flex items-center w-full">
 
           {/* Left: logo */}
           <Link href="/" className="flex items-center gap-2 shrink-0 z-10">
             <Image src="/MeridianM.png" alt="Meridian" width={48} height={32} className="shrink-0 sm:w-[96px] sm:h-[64px]" />
-            <MeridianWordmark className="h-2 w-auto sm:h-2.5" />
+            <MeridianWordmark className="h-2 w-auto sm:h-2.5" color="#111111" />
           </Link>
 
           {/* Center: section tabs — hidden on mobile */}
@@ -72,8 +57,8 @@ export function LandingPageClient() {
                   onClick={() => goTo(i)}
                   className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
                     i === currentStep
-                      ? 'text-white bg-white/10'
-                      : 'text-white/45 hover:text-white/75'
+                      ? 'text-black bg-black/8'
+                      : 'text-black/40 hover:text-black/70'
                   }`}
                 >
                   {label}
@@ -84,14 +69,14 @@ export function LandingPageClient() {
 
           {/* Right: auth */}
           <div className="flex items-center gap-2 shrink-0 ml-auto z-10">
-            <Link href="/signin" className="hidden sm:block px-4 py-1.5 text-sm text-white/70 hover:text-white transition-colors">Sign In</Link>
-            <Link href="/signin" className="px-3 py-1.5 text-xs sm:px-4 sm:text-sm font-medium bg-white text-black rounded-lg hover:bg-white/90 transition-colors">Start Free</Link>
+            <Link href="/signin" className="hidden sm:block px-4 py-1.5 text-sm text-black/50 hover:text-black transition-colors">Sign In</Link>
+            <Link href="/signin" className="px-3 py-1.5 text-xs sm:px-4 sm:text-sm font-medium bg-gradient-to-r from-violet-600 to-blue-500 text-white rounded-lg hover:opacity-90 transition-opacity">Start Free</Link>
           </div>
 
         </div>
       </nav>
 
-      <StarField fixed />
+      <BlobField />
       <FeaturesCarousel labels={LABELS}>
         <HorizonHero />
         <AgentSection />
