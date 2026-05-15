@@ -54,7 +54,7 @@ export function HorizonHero() {
         <p className="line text-sm sm:text-lg md:text-xl text-white/50 max-w-xl mx-auto">Researches leads, writes emails, sends from your inbox, follows up automatically.</p>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 relative z-10 w-full max-w-xs sm:max-w-none px-6 sm:px-0">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 relative z-10 items-center">
         <Link href="/signin" className="group flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-white text-black rounded-xl font-bold text-base sm:text-lg hover:bg-white/90 transition-all hover:scale-105"
           style={{ boxShadow: '0 0 40px rgba(255,255,255,0.15), 0 4px 24px rgba(0,0,0,0.4)' }}>
           Start free <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
