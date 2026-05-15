@@ -169,12 +169,13 @@ function SidebarInner() {
         <Link href="/home" className="flex items-center gap-2">
           <div className="w-8 h-8 shrink-0 transition-transform group-hover:scale-110 duration-300">
             <svg width="32" height="32" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <ellipse cx="24" cy="24" rx="6"  ry="20" stroke="currentColor" strokeWidth="1.5"/>
-              <ellipse cx="24" cy="24" rx="14" ry="20" stroke="currentColor" strokeWidth="1.5"/>
-              <ellipse cx="24" cy="24" rx="20" ry="20" stroke="currentColor" strokeWidth="1.5"/>
-              <ellipse cx="24" cy="24" rx="20" ry="8"  stroke="currentColor" strokeWidth="1.5"/>
-              <ellipse cx="24" cy="24" rx="20" ry="16" stroke="currentColor" strokeWidth="1.5"/>
-              <line x1="4" y1="24" x2="44" y2="24"    stroke="currentColor" strokeWidth="1.5"/>
+              <defs>
+                <linearGradient id="mGradSidebar" x1="0" y1="0" x2="48" y2="0" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stopColor="#7C3AED"/>
+                  <stop offset="100%" stopColor="#3B82F6"/>
+                </linearGradient>
+              </defs>
+              <path d="M8 38V10L24 28L40 10V38" stroke="url(#mGradSidebar)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
             </svg>
           </div>
           <span className="text-lg font-semibold text-foreground">Meridian</span>
