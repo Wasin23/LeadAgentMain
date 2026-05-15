@@ -116,24 +116,22 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
+/* M icon gradient — applied to all solid indigo/primary backgrounds */
+.bg-primary,
+.bg-indigo-600,
+.bg-indigo-500,
+.bg-indigo-400 {
+  background: linear-gradient(135deg, #7C3AED 0%, #3B82F6 100%) !important;
+}
+
+.hover\:bg-indigo-500:hover,
+.hover\:bg-indigo-600:hover {
+  background: linear-gradient(135deg, #8B5CF6 0%, #60A5FA 100%) !important;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
-  }
-
-  /* Match the M icon gradient everywhere primary/indigo color is used as a background */
-  .bg-primary,
-  .bg-indigo-600,
-  .bg-indigo-500,
-  .bg-indigo-400 {
-    background: linear-gradient(135deg, #7C3AED 0%, #3B82F6 100%) !important;
-    background-color: transparent !important;
-  }
-
-  .hover\:bg-indigo-500:hover,
-  .hover\:bg-indigo-600:hover {
-    background: linear-gradient(135deg, #8B5CF6 0%, #60A5FA 100%) !important;
-    background-color: transparent !important;
   }
 
   h1 {
