@@ -1,9 +1,7 @@
 'use client'
 
-import { Orbitron } from 'next/font/google'
 import { useState, useEffect, useRef } from 'react'
-
-const orbitron = Orbitron({ subsets: ['latin'], weight: ['400'] })
+import { MeridianWordmark } from '@/components/ui/meridian-wordmark'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import api from '@/lib/api'
@@ -479,7 +477,7 @@ export default function SignInPage() {
           <div className="flex justify-center mb-4">
             <Image src="/MeridianM.png" alt="Meridian" width={200} height={200} className="drop-shadow-2xl" />
           </div>
-          <h1 className={`${orbitron.className} text-3xl`} style={{ letterSpacing: '0.2em', color: '#9BAAB8' }}>MERIDIAN</h1>
+          <MeridianWordmark className="h-7 w-auto mx-auto" />
           <p className="text-sm mt-2" style={{ color: 'rgba(160,190,255,0.65)' }}>AI-Powered Lead Research & Automation</p>
         </div>
 

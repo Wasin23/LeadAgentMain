@@ -1,9 +1,7 @@
 "use client"
 
-import { Orbitron } from "next/font/google"
 import { LayoutDashboard, CheckSquare, BarChart3, Settings, HelpCircle, LogOut, Mail, Bot, UserCheck, Circle, Building2, GripVertical, Pencil, Check, Users } from "lucide-react"
-
-const orbitron = Orbitron({ subsets: ["latin"], weight: ["400"] })
+import { MeridianWordmark } from "@/components/ui/meridian-wordmark"
 import { cn } from "@/lib/utils"
 import { useState, useEffect, Suspense } from "react"
 import Link from "next/link"
@@ -171,8 +169,8 @@ function SidebarInner() {
     <aside className="fixed top-0 left-0 w-64 bg-card border-r border-border p-4 h-screen overflow-y-auto lg:block">
       <div className="flex items-center gap-2 mb-6 group cursor-pointer">
         <Link href="/home" className="flex items-center gap-2">
-          <Image src="/MeridianM.png" alt="Meridian" width={32} height={32} className="shrink-0 transition-transform group-hover:scale-105 duration-300" />
-          <span className={`${orbitron.className} text-sm tracking-widest`} style={{ color: '#9BAAB8', letterSpacing: '0.2em' }}>MERIDIAN</span>
+          <Image src="/MeridianM.png" alt="Meridian" width={28} height={28} className="shrink-0" />
+          <MeridianWordmark className="h-4 w-auto" />
         </Link>
       </div>
 
