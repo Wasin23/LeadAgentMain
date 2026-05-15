@@ -53,12 +53,12 @@ export function LandingPageClient() {
         <div className="absolute inset-0 opacity-[0.032]"
           style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E\")", backgroundRepeat: 'repeat', backgroundSize: '200px 200px' }} />
       </div>
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 px-6 py-4 backdrop-blur bg-black/40 sm:px-10">
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 px-6 py-2 backdrop-blur bg-black/40 sm:px-10">
         <div className="mx-auto max-w-7xl flex items-center">
 
           {/* Left: logo */}
           <Link href="/" className="flex items-center gap-2.5 shrink-0">
-            <Image src="/MeridianName%26M.png" alt="Meridian" width={260} height={68} className="shrink-0" />
+            <Image src="/MeridianName%26M.png" alt="Meridian" width={160} height={32} className="shrink-0 object-contain" />
           </Link>
 
           {/* Center: section tabs */}

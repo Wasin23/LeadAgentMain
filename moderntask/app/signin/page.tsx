@@ -474,7 +474,7 @@ export default function SignInPage() {
         {/* Logo */}
         <div className="text-center mb-7">
           <div className="flex justify-center mb-3">
-            <Image src="/MeridianM.png" alt="Meridian" width={72} height={72} className="drop-shadow-lg" />
+            <Image src="/MeridianM.png" alt="Meridian" width={140} height={140} className="drop-shadow-lg" />
           </div>
           <p className="text-sm mt-2" style={{ color: 'rgba(160,190,255,0.65)' }}>AI-Powered Lead Research & Automation</p>
         </div>
