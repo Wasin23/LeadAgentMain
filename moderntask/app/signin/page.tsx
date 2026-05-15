@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import api from '@/lib/api'
 import Cookies from 'js-cookie'
 import { Eye, EyeOff, AlertCircle, CheckCircle, Loader2, HelpCircle, ArrowLeft } from 'lucide-react'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -473,17 +474,8 @@ export default function SignInPage() {
         {/* Logo */}
         <div className="text-center mb-7">
           <div className="flex justify-center mb-3">
-            <svg width="64" height="64" viewBox="0 0 48 48" fill="none">
-              <ellipse cx="24" cy="24" rx="5" ry="19" stroke="white" strokeWidth="1.5" opacity="0.9"/>
-              <ellipse cx="24" cy="24" rx="13" ry="19" stroke="white" strokeWidth="1.5" opacity="0.8"/>
-              <ellipse cx="24" cy="24" rx="19" ry="19" stroke="white" strokeWidth="1.5" opacity="0.9"/>
-              <ellipse cx="24" cy="24" rx="19" ry="7.5" stroke="white" strokeWidth="1.5" opacity="0.8"/>
-              <line x1="5" y1="24" x2="43" y2="24" stroke="white" strokeWidth="1.5" opacity="0.7"/>
-            </svg>
+            <Image src="/MeridianM.png" alt="Meridian" width={72} height={72} className="drop-shadow-lg" />
           </div>
-          <h1 className="text-4xl font-bold tracking-tight text-white" style={{ textShadow: '0 2px 32px rgba(80,140,255,0.5), 0 1px 4px rgba(0,0,0,0.8)', letterSpacing: '-0.02em' }}>
-            Meridian
-          </h1>
           <p className="text-sm mt-2" style={{ color: 'rgba(160,190,255,0.65)' }}>AI-Powered Lead Research & Automation</p>
         </div>
 

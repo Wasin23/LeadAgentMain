@@ -58,7 +58,7 @@ export function LandingPageClient() {
 
           {/* Left: logo */}
           <Link href="/" className="flex items-center gap-2.5 shrink-0">
-            <Image src="/MeridianName&M.png" alt="Meridian" width={140} height={36} className="shrink-0" />
+            <Image src="/MeridianName%26M.png" alt="Meridian" width={260} height={68} className="shrink-0" />
           </Link>
 
           {/* Center: section tabs */}

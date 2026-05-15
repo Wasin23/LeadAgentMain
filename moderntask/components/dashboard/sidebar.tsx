@@ -168,7 +168,7 @@ function SidebarInner() {
     <aside className="fixed top-0 left-0 w-64 bg-card border-r border-border p-4 h-screen overflow-y-auto lg:block">
       <div className="flex items-center gap-2 mb-6 group cursor-pointer">
         <Link href="/home" className="flex items-center gap-2">
-          <Image src="/MeridianName&M.png" alt="Meridian" width={140} height={36} className="shrink-0 transition-transform group-hover:scale-105 duration-300" />
+          <Image src="/MeridianName%26M.png" alt="Meridian" width={160} height={42} className="shrink-0 transition-transform group-hover:scale-105 duration-300" />
         </Link>
       </div>
 
