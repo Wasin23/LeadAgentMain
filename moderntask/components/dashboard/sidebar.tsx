@@ -4,6 +4,7 @@ import { LayoutDashboard, CheckSquare, BarChart3, Settings, HelpCircle, LogOut, 
 import { cn } from "@/lib/utils"
 import { useState, useEffect, Suspense } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname, useSearchParams } from "next/navigation"
 import api from "@/lib/api"
 import {
@@ -167,18 +168,7 @@ function SidebarInner() {
     <aside className="fixed top-0 left-0 w-64 bg-card border-r border-border p-4 h-screen overflow-y-auto lg:block">
       <div className="flex items-center gap-2 mb-6 group cursor-pointer">
         <Link href="/home" className="flex items-center gap-2">
-          <div className="w-8 h-8 shrink-0 transition-transform group-hover:scale-110 duration-300">
-            <svg width="32" height="32" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <linearGradient id="mGradSidebar" x1="0" y1="0" x2="48" y2="0" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor="#7C3AED"/>
-                  <stop offset="100%" stopColor="#3B82F6"/>
-                </linearGradient>
-              </defs>
-              <path d="M8 38V10L24 28L40 10V38" stroke="url(#mGradSidebar)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-            </svg>
-          </div>
-          <span className="text-lg font-semibold text-foreground">Meridian</span>
+          <Image src="/MeridianName&M.png" alt="Meridian" width={140} height={36} className="shrink-0 transition-transform group-hover:scale-105 duration-300" />
         </Link>
       </div>
 

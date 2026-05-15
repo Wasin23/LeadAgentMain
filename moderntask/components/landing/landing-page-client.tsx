@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 import { StarField } from "@/components/landing/star-field"
@@ -57,16 +58,7 @@ export function LandingPageClient() {
 
           {/* Left: logo */}
           <Link href="/" className="flex items-center gap-2.5 shrink-0">
-            <svg width="28" height="28" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <linearGradient id="mGradNav" x1="0" y1="0" x2="48" y2="0" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stopColor="#7C3AED"/>
-                  <stop offset="100%" stopColor="#3B82F6"/>
-                </linearGradient>
-              </defs>
-              <path d="M8 38V10L24 28L40 10V38" stroke="url(#mGradNav)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-            </svg>
-            <span className="text-lg font-bold tracking-tight text-white">Meridian</span>
+            <Image src="/MeridianName&M.png" alt="Meridian" width={140} height={36} className="shrink-0" />
           </Link>
 
           {/* Center: section tabs */}
