@@ -1,8 +1,11 @@
 "use client"
 
+import { Orbitron } from "next/font/google"
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
+
+const orbitron = Orbitron({ subsets: ["latin"], weight: ["400"] })
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 import { StarField } from "@/components/landing/star-field"
@@ -57,9 +60,9 @@ export function LandingPageClient() {
         <div className="mx-auto max-w-7xl flex items-center">
 
           {/* Left: logo */}
-          <Link href="/" className="flex items-center gap-2.5 shrink-0">
-            <Image src="/MeridianM.png" alt="Meridian" width={36} height={36} className="shrink-0" />
-            <span className="text-lg font-bold tracking-tight text-white">Meridian</span>
+          <Link href="/" className="flex items-center gap-3 shrink-0">
+            <Image src="/MeridianM.png" alt="Meridian" width={56} height={56} className="shrink-0" />
+            <span className={`${orbitron.className} text-2xl`} style={{ color: '#9BAAB8', letterSpacing: '0.2em' }}>MERIDIAN</span>
           </Link>
 
           {/* Center: section tabs */}
