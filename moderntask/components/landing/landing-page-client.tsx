@@ -55,7 +55,7 @@ export function LandingPageClient() {
           style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E\")", backgroundRepeat: 'repeat', backgroundSize: '200px 200px' }} />
       </div>
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 px-6 py-1.5 backdrop-blur bg-black/40 sm:px-10">
-        <div className="mx-auto max-w-7xl flex items-center">
+        <div className="flex items-center w-full">
 
           {/* Left: logo */}
           <Link href="/" className="flex items-center gap-3 shrink-0">

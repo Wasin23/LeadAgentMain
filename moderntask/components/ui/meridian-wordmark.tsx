@@ -3,7 +3,7 @@ interface Props {
   color?: string
 }
 
-export function MeridianWordmark({ className, color }: Props) {
+export function MeridianWordmark({ className, color = "#9BAAB8" }: Props) {
   const gradientId = "mw-grad"
   const useSolid = !!color
 
