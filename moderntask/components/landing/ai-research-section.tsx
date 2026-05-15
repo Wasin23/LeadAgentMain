@@ -99,19 +99,19 @@ function AgentReadText({ text, speed = 22 }: { text: string; speed?: number }) {
           className="absolute z-20 flex items-center gap-1 rounded-full px-1.5 py-0.5 pointer-events-none"
           style={{
             left: chipPos.x, top: chipPos.y,
-            background: 'rgba(10,9,30,0.92)',
+            background: 'rgba(255,255,255,0.92)',
             border: '1px solid rgba(99,102,241,0.35)',
             transition: 'left 80ms ease-out, top 80ms ease-out',
           }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/avatars/Hunter.png" alt="" className="w-3.5 h-3.5 rounded-full object-cover shrink-0" />
-          <span className="text-[13px] text-white/50 font-medium whitespace-nowrap">Hunter</span>
+          <span className="text-[13px] text-black/50 font-medium whitespace-nowrap">Hunter</span>
         </div>
       )}
       {words.map((w, i) => (
         <span key={i} ref={el => { wordRefs.current[i] = el }}>
-          <span className={i < idx ? 'text-white/62' : i === idx ? 'bg-indigo-500/55 text-white rounded-sm px-0.5 ring-1 ring-indigo-400/40' : 'text-white/35'}>{w}</span>
+          <span className={i < idx ? 'text-black/62' : i === idx ? 'bg-indigo-500/55 text-gray-900 rounded-sm px-0.5 ring-1 ring-indigo-400/40' : 'text-black/35'}>{w}</span>
           {i < words.length - 1 ? ' ' : ''}
         </span>
       ))}
@@ -153,7 +153,7 @@ function ScanText({ text, speed = 14 }: { text: string; speed?: number }) {
     <>
       {words.map((w, i) => (
         <span key={i}>
-          <span className={i < idx ? 'text-white/62' : i === idx ? 'bg-indigo-500/30 text-white/90 rounded-sm px-0.5' : 'text-white/35'}>{w}</span>
+          <span className={i < idx ? 'text-black/62' : i === idx ? 'bg-indigo-500/30 text-black/90 rounded-sm px-0.5' : 'text-black/35'}>{w}</span>
           {i < words.length - 1 ? ' ' : ''}
         </span>
       ))}
@@ -172,11 +172,11 @@ function ArticlePara({ text, state, setRef }: { text: string; state: 'past' | 'c
   }, [state, words.length])
   return (
     <p ref={setRef} className={`text-[13px] leading-[1.75] transition-opacity duration-500 ${state === 'future' ? 'opacity-20' : 'opacity-100'}`}>
-      {state === 'past' ? <span className="text-white/58">{text}</span>
-      : state === 'future' ? <span className="text-white/50">{text}</span>
+      {state === 'past' ? <span className="text-black/58">{text}</span>
+      : state === 'future' ? <span className="text-black/50">{text}</span>
       : words.map((w, i) => (
           <span key={i}>
-            <span className={i < idx ? 'text-white/62' : i === idx ? 'bg-indigo-500/30 text-white/92 rounded-sm px-0.5' : 'text-white/35'}>{w}</span>
+            <span className={i < idx ? 'text-black/62' : i === idx ? 'bg-indigo-500/30 text-black/92 rounded-sm px-0.5' : 'text-black/35'}>{w}</span>
             {i < words.length - 1 ? ' ' : ''}
           </span>
         ))}
@@ -376,15 +376,15 @@ export function AiResearchSection() {
         {/* ── Left copy ── */}
         <div className="flex-1 max-w-[420px] shrink-0">
           <p className="enter-0 text-indigo-400 text-sm font-semibold tracking-widest uppercase mb-4">AI Research</p>
-          <h2 className="enter-1 text-5xl xl:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6">
+          <h2 className="enter-1 text-5xl xl:text-6xl font-black text-gray-900 leading-[1.05] tracking-tight mb-6">
             Reads the room<br />before writing.
           </h2>
-          <p className="enter-2 text-white/50 text-lg leading-relaxed mb-8">
+          <p className="enter-2 text-black/50 text-lg leading-relaxed mb-8">
             Your agent pulls company profiles, recent news, hiring signals, and role context, then writes an email from that research. All in ~15 seconds per prospect. Fully personalized. Not templated.
           </p>
           <div className="enter-3 space-y-3 mb-10">
             {['Company profile and role intelligence', 'Funding rounds and hiring signals', 'Recent news and web signals', 'Tech stack and buyer intent data'].map(f => (
-              <div key={f} className="flex items-center gap-3 text-white/55 text-[15px]">
+              <div key={f} className="flex items-center gap-3 text-black/55 text-[15px]">
                 <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" />
                 {f}
               </div>
@@ -397,7 +397,7 @@ export function AiResearchSection() {
 
         {/* ── Browser window ── */}
         <div className="enter-5 flex-1 w-full min-w-0">
-          <div className="card-premium rounded-2xl overflow-hidden" style={{ background: 'rgb(7, 9, 28)' }}>
+          <div className="card-premium rounded-2xl overflow-hidden" style={{ background: 'white' }}>
 
             {/* Title bar */}
             <div className="flex items-center gap-2 px-3 border-b border-white/[0.06] bg-[#141414]" style={{ height: 36 }}>
@@ -407,20 +407,20 @@ export function AiResearchSection() {
                   {STATUS_LABELS[phase]}
                 </span>
               </div>
-              <div className="flex-1 mx-2 px-3 py-[3px] rounded bg-white/[0.05] border border-white/[0.06] text-white/38 text-[13px] font-mono text-center truncate">
+              <div className="flex-1 mx-2 px-3 py-[3px] rounded bg-white/[0.05] border border-white/[0.06] text-black/38 text-[13px] font-mono text-center truncate">
                 {URL_LABELS[activeTab]}
               </div>
               <div className="flex items-center shrink-0">
-                <button className="w-9 h-9 flex items-center justify-center text-white/45 hover:bg-white/[0.07] text-[13px] leading-none">─</button>
-                <button className="w-9 h-9 flex items-center justify-center text-white/45 hover:bg-white/[0.07] text-[13px] leading-none">□</button>
-                <button className="w-9 h-9 flex items-center justify-center text-white/45 hover:bg-red-600/70 hover:text-white text-[15px] leading-none rounded-tr-2xl">✕</button>
+                <button className="w-9 h-9 flex items-center justify-center text-black/45 hover:bg-white/[0.07] text-[13px] leading-none">─</button>
+                <button className="w-9 h-9 flex items-center justify-center text-black/45 hover:bg-white/[0.07] text-[13px] leading-none">□</button>
+                <button className="w-9 h-9 flex items-center justify-center text-black/45 hover:bg-red-600/70 hover:text-gray-900 text-[15px] leading-none rounded-tr-2xl">✕</button>
               </div>
             </div>
 
             {/* Tabs */}
             <div className="flex text-[13px] border-b border-white/[0.06] bg-black/10 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
               {TABS.map(tab => (
-                <div key={tab} className={`px-3.5 py-2.5 border-r border-white/[0.04] whitespace-nowrap shrink-0 transition-colors ${activeTab === tab ? 'text-white/80 bg-white/[0.05] border-b-2 border-b-indigo-500' : 'text-white/35'}`}>
+                <div key={tab} className={`px-3.5 py-2.5 border-r border-white/[0.04] whitespace-nowrap shrink-0 transition-colors ${activeTab === tab ? 'text-black/80 bg-white/[0.05] border-b-2 border-b-indigo-500' : 'text-black/35'}`}>
                   {TAB_LABELS[tab]}
                 </div>
               ))}
@@ -439,21 +439,21 @@ export function AiResearchSection() {
                     {/* avatar + name row */}
                     <div className="px-4 pt-4 pb-3 bg-[#07091c]">
                       <div className="flex items-end gap-3 mb-3">
-                        <div className="w-[52px] h-[52px] rounded-full border-[3px] border-[#07091c] flex items-center justify-center font-black text-[16px] text-white shrink-0"
+                        <div className="w-[52px] h-[52px] rounded-full border-[3px] border-[#07091c] flex items-center justify-center font-black text-[16px] text-gray-900 shrink-0"
                           style={{ background: 'linear-gradient(135deg, #4f46e5, #7c3aed)' }}>
                           AR
                         </div>
                         <div className="pb-1">
                           <div className="flex items-center gap-2">
-                            <span className="text-white font-bold text-[14px]">Apex Revenue</span>
+                            <span className="text-gray-900 font-bold text-[14px]">Apex Revenue</span>
                             <span className="w-3.5 h-3.5 rounded-full bg-indigo-500 flex items-center justify-center shrink-0">
                               <svg width="8" height="8" viewBox="0 0 8 8"><path d="M1.5 4l1.8 1.8L6.5 2" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>
                             </span>
                           </div>
-                          <div className="text-white/40 text-[13px]">AI-powered outbound · San Francisco, CA</div>
+                          <div className="text-black/40 text-[13px]">AI-powered outbound · San Francisco, CA</div>
                         </div>
                         <div className="ml-auto pb-1 flex gap-1.5">
-                          <button className="px-3 py-1 rounded-full text-[13px] font-bold border border-white/[0.15] text-white/40">Edit profile</button>
+                          <button className="px-3 py-1 rounded-full text-[13px] font-bold border border-white/[0.15] text-black/40">Edit profile</button>
                         </div>
                       </div>
 
@@ -473,8 +473,8 @@ export function AiResearchSection() {
                             { label: 'Founded', value: '2022' },
                           ].map(s => (
                             <div key={s.label} className="text-center">
-                              <div className="text-white font-bold text-[13px]">{s.value}</div>
-                              <div className="text-white/45 text-[13px]">{s.label}</div>
+                              <div className="text-gray-900 font-bold text-[13px]">{s.value}</div>
+                              <div className="text-black/45 text-[13px]">{s.label}</div>
                             </div>
                           ))}
                         </div>
@@ -495,7 +495,7 @@ export function AiResearchSection() {
                         >
                           <span className="text-[14px] shrink-0">{f.icon}</span>
                           <div className="min-w-0">
-                            <div className="text-[13px] text-white/45 uppercase tracking-widest">{f.label}</div>
+                            <div className="text-[13px] text-black/45 uppercase tracking-widest">{f.label}</div>
                             <div className="text-[13px] font-medium mt-0.5">
                               {profileItems > i + 2 && <ScanText text={f.value} speed={18} />}
                             </div>
@@ -511,17 +511,17 @@ export function AiResearchSection() {
                     {profileKw > 0 && (
                       <div className="px-4 py-3 border-t border-white/[0.06] space-y-2">
                         <div className="flex items-center gap-2">
-                          <div className="text-[13px] text-white/45 uppercase tracking-widest font-bold">
+                          <div className="text-[13px] text-black/45 uppercase tracking-widest font-bold">
                             {profileKw >= EXTRACTED_KEYWORDS.length ? 'Search targets' : 'Extracting criteria'}
                           </div>
                           {profileKw < EXTRACTED_KEYWORDS.length && (
                             <>
                               <span className="w-1 h-1 rounded-full bg-indigo-400 animate-pulse" />
                               <div className="flex items-center gap-1 rounded-full px-1.5 py-0.5 ml-1"
-                                style={{ background: 'rgba(10,9,30,0.92)', border: '1px solid rgba(99,102,241,0.35)' }}>
+                                style={{ background: 'rgba(255,255,255,0.92)', border: '1px solid rgba(99,102,241,0.35)' }}>
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img src="/avatars/Hunter.png" alt="" className="w-3.5 h-3.5 rounded-full object-cover shrink-0" />
-                                <span className="text-[13px] text-white/50 font-medium whitespace-nowrap">Hunter</span>
+                                <span className="text-[13px] text-black/50 font-medium whitespace-nowrap">Hunter</span>
                               </div>
                             </>
                           )}
@@ -550,12 +550,12 @@ export function AiResearchSection() {
                       <div className="w-6 h-6 rounded flex items-center justify-center shrink-0" style={{ background: '#ffe234' }}>
                         <span className="font-black text-[13px]" style={{ color: '#1a1600' }}>A</span>
                       </div>
-                      <span className="text-[13px] font-bold text-white/60">apollo</span>
-                      <span className="text-white/15 text-[13px] mx-1">/</span>
-                      <span className="text-[13px] text-white/35">People</span>
-                      <span className="text-white/15 text-[13px] mx-1">/</span>
+                      <span className="text-[13px] font-bold text-black/60">apollo</span>
+                      <span className="text-black/15 text-[13px] mx-1">/</span>
+                      <span className="text-[13px] text-black/35">People</span>
+                      <span className="text-black/15 text-[13px] mx-1">/</span>
                       <span className="text-[13px]" style={{ color: '#ffe234' }}>Search</span>
-                      <div className="ml-auto text-[13px] text-white/45">
+                      <div className="ml-auto text-[13px] text-black/45">
                         {dbRows > 0 ? `${(dbRows * 847).toLocaleString()} results` : 'searching…'}
                       </div>
                     </div>
@@ -571,7 +571,7 @@ export function AiResearchSection() {
 
                     {/* Table header */}
                     {dbRows > 0 && (
-                      <div className="grid grid-cols-[1fr_1fr_1fr_44px] gap-x-3 px-4 py-1.5 text-[13px] font-bold text-white/38 uppercase tracking-widest border-b border-white/[0.04] bg-[#0e0e10]">
+                      <div className="grid grid-cols-[1fr_1fr_1fr_44px] gap-x-3 px-4 py-1.5 text-[13px] font-bold text-black/38 uppercase tracking-widest border-b border-white/[0.04] bg-[#0e0e10]">
                         <span>Name</span><span>Title</span><span>Company</span><span className="text-right">Fit</span>
                       </div>
                     )}
@@ -584,13 +584,13 @@ export function AiResearchSection() {
                         style={subStep >= 1 && lead.top ? { background: 'rgba(255,226,52,0.06)', borderLeft: '2px solid #ffe234' } : {}}
                       >
                         <div className="flex items-center gap-2 min-w-0">
-                          <div className="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold shrink-0" style={lead.top ? { background: 'rgba(255,226,52,0.2)', color: '#ffe234' } : { background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.3)' }}>{lead.initials}</div>
-                          <span className={`text-[13px] font-medium truncate ${lead.top ? 'text-white/85' : 'text-white/50'}`}>{lead.name}</span>
+                          <div className="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold shrink-0" style={lead.top ? { background: 'rgba(255,226,52,0.2)', color: '#ffe234' } : { background: 'rgba(0,0,0,0.05)', color: 'rgba(0,0,0,0.35)' }}>{lead.initials}</div>
+                          <span className={`text-[13px] font-medium truncate ${lead.top ? 'text-black/85' : 'text-black/50'}`}>{lead.name}</span>
                         </div>
-                        <span className={`text-[13px] truncate ${lead.top ? 'text-white/55' : 'text-white/30'}`}>{lead.title}</span>
-                        <span className={`text-[13px] truncate ${lead.top ? 'text-white/55' : 'text-white/30'}`}>{lead.company}</span>
+                        <span className={`text-[13px] truncate ${lead.top ? 'text-black/55' : 'text-black/30'}`}>{lead.title}</span>
+                        <span className={`text-[13px] truncate ${lead.top ? 'text-black/55' : 'text-black/30'}`}>{lead.company}</span>
                         <div className="flex justify-end">
-                          <span className="text-[13px] font-bold px-1.5 py-0.5 rounded" style={lead.top ? { background: 'rgba(255,226,52,0.18)', color: '#ffe234' } : { color: 'rgba(255,255,255,0.2)' }}>{lead.score}</span>
+                          <span className="text-[13px] font-bold px-1.5 py-0.5 rounded" style={lead.top ? { background: 'rgba(255,226,52,0.18)', color: '#ffe234' } : { color: 'rgba(0,0,0,0.3)' }}>{lead.score}</span>
                         </div>
                       </div>
                     ))}
@@ -679,15 +679,15 @@ export function AiResearchSection() {
                         <div className="w-6 h-6 rounded flex items-center justify-center font-black text-[13px]" style={{ background: '#0d9b25', color: 'white' }}>TC</div>
                         <span className="font-black text-[13px]" style={{ color: '#0d9b25', fontFamily: 'helvetica, arial, sans-serif' }}>TechCrunch</span>
                       </div>
-                      <div className="ml-auto flex items-center gap-3 text-[13px] text-white/45">
+                      <div className="ml-auto flex items-center gap-3 text-[13px] text-black/45">
                         <span>Startups</span><span>Venture</span><span>AI</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[13px] font-bold text-white/35">STARTUPS</span>
-                      <span className="text-[13px] text-white/38">· 3 days ago</span>
+                      <span className="text-[13px] font-bold text-black/35">STARTUPS</span>
+                      <span className="text-[13px] text-black/38">· 3 days ago</span>
                     </div>
-                    <h3 className="text-white/88 font-black text-[16px] leading-snug" style={{ fontFamily: 'helvetica, arial, sans-serif' }}>ScaleFlow raises $12M Series A to triple US outbound sales capacity</h3>
+                    <h3 className="text-black/88 font-black text-[16px] leading-snug" style={{ fontFamily: 'helvetica, arial, sans-serif' }}>ScaleFlow raises $12M Series A to triple US outbound sales capacity</h3>
                     <div className="space-y-3.5">
                       {ARTICLE_PARAS.map((para, i) => (
                         <ArticlePara key={i} text={para} state={i < artPara ? 'past' : i === artPara ? 'current' : 'future'} setRef={el => { paraElems.current[i] = el }} />
@@ -703,7 +703,7 @@ export function AiResearchSection() {
                     <div className="flex items-center px-4 py-2 shrink-0" style={{ background: '#3c4043' }}>
                       <div className="flex items-center gap-2 flex-1">
                         <div className="w-5 h-5 rounded flex items-center justify-center shrink-0" style={{ background: '#EA4335' }}>
-                          <span className="text-white font-black text-[13px]">M</span>
+                          <span className="text-gray-900 font-black text-[13px]">M</span>
                         </div>
                         <span className="text-[13px] font-medium" style={{ color: '#e8eaed' }}>New Message</span>
                       </div>
@@ -767,8 +767,8 @@ export function AiResearchSection() {
                     <div className="flex items-center gap-3 pb-3 border-b border-white/[0.06]">
                       <div className="w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-300 font-black text-xs shrink-0">SC</div>
                       <div>
-                        <div className="text-white/80 font-bold text-sm">ScaleFlow · Sarah Chen</div>
-                        <div className="text-white/30 text-[13px]">Head of Growth · San Francisco</div>
+                        <div className="text-black/80 font-bold text-sm">ScaleFlow · Sarah Chen</div>
+                        <div className="text-black/30 text-[13px]">Head of Growth · San Francisco</div>
                       </div>
                       <span className="ml-auto text-[13px] font-bold text-indigo-400/50 uppercase tracking-widest">Research Report</span>
                     </div>
@@ -776,9 +776,9 @@ export function AiResearchSection() {
                       const shown = Math.max(0, reportItems - si * 10)
                       return (
                         <div key={si} className="slide-up space-y-2">
-                          <div className={`text-[13px] font-bold uppercase tracking-widest ${sec.accent ? 'text-green-400/70' : 'text-white/45'}`}>{sec.label}</div>
+                          <div className={`text-[13px] font-bold uppercase tracking-widest ${sec.accent ? 'text-green-400/70' : 'text-black/45'}`}>{sec.label}</div>
                           {sec.items.slice(0, shown).map((item, ii) => (
-                            <div key={ii} className={`slide-up flex items-center gap-2 text-[13px] ${sec.accent ? 'text-green-400' : 'text-white/55'}`}>
+                            <div key={ii} className={`slide-up flex items-center gap-2 text-[13px] ${sec.accent ? 'text-green-400' : 'text-black/55'}`}>
                               <span className={`text-[13px] shrink-0 ${sec.accent ? 'text-green-400' : 'text-indigo-400'}`}>→</span>{item}
                             </div>
                           ))}
@@ -806,11 +806,11 @@ export function AiResearchSection() {
                         <rect x="63" y="63" width="14" height="22" rx="7" fill="#FF7A59" transform="rotate(-45 70 74)"/>
                       </svg>
                       <span className="text-[13px] font-bold" style={{ color: '#FF7A59' }}>HubSpot</span>
-                      <span className="text-white/15 text-[13px] mx-1">/</span>
-                      <span className="text-[13px] text-white/35">CRM</span>
-                      <span className="text-white/15 text-[13px] mx-1">/</span>
-                      <span className="text-[13px] text-white/35">Contacts</span>
-                      <span className="text-white/15 text-[13px] mx-1">/</span>
+                      <span className="text-black/15 text-[13px] mx-1">/</span>
+                      <span className="text-[13px] text-black/35">CRM</span>
+                      <span className="text-black/15 text-[13px] mx-1">/</span>
+                      <span className="text-[13px] text-black/35">Contacts</span>
+                      <span className="text-black/15 text-[13px] mx-1">/</span>
                       <span className="text-[13px]" style={{ color: '#FF7A59' }}>Sarah Chen</span>
                     </div>
 
@@ -818,18 +818,18 @@ export function AiResearchSection() {
                     <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[0.06]">
                       <div className="w-11 h-11 rounded-full flex items-center justify-center font-bold text-sm shrink-0" style={{ background: 'rgba(255,122,89,0.15)', border: '1px solid rgba(255,122,89,0.3)', color: '#FF7A59' }}>SC</div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-white/85 font-bold text-[14px]">Sarah Chen</div>
-                        <div className="text-white/35 text-[13px]">Head of Growth · ScaleFlow</div>
+                        <div className="text-black/85 font-bold text-[14px]">Sarah Chen</div>
+                        <div className="text-black/35 text-[13px]">Head of Growth · ScaleFlow</div>
                       </div>
-                      <button className="px-3 py-1.5 rounded text-white text-[13px] font-bold shrink-0" style={{ background: '#FF7A59' }}>+ Enroll in Sequence</button>
+                      <button className="px-3 py-1.5 rounded text-gray-900 text-[13px] font-bold shrink-0" style={{ background: '#FF7A59' }}>+ Enroll in Sequence</button>
                     </div>
 
                     {/* Deal stage pipeline */}
                     <div className="px-4 py-3 border-b border-white/[0.06]">
-                      <div className="text-[13px] font-bold text-white/45 uppercase tracking-widest mb-2.5">Deal Stage</div>
+                      <div className="text-[13px] font-bold text-black/45 uppercase tracking-widest mb-2.5">Deal Stage</div>
                       <div className="flex gap-1">
                         {['Prospect', 'Contacted', 'Meeting', 'Proposal', 'Closed'].map((stage, i) => (
-                          <div key={stage} className="flex-1 py-1.5 text-center text-[13px] font-bold rounded transition-all" style={i <= 1 ? { background: '#FF7A59', color: 'white' } : { background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.2)' }}>
+                          <div key={stage} className="flex-1 py-1.5 text-center text-[13px] font-bold rounded transition-all" style={i <= 1 ? { background: '#FF7A59', color: 'white' } : { background: 'rgba(0,0,0,0.04)', color: 'rgba(0,0,0,0.3)' }}>
                             {stage}
                           </div>
                         ))}
@@ -838,12 +838,12 @@ export function AiResearchSection() {
 
                     {/* Properties */}
                     <div className="px-4 py-3">
-                      <div className="text-[13px] font-bold text-white/45 uppercase tracking-widest mb-2.5">Contact Properties</div>
+                      <div className="text-[13px] font-bold text-black/45 uppercase tracking-widest mb-2.5">Contact Properties</div>
                       <div className="rounded-xl border border-white/[0.08] overflow-hidden">
                         {CRM_FIELDS.map((f, i) => (
                           <div key={f.label} className={`flex items-center gap-3 px-4 py-2.5 border-b border-white/[0.05] last:border-0 transition-all duration-300 ${crmField > i ? 'opacity-100' : 'opacity-20'}`}>
-                            <span className="text-white/28 text-[13px] w-18 shrink-0">{f.label}</span>
-                            <span className={`text-[13px] font-medium flex-1 ${crmField > i ? 'text-white/70' : 'text-white/10'}`}>{crmField > i ? f.value : '—'}</span>
+                            <span className="text-black/28 text-[13px] w-18 shrink-0">{f.label}</span>
+                            <span className={`text-[13px] font-medium flex-1 ${crmField > i ? 'text-black/70' : 'text-black/10'}`}>{crmField > i ? f.value : '—'}</span>
                             {crmField > i && <span className="ml-auto text-[13px]" style={{ color: 'rgba(255,122,89,0.6)' }}>✓</span>}
                           </div>
                         ))}
@@ -853,11 +853,11 @@ export function AiResearchSection() {
                     {/* Sync bar */}
                     {crmField >= CRM_FIELDS.length && (
                       <div className="px-4 pb-3">
-                        <div className="flex justify-between text-[13px] text-white/45 mb-1.5">
+                        <div className="flex justify-between text-[13px] text-black/45 mb-1.5">
                           <span>Syncing to HubSpot</span>
                           <span style={{ color: '#FF7A59' }}>{crmBar === 100 ? '100%' : '…'}</span>
                         </div>
-                        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.05)' }}>
                           <div className="h-full rounded-full transition-all" style={{ width: `${crmBar}%`, background: '#FF7A59', transition: 'width 1.0s ease-out' }} />
                         </div>
                       </div>
@@ -881,14 +881,14 @@ export function AiResearchSection() {
               {/* Notes panel */}
               {showSplit && (
                 <div className="w-[200px] shrink-0 p-4 overflow-y-auto flex flex-col gap-2.5">
-                  <div className="text-[13px] font-bold text-white/45 uppercase tracking-widest flex items-center gap-1.5 mb-1">
+                  <div className="text-[13px] font-bold text-black/45 uppercase tracking-widest flex items-center gap-1.5 mb-1">
                     <span className="text-indigo-400">✦</span>Research Notes
                   </div>
                   {notesList.length === 0 ? (
-                    <div className="text-[13px] text-white/15 italic">Collecting signals…</div>
+                    <div className="text-[13px] text-black/15 italic">Collecting signals…</div>
                   ) : (
                     notesList.map((note, i) => (
-                      <div key={i} className={`note-item flex items-start gap-1.5 text-[13px] leading-snug ${(phase === 'email' || phase === 'done' || phase === 'report') ? 'text-white/38' : 'text-white/60'}`}>
+                      <div key={i} className={`note-item flex items-start gap-1.5 text-[13px] leading-snug ${(phase === 'email' || phase === 'done' || phase === 'report') ? 'text-black/38' : 'text-black/60'}`}>
                         <span className="text-indigo-400/70 text-[13px] mt-[3px] shrink-0">✦</span>
                         <span>{note}</span>
                       </div>
@@ -897,7 +897,7 @@ export function AiResearchSection() {
                   {(phase === 'email' || phase === 'done') && notesList.length > 0 && (
                     <div className="mt-2 pt-2.5 border-t border-white/[0.06]">
                       <div className="text-[13px] text-indigo-400/70 font-semibold mb-1.5">Building from</div>
-                      <div className="text-[13px] text-white/40 leading-snug space-y-1">
+                      <div className="text-[13px] text-black/40 leading-snug space-y-1">
                         <div>→ SDR expansion signal</div>
                         <div>→ Series A context</div>
                         <div>→ Growth quote</div>

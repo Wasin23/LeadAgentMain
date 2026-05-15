@@ -364,15 +364,15 @@ function TeamViz() {
     <div className="card-premium relative rounded-2xl overflow-hidden w-full" style={{ height: 560, background: 'linear-gradient(180deg, rgb(14,16,40) 0%, rgb(4,6,15) 100%)' }}>
       {/* title bar */}
       <div className="flex items-center px-3 border-b border-white/[0.06] bg-[#141414] relative z-10" style={{ height: 36 }}>
-        <span className="text-[10px] text-white/20 font-mono">meridian · workspace</span>
+        <span className="text-[10px] text-black/20 font-mono">meridian · workspace</span>
         <span className="ml-3 flex items-center gap-1.5 text-[9px] text-green-400/60 font-mono">
           <span className="w-1.5 h-1.5 rounded-full bg-green-400/80" />
           4 members · 3 agents online
         </span>
         <div className="ml-auto flex items-center">
-          <button className="w-9 h-9 flex items-center justify-center text-white/25 hover:bg-white/[0.07] text-[13px] leading-none">─</button>
-          <button className="w-9 h-9 flex items-center justify-center text-white/25 hover:bg-white/[0.07] text-[11px] leading-none">□</button>
-          <button className="w-9 h-9 flex items-center justify-center text-white/25 hover:bg-red-600/70 hover:text-white text-[15px] leading-none rounded-tr-2xl">✕</button>
+          <button className="w-9 h-9 flex items-center justify-center text-black/25 hover:bg-white/[0.07] text-[13px] leading-none">─</button>
+          <button className="w-9 h-9 flex items-center justify-center text-black/25 hover:bg-white/[0.07] text-[11px] leading-none">□</button>
+          <button className="w-9 h-9 flex items-center justify-center text-black/25 hover:bg-red-600/70 hover:text-gray-900 text-[15px] leading-none rounded-tr-2xl">✕</button>
         </div>
       </div>
 
@@ -385,7 +385,7 @@ function TeamViz() {
         ] as const).map(([, rgb, label]) => (
           <div key={label} className="flex items-center gap-1.5">
             <div className="w-5 h-px" style={{ background: `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.7)` }} />
-            <span className="text-[9px] text-white/25">{label}</span>
+            <span className="text-[9px] text-black/25">{label}</span>
           </div>
         ))}
       </div>
@@ -404,10 +404,10 @@ export function TeamSection() {
         {/* left copy */}
         <div className="flex-1 max-w-[460px] shrink-0">
           <p className="enter-0 text-indigo-400 text-sm font-semibold tracking-widest uppercase mb-4">Teams</p>
-          <h2 className="enter-1 text-5xl xl:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6">
+          <h2 className="enter-1 text-5xl xl:text-6xl font-black text-gray-900 leading-[1.05] tracking-tight mb-6">
             One team.<br />Endless opportunities.
           </h2>
-          <p className="enter-2 text-white/50 text-lg leading-relaxed mb-8">
+          <p className="enter-2 text-black/50 text-lg leading-relaxed mb-8">
             Every rep gets their own agents. Every agent shares data with the team. Your whole org moves in concert, no duplicated effort, no dropped balls.
           </p>
           <div className="enter-3 space-y-3 mb-10">
@@ -417,7 +417,7 @@ export function TeamSection() {
               'Agents coordinate, no duplicate leads sent',
               'Manager view: all activity in one dashboard',
             ].map(f => (
-              <div key={f} className="flex items-center gap-3 text-white/55 text-[15px]">
+              <div key={f} className="flex items-center gap-3 text-black/55 text-[15px]">
                 <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" />
                 {f}
               </div>

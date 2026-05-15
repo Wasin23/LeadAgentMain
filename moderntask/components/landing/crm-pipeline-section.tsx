@@ -58,14 +58,14 @@ function ScanLine({ text, active, done }: { text: string; active: boolean; done:
   return (
     <p className={`text-[13px] leading-[1.7] transition-opacity duration-300 ${!active && !done ? 'opacity-30' : 'opacity-100'}`}>
       {done ? (
-        <span className="text-white/55">{text}</span>
+        <span className="text-black/55">{text}</span>
       ) : (
         words.map((w, i) => (
           <span key={i}>
             <span className={
-              i < idx   ? 'text-white/55' :
-              i === idx ? 'bg-indigo-500/30 text-white/90 rounded-sm px-0.5' :
-              'text-white/20'
+              i < idx   ? 'text-black/55' :
+              i === idx ? 'bg-indigo-500/30 text-black/90 rounded-sm px-0.5' :
+              'text-black/20'
             }>{w}</span>
             {i < words.length - 1 ? ' ' : ''}
           </span>
@@ -117,11 +117,11 @@ function CrmUnverified({ active, currentIdx }: { active: boolean; currentIdx: nu
 
   return (
     <div className="flex flex-col gap-2 w-[148px]">
-      <div className={`text-[12px] font-bold uppercase tracking-widest transition-colors ${active ? 'text-indigo-400' : 'text-white/25'}`}>
+      <div className={`text-[12px] font-bold uppercase tracking-widest transition-colors ${active ? 'text-indigo-400' : 'text-black/25'}`}>
         Your CRM
       </div>
       <div className="rounded-xl border border-white/[0.08] bg-[#080c20] overflow-hidden">
-        <div className="px-3 py-1.5 border-b border-white/[0.05] text-[11px] text-white/20 font-mono flex justify-between">
+        <div className="px-3 py-1.5 border-b border-white/[0.05] text-[11px] text-black/20 font-mono flex justify-between">
           <span>unaudited</span>
           <span>{remaining.length}</span>
         </div>
@@ -131,13 +131,13 @@ function CrmUnverified({ active, currentIdx }: { active: boolean; currentIdx: nu
             className={`px-3 py-2 border-b border-white/[0.04] last:border-0 transition-all ${i === 0 && active ? 'bg-indigo-500/10' : ''}`}
           >
             <div className="flex items-center justify-between gap-1">
-              <div className="text-[13px] font-semibold text-white/60 truncate">{r.name}</div>
+              <div className="text-[13px] font-semibold text-black/60 truncate">{r.name}</div>
               {i === 0 && active
                 ? <span className="text-[11px] text-indigo-400 shrink-0">↑ auditing</span>
-                : <span className="text-[11px] text-white/15 shrink-0">?</span>
+                : <span className="text-[11px] text-black/15 shrink-0">?</span>
               }
             </div>
-            <div className="text-[12px] text-white/25">{r.co}</div>
+            <div className="text-[12px] text-black/25">{r.co}</div>
           </div>
         ))}
       </div>
@@ -152,11 +152,11 @@ function AuditStation({ phase, paraIdx }: { phase: Phase; paraIdx: number }) {
 
   return (
     <div className={`flex flex-col gap-2 w-[252px] transition-all duration-500 ${active ? 'opacity-100' : 'opacity-70'}`}>
-      <div className={`text-[12px] font-bold uppercase tracking-widest transition-colors ${active ? 'text-indigo-400' : 'text-white/25'}`}>
+      <div className={`text-[12px] font-bold uppercase tracking-widest transition-colors ${active ? 'text-indigo-400' : 'text-black/25'}`}>
         Audit station
       </div>
       <div className="rounded-xl border border-white/[0.08] bg-[#080c20] p-3 space-y-2">
-        <div className={`text-[12px] font-mono truncate transition-colors ${active ? 'text-indigo-400/70' : 'text-white/15'}`}>
+        <div className={`text-[12px] font-mono truncate transition-colors ${active ? 'text-indigo-400/70' : 'text-black/15'}`}>
           {active ? '⟳ verifying · scaleflow.com' : '── waiting for record ──'}
         </div>
         {ARTICLE_PARAS.map((para, i) => (
@@ -173,7 +173,7 @@ function AuditStation({ phase, paraIdx }: { phase: Phase; paraIdx: number }) {
           <div className="text-[11px] font-bold text-indigo-400/60 uppercase tracking-widest mb-1">Audit findings</div>
           {SIGNALS.slice(0, signalsShown).map((s, i) => (
             <div key={i} className="flex items-center justify-between gap-2 text-[12px]">
-              <span className="text-white/40">{s.label}</span>
+              <span className="text-black/40">{s.label}</span>
               <span className={`font-medium ${i === SIGNALS.length - 1 ? 'text-green-400' : 'text-indigo-300/80'}`}>{s.value}</span>
             </div>
           ))}
@@ -189,26 +189,26 @@ function CrmVerified({ verifiedCount, currentIdx }: { verifiedCount: number; cur
 
   return (
     <div className="flex flex-col gap-2 w-[148px]">
-      <div className="text-[12px] font-bold uppercase tracking-widest text-white/25">
+      <div className="text-[12px] font-bold uppercase tracking-widest text-black/25">
         Audited
       </div>
       <div className="rounded-xl border border-white/[0.08] bg-[#080c20] overflow-hidden">
-        <div className="px-3 py-1.5 border-b border-white/[0.05] text-[11px] text-white/20 font-mono flex justify-between">
+        <div className="px-3 py-1.5 border-b border-white/[0.05] text-[11px] text-black/20 font-mono flex justify-between">
           <span>verified</span>
           <span className="text-green-400/60">{verifiedCount}</span>
         </div>
         {rows.length === 0 && (
-          <div className="px-3 py-4 text-[11px] text-white/20 italic text-center">none yet</div>
+          <div className="px-3 py-4 text-[11px] text-black/20 italic text-center">none yet</div>
         )}
         {rows.map((r, i) => (
           <div key={i} className="px-3 py-2 border-b border-white/[0.04] last:border-0">
             <div className="flex items-center justify-between gap-1">
-              <div className="text-[13px] font-semibold text-white/70 truncate">{r.name}</div>
+              <div className="text-[13px] font-semibold text-black/70 truncate">{r.name}</div>
               <span className="text-[11px] font-bold text-green-400 shrink-0">
                 {FIT_SCORES[(i + verifiedCount) % FIT_SCORES.length]}%
               </span>
             </div>
-            <div className="text-[12px] text-white/25">{r.co}</div>
+            <div className="text-[12px] text-black/25">{r.co}</div>
           </div>
         ))}
       </div>
@@ -334,10 +334,10 @@ export function CrmPipelineSection() {
 
         <div className="flex-1 max-w-[420px] shrink-0">
           <p className="enter-0 text-indigo-400 text-sm font-semibold tracking-widest uppercase mb-4">CRM Auditor</p>
-          <h2 className="enter-1 text-5xl xl:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6">
+          <h2 className="enter-1 text-5xl xl:text-6xl font-black text-gray-900 leading-[1.05] tracking-tight mb-6">
             Audits your CRM.<br />Verifies every lead.
           </h2>
-          <p className="enter-2 text-white/50 text-lg leading-relaxed mb-8">
+          <p className="enter-2 text-black/50 text-lg leading-relaxed mb-8">
             Meridian works through your existing CRM records one by one, re-researching each contact with live signals, verifying fit, and flagging anyone worth re-engaging before you waste a send.
           </p>
           <div className="enter-3 space-y-3 mb-10">
@@ -347,7 +347,7 @@ export function CrmPipelineSection() {
               'Scores each lead before it hits your sequence',
               'Writes back verified data to HubSpot or Salesforce',
             ].map(f => (
-              <div key={f} className="flex items-center gap-3 text-white/55 text-[15px]">
+              <div key={f} className="flex items-center gap-3 text-black/55 text-[15px]">
                 <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" />
                 {f}
               </div>

@@ -59,8 +59,8 @@ function makeProfileSprite(name: string, title: string, init: string): THREE.Spr
 
   // card bg — fully opaque gradient
   const grad = ctx.createLinearGradient(0, 0, 0, CH)
-  grad.addColorStop(0, 'rgb(18, 24, 58)')
-  grad.addColorStop(1, 'rgb(9, 13, 40)')
+  grad.addColorStop(0, 'rgb(235, 240, 255)')
+  grad.addColorStop(1, 'rgb(220, 230, 255)')
   ctx.fillStyle = grad
   rrect(ctx, 0, 0, CW, CH, 10); ctx.fill()
 
@@ -115,7 +115,7 @@ function makeOpenedSprite(): THREE.Sprite {
   const ctx = cv.getContext('2d')!
 
   // dark bg pill — fully opaque
-  ctx.fillStyle = 'rgb(5, 28, 14)'
+  ctx.fillStyle = 'rgb(230, 250, 240)'
   rrect(ctx, 0, 0, CW, CH, 18); ctx.fill()
 
   // green dot
@@ -445,10 +445,10 @@ export function OutreachSection() {
         <div className="w-full max-w-7xl mx-auto px-6 sm:px-12">
         <div className="max-w-[440px] pointer-events-auto">
           <p className="enter-0 text-indigo-400 text-sm font-semibold tracking-widest uppercase mb-4">Outreach</p>
-          <h2 className="enter-1 text-5xl xl:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6">
+          <h2 className="enter-1 text-5xl xl:text-6xl font-black text-gray-900 leading-[1.05] tracking-tight mb-6">
             Sends. Tracks.<br />Follows up.
           </h2>
-          <p className="enter-2 text-white/50 text-lg leading-relaxed mb-8">
+          <p className="enter-2 text-black/50 text-lg leading-relaxed mb-8">
             Every email fires from your real inbox. Opens get tracked, follow-ups go out automatically, and the moment someone replies, all sequences stop instantly.
           </p>
           <div className="enter-3 space-y-3 mb-10">
@@ -458,7 +458,7 @@ export function OutreachSection() {
               'Smart follow-ups: pause on reply, resume on silence',
               'Every reply routes back to your inbox',
             ].map(f => (
-              <div key={f} className="flex items-center gap-3 text-white/55 text-[15px]">
+              <div key={f} className="flex items-center gap-3 text-black/55 text-[15px]">
                 <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" />
                 {f}
               </div>
@@ -480,11 +480,11 @@ export function OutreachSection() {
         <div className="absolute bottom-4 left-4 z-10 flex items-center gap-4 pointer-events-none">
           <div className="flex items-center gap-1.5">
             <div className="w-5 h-px" style={{ background: 'rgba(68,102,255,0.8)' }} />
-            <span className="text-[9px] text-white/25">Outgoing</span>
+            <span className="text-[9px] text-black/25">Outgoing</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-5 h-px" style={{ background: 'rgba(34,221,119,0.8)' }} />
-            <span className="text-[9px] text-white/25">Replies</span>
+            <span className="text-[9px] text-black/25">Replies</span>
           </div>
         </div>
       </div>

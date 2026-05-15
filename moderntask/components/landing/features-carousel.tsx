@@ -105,7 +105,7 @@ export function FeaturesCarousel({ children, labels = [] }: { children: ReactNod
             <span className={`block rounded-full transition-all duration-300 ${
               i === step
                 ? 'w-1.5 h-6 bg-indigo-400'
-                : 'w-1.5 h-1.5 bg-white/20 group-hover:bg-white/40'
+                : 'w-1.5 h-1.5 bg-black/20 group-hover:bg-black/40'
             }`} />
           </button>
         ))}
@@ -113,11 +113,11 @@ export function FeaturesCarousel({ children, labels = [] }: { children: ReactNod
 
       {/* bottom-left step label */}
       <div className="absolute left-8 bottom-8 z-30 flex items-center gap-4 select-none">
-        <span className="font-mono text-white/20 text-xs tabular-nums">
+        <span className="font-mono text-black/25 text-xs tabular-nums">
           {String(step + 1).padStart(2, '0')} / {String(total).padStart(2, '0')}
         </span>
         {labels[step] && (
-          <span className="text-white/35 text-xs font-medium">{labels[step]}</span>
+          <span className="text-black/40 text-xs font-medium">{labels[step]}</span>
         )}
       </div>
 
@@ -126,7 +126,7 @@ export function FeaturesCarousel({ children, labels = [] }: { children: ReactNod
         <button
           onClick={() => advance(-1)}
           disabled={step === 0}
-          className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-white/30 hover:text-white/70 hover:border-white/30 transition-all disabled:opacity-20"
+          className="w-8 h-8 rounded-full border border-black/15 flex items-center justify-center text-black/30 hover:text-black/70 hover:border-black/30 transition-all disabled:opacity-20"
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
             <path d="M6 9L2 5l4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -136,7 +136,7 @@ export function FeaturesCarousel({ children, labels = [] }: { children: ReactNod
         <button
           onClick={() => advance(1)}
           disabled={step === total - 1}
-          className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-white/30 hover:text-white/70 hover:border-white/30 transition-all disabled:opacity-20"
+          className="w-8 h-8 rounded-full border border-black/15 flex items-center justify-center text-black/30 hover:text-black/70 hover:border-black/30 transition-all disabled:opacity-20"
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
             <path d="M6 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>

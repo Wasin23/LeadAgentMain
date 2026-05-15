@@ -143,10 +143,10 @@ export function AgentSection() {
         {/* left copy */}
         <div className="flex-1 max-w-[460px] shrink-0">
           <p className="enter-0 text-indigo-400 text-sm font-semibold tracking-widest uppercase mb-4">Agents</p>
-          <h2 className="enter-1 text-5xl xl:text-6xl font-black text-white leading-[1.05] tracking-tight mb-6">
+          <h2 className="enter-1 text-5xl xl:text-6xl font-black text-gray-900 leading-[1.05] tracking-tight mb-6">
             Your agent.<br />Five personalities.
           </h2>
-          <p className="enter-2 text-white/50 text-lg leading-relaxed mb-8">
+          <p className="enter-2 text-black/50 text-lg leading-relaxed mb-8">
             Every agent runs autonomously: finding leads, researching accounts, writing personalized emails, and managing follow-ups. Pick the personality that fits your sales motion.
           </p>
           <div className="enter-3 space-y-3 mb-10">
@@ -156,7 +156,7 @@ export function AgentSection() {
               'Integrates with Gmail, Outlook, and your CRM',
               'Stops and re-routes when sources are exhausted',
             ].map(f => (
-              <div key={f} className="flex items-center gap-3 text-white/55 text-[15px]">
+              <div key={f} className="flex items-center gap-3 text-black/55 text-[15px]">
                 <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" />
                 {f}
               </div>
@@ -198,13 +198,13 @@ export function AgentSection() {
                   <div className="text-center">
                     <div
                       className="text-[12px] font-bold leading-tight transition-colors duration-200"
-                      style={{ color: isActive ? '#fff' : 'rgba(255,255,255,0.28)' }}
+                      style={{ color: isActive ? '#111' : 'rgba(0,0,0,0.35)' }}
                     >
                       {a.name}
                     </div>
                     <div
                       className="text-[9px] leading-tight mt-0.5 transition-colors duration-200"
-                      style={{ color: isActive ? a.accent : 'rgba(255,255,255,0.15)' }}
+                      style={{ color: isActive ? a.accent : 'rgba(0,0,0,0.25)' }}
                     >
                       {a.title}
                     </div>
@@ -231,9 +231,9 @@ export function AgentSection() {
           <div
             className="rounded-2xl overflow-hidden transition-all duration-160"
             style={{
-              background: 'linear-gradient(180deg, rgb(14,16,36) 0%, rgb(5,7,15) 100%)',
+              background: 'rgba(255,255,255,0.9)',
               border: `1px solid rgba(${hexToRgb(agent.accent)},0.28)`,
-              boxShadow: `inset 0 1px 0 rgba(255,255,255,0.08), 0 2px 4px rgba(0,0,0,0.4), 0 12px 40px rgba(0,0,0,0.6), 0 0 40px rgba(${hexToRgb(agent.accent)},0.04)`,
+              boxShadow: `0 2px 8px rgba(0,0,0,0.08), 0 12px 40px rgba(0,0,0,0.12), 0 0 40px rgba(${hexToRgb(agent.accent)},0.04)`,
               opacity: fading ? 0 : 1,
               transform: fading ? 'translateY(6px)' : 'translateY(0)',
             }}
@@ -251,14 +251,14 @@ export function AgentSection() {
 
             {/* subject */}
             <div className="px-5 pt-4 pb-2 border-b border-white/[0.04]">
-              <span className="text-[10px] text-white/20 uppercase tracking-widest mr-2">Subject</span>
-              <span className="text-[13px] text-white/75 font-semibold">{agent.email.subject}</span>
+              <span className="text-[10px] text-black/20 uppercase tracking-widest mr-2">Subject</span>
+              <span className="text-[13px] text-black/75 font-semibold">{agent.email.subject}</span>
             </div>
 
             {/* body */}
             <div className="px-5 py-4 space-y-3">
               {agent.email.body.split('\n\n').map((para, i) => (
-                <p key={i} className="text-[13px] leading-relaxed text-white/60">
+                <p key={i} className="text-[13px] leading-relaxed text-black/60">
                   {para}
                 </p>
               ))}

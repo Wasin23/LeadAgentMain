@@ -286,7 +286,7 @@ function GlobeSection({ children }: { children: React.ReactNode }) {
           {children}
         </div>
       </div>
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 text-white/22 text-[10px] tracking-widest uppercase select-none pointer-events-none">
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 text-black/22 text-[10px] tracking-widest uppercase select-none pointer-events-none">
         <span>scroll</span>
         <div className="w-px h-10 bg-gradient-to-b from-white/22 to-transparent" />
       </div>
@@ -310,10 +310,10 @@ export function ScrollStory() {
           <p className="text-indigo-400/80 text-xs font-semibold tracking-[0.2em] uppercase mb-5">
             How Meridian works
           </p>
-          <h2 className="text-[clamp(1.9rem,3.2vw,3.4rem)] font-black text-white leading-[1.04] mb-5">
+          <h2 className="text-[clamp(1.9rem,3.2vw,3.4rem)] font-black text-gray-900 leading-[1.04] mb-5">
             Your agent finds 50 new qualified prospects every morning.
           </h2>
-          <p className="text-white/45 text-[1.05rem] leading-relaxed mb-10 max-w-md">
+          <p className="text-black/45 text-[1.05rem] leading-relaxed mb-10 max-w-md">
             Define your ICP once. Meridian scans companies, scores by fit, researches each account, and hands you a live prospect list — fully automated.
           </p>
           <div className="space-y-5">
@@ -335,8 +335,8 @@ export function ScrollStory() {
                   <Icon className="w-4 h-4 text-indigo-400" />
                 </div>
                 <div>
-                  <p className="text-white/85 text-sm font-semibold mb-0.5">{step}</p>
-                  <p className="text-white/38 text-sm leading-relaxed">{desc}</p>
+                  <p className="text-black/85 text-sm font-semibold mb-0.5">{step}</p>
+                  <p className="text-black/38 text-sm leading-relaxed">{desc}</p>
                 </div>
               </div>
             ))}
@@ -350,10 +350,10 @@ export function ScrollStory() {
           <p className="text-indigo-400/80 text-xs font-semibold tracking-[0.2em] uppercase mb-5">
             The email
           </p>
-          <h2 className="text-[clamp(1.9rem,3.2vw,3.4rem)] font-black text-white leading-[1.04] mb-4">
+          <h2 className="text-[clamp(1.9rem,3.2vw,3.4rem)] font-black text-gray-900 leading-[1.04] mb-4">
             One personalized email per prospect. Written from research.
           </h2>
-          <p className="text-white/45 text-base leading-relaxed mb-7 max-w-[400px]">
+          <p className="text-black/45 text-base leading-relaxed mb-7 max-w-[400px]">
             Not a template with a name token. Every email is written from account context — funding, hiring signals, product news, and role-specific hooks.
           </p>
           <div className="space-y-3 max-w-[430px]">
@@ -381,13 +381,13 @@ export function ScrollStory() {
               >
                 <div className="flex items-center gap-2 mb-1.5 text-[11px]">
                   <span className="text-indigo-400 font-medium">To:</span>
-                  <span className="text-white/50">{email.to}</span>
+                  <span className="text-black/50">{email.to}</span>
                   <span className="ml-auto rounded-full bg-indigo-500/20 text-indigo-300/80 px-2 py-0.5 text-[10px] font-medium">
                     {email.tag}
                   </span>
                 </div>
-                <p className="text-white/80 text-xs font-semibold mb-1.5 leading-snug">{email.subject}</p>
-                <p className="text-white/32 text-[11px] leading-relaxed line-clamp-2">{email.preview}</p>
+                <p className="text-black/80 text-xs font-semibold mb-1.5 leading-snug">{email.subject}</p>
+                <p className="text-black/32 text-[11px] leading-relaxed line-clamp-2">{email.preview}</p>
               </div>
             ))}
           </div>
@@ -403,10 +403,10 @@ export function ScrollStory() {
             <p className="text-indigo-400/80 text-xs font-semibold tracking-[0.2em] uppercase mb-5">
               The full loop
             </p>
-            <h2 className="text-4xl sm:text-5xl xl:text-6xl font-black text-white leading-[1.04] mb-5">
+            <h2 className="text-4xl sm:text-5xl xl:text-6xl font-black text-gray-900 leading-[1.04] mb-5">
               Prospect to pipeline,<br className="hidden sm:block" /> fully automated.
             </h2>
-            <p className="text-white/40 text-lg leading-relaxed max-w-xl mx-auto">
+            <p className="text-black/40 text-lg leading-relaxed max-w-xl mx-auto">
               From the moment a prospect is found to the moment a reply lands in your inbox — Meridian handles every step.
             </p>
           </div>
@@ -423,8 +423,8 @@ export function ScrollStory() {
                 <div className="w-10 h-10 rounded-xl bg-indigo-500/12 border border-indigo-500/20 flex items-center justify-center mb-4 group-hover:bg-indigo-500/18 transition-all">
                   <Icon className="w-4 h-4 text-indigo-300" />
                 </div>
-                <p className="text-white/85 text-sm font-semibold mb-1">{label}</p>
-                <p className="text-white/35 text-xs leading-relaxed">{desc}</p>
+                <p className="text-black/85 text-sm font-semibold mb-1">{label}</p>
+                <p className="text-black/35 text-xs leading-relaxed">{desc}</p>
               </div>
             ))}
           </div>
@@ -436,7 +436,7 @@ export function ScrollStory() {
             >
               Start free with 250 credits <ArrowRight className="w-5 h-5" />
             </Link>
-            <p className="text-white/25 text-sm mt-3">No credit card. Gmail and Outlook supported.</p>
+            <p className="text-black/25 text-sm mt-3">No credit card. Gmail and Outlook supported.</p>
           </div>
         </div>
       </div>
