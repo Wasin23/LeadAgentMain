@@ -38,7 +38,7 @@ export function HorizonHero() {
       <h1 ref={titleRef} className="overflow-hidden mb-8 relative z-10">
         <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
           {words.map((word, wi) => (
-            <span key={wi} className="overflow-hidden inline-block">
+            <span key={wi} className="overflow-hidden inline-block pb-3">
               {word.split('').map((ch, ci) => (
                 <span key={ci} className="char inline-block text-6xl md:text-8xl font-black tracking-tight text-white">
                   {ch}
