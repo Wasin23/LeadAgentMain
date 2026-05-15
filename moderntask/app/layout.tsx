@@ -17,7 +17,7 @@ const siteUrl = getSiteUrl()
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Meridian | AI Cold Email and Outbound Lead Generation",
+    default: "Meridian",
     template: "%s | Meridian",
   },
   description: "Meridian is an AI outbound platform that finds leads, researches accounts, writes personalized cold emails, automates follow-ups, and routes replies back to your real inbox.",
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     "sales prospecting",
   ],
   openGraph: {
-    title: "Meridian | AI Cold Email and Outbound Lead Generation",
+    title: "Meridian",
     description: "Find leads, research accounts, write personalized cold emails, and automate follow-ups from your own inbox.",
     type: "website",
     siteName: "Meridian",
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Meridian | AI Cold Email and Outbound Lead Generation",
+    title: "Meridian",
     description: "AI-powered lead research, personalized outreach, and automated follow-ups from your own inbox.",
   },
   robots: {
@@ -47,10 +47,8 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      {
-        url: "/MeridianLogo.png",
-        type: "image/png",
-      },
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/MeridianLogo.png", type: "image/png" },
     ],
     apple: "/MeridianLogo.png",
   },
