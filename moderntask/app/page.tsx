@@ -40,20 +40,20 @@ const structuredData = {
 }
 
 export const metadata: Metadata = {
-  title: "AI Cold Email Software for Personalized B2B Outbound",
+  title: "Meridian",
   description:
     "Meridian is AI cold email software that finds leads, researches accounts, writes personalized outreach, automates follow-ups, and tracks replies from your real inbox.",
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "Meridian | AI Cold Email Software for B2B Outbound",
+    title: "Meridian",
     description:
       "Research leads, write personalized cold emails, automate follow-ups, and keep replies in one outbound workflow.",
     url: siteUrl,
   },
   twitter: {
-    title: "Meridian | AI Cold Email Software for B2B Outbound",
+    title: "Meridian",
     description:
       "AI-powered lead research, personalized cold email writing, automated follow-ups, and reply tracking from your own inbox.",
   },
