@@ -54,17 +54,17 @@ export function LandingPageClient() {
         <div className="absolute inset-0 opacity-[0.032]"
           style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E\")", backgroundRepeat: 'repeat', backgroundSize: '200px 200px' }} />
       </div>
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 px-6 py-1.5 backdrop-blur bg-black/40 sm:px-10">
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 px-4 py-1.5 backdrop-blur bg-black/40 sm:px-10">
         <div className="relative flex items-center w-full">
 
           {/* Left: logo */}
-          <Link href="/" className="flex items-center gap-3 shrink-0 z-10">
-            <Image src="/MeridianM.png" alt="Meridian" width={96} height={64} className="shrink-0" />
-            <MeridianWordmark className="h-2.5 w-auto" />
+          <Link href="/" className="flex items-center gap-2 shrink-0 z-10">
+            <Image src="/MeridianM.png" alt="Meridian" width={48} height={32} className="shrink-0 sm:w-[96px] sm:h-[64px]" />
+            <MeridianWordmark className="h-2 w-auto sm:h-2.5" />
           </Link>
 
-          {/* Center: section tabs — absolutely centered against full nav width */}
-          <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-0.5">
+          {/* Center: section tabs — hidden on mobile */}
+          <div className="absolute left-1/2 -translate-x-1/2 hidden md:flex items-center gap-0.5">
             {LABELS.map((label, i) =>
               label ? (
                 <button
@@ -84,8 +84,8 @@ export function LandingPageClient() {
 
           {/* Right: auth */}
           <div className="flex items-center gap-2 shrink-0 ml-auto z-10">
-            <Link href="/signin" className="px-4 py-1.5 text-sm text-white/70 hover:text-white transition-colors">Sign In</Link>
-            <Link href="/signin" className="px-4 py-1.5 text-sm font-medium bg-white text-black rounded-lg hover:bg-white/90 transition-colors">Start Free</Link>
+            <Link href="/signin" className="hidden sm:block px-4 py-1.5 text-sm text-white/70 hover:text-white transition-colors">Sign In</Link>
+            <Link href="/signin" className="px-3 py-1.5 text-xs sm:px-4 sm:text-sm font-medium bg-white text-black rounded-lg hover:bg-white/90 transition-colors">Start Free</Link>
           </div>
 
         </div>
