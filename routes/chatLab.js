@@ -4,7 +4,9 @@ import OpenAI from 'openai';
 import { authenticateToken } from '../middleware/jwt.js';
 import { chatLabManager } from '../utils/chatLabManager.js';
 import { zillizCompanyMemory } from '../utils/zillizCompanyMemory.js';
-import pdfParse from 'pdf-parse/lib/pdf-parse.js';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pdfParse = require('pdf-parse');
 import mammoth from 'mammoth';
 
 const router = express.Router();
