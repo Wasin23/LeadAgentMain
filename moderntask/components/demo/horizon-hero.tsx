@@ -35,7 +35,7 @@ export function HorizonHero() {
         <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 md:gap-x-6 md:gap-y-2">
           {words.map((word, wi) => (
             <span key={wi} className="overflow-hidden inline-block pb-3">
-              <span className="word inline-block text-4xl sm:text-6xl md:text-8xl font-black tracking-tight text-black" style={{ fontFamily: 'var(--font-fraunces), Georgia, serif' }}>
+              <span className="word inline-block text-4xl sm:text-6xl md:text-8xl font-black tracking-tight text-black" style={{ fontFamily: 'var(--font-plus-jakarta), sans-serif' }}>
                 {word}
               </span>
             </span>

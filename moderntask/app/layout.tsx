@@ -1,6 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Geist, Geist_Mono, Michroma, Fraunces } from "next/font/google"
+import { Geist, Geist_Mono, Michroma, Plus_Jakarta_Sans } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/contexts/AuthContext"
@@ -12,7 +12,7 @@ import "./globals.css"
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" })
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" })
 const michroma = Michroma({ subsets: ["latin"], weight: "400", variable: "--font-michroma" })
-const fraunces = Fraunces({ subsets: ["latin"], variable: "--font-fraunces", display: "swap" })
+const plusJakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-plus-jakarta", display: "swap" })
 const siteUrl = getSiteUrl()
 
 export const metadata: Metadata = {
@@ -62,7 +62,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geist.variable} ${geistMono.variable} ${michroma.variable} ${fraunces.variable} font-sans antialiased`}>
+      <body className={`${geist.variable} ${geistMono.variable} ${michroma.variable} ${plusJakarta.variable} font-sans antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem storageKey="tasko-theme">
           <AuthProvider>
             {children}
