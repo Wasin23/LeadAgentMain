@@ -39,7 +39,7 @@ export function LandingPageClient() {
 
   return (
     <div className="text-foreground overflow-hidden h-screen">
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-black/10 px-4 py-1.5 backdrop-blur bg-white/80 sm:px-10">
+      <nav className="fixed top-0 left-0 right-0 z-50 px-4 py-1.5 sm:px-10">
         <div className="relative flex items-center w-full">
 
           {/* Left: logo */}
@@ -55,10 +55,10 @@ export function LandingPageClient() {
                 <button
                   key={i}
                   onClick={() => goTo(i)}
-                  className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                     i === currentStep
-                      ? 'text-black bg-black/8'
-                      : 'text-black/40 hover:text-black/70'
+                      ? 'text-black'
+                      : 'text-black/55 hover:text-black'
                   }`}
                 >
                   {label}
@@ -69,7 +69,7 @@ export function LandingPageClient() {
 
           {/* Right: auth */}
           <div className="flex items-center gap-2 shrink-0 ml-auto z-10">
-            <Link href="/signin" className="hidden sm:block px-4 py-1.5 text-sm text-black/50 hover:text-black transition-colors">Sign In</Link>
+            <Link href="/signin" className="hidden sm:block px-4 py-1.5 text-sm font-medium text-black/60 hover:text-black transition-colors">Sign In</Link>
             <Link href="/signin" className="px-3 py-1.5 text-xs sm:px-4 sm:text-sm font-medium bg-gradient-to-r from-violet-600 to-blue-500 text-white rounded-lg hover:opacity-90 transition-opacity">Start Free</Link>
           </div>
 

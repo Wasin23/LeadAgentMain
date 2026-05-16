@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { MeridianWordmark } from '@/components/ui/meridian-wordmark'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { BlobField } from '@/components/landing/blob-field'
 import {
   Dialog,
   DialogContent,
@@ -54,154 +55,6 @@ export default function SignInPage() {
 
   const { login, register, isAuthenticated } = useAuth()
   const router = useRouter()
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [globePaused, setGlobePaused] = useState(false)
-  const pauseRef = useRef(false)
-  const drawRef = useRef<(() => void) | null>(null)
-
-  // Canvas globe
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-    let raf: number
-    let t = 0
-
-    const resize = () => {
-      canvas.width = window.innerWidth
-      canvas.height = window.innerHeight
-    }
-    resize()
-    window.addEventListener('resize', resize)
-
-    const handleVisibility = () => {
-      if (document.hidden) {
-        cancelAnimationFrame(raf)
-      } else if (!pauseRef.current) {
-        raf = requestAnimationFrame(draw)
-      }
-    }
-    document.addEventListener('visibilitychange', handleVisibility)
-
-    const draw = () => {
-      if (pauseRef.current) return
-      const W = canvas.width
-      const H = canvas.height
-      t += 0.001
-      ctx.clearRect(0, 0, W, H)
-
-      // bg — solid deep blue, no stars
-      const bg = ctx.createRadialGradient(W / 2, H * 0.3, 0, W / 2, H * 0.5, H * 1.2)
-      bg.addColorStop(0, '#0a1e3d')
-      bg.addColorStop(0.5, '#060f22')
-      bg.addColorStop(1, '#020810')
-      ctx.fillStyle = bg
-      ctx.fillRect(0, 0, W, H)
-
-      // -- GLOBE --
-      const cx = W * 0.28
-      const cy = H * 0.90
-      const R = Math.max(W, H) * 0.60
-
-      // Tilt 40° to the left: rotate (x3d, y3d) around Z-axis
-      // North pole leans left: x' = x*cos - y*sin, y' = x*sin + y*cos (negative tilt)
-      const TILT = 40 * Math.PI / 180
-      const cosA = Math.cos(TILT)
-      const sinA = Math.sin(TILT)
-      const proj = (x3: number, y3: number): [number, number] => [
-        cx + R * (x3 * cosA - y3 * sinA),
-        cy - R * (x3 * sinA + y3 * cosA),
-      ]
-
-      // clip to sphere
-      ctx.save()
-      ctx.beginPath()
-      ctx.arc(cx, cy, R, 0, Math.PI * 2)
-      ctx.clip()
-
-      // globe surface — much lighter blue interior
-      const body = ctx.createRadialGradient(cx + R * 0.20, cy - R * 0.35, R * 0.05, cx, cy, R)
-      body.addColorStop(0, '#1e4898')
-      body.addColorStop(0.25, '#122d6a')
-      body.addColorStop(0.55, '#0a1c44')
-      body.addColorStop(1, '#040c1e')
-      ctx.fillStyle = body
-      ctx.fillRect(cx - R - 2, cy - R - 2, R * 2 + 4, R * 2 + 4)
-
-      // latitude lines — parametric with tilt, split front/back
-      // Space latitudes so sin(lat) is evenly distributed → equal pixel gaps on screen
-      const LAT_COUNT = 11
-      const sinMax = Math.sin(70 * Math.PI / 180)
-      const lats = Array.from({ length: LAT_COUNT }, (_, i) => {
-        const s = -sinMax + (i / (LAT_COUNT - 1)) * 2 * sinMax
-        return Math.asin(s) * 180 / Math.PI
-      })
-      for (const deg of lats) {
-        const lat = (deg * Math.PI) / 180
-        const cosLat = Math.cos(lat)
-        const sinLat = Math.sin(lat)
-        for (let pass = 0; pass < 2; pass++) {
-          // pass 0 = back half (z < 0, alpha PI/2→3PI/2), pass 1 = front half (z > 0, alpha -PI/2→PI/2)
-          const aStart = pass === 0 ? Math.PI / 2 : -Math.PI / 2
-          const aEnd   = pass === 0 ? Math.PI * 3 / 2 : Math.PI / 2
-          ctx.beginPath()
-          const steps = 48
-          for (let k = 0; k <= steps; k++) {
-            const alpha = aStart + (aEnd - aStart) * (k / steps)
-            const [sx, sy] = proj(cosLat * Math.sin(alpha), sinLat)
-            k === 0 ? ctx.moveTo(sx, sy) : ctx.lineTo(sx, sy)
-          }
-          ctx.strokeStyle = pass === 0 ? 'rgba(100,180,255,0.07)' : 'rgba(100,180,255,0.28)'
-          ctx.lineWidth = pass === 0 ? 0.7 : 1.1
-          ctx.stroke()
-        }
-      }
-
-      // meridian lines — parametric with tilt applied
-      const NUM = 24
-      const SEGS = 64
-      for (let i = 0; i < NUM; i++) {
-        const theta = (i / NUM) * Math.PI * 2 + t
-        const sinT = Math.sin(theta)
-        const cosT = Math.cos(theta)
-        const isFront = cosT > 0
-        const alpha = isFront
-          ? 0.14 + 0.56 * Math.abs(sinT)
-          : 0.04 + 0.06 * Math.abs(sinT)
-        ctx.beginPath()
-        for (let j = 0; j <= SEGS; j++) {
-          const phi = (j / SEGS) * Math.PI - Math.PI / 2
-          const [sx, sy] = proj(Math.cos(phi) * sinT, Math.sin(phi))
-          j === 0 ? ctx.moveTo(sx, sy) : ctx.lineTo(sx, sy)
-        }
-        ctx.strokeStyle = `rgba(100,180,255,${alpha})`
-        ctx.lineWidth = isFront ? 1.0 + 1.1 * Math.abs(sinT) : 0.5
-        ctx.stroke()
-      }
-
-      ctx.restore()
-
-      // atmosphere glow
-      const atmo = ctx.createRadialGradient(cx, cy, R * 0.94, cx, cy, R * 1.06)
-      atmo.addColorStop(0, 'rgba(60,130,255,0)')
-      atmo.addColorStop(0.4, 'rgba(80,165,255,0.30)')
-      atmo.addColorStop(1, 'rgba(40,100,255,0)')
-      ctx.beginPath()
-      ctx.arc(cx, cy, R * 1.06, 0, Math.PI * 2)
-      ctx.fillStyle = atmo
-      ctx.fill()
-
-      raf = requestAnimationFrame(draw)
-    }
-    drawRef.current = draw
-    draw()
-    return () => {
-      cancelAnimationFrame(raf)
-      window.removeEventListener('resize', resize)
-      document.removeEventListener('visibilitychange', handleVisibility)
-    }
-  }, [])
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -419,32 +272,7 @@ export default function SignInPage() {
       `}</style>
 
     <div className="min-h-screen relative flex items-center justify-center overflow-hidden p-4">
-      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{ zIndex: 0 }} />
-
-      {/* Globe pause toggle — bottom left */}
-      <button
-        onClick={() => {
-          const next = !globePaused
-          pauseRef.current = next
-          setGlobePaused(next)
-          if (!next) drawRef.current?.()
-        }}
-        title={globePaused ? 'Resume globe' : 'Pause globe'}
-        className="absolute bottom-4 left-4 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200 hover:scale-105"
-        style={{ zIndex: 20, color: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.15)' }}
-      >
-        {globePaused ? (
-          <>
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><polygon points="2,1 9,5 2,9" /></svg>
-            Resume
-          </>
-        ) : (
-          <>
-            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><rect x="1" y="1" width="3" height="8" /><rect x="6" y="1" width="3" height="8" /></svg>
-            Pause
-          </>
-        )}
-      </button>
+      <BlobField />
 
       {/* Back to landing — top left */}
       <Button
@@ -453,19 +281,19 @@ export default function SignInPage() {
         title="Back to home"
         onClick={() => router.push('/')}
         className="signin-pressable absolute top-4 left-4 h-8 w-8 rounded-full transition-all duration-300 hover:scale-110"
-        style={{ zIndex: 20, color: 'white', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.40)' }}
+        style={{ zIndex: 20, color: '#111', background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(8px)', border: '1px solid rgba(0,0,0,0.10)' }}
       >
         <ArrowLeft className="w-4 h-4" />
       </Button>
 
-      {/* Help button — top right, matches dashboard icon style */}
+      {/* Help button — top right */}
       <Button
         variant="ghost"
         size="icon"
         title="Help & Support"
         onClick={() => window.location.href = '/help'}
         className="signin-pressable absolute top-4 right-4 h-8 w-8 rounded-full transition-all duration-300 hover:scale-110"
-        style={{ zIndex: 20, color: 'white', background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.40)' }}
+        style={{ zIndex: 20, color: '#111', background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(8px)', border: '1px solid rgba(0,0,0,0.10)' }}
       >
         <HelpCircle className="w-4 h-4" />
       </Button>
@@ -477,8 +305,8 @@ export default function SignInPage() {
           <div className="flex justify-center mb-4">
             <Image src="/MeridianM.png" alt="Meridian" width={200} height={200} className="drop-shadow-2xl" />
           </div>
-          <MeridianWordmark className="h-7 w-auto mx-auto" />
-          <p className="text-sm mt-2" style={{ color: 'rgba(160,190,255,0.65)' }}>AI-Powered Lead Research & Automation</p>
+          <MeridianWordmark className="h-7 w-auto mx-auto" color="#111111" />
+          <p className="text-sm mt-2 text-black/40">AI-Powered Lead Research & Automation</p>
         </div>
 
         {/* Alerts */}
@@ -637,9 +465,9 @@ export default function SignInPage() {
 
       {/* Privacy / Terms links */}
       <div className="absolute bottom-5 left-0 right-0 flex justify-center gap-6 text-xs" style={{ zIndex: 10 }}>
-        <a href="/privacy" className="text-white/70 hover:text-white transition-colors">Privacy Policy</a>
-        <span className="text-white/30">·</span>
-        <a href="/terms" className="text-white/70 hover:text-white transition-colors">Terms of Service</a>
+        <a href="/privacy" className="text-black/40 hover:text-black transition-colors">Privacy Policy</a>
+        <span className="text-black/20">·</span>
+        <a href="/terms" className="text-black/40 hover:text-black transition-colors">Terms of Service</a>
       </div>
       <Dialog open={showForgotModal} onOpenChange={(open) => {
         setShowForgotModal(open)
