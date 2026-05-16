@@ -164,7 +164,7 @@ export function FaqSection() {
 
 export function FooterSection() {
   return (
-    <footer className="relative z-10 h-full flex flex-col border-t border-gray-200">
+    <footer className="relative z-10 h-full flex flex-col border-t border-gray-200 bg-white">
 
       {/* CTA */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 sm:px-12 py-20 text-center">
