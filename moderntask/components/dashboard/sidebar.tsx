@@ -1,6 +1,6 @@
 "use client"
 
-import { LayoutDashboard, CheckSquare, BarChart3, Settings, HelpCircle, LogOut, Mail, Bot, UserCheck, Circle, Building2, GripVertical, Pencil, Check, Users } from "lucide-react"
+import { LayoutDashboard, CheckSquare, BarChart3, Settings, HelpCircle, LogOut, Mail, Bot, UserCheck, Circle, Building2, GripVertical, Pencil, Check, Users, FlaskConical } from "lucide-react"
 import { MeridianWordmark } from "@/components/ui/meridian-wordmark"
 import { cn } from "@/lib/utils"
 import { useState, useEffect, Suspense } from "react"
@@ -44,6 +44,7 @@ const staticItems: NavItem[] = [
     ],
   },
   { icon: Building2,       label: "CRM",                  href: "/crm" },
+  { icon: FlaskConical,    label: "Chat Lab",             href: "/chat-lab" },
 ]
 
 const generalItems: NavItem[] = [
