@@ -69,7 +69,7 @@ export function LandingPageClient() {
 
           {/* Right: auth */}
           <div className="flex items-center gap-2 shrink-0 ml-auto z-10">
-            <Link href="/signin" className="hidden sm:block px-4 py-1.5 text-sm font-bold text-black hover:opacity-60 transition-opacity">Sign In</Link>
+            <Link href="/signin" className="hidden sm:block px-4 py-1.5 text-base font-normal text-black hover:opacity-60 transition-opacity">Sign In</Link>
             <Link href="/signin" className="px-3 py-1.5 text-xs sm:px-4 sm:text-sm font-medium bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-lg hover:opacity-90 transition-opacity">Start Free</Link>
           </div>
 
