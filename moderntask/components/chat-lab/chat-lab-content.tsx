@@ -80,13 +80,7 @@ Tone: {personality_tone}
 
 If you don't know something, say so and offer to follow up.`
 
-const CONTEXT_STRUCTURE = [
-  { label: 'System prompt',         tokens: 0, color: 'bg-violet-500', cleared: false },
-  { label: 'Lead research profile', tokens: 0, color: 'bg-blue-500',   cleared: false },
-  { label: 'Original email',        tokens: 0, color: 'bg-sky-400',    cleared: false },
-  { label: 'RAG chunks (top-4)',    tokens: 0, color: 'bg-teal-500',   cleared: false },
-  { label: 'Conversation history',  tokens: 0, color: 'bg-amber-500',  cleared: false },
-]
+const CONTEXT_COLORS = ['bg-violet-500', 'bg-blue-500', 'bg-sky-400', 'bg-teal-500', 'bg-amber-500']
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -138,6 +132,18 @@ export function ChatLabContent() {
   const [sessions, setSessions]           = useState<ChatSession[]>([])
   const [totalSessions, setTotalSessions] = useState<number | null>(null)
   const [sessionsLoading, setSessionsLoading] = useState(false)
+
+  // Selected session for Memory tab
+  const [activeTab, setActiveTab]               = useState('knowledge')
+  const [selectedSession, setSelectedSession]   = useState<ChatSession | null>(null)
+  const [sessionMessages, setSessionMessages]   = useState<{ role: string; content: string }[]>([])
+  const [sessionLoading, setSessionLoading]     = useState(false)
+  const [sessionContext, setSessionContext]     = useState<{
+    leadData:   any
+    emailData:  any
+    promptData: any
+    docs:       any[]
+  } | null>(null)
 
   // ── Load agents on mount ───────────────────────────────────────────────────
   useEffect(() => {
@@ -203,6 +209,27 @@ export function ChatLabContent() {
     } catch { /* silent */ }
   }, [])
 
+  const openSessionMemory = useCallback(async (session: ChatSession) => {
+    setSelectedSession(session)
+    setSessionContext(null)
+    setSessionMessages([])
+    setActiveTab('memory')
+    setSessionLoading(true)
+    try {
+      const r = await api.get(`/api/chat-lab/sessions/${session.sessionId}/context`, {
+        params: { createdAt: session.createdAt },
+      })
+      setSessionMessages(r.data?.session?.messages ?? [])
+      setSessionContext({
+        leadData:   r.data?.leadData   ?? null,
+        emailData:  r.data?.emailData  ?? null,
+        promptData: r.data?.promptData ?? null,
+        docs:       r.data?.docs       ?? [],
+      })
+    } catch { setSessionMessages([]) }
+    finally { setSessionLoading(false) }
+  }, [])
+
   // ── Doc upload ─────────────────────────────────────────────────────────────
   const uploadFiles = async (files: File[]) => {
     if (!agentId || !files.length) return
@@ -254,8 +281,16 @@ export function ChatLabContent() {
     }
   }
 
-  const totalTokens = CONTEXT_STRUCTURE.reduce((s, b) => s + b.tokens, 0)
-  const maxTokens   = 8000
+  const maxTokens = 8000
+  const historyTokens = sessionMessages.reduce((s, m) => s + Math.ceil((m.content?.length || 0) / 4), 0)
+  const contextBlocks = [
+    { label: 'System prompt',        tokens: Math.ceil(systemPrompt.length / 4),                                                   color: CONTEXT_COLORS[0] },
+    { label: 'Lead research profile',tokens: selectedSession ? 180 : 0,                                                             color: CONTEXT_COLORS[1] },
+    { label: 'Original email',       tokens: selectedSession ? 220 : 0,                                                             color: CONTEXT_COLORS[2] },
+    { label: 'RAG chunks (top-4)',   tokens: docs.length > 0 ? Math.min(docs.reduce((s,d) => s + d.chunkCount, 0), 4) * 380 : 0,   color: CONTEXT_COLORS[3] },
+    { label: 'Conversation history', tokens: historyTokens,                                                                         color: CONTEXT_COLORS[4] },
+  ]
+  const totalTokens = contextBlocks.reduce((s, b) => s + b.tokens, 0)
 
   const previewUrl = agentId
     ? `/meet/preview?agentId=${agentId}`
@@ -311,7 +346,7 @@ export function ChatLabContent() {
       </div>
 
       {/* ── Tabs ─────────────────────────────────────────────────────────── */}
-      <Tabs defaultValue="knowledge" className="flex-1 flex flex-col min-h-0">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
         <TabsList className="shrink-0 w-full grid grid-cols-4 h-9">
           <TabsTrigger value="knowledge" className="text-xs gap-1.5"><FileText className="w-3 h-3" />Knowledge</TabsTrigger>
           <TabsTrigger value="prompt"    className="text-xs gap-1.5"><Sparkles className="w-3 h-3" />Prompt</TabsTrigger>
@@ -460,50 +495,151 @@ export function ChatLabContent() {
 
         {/* ── Memory ── */}
         <TabsContent value="memory" className="flex-1 flex flex-col min-h-0 mt-3 gap-3">
-          <div className="flex items-center justify-between shrink-0">
-            <Label className="text-sm font-medium">Context Window</Label>
-            <span className="text-xs text-muted-foreground">
-              {totalTokens.toLocaleString()} / {maxTokens.toLocaleString()} tokens
-            </span>
-          </div>
 
-          <div className="shrink-0 h-4 rounded-full overflow-hidden flex gap-px bg-muted">
-            {CONTEXT_STRUCTURE.filter(b => !b.cleared).map((block, i) => (
-              <div
-                key={i}
-                className={`${block.color} h-full`}
-                style={{ width: `${(block.tokens / maxTokens) * 100}%` }}
-                title={`${block.label}: ${block.tokens} tokens`}
-              />
-            ))}
-          </div>
+          {!selectedSession && (
+            <div className="flex-1 flex items-center justify-center text-center text-muted-foreground text-sm px-6">
+              <div>
+                <Brain className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                <p>Click a session in the Sessions tab to inspect its context.</p>
+              </div>
+            </div>
+          )}
 
-          <ScrollArea className="flex-1 min-h-0">
-            <div className="space-y-2 pr-1">
-              {CONTEXT_STRUCTURE.map((block, i) => (
-                <div key={i} className={`flex items-center justify-between p-3 rounded-xl border ${
-                  block.cleared ? 'border-border bg-card opacity-40' : 'border-border bg-card'
-                }`}>
-                  <div className="flex items-center gap-2.5">
-                    <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${block.cleared ? 'bg-muted-foreground/30' : block.color}`} />
-                    <div>
-                      <p className="text-sm font-medium">{block.label}</p>
-                      <p className="text-xs text-muted-foreground">{block.tokens.toLocaleString()} tokens</p>
+          {selectedSession && (
+            <>
+              {/* Header */}
+              <div className="flex items-center justify-between shrink-0">
+                <div>
+                  <Label className="text-sm font-medium">{selectedSession.leadName} · {selectedSession.leadCompany}</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">{new Date(selectedSession.createdAt).toLocaleString()}</p>
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {sessionLoading ? '...' : `~${totalTokens.toLocaleString()} / ${maxTokens.toLocaleString()} tokens`}
+                </span>
+              </div>
+
+              {/* Token bar */}
+              <div className="shrink-0 h-3 rounded-full overflow-hidden flex gap-px bg-muted">
+                {contextBlocks.filter(b => b.tokens > 0).map((block, i) => (
+                  <div key={i} className={`${block.color} h-full transition-all`}
+                    style={{ width: `${Math.min((block.tokens / maxTokens) * 100, 100)}%` }}
+                    title={`${block.label}: ~${block.tokens.toLocaleString()} tokens`} />
+                ))}
+              </div>
+
+              <ScrollArea className="flex-1 min-h-0">
+                <div className="space-y-3 pr-1">
+
+                  {/* Research Report */}
+                  <div className="border border-border rounded-xl bg-card overflow-hidden">
+                    <div className="flex items-center justify-between px-3 py-2.5 border-b border-border bg-muted/30">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${CONTEXT_COLORS[1]}`} />
+                        <span className="text-xs font-semibold">Research Report</span>
+                      </div>
+                      {sessionContext?.leadData
+                        ? <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">In context</span>
+                        : <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{sessionLoading ? 'Loading...' : 'Not found'}</span>
+                      }
+                    </div>
+                    {sessionContext?.leadData && (
+                      <div className="px-3 py-2.5 text-xs space-y-1 text-muted-foreground">
+                        {sessionContext.leadData.name && <p><span className="text-foreground font-medium">Name:</span> {sessionContext.leadData.name}</p>}
+                        {sessionContext.leadData.title && <p><span className="text-foreground font-medium">Title:</span> {sessionContext.leadData.title}</p>}
+                        {(sessionContext.leadData.company || sessionContext.leadData.organization?.name) && (
+                          <p><span className="text-foreground font-medium">Company:</span> {sessionContext.leadData.company || sessionContext.leadData.organization?.name}</p>
+                        )}
+                        {sessionContext.leadData.research && (
+                          <details className="mt-1.5">
+                            <summary className="cursor-pointer text-primary font-medium">View full research</summary>
+                            <pre className="mt-1.5 whitespace-pre-wrap text-[10px] leading-relaxed text-muted-foreground font-mono bg-muted/40 rounded-lg p-2">
+                              {typeof sessionContext.leadData.research === 'string'
+                                ? sessionContext.leadData.research
+                                : JSON.stringify(sessionContext.leadData.research, null, 2)}
+                            </pre>
+                          </details>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Original Email */}
+                  <div className="border border-border rounded-xl bg-card overflow-hidden">
+                    <div className="flex items-center justify-between px-3 py-2.5 border-b border-border bg-muted/30">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${CONTEXT_COLORS[2]}`} />
+                        <span className="text-xs font-semibold">Original Email</span>
+                      </div>
+                      {sessionContext?.emailData
+                        ? <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">In context</span>
+                        : <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{sessionLoading ? 'Loading...' : 'Not linked'}</span>
+                      }
+                    </div>
+                    {sessionContext?.emailData && (
+                      <div className="px-3 py-2.5 text-xs space-y-1.5">
+                        {sessionContext.emailData.emailSubject && (
+                          <p className="text-muted-foreground"><span className="text-foreground font-medium">Subject:</span> {sessionContext.emailData.emailSubject}</p>
+                        )}
+                        {sessionContext.emailData.personalizedEmail && (
+                          <details>
+                            <summary className="cursor-pointer text-primary font-medium">View email body</summary>
+                            <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground whitespace-pre-wrap bg-muted/40 rounded-lg p-2">
+                              {sessionContext.emailData.personalizedEmail}
+                            </p>
+                          </details>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* System Prompt */}
+                  <div className="border border-border rounded-xl bg-card overflow-hidden">
+                    <div className="flex items-center justify-between px-3 py-2.5 border-b border-border bg-muted/30">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${CONTEXT_COLORS[0]}`} />
+                        <span className="text-xs font-semibold">System Prompt</span>
+                        {sessionContext?.promptData?.version && (
+                          <span className="text-[10px] text-muted-foreground">v{sessionContext.promptData.version}</span>
+                        )}
+                      </div>
+                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">In context</span>
+                    </div>
+                    <div className="px-3 py-2.5">
+                      <details>
+                        <summary className="cursor-pointer text-xs text-primary font-medium">View prompt</summary>
+                        <pre className="mt-1.5 whitespace-pre-wrap text-[10px] leading-relaxed text-muted-foreground font-mono bg-muted/40 rounded-lg p-2">
+                          {sessionContext?.promptData?.promptText || systemPrompt}
+                        </pre>
+                      </details>
                     </div>
                   </div>
-                  {block.cleared
-                    ? <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400">Cleared</span>
-                    : <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">In context</span>
-                  }
-                </div>
-              ))}
-            </div>
-          </ScrollArea>
 
-          <div className="shrink-0 flex items-start gap-2 p-3 bg-muted/40 border border-border rounded-xl text-xs text-muted-foreground">
-            <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-            <p>Context usage will populate once real sessions are running. Token counts update live during active chats.</p>
-          </div>
+                  {/* RAG Sync Status */}
+                  <div className="border border-border rounded-xl bg-card overflow-hidden">
+                    <div className="flex items-center justify-between px-3 py-2.5 border-b border-border bg-muted/30">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${CONTEXT_COLORS[3]}`} />
+                        <span className="text-xs font-semibold">Knowledge Base (RAG)</span>
+                      </div>
+                      {(sessionContext?.docs?.length ?? 0) > 0
+                        ? <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">Synced</span>
+                        : <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">No docs</span>
+                      }
+                    </div>
+                    <div className="px-3 py-2.5 text-xs text-muted-foreground space-y-1">
+                      <p><span className="text-foreground font-medium">{sessionContext?.docs?.length ?? 0}</span> documents · <span className="text-foreground font-medium">{sessionContext?.docs?.reduce((s: number, d: any) => s + (d.chunkCount || 0), 0) ?? 0}</span> chunks indexed</p>
+                      {(sessionContext?.docs?.length ?? 0) > 0 && (
+                        <p>Last updated: {new Date(
+                          Math.max(...(sessionContext?.docs ?? []).map((d: any) => new Date(d.createdAt).getTime()))
+                        ).toLocaleDateString()}</p>
+                      )}
+                    </div>
+                  </div>
+
+                </div>
+              </ScrollArea>
+            </>
+          )}
         </TabsContent>
 
         {/* ── Sessions ── */}
@@ -525,7 +661,7 @@ export function ChatLabContent() {
               ))}
 
               {!sessionsLoading && sessions.map(s => (
-                <div key={s.sessionId} className="border border-border rounded-xl p-3 bg-card hover:bg-muted/40 transition-colors cursor-pointer">
+                <div key={s.sessionId} onClick={() => openSessionMemory(s)} className={`border rounded-xl p-3 bg-card hover:bg-muted/40 transition-colors cursor-pointer ${selectedSession?.sessionId === s.sessionId ? 'border-primary' : 'border-border'}`}>
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="flex items-center gap-2">

@@ -58,6 +58,48 @@ router.get('/sessions/:sessionId', async (req, res) => {
   }
 });
 
+router.get('/sessions/:sessionId/context', async (req, res) => {
+  try {
+    const { createdAt } = req.query;
+    if (!createdAt) return res.status(400).json({ error: 'createdAt required' });
+
+    const session = await chatLabManager.getSession(uid(req), req.params.sessionId, createdAt);
+    if (!session) return res.status(404).json({ error: 'Session not found' });
+
+    const awsManager = (await import('../utils/awsManager.js')).default;
+    const aws = new awsManager();
+
+    // Fetch lead data and email in parallel
+    const [leadData, emailData, promptData, docList] = await Promise.allSettled([
+      session.leadId
+        ? aws.dynamodb.send(new (await import('@aws-sdk/lib-dynamodb')).GetCommand({
+            TableName: process.env.AWS_DYNAMODB_LEAD_DATA_TABLE || 'meridian-lead-data',
+            Key: { userId: uid(req), leadId: session.leadId },
+          })).then(r => r.Item || null)
+        : null,
+      session.emailId
+        ? aws.dynamodb.send(new (await import('@aws-sdk/lib-dynamodb')).GetCommand({
+            TableName: process.env.AWS_DYNAMODB_EMAIL_TRACKING_TABLE || 'meridian-email-tracking-v2',
+            Key: { userId: uid(req), emailId: session.emailId },
+          })).then(r => r.Item || null)
+        : null,
+      chatLabManager.getSystemPrompt(uid(req), session.agentId),
+      zillizCompanyMemory.listDocuments(uid(req)),
+    ]);
+
+    res.json({
+      session,
+      leadData:   leadData.status   === 'fulfilled' ? leadData.value   : null,
+      emailData:  emailData.status  === 'fulfilled' ? emailData.value  : null,
+      promptData: promptData.status === 'fulfilled' ? promptData.value : null,
+      docs:       docList.status    === 'fulfilled' ? docList.value    : [],
+    });
+  } catch (err) {
+    console.error('[CHAT LAB] session context:', err);
+    res.status(500).json({ error: 'Failed to get session context' });
+  }
+});
+
 // ── System Prompt ─────────────────────────────────────────────────────────────
 
 router.get('/prompt', async (req, res) => {

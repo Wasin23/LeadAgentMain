@@ -44,7 +44,7 @@ const staticItems: NavItem[] = [
     ],
   },
   { icon: Building2,       label: "CRM",                  href: "/crm" },
-  { icon: FlaskConical,    label: "Chat Lab",             href: "/chat-lab" },
+  { icon: FlaskConical,    label: "MQL Chat",             href: "/chat-lab" },
 ]
 
 const generalItems: NavItem[] = [

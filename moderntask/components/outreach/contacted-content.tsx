@@ -739,10 +739,10 @@ function TemplatesPanel({ agent, templates, onMutate, onMassFollowUp, saved, fol
 }
 
 // ── main export ───────────────────────────────────────────────────────────────
-type Tab = 'sent' | 'replies' | 'followups' | 'templates' | 'unsubscribed'
+type Tab = 'sent' | 'replies' | 'followups' | 'templates' | 'unsubscribed' | 'chat-sessions'
 
 function isValidTab(value: string | null): value is Tab {
-  return value === 'sent' || value === 'replies' || value === 'followups' || value === 'templates' || value === 'unsubscribed'
+  return value === 'sent' || value === 'replies' || value === 'followups' || value === 'templates' || value === 'unsubscribed' || value === 'chat-sessions'
 }
 
 export function ContactedContent() {
@@ -769,6 +769,8 @@ export function ContactedContent() {
   const [repliesPage, setRepliesPage]     = useState(1)
   const [followUpsPage, setFollowUpsPage] = useState(1)
   const [selectedReply, setSelectedReply] = useState<ReplyConversation | null>(null)
+  const [chatSessions, setChatSessions]   = useState<any[]>([])
+  const [chatSessionsLoading, setChatSessionsLoading] = useState(false)
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedIds, setSelectedIds]     = useState<Set<string>>(new Set())
   const [editFollowUpEmail, setEditFollowUpEmail] = useState<AnalyticsEmail | null>(null)
@@ -893,8 +895,20 @@ export function ContactedContent() {
   const pagedFollowUps = displayedFollowUps.slice((followUpsPage - 1) * PAGE_SIZE, followUpsPage * PAGE_SIZE)
   const agentTemplates     = selectedAgent?.settings?.followUpTemplates?.templates ?? []
 
+  const fetchChatSessions = useCallback(async (agId?: string) => {
+    const id = agId || selectedAgent?.agentId
+    if (!id) return
+    setChatSessionsLoading(true)
+    try {
+      const r = await api.get('/api/chat-lab/sessions', { params: { agentId: id, limit: 100 } })
+      setChatSessions(r.data?.sessions ?? [])
+    } catch { setChatSessions([]) }
+    finally { setChatSessionsLoading(false) }
+  }, [selectedAgent?.agentId])
+
   const changeTab = (nextTab: Tab) => {
     setTab(nextTab)
+    if (nextTab === 'chat-sessions') fetchChatSessions()
     const params = new URLSearchParams(searchParams.toString())
     params.set('tab', nextTab)
     if (nextTab !== 'replies') params.delete('trackingId')
@@ -924,11 +938,12 @@ export function ContactedContent() {
   }
 
   const TABS: { id: Tab; label: string; count?: number }[] = [
-    { id: 'sent',         label: 'Sent Emails',   count: sent.length },
-    { id: 'replies',      label: 'Replies',        count: replies.length },
-    { id: 'followups',    label: 'Follow-ups',     count: followUps.length },
-    { id: 'unsubscribed', label: 'Unsubscribed',   count: unsubscribeList.length },
-    { id: 'templates',    label: 'Templates' },
+    { id: 'sent',          label: 'Sent Emails',   count: sent.length },
+    { id: 'replies',       label: 'Replies',        count: replies.length },
+    { id: 'followups',     label: 'Follow-ups',     count: followUps.length },
+    { id: 'unsubscribed',  label: 'Unsubscribed',   count: unsubscribeList.length },
+    { id: 'templates',     label: 'Templates' },
+    { id: 'chat-sessions', label: 'MQL Chat',       count: chatSessions.length || undefined },
   ]
 
   return (
@@ -1273,6 +1288,66 @@ export function ContactedContent() {
             <TemplatesPanel agent={selectedAgent} templates={agentTemplates} onMutate={mutateSelected} onMassFollowUp={() => setShowMassFollowUpModal(true)} saved={saved} followUps={followUps} />
           )}
         </div>
+      )}
+
+      {/* ── MQL CHAT SESSIONS ───────────────────────────────────────────── */}
+      {tab === 'chat-sessions' && (
+        <Card className="p-5">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm text-muted-foreground">Chat sessions started by leads who clicked their link.</p>
+            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => fetchChatSessions()}>
+              <RefreshCw className={cn('w-3.5 h-3.5', chatSessionsLoading && 'animate-spin')} />
+            </Button>
+          </div>
+
+          {chatSessionsLoading ? (
+            <div className="space-y-3">{[...Array(4)].map((_, i) => <div key={i} className="animate-pulse space-y-1"><div className="h-3 bg-muted rounded w-1/3" /><div className="h-3 bg-muted rounded w-1/2" /><div className="h-2 bg-muted rounded w-1/4" /></div>)}</div>
+          ) : chatSessions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-14 gap-3 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center">
+                <MessageSquare className="w-5 h-5 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">No chat sessions yet</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Sessions appear here once leads click their MQL Chat link.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {chatSessions.map((s: any) => {
+                const intentColor = s.intentScore >= 7
+                  ? 'text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400'
+                  : s.intentScore >= 4
+                  ? 'text-amber-600 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400'
+                  : 'text-muted-foreground bg-muted'
+                return (
+                  <div key={s.sessionId} className="py-3 flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium truncate">{s.leadName || 'Unknown'}</span>
+                        {s.leadCompany && <span className="text-xs text-muted-foreground">{s.leadCompany}</span>}
+                        <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded-full', intentColor)}>
+                          Intent {s.intentScore ?? 0}/10
+                        </span>
+                        <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded-full',
+                          s.status === 'active' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' : 'bg-muted text-muted-foreground')}>
+                          {s.status}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">{s.messageCount ?? 0} messages · {timeAgo(s.createdAt)}</p>
+                    </div>
+                    <a
+                      href={`/chat-lab?session=${s.sessionId}`}
+                      className="shrink-0 text-xs text-primary hover:underline"
+                    >
+                      View in MQL Chat →
+                    </a>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </Card>
       )}
 
       {/* modals */}

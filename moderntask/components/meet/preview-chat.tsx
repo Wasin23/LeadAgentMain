@@ -99,12 +99,10 @@ export function PreviewChat() {
         </div>
       </div>
 
-      {/* Lead context banner */}
-      <div className="shrink-0 px-4 py-2 bg-muted/40 border-b border-border text-xs text-muted-foreground flex items-center gap-3">
-        <span>Testing as:</span>
-        <span className="font-medium text-foreground">{MOCK_LEAD.name}</span>
-        <span className="text-border">·</span>
-        <span>{MOCK_LEAD.title} at {MOCK_LEAD.company}</span>
+      {/* Preview notice */}
+      <div className="shrink-0 px-4 py-2.5 bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800/50 text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2">
+        <FlaskConical className="w-3.5 h-3.5 shrink-0" />
+        <span>This is exactly what your prospect sees when they click your chat link. You're typing as a mock lead — <span className="font-semibold">{MOCK_LEAD.name}, {MOCK_LEAD.title} at {MOCK_LEAD.company}</span>.</span>
       </div>
 
       {/* Messages */}

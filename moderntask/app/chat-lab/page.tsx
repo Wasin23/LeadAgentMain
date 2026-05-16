@@ -9,7 +9,7 @@ export default function ChatLabPage() {
       <main className="flex-1 lg:ml-64 flex flex-col h-screen overflow-hidden">
         <div className="p-4 lg:p-6 pb-0">
           <Header
-            title="Chat Lab"
+            title="MQL Chat"
             description="Test your chat AI, manage your knowledge base, and tune responses before leads see them."
           />
         </div>
