@@ -75,18 +75,31 @@ float fbm(vec2 p){
         +.062*vnoise(p*8.7+vec2(3.1,5.6));
 }
 
-// Rotated + noise-perturbed ellipse SDF (aspect-corrected space)
+// Rotated + polar-harmonic + FBM ellipse SDF (aspect-corrected space)
 float blobSDF(vec2 p, int i) {
   float ang = u_pos[i].z;
   float c = cos(ang), s = sin(ang);
   vec2 d = p - vec2(u_pos[i].x * (u_res.x/u_res.y), u_pos[i].y);
   d = vec2(d.x*c+d.y*s, -d.x*s+d.y*c);
   vec2 ab = u_rad[i].xy;
-  // base ellipse SDF approximation
+  // base ellipse SDF
   float base = length(d/ab) - 1.0;
-  // organic morph via FBM — phase-shifted per blob
-  float n = (fbm(p*1.8 + vec2(u_pos[i].x,u_pos[i].y)*2.0 + u_time*0.05 + u_rad[i].z) - 0.5) * 0.28;
-  return base + n;
+
+  // polar angle from blob centre → harmonic lobes at different frequencies
+  float theta = atan(d.y / ab.y, d.x / ab.x);
+  float ph = u_rad[i].z;
+  float harm = 0.0;
+  harm += sin(2.0*theta + ph         + u_time*0.07) * 0.13;
+  harm += sin(3.0*theta + ph*1.6     - u_time*0.05) * 0.10;
+  harm += cos(4.0*theta + ph*1.2     + u_time*0.06) * 0.07;
+  harm += sin(5.0*theta + ph*2.4     + u_time*0.04) * 0.06;
+  harm += sin(7.0*theta + ph*0.8     - u_time*0.03) * 0.04;
+
+  // two FBM layers — coarse warp + fine detail
+  float n1 = (fbm(p*1.5 + vec2(u_pos[i].x,u_pos[i].y)*2.0 + u_time*0.04 + ph      ) - 0.5) * 0.30;
+  float n2 = (fbm(p*3.4 + vec2(u_pos[i].y,u_pos[i].x)*1.5 + u_time*0.03 + ph*0.7  ) - 0.5) * 0.10;
+
+  return base + harm + n1 + n2;
 }
 
 void main() {
