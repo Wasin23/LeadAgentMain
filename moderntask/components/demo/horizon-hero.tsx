@@ -49,13 +49,13 @@ export function HorizonHero() {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 relative z-10 items-center">
-        <Link href="/signin" className="group flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-violet-600 via-fuchsia-500 to-blue-500 text-white rounded-xl font-bold text-base sm:text-lg hover:opacity-90 transition-all hover:scale-105"
-          style={{ boxShadow: '0 4px 24px rgba(109,40,217,0.25)' }}>
+        <Link href="/signin" className="group flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-blue-500 to-blue-700 text-white rounded-xl font-bold text-base sm:text-lg hover:opacity-90 transition-all hover:scale-105"
+          style={{ boxShadow: '0 4px 24px rgba(59,130,246,0.22)' }}>
           Start free <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
         </Link>
         <button
           onClick={() => window.dispatchEvent(new CustomEvent('carousel-advance'))}
-          className="px-6 sm:px-8 py-3 sm:py-4 text-black/60 rounded-xl font-semibold text-base sm:text-lg transition-all hover:scale-105"
+          className="px-6 sm:px-8 py-3 sm:py-4 text-white rounded-xl font-semibold text-base sm:text-lg transition-all hover:scale-105"
           style={{ background: 'rgba(0,0,0,0.04)', border: '1px solid rgba(0,0,0,0.12)' }}
         >
           Learn More
