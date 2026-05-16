@@ -880,7 +880,7 @@ export function AiResearchSection() {
 
               {/* Notes panel */}
               {showSplit && (
-                <div className="w-[200px] shrink-0 p-4 overflow-y-auto flex flex-col gap-2.5">
+                <div className="w-[200px] shrink-0 p-4 overflow-y-auto flex flex-col gap-2.5 bg-white">
                   <div className="text-[13px] font-bold text-black/45 uppercase tracking-widest flex items-center gap-1.5 mb-1">
                     <span className="text-indigo-400">✦</span>Research Notes
                   </div>

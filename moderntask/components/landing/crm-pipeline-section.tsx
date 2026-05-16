@@ -120,15 +120,15 @@ function CrmUnverified({ active, currentIdx }: { active: boolean; currentIdx: nu
       <div className={`text-[12px] font-bold uppercase tracking-widest transition-colors ${active ? 'text-indigo-400' : 'text-black/25'}`}>
         Your CRM
       </div>
-      <div className="rounded-xl border border-white/[0.08] bg-[#080c20] overflow-hidden">
-        <div className="px-3 py-1.5 border-b border-white/[0.05] text-[11px] text-black/20 font-mono flex justify-between">
+      <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+        <div className="px-3 py-1.5 border-b border-gray-100 text-[11px] text-black/20 font-mono flex justify-between">
           <span>unaudited</span>
           <span>{remaining.length}</span>
         </div>
         {remaining.slice(0, 4).map((r, i) => (
           <div
             key={i}
-            className={`px-3 py-2 border-b border-white/[0.04] last:border-0 transition-all ${i === 0 && active ? 'bg-indigo-500/10' : ''}`}
+            className={`px-3 py-2 border-b border-gray-100 last:border-0 transition-all ${i === 0 && active ? 'bg-indigo-500/10' : ''}`}
           >
             <div className="flex items-center justify-between gap-1">
               <div className="text-[13px] font-semibold text-black/60 truncate">{r.name}</div>
@@ -155,7 +155,7 @@ function AuditStation({ phase, paraIdx }: { phase: Phase; paraIdx: number }) {
       <div className={`text-[12px] font-bold uppercase tracking-widest transition-colors ${active ? 'text-indigo-400' : 'text-black/25'}`}>
         Audit station
       </div>
-      <div className="rounded-xl border border-white/[0.08] bg-[#080c20] p-3 space-y-2">
+      <div className="rounded-xl border border-gray-200 bg-white p-3 space-y-2">
         <div className={`text-[12px] font-mono truncate transition-colors ${active ? 'text-indigo-400/70' : 'text-black/15'}`}>
           {active ? '⟳ verifying · scaleflow.com' : '── waiting for record ──'}
         </div>
@@ -169,7 +169,7 @@ function AuditStation({ phase, paraIdx }: { phase: Phase; paraIdx: number }) {
         ))}
       </div>
       {signalsShown > 0 && (
-        <div className="rounded-xl border border-indigo-500/20 bg-[#080c20] p-3 space-y-1.5">
+        <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-3 space-y-1.5">
           <div className="text-[11px] font-bold text-indigo-400/60 uppercase tracking-widest mb-1">Audit findings</div>
           {SIGNALS.slice(0, signalsShown).map((s, i) => (
             <div key={i} className="flex items-center justify-between gap-2 text-[12px]">
@@ -192,16 +192,16 @@ function CrmVerified({ verifiedCount, currentIdx }: { verifiedCount: number; cur
       <div className="text-[12px] font-bold uppercase tracking-widest text-black/25">
         Audited
       </div>
-      <div className="rounded-xl border border-white/[0.08] bg-[#080c20] overflow-hidden">
-        <div className="px-3 py-1.5 border-b border-white/[0.05] text-[11px] text-black/20 font-mono flex justify-between">
+      <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+        <div className="px-3 py-1.5 border-b border-gray-100 text-[11px] text-black/20 font-mono flex justify-between">
           <span>verified</span>
-          <span className="text-green-400/60">{verifiedCount}</span>
+          <span className="text-green-600/60">{verifiedCount}</span>
         </div>
         {rows.length === 0 && (
           <div className="px-3 py-4 text-[11px] text-black/20 italic text-center">none yet</div>
         )}
         {rows.map((r, i) => (
-          <div key={i} className="px-3 py-2 border-b border-white/[0.04] last:border-0">
+          <div key={i} className="px-3 py-2 border-b border-gray-100 last:border-0">
             <div className="flex items-center justify-between gap-1">
               <div className="text-[13px] font-semibold text-black/70 truncate">{r.name}</div>
               <span className="text-[11px] font-bold text-green-400 shrink-0">
@@ -298,10 +298,10 @@ function CrmViz() {
     <div style={{ minHeight: 480 }}>
       {/* track */}
       <div className="relative px-4 py-5" style={{ height: 100 }}>
-        <div className="absolute left-8 right-8 top-1/2 -translate-y-1/2 border-t border-dashed border-white/[0.08]" />
+        <div className="absolute left-8 right-8 top-1/2 -translate-y-1/2 border-t border-dashed border-black/10" />
         {[{ x: '6%' }, { x: '44%' }, { x: '88%' }].map(({ x }, i) => (
           <div key={i} className="absolute top-1/2 -translate-y-1/2" style={{ left: x }}>
-            <div className="w-2 h-2 rounded-full bg-white/15" />
+            <div className="w-2 h-2 rounded-full bg-black/15" />
           </div>
         ))}
         <div

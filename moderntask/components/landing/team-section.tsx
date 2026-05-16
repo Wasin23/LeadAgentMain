@@ -171,7 +171,7 @@ function TeamViz() {
       // fill
       ctx.beginPath()
       ctx.arc(x, y, 17, 0, Math.PI * 2)
-      ctx.fillStyle = 'rgba(8,12,30,0.96)'
+      ctx.fillStyle = 'rgba(245,247,255,0.96)'
       ctx.fill()
 
       // initials
@@ -191,10 +191,10 @@ function TeamViz() {
       // name label right of node
       ctx.textAlign = 'left'
       ctx.font = '600 11px Inter, sans-serif'
-      ctx.fillStyle = 'rgba(255,255,255,0.78)'
+      ctx.fillStyle = 'rgba(0,0,0,0.72)'
       ctx.fillText(m.name, x + 23, y - 3)
       ctx.font = '10px Inter, sans-serif'
-      ctx.fillStyle = `rgba(${r},${g},${b},0.5)`
+      ctx.fillStyle = `rgba(${r},${g},${b},0.75)`
       ctx.fillText(m.role, x + 23, y + 11)
     }
 
@@ -248,16 +248,16 @@ function TeamViz() {
       // name
       ctx.textAlign = 'left'
       ctx.font = '600 11px Inter, sans-serif'
-      ctx.fillStyle = 'rgba(255,255,255,0.8)'
+      ctx.fillStyle = 'rgba(0,0,0,0.72)'
       ctx.fillText(a.name, x + 25, y - 4)
       ctx.font = '9.5px Inter, sans-serif'
-      ctx.fillStyle = 'rgba(99,102,241,0.55)'
+      ctx.fillStyle = 'rgba(99,102,241,0.75)'
       ctx.fillText(a.type, x + 25, y + 9)
 
       // task progress bar
       const barW = 90, barH = 3
       const bx = x + 25, by = y + 17
-      ctx.fillStyle = 'rgba(255,255,255,0.07)'
+      ctx.fillStyle = 'rgba(0,0,0,0.08)'
       ctx.beginPath()
       ctx.roundRect(bx, by, barW, barH, 2)
       ctx.fill()
@@ -270,7 +270,7 @@ function TeamViz() {
 
       // current task label
       ctx.font = '9px Inter, sans-serif'
-      ctx.fillStyle = 'rgba(255,255,255,0.3)'
+      ctx.fillStyle = 'rgba(0,0,0,0.30)'
       ctx.fillText(taskLabels[i], bx, by + 14)
     }
 
@@ -361,18 +361,18 @@ function TeamViz() {
   }, [])
 
   return (
-    <div className="card-premium relative rounded-2xl overflow-hidden w-full" style={{ height: 560, background: 'linear-gradient(180deg, rgb(14,16,40) 0%, rgb(4,6,15) 100%)' }}>
+    <div className="card-premium relative rounded-2xl overflow-hidden w-full" style={{ height: 560, background: 'white' }}>
       {/* title bar */}
-      <div className="flex items-center px-3 border-b border-white/[0.06] bg-[#141414] relative z-10" style={{ height: 36 }}>
-        <span className="text-[10px] text-black/20 font-mono">meridian · workspace</span>
-        <span className="ml-3 flex items-center gap-1.5 text-[9px] text-green-400/60 font-mono">
+      <div className="flex items-center px-3 border-b border-gray-200 bg-gray-100 relative z-10" style={{ height: 36 }}>
+        <span className="text-[10px] text-black/40 font-mono">meridian · workspace</span>
+        <span className="ml-3 flex items-center gap-1.5 text-[9px] text-green-600/60 font-mono">
           <span className="w-1.5 h-1.5 rounded-full bg-green-400/80" />
           4 members · 3 agents online
         </span>
         <div className="ml-auto flex items-center">
-          <button className="w-9 h-9 flex items-center justify-center text-black/25 hover:bg-white/[0.07] text-[13px] leading-none">─</button>
-          <button className="w-9 h-9 flex items-center justify-center text-black/25 hover:bg-white/[0.07] text-[11px] leading-none">□</button>
-          <button className="w-9 h-9 flex items-center justify-center text-black/25 hover:bg-red-600/70 hover:text-gray-900 text-[15px] leading-none rounded-tr-2xl">✕</button>
+          <button className="w-9 h-9 flex items-center justify-center text-black/30 hover:bg-black/[0.07] text-[13px] leading-none">─</button>
+          <button className="w-9 h-9 flex items-center justify-center text-black/30 hover:bg-black/[0.07] text-[11px] leading-none">□</button>
+          <button className="w-9 h-9 flex items-center justify-center text-black/30 hover:bg-red-500/20 hover:text-red-600 text-[15px] leading-none rounded-tr-2xl">✕</button>
         </div>
       </div>
 
@@ -384,8 +384,8 @@ function TeamViz() {
           ['coordinate', [192,132,252],  'Coordinate'],
         ] as const).map(([, rgb, label]) => (
           <div key={label} className="flex items-center gap-1.5">
-            <div className="w-5 h-px" style={{ background: `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.7)` }} />
-            <span className="text-[9px] text-black/25">{label}</span>
+            <div className="w-5 h-px" style={{ background: `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0.9)` }} />
+            <span className="text-[9px] text-black/40">{label}</span>
           </div>
         ))}
       </div>

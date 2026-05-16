@@ -85,19 +85,19 @@ function makeProfileSprite(name: string, title: string, init: string): THREE.Spr
   ctx.beginPath(); ctx.arc(34, CH / 2, 18, 0, Math.PI * 2); ctx.stroke()
 
   // initials
-  ctx.fillStyle = 'rgba(200, 215, 255, 1)'
+  ctx.fillStyle = 'rgba(230, 240, 255, 1)'
   ctx.font = 'bold 13px sans-serif'
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
   ctx.fillText(init, 34, CH / 2)
 
   // name
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.95)'
+  ctx.fillStyle = 'rgba(30, 50, 140, 0.95)'
   ctx.font = 'bold 13px sans-serif'
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'
   ctx.fillText(name, 62, CH / 2 - 3)
 
   // title
-  ctx.fillStyle = 'rgba(170, 185, 255, 0.55)'
+  ctx.fillStyle = 'rgba(80, 100, 210, 0.75)'
   ctx.font = '11px sans-serif'
   ctx.fillText(title, 62, CH / 2 + 14)
 

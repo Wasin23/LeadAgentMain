@@ -119,8 +119,11 @@ export function PricingSection() {
               style={plan.tag ? {
                 background: 'white',
                 border: '1px solid rgba(99,102,241,0.35)',
-                boxShadow: 'inset 0 1px 0 rgba(99,102,241,0.15), 0 2px 4px rgba(0,0,0,0.4), 0 12px 40px rgba(0,0,0,0.6), 0 0 60px rgba(99,102,241,0.08)',
-              } : {}}
+                boxShadow: 'inset 0 1px 0 rgba(99,102,241,0.15), 0 2px 8px rgba(99,102,241,0.12)',
+              } : {
+                background: 'white',
+                border: '1px solid rgba(0,0,0,0.08)',
+              }}
             >
               {plan.tag && (
                 <div className="absolute -top-px left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-b-lg bg-indigo-600 text-white text-[10px] font-bold tracking-widest uppercase">
@@ -156,7 +159,7 @@ export function PricingSection() {
                   className={`flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg text-[13px] font-semibold transition-all ${
                     plan.tag
                       ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
-                      : 'bg-white/[0.06] hover:bg-white/[0.10] text-black/70 hover:text-gray-900 border border-white/[0.08]'
+                      : 'bg-gray-100 hover:bg-gray-200 text-black/60 hover:text-gray-900 border border-gray-200'
                   }`}
                 >
                   {plan.cta}
@@ -165,7 +168,7 @@ export function PricingSection() {
               ) : (
                 <button
                   onClick={goToFaq}
-                  className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg text-[13px] font-semibold transition-all bg-white/[0.06] hover:bg-white/[0.10] text-black/70 hover:text-gray-900 border border-white/[0.08] w-full"
+                  className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg text-[13px] font-semibold transition-all bg-gray-100 hover:bg-gray-200 text-black/60 hover:text-gray-900 border border-gray-200 w-full"
                 >
                   {plan.cta}
                   <ArrowRight className="w-3.5 h-3.5" />

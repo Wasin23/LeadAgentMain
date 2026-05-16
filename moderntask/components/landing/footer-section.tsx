@@ -53,7 +53,7 @@ function InquiryForm() {
     }
   }
 
-  const inputCls = 'w-full px-3.5 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.10] text-black/80 text-[13px] placeholder:text-black/20 focus:outline-none focus:border-indigo-500/60 transition-colors'
+  const inputCls = 'w-full px-3.5 py-2.5 rounded-lg bg-gray-50 border border-gray-200 text-black/80 text-[13px] placeholder:text-black/30 focus:outline-none focus:border-indigo-400 transition-colors'
 
   return (
     <div className="card-premium rounded-2xl p-8 sticky top-8" style={{ background: 'white' }}>
@@ -90,7 +90,7 @@ function InquiryForm() {
           <button
             type="submit"
             disabled={status === 'sending'}
-            className="flex items-center justify-center gap-2 w-full px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-gray-900 font-bold text-[14px] transition-all hover:scale-[1.02] disabled:hover:scale-100"
+            className="flex items-center justify-center gap-2 w-full px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-bold text-[14px] transition-all hover:scale-[1.02] disabled:hover:scale-100"
           >
             {status === 'sending' ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending…</> : <>Send message <ArrowRight className="w-4 h-4" /></>}
           </button>
@@ -111,7 +111,7 @@ function InquiryForm() {
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false)
   return (
-    <div className="border-b border-white/[0.06]">
+    <div className="border-b border-gray-200">
       <button
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-between gap-4 py-4 text-left group"
@@ -134,7 +134,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 
 export function FaqSection() {
   return (
-    <section className="relative z-10 h-full flex items-center border-t border-white/[0.06] px-6 sm:px-12 py-20">
+    <section className="relative z-10 h-full flex items-center border-t border-gray-200 px-6 sm:px-12 py-20">
       <div className="max-w-5xl mx-auto w-full">
         <div className="flex flex-col lg:flex-row gap-16">
 
@@ -164,7 +164,7 @@ export function FaqSection() {
 
 export function FooterSection() {
   return (
-    <footer className="relative z-10 h-full flex flex-col border-t border-white/[0.06]">
+    <footer className="relative z-10 h-full flex flex-col border-t border-gray-200">
 
       {/* CTA */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 sm:px-12 py-20 text-center">
@@ -177,7 +177,7 @@ export function FooterSection() {
         <div className="enter-2 flex flex-wrap items-center justify-center gap-3 mb-8">
           <Link
             href="/signin"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-white text-black rounded-xl font-bold text-lg hover:bg-white/90 transition-all hover:scale-105"
+            className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-violet-600 to-blue-500 text-white rounded-xl font-bold text-lg hover:opacity-90 transition-all hover:scale-105"
           >
             Start free <ArrowRight className="w-5 h-5" />
           </Link>
@@ -185,7 +185,7 @@ export function FooterSection() {
         <div className="flex flex-wrap items-center justify-center gap-6 text-[13px] text-black/25">
           {['No credit card', 'Gmail and Outlook', 'Manual review or auto-send', 'Replies tracked automatically'].map(t => (
             <span key={t} className="flex items-center gap-1.5">
-              <span className="w-1 h-1 rounded-full bg-white/20" />
+              <span className="w-1 h-1 rounded-full bg-black/20" />
               {t}
             </span>
           ))}
@@ -193,7 +193,7 @@ export function FooterSection() {
       </div>
 
       {/* bottom bar */}
-      <div className="border-t border-white/[0.05] px-6 sm:px-12 py-6">
+      <div className="border-t border-gray-200 px-6 sm:px-12 py-6">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
             <svg width="22" height="22" viewBox="0 0 48 48" fill="none" className="text-black/40">
