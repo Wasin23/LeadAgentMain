@@ -299,7 +299,7 @@ export default function SignInPage() {
       </Button>
 
       {/* ── Card panel — centered ── */}
-      <div className="relative w-full max-w-md signin-card-anim" style={{ zIndex: 10 }}>
+      <div className="relative w-full max-w-md signin-card-anim" style={{ zIndex: 10, padding: '12px', background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(16px)', borderRadius: '28px', border: '1px solid rgba(255,255,255,0.8)' }}>
         {/* Logo */}
         <div className="text-center mb-7">
           <div className="flex justify-center mb-4">

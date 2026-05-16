@@ -7,7 +7,7 @@ import { MeridianWordmark } from "@/components/ui/meridian-wordmark"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 import { HorizonHero } from "@/components/demo/horizon-hero"
-import { BlobField } from "@/components/landing/blob-field"
+import { DotGrid } from "@/components/landing/dot-grid"
 import { AgentSection } from "@/components/landing/agent-section"
 import { AiResearchSection } from "@/components/landing/ai-research-section"
 import { OutreachSection } from "@/components/landing/outreach-section"
@@ -76,7 +76,7 @@ export function LandingPageClient() {
         </div>
       </nav>
 
-      <BlobField />
+      <DotGrid />
       <FeaturesCarousel labels={LABELS}>
         <HorizonHero />
         <AgentSection />
