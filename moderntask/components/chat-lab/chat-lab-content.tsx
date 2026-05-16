@@ -23,7 +23,7 @@ type Personality = 'HUNTER' | 'RELATIONSHIP' | 'ANALYST' | 'CONSULTANT' | 'NETWO
 interface KnowledgeDoc {
   docId:      string
   source:     string
-  docType:    DocType
+  type:       DocType
   chunkCount: number
   editing:    boolean
 }
@@ -212,7 +212,7 @@ export function ChatLabContent() {
         const fd = new FormData()
         fd.append('file', file)
         fd.append('agentId', agentId)
-        fd.append('docType', 'general')
+        fd.append('type', 'general')
         await api.post('/api/chat-lab/docs', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
       }
       await fetchDocs()
@@ -234,9 +234,9 @@ export function ChatLabContent() {
     setDocs(prev => prev.filter(d => d.docId !== docId))
   }
 
-  const updateDocType = async (docId: string, docType: DocType) => {
-    await api.patch(`/api/chat-lab/docs/${docId}/type`, { agentId, docType })
-    setDocs(prev => prev.map(d => d.docId === docId ? { ...d, docType } : d))
+  const updateDocType = async (docId: string, type: DocType) => {
+    await api.patch(`/api/chat-lab/docs/${docId}/type`, { type })
+    setDocs(prev => prev.map(d => d.docId === docId ? { ...d, type } : d))
   }
 
   const toggleEdit = (docId: string) =>
@@ -357,7 +357,7 @@ export function ChatLabContent() {
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium truncate">{doc.source}</p>
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
-                          <DocTypeBadge type={doc.docType} />
+                          <DocTypeBadge type={doc.type} />
                           <span className="text-[10px] text-muted-foreground">{doc.chunkCount} chunks</span>
                         </div>
                       </div>
@@ -375,7 +375,7 @@ export function ChatLabContent() {
                   {doc.editing && (
                     <div className="mt-2.5 pt-2.5 border-t border-border">
                       <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Document Type</Label>
-                      <Select value={doc.docType} onValueChange={v => updateDocType(doc.docId, v as DocType)}>
+                      <Select value={doc.type} onValueChange={v => updateDocType(doc.docId, v as DocType)}>
                         <SelectTrigger className="h-7 text-xs mt-1">
                           <SelectValue />
                         </SelectTrigger>
