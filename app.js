@@ -320,6 +320,14 @@ try {
   teamsRoutes = (req, res, next) => next();
 }
 
+let chatLabRoutes;
+try {
+  chatLabRoutes = (await import('./routes/chatLab.js')).default;
+} catch (e) {
+  console.log('Chat Lab routes not available:', e.message);
+  chatLabRoutes = (req, res, next) => next();
+}
+
 const app = express();
 
 // Security Configuration
@@ -685,6 +693,7 @@ app.use('/api/billing', billingRoutes); // Billing and payment management
 
 app.use('/api/outreach', outreachRoutes); // Outreach dashboard stats and conversations
 app.use('/api/help', helpRoutes); // Help chat AI assistant
+app.use('/api/chat-lab', chatLabRoutes); // Chat Lab — sessions, prompts, RAG knowledge base
 
 // Webhook routes for email response agent (replaces Netlify function)
 app.use('/api/webhooks', webhooksReplyRoutes); // Mailgun email response webhooks
