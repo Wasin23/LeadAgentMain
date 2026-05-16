@@ -49,7 +49,7 @@ export function HorizonHero() {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 relative z-10 items-center">
-        <Link href="/signin" className="group flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-violet-600 to-blue-500 text-white rounded-xl font-bold text-base sm:text-lg hover:opacity-90 transition-all hover:scale-105"
+        <Link href="/signin" className="group flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-violet-600 via-fuchsia-500 to-blue-500 text-white rounded-xl font-bold text-base sm:text-lg hover:opacity-90 transition-all hover:scale-105"
           style={{ boxShadow: '0 4px 24px rgba(109,40,217,0.25)' }}>
           Start free <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
         </Link>
