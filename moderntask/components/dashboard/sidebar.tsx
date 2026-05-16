@@ -169,7 +169,7 @@ function SidebarInner() {
     <aside className="fixed top-0 left-0 w-64 bg-card border-r border-border p-4 h-screen overflow-y-auto lg:block">
       <div className="flex items-center gap-2 mb-6 group cursor-pointer">
         <Link href="/home" className="flex items-center gap-2">
-          <Image src="/MeridianM.png" alt="Meridian" width={56} height={37} className="shrink-0 dark:brightness-100 brightness-0" />
+          <Image src="/MeridianM.png" alt="Meridian" width={56} height={37} className="shrink-0" />
           <MeridianWordmark className="h-3 w-auto dark:text-white text-black" />
         </Link>
       </div>
