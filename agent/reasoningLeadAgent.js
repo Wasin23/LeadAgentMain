@@ -2370,9 +2370,15 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
     // Get data from current cycle state
     const leadData = this.memory.currentCycle.currentLead;
     const researchData = this.memory.lastResearch;
-    
+
     const personName = leadData?.name || 'Unknown';
     const companyName = leadData?.organization?.name || leadData?.company || 'Unknown Company';
+
+    console.log('[PRE-QUALIFY] ── INPUT ──────────────────────────────────');
+    console.log('[PRE-QUALIFY] lead:', JSON.stringify({ name: personName, company: companyName, title: leadData?.title, industry: leadData?.organization?.industry }));
+    console.log('[PRE-QUALIFY] researchData present:', !!researchData, '| searches:', researchData?.searches?.length ?? 0, '| citedFacts:', researchData?.citedFacts?.length ?? 0);
+    const _preQualOrganicCount = researchData?.searches?.reduce((n, s) => n + (s.results?.organic?.length ?? 0), 0) ?? 0;
+    console.log('[PRE-QUALIFY] total organic results across searches:', _preQualOrganicCount);
     
     
     try {
@@ -2538,6 +2544,8 @@ Respond in JSON format:
       );
       
       
+      console.log('[PRE-QUALIFY] ── OUTPUT ─────────────────────────────────');
+      console.log(`[PRE-QUALIFY] score: ${result.score}/100 | recommendation: ${result.recommendation} | reason: ${result.reason}`);
       return {
         success: true,
         score: result.score,
@@ -2547,7 +2555,7 @@ Respond in JSON format:
         criteriaVerified: criteriaVerified,
         criteriaMissing: criteriaMissing
       };
-      
+
     } catch (error) {
       console.error('❌ [PRE-QUALIFY] Error:', error);
       // On error, don't block the lead - proceed with research
@@ -2572,9 +2580,15 @@ Respond in JSON format:
     const emailSettings = this.memory.emailSettings;
     const primaryService = emailSettings?.companyBranding?.primaryService || '';
     const coreOffering = emailSettings?.companyBranding?.coreOffering || '';
-    
+
     const personName = leadData?.name || 'Unknown';
     const companyName = leadData?.organization?.name || leadData?.company || 'Unknown Company';
+
+    console.log('[QUALIFY] ── INPUT ───────────────────────────────────────');
+    console.log('[QUALIFY] explicit params.leadData?', !!parameters?.leadData, '| explicit params.researchData?', !!parameters?.researchData);
+    console.log('[QUALIFY] memory.currentCycle.currentLead?', !!this.memory.currentCycle?.currentLead, '| memory.lastResearch?', !!this.memory.lastResearch);
+    console.log('[QUALIFY] resolved lead:', JSON.stringify({ name: personName, company: companyName, title: leadData?.title, industry: leadData?.organization?.industry, employees: leadData?.organization?.estimated_num_employees }));
+    console.log('[QUALIFY] researchData.citedFacts:', researchData?.citedFacts?.length ?? 'MISSING', '| searches:', researchData?.searches?.length ?? 'MISSING');
     
     
     try {
@@ -2916,6 +2930,9 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
       if (result.weaknesses?.length > 0) {
       }
       
+      console.log('[QUALIFY] ── OUTPUT ──────────────────────────────────────');
+      console.log(`[QUALIFY] tier: ${result.tier} | score: ${result.score}/100 | qualified: ${result.tier !== 'REJECT'} | confidence: ${result.confidence}`);
+      console.log(`[QUALIFY] citedEvidence: ${aiReport.citedEvidence.length} | researchQuality: ${aiReport.researchQuality} | reasoning: ${result.reasoning?.substring(0, 120)}`);
       return {
         success: true,
         qualified: result.tier !== 'REJECT', // derive from tier — don't trust GPT's boolean

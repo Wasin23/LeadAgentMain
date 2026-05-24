@@ -603,17 +603,49 @@ router.post('/:id/approve', async (req, res) => {
       console.log('🧵 [EMAIL QUEUE] Reply options:', replyOptions);
     }
     
+    // Generate MQL Chat token and inject link into email body
+    let emailBodyWithChat = finalBody;
+    try {
+      const { chatLabManager } = await import('../utils/chatLabManager.js');
+      const leadName    = personInfo?.fullName || personInfo?.name || approvedEmail.leadName || 'Lead';
+      const leadCompany = approvedEmail.leadDetails?.companyName || personInfo?.company || '';
+      const leadTitle   = personInfo?.title || personInfo?.currentPosition || '';
+      const leadId      = approvedEmail.leadId || approvedEmail.leadDetails?.leadId || null;
+      const { token, url } = await chatLabManager.createChatToken(userId, {
+        agentId:     originalAgentId,
+        leadId,
+        emailId:     id,
+        leadName,
+        leadCompany,
+        leadTitle,
+        leadEmail:   finalRecipient,
+      });
+      const chatLinkHtml = `
+<div style="margin-top:24px;padding:16px 20px;background:#f8f9ff;border-left:3px solid #3b82f6;border-radius:4px;font-family:Arial,sans-serif;">
+  <p style="margin:0 0 8px;font-size:13px;color:#374151;">Want to ask me anything directly? I'm available now:</p>
+  <a href="${url}" style="display:inline-block;padding:8px 18px;background:#3b82f6;color:#ffffff;text-decoration:none;border-radius:6px;font-size:13px;font-weight:600;">Start a conversation →</a>
+</div>`;
+      if (emailBodyWithChat.includes('</body>')) {
+        emailBodyWithChat = emailBodyWithChat.replace('</body>', `${chatLinkHtml}</body>`);
+      } else {
+        emailBodyWithChat += chatLinkHtml;
+      }
+      console.log(`[EMAIL QUEUE] 💬 MQL Chat link injected — token: ${token}`);
+    } catch (chatErr) {
+      console.error('[EMAIL QUEUE] ⚠️ Failed to inject chat link:', chatErr.message);
+    }
+
     const sendResult = await leadEmail(
       finalRecipient,
       finalSubject,
-      finalBody,
+      emailBodyWithChat,
       personInfo,
       userId,
       effectiveAgentId,
-      ccEmails, // Pass CC emails to leadEmail
-      bccEmails, // Pass BCC emails to leadEmail
-      senderName, // Pass sender name for branding
-      replyOptions // Pass reply options for threading
+      ccEmails,
+      bccEmails,
+      senderName,
+      replyOptions
     );
 
     console.log('[EMAIL QUEUE] 🔍 Marking email as sent - Debug info:', {

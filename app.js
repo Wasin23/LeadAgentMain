@@ -328,6 +328,14 @@ try {
   chatLabRoutes = (req, res, next) => next();
 }
 
+let meetRoutes;
+try {
+  meetRoutes = (await import('./routes/meet.js')).default;
+} catch (e) {
+  console.log('Meet routes not available:', e.message);
+  meetRoutes = (req, res, next) => next();
+}
+
 const app = express();
 
 // Security Configuration
@@ -694,6 +702,7 @@ app.use('/api/billing', billingRoutes); // Billing and payment management
 app.use('/api/outreach', outreachRoutes); // Outreach dashboard stats and conversations
 app.use('/api/help', helpRoutes); // Help chat AI assistant
 app.use('/api/chat-lab', chatLabRoutes); // Chat Lab — sessions, prompts, RAG knowledge base
+app.use('/api/meet',     meetRoutes);    // MQL Chat — public lead-facing chat (no auth)
 
 // Webhook routes for email response agent (replaces Netlify function)
 app.use('/api/webhooks', webhooksReplyRoutes); // Mailgun email response webhooks

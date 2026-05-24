@@ -25,6 +25,12 @@ import { randomUUID } from 'crypto';
 // meridian-chat-prompts
 //   PK: USER#<userId>#AGENT#<agentId>
 //   SK: VERSION#<zero-padded-version>            ← latest = highest SK
+//
+// meridian-chat-tokens
+//   PK: token (UUID)                             ← looked up directly by token
+//   Fields: userId, agentId, leadId, emailId,
+//           leadName, leadCompany, leadTitle, leadEmail,
+//           createdAt, expiresAt (30 days), firstClickAt, clickCount
 
 class ChatLabManager {
   constructor() {
@@ -42,9 +48,11 @@ class ChatLabManager {
 
     this.sessionTable = process.env.AWS_DYNAMODB_CHAT_SESSIONS_TABLE || 'meridian-chat-sessions';
     this.promptTable  = process.env.AWS_DYNAMODB_CHAT_PROMPTS_TABLE  || 'meridian-chat-prompts';
+    this.tokenTable   = 'meridian-chat-tokens';
 
     this._sessionTableReady = null;
     this._promptTableReady  = null;
+    this._tokenTableReady   = null;
   }
 
   // ── Table bootstrap ─────────────────────────────────────────────────────────
@@ -101,6 +109,22 @@ class ChatLabManager {
       }).catch(err => { this._sessionTableReady = null; throw err; });
     }
     return this._sessionTableReady;
+  }
+
+  ensureTokenTable() {
+    if (!this._tokenTableReady) {
+      this._tokenTableReady = this._ensureTable(this.tokenTable, {
+        TableName: this.tokenTable,
+        BillingMode: 'PAY_PER_REQUEST',
+        AttributeDefinitions: [
+          { AttributeName: 'token', AttributeType: 'S' },
+        ],
+        KeySchema: [
+          { AttributeName: 'token', KeyType: 'HASH' },
+        ],
+      }).catch(err => { this._tokenTableReady = null; throw err; });
+    }
+    return this._tokenTableReady;
   }
 
   ensurePromptTable() {
@@ -367,6 +391,78 @@ class ChatLabManager {
         SK: this._promptSK(version),
       },
     }));
+  }
+
+  // ── Chat Token methods ──────────────────────────────────────────────────────
+
+  /**
+   * Create a one-time chat link token for a lead.
+   * Returns { token, url } — url is the full link to embed in the email.
+   */
+  async createChatToken(userId, { agentId, leadId, emailId, leadName, leadCompany, leadTitle, leadEmail }) {
+    await this.ensureTokenTable();
+    const token     = randomUUID();
+    const now       = new Date();
+    const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(); // 30 days
+    await this.dynamodb.send(new PutCommand({
+      TableName: this.tokenTable,
+      Item: {
+        token,
+        userId,
+        agentId:     agentId     || null,
+        leadId:      leadId      || null,
+        emailId:     emailId     || null,
+        leadName:    leadName    || 'Guest',
+        leadCompany: leadCompany || '',
+        leadTitle:   leadTitle   || '',
+        leadEmail:   leadEmail   || '',
+        createdAt:   now.toISOString(),
+        expiresAt,
+        firstClickAt: null,
+        clickCount:   0,
+      },
+    }));
+    const baseUrl = process.env.API_BASE_URL || 'https://meridian-kdew.onrender.com';
+    return { token, url: `${baseUrl}/meet/${token}` };
+  }
+
+  /**
+   * Resolve a token — validate it's not expired, record the click, return the data.
+   * Returns null if token doesn't exist or is expired.
+   */
+  async resolveToken(token) {
+    await this.ensureTokenTable();
+    const res = await this.dynamodb.send(new GetCommand({
+      TableName: this.tokenTable,
+      Key: { token },
+    }));
+    const item = res.Item;
+    if (!item) return null;
+    if (new Date(item.expiresAt) < new Date()) return null;
+
+    const now = new Date().toISOString();
+    const isFirstClick = !item.firstClickAt;
+
+    await this.dynamodb.send(new UpdateCommand({
+      TableName: this.tokenTable,
+      Key: { token },
+      UpdateExpression: 'SET clickCount = if_not_exists(clickCount, :zero) + :one, firstClickAt = if_not_exists(firstClickAt, :now)',
+      ExpressionAttributeValues: { ':zero': 0, ':one': 1, ':now': now },
+    }));
+
+    return { ...item, isFirstClick };
+  }
+
+  /**
+   * Get token metadata without recording a click (for admin views).
+   */
+  async getToken(token) {
+    await this.ensureTokenTable();
+    const res = await this.dynamodb.send(new GetCommand({
+      TableName: this.tokenTable,
+      Key: { token },
+    }));
+    return res.Item || null;
   }
 }
 
