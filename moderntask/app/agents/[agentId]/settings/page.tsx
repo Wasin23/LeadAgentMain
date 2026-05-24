@@ -598,6 +598,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
             useTemplates: e.useTemplates ?? e.emailBuilder?.useTemplates ?? false,
             smartRebump: e.smartRebump ?? e.emailBuilder?.smartRebump ?? false,
             rebumpLinkedinScrape: e.rebumpLinkedinScrape ?? e.emailBuilder?.rebumpLinkedinScrape ?? true,
+            maxWords: e.maxWords ?? e.emailBuilder?.maxWords ?? null,
           },
         };
         setSettings(loaded);
