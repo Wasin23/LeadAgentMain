@@ -4,7 +4,7 @@ import React, { useState, useEffect, use, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Check, ChevronDown, ChevronRight,
-  Search, X, Plus, AlertCircle, CheckCircle2, Loader2, Lock, Unlock
+  Search, X, Plus, AlertCircle, CheckCircle2, Loader2, Lock, Unlock, FlaskConical
 } from 'lucide-react';
 import api from '@/lib/api';
 import { Sidebar } from '@/components/dashboard/sidebar';
@@ -77,7 +77,7 @@ interface AgentSettings {
   researchFocus: { focusAreas: string[]; researchDepth: string; includeCompanyNews: boolean; includePersonalInfo: boolean; includeSocialMedia: boolean; };
   emailBuilder: {
     emailTemplate: string; customPrompt: string; emailResponsePrompt: string;
-    tone: string; length: string; callToAction: string; personalization: string;
+    tone: string; length: string; maxWords: number | null; callToAction: string; personalization: string;
     ccEmails: string; bccEmails: string; enableAutoResponse: boolean;
     rebumpIntervalDays: number; useCustomSignature: boolean;
     signatureName: string; signatureTitle: string;
@@ -109,7 +109,7 @@ const defaultSettings: AgentSettings = {
   geographicSettings: { targetLocations: ['United States'], excludedLocations: [], leadLimit: 50, timezone: 'America/New_York' },
   concurrencyLevel: 1,
   researchFocus: { focusAreas: [], researchDepth: 'standard', includeCompanyNews: true, includePersonalInfo: false, includeSocialMedia: false },
-  emailBuilder: { emailTemplate: 'professional', customPrompt: '', emailResponsePrompt: '', tone: 'professional', length: 'medium', callToAction: 'meeting', personalization: 'high', ccEmails: '', bccEmails: '', enableAutoResponse: false, rebumpIntervalDays: 3, useCustomSignature: false, signatureName: '', signatureTitle: '', useGmail: false, useOutlook: false, useLinkedIn: false, templates: [], useTemplates: false, smartRebump: false, rebumpLinkedinScrape: true }
+  emailBuilder: { emailTemplate: 'professional', customPrompt: '', emailResponsePrompt: '', tone: 'professional', length: 'medium', maxWords: null, callToAction: 'meeting', personalization: 'high', ccEmails: '', bccEmails: '', enableAutoResponse: false, rebumpIntervalDays: 3, useCustomSignature: false, signatureName: '', signatureTitle: '', useGmail: false, useOutlook: false, useLinkedIn: false, templates: [], useTemplates: false, smartRebump: false, rebumpLinkedinScrape: true }
 };
 
 // ─────────────────────────────────────────────────────
@@ -445,6 +445,10 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
   const [resetWebsiteUrl, setResetWebsiteUrl] = useState('');
   const [resetScraping, setResetScraping] = useState(false);
   const [showResetWebsite, setShowResetWebsite] = useState(false);
+  const [testEmailOpen, setTestEmailOpen] = useState(false);
+  const [testEmailLoading, setTestEmailLoading] = useState(false);
+  const [testEmailResult, setTestEmailResult] = useState<{ subject: string; body: string } | null>(null);
+  const [testEmailError, setTestEmailError] = useState<string | null>(null);
   const [swapLog, setSwapLog] = useState<{ removedAt: string; removed: string; added: string[]; reason: string }[]>([]);
   const [criteriaUnlocked, setCriteriaUnlocked] = useState(false);
 
@@ -674,6 +678,24 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
   const updateGeo = (f: string, v: any) => setSettings(p => ({ ...p, geographicSettings: { ...p.geographicSettings, [f]: v } }));
   const updateResearch = (f: string, v: any) => setSettings(p => ({ ...p, researchFocus: { ...p.researchFocus, [f]: v } }));
   const updateEmail = (f: string, v: any) => setSettings(p => ({ ...p, emailBuilder: { ...p.emailBuilder, [f]: v } }));
+
+  const runTestEmail = async () => {
+    setTestEmailLoading(true);
+    setTestEmailResult(null);
+    setTestEmailError(null);
+    try {
+      const res = await api.post('/api/lead-agent/test-email', {
+        agentId,
+        emailSettings: { ...settings.emailBuilder, companyBranding: settings.companyBranding },
+      });
+      setTestEmailResult(res.data);
+    } catch (e: any) {
+      setTestEmailError(e?.response?.data?.error || 'Failed to generate test email');
+    } finally {
+      setTestEmailLoading(false);
+    }
+  };
+
   const maxConcurrency = planStatus?.plan?.maxConcurrency || 1;
   const maxAgents = planStatus?.plan?.maxAgents || 1;
   const currentPlanName = planStatus?.plan?.name || 'Your plan';
@@ -1084,20 +1106,132 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
           </Section>
 
           {/* Writing Rules */}
-          <Section title="Writing Rules" description="Extra instructions injected into every email the agent writes">
-            <div className="space-y-2 mt-4">
-              <Textarea
-                value={settings.emailBuilder.customPrompt}
-                onChange={e => updateEmail('customPrompt', e.target.value)}
-                rows={5}
-                className="resize-y bg-background text-sm"
-                placeholder="e.g. Always open with a specific observation about the company. Keep it under 100 words. Never use the word 'synergy'. End with a single low-friction ask."
-                maxLength={500}
-              />
-              <p className="text-right text-xs text-muted-foreground">{settings.emailBuilder.customPrompt.length}/500</p>
-              <p className="text-xs text-muted-foreground">These rules are appended to the AI prompt on every email build. You can also save rebuild instructions here from the email queue.</p>
+          <Section title="Writing Rules" description="Control how the AI writes emails — length, constraints, and extra instructions">
+            {/* Email Length */}
+            <div className="mt-4 space-y-3">
+              <div>
+                <Label className="mb-2 block">Email Length</Label>
+                <div className="flex gap-2">
+                  {(['short', 'medium', 'long'] as const).map(opt => (
+                    <button
+                      key={opt}
+                      onClick={() => updateEmail('length', opt)}
+                      className={`flex-1 py-2 rounded-lg border text-sm font-medium capitalize transition-colors ${
+                        settings.emailBuilder.length === opt
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-background border-border text-muted-foreground hover:border-primary/50'
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  {settings.emailBuilder.length === 'short' && 'One paragraph · 3-4 sentences · under 60 words'}
+                  {settings.emailBuilder.length === 'medium' && 'One paragraph · 4-5 sentences · 80-120 words'}
+                  {settings.emailBuilder.length === 'long' && '2-3 paragraphs · 150-200 words'}
+                </p>
+              </div>
+
+              {/* Max Words */}
+              <div className="space-y-1.5">
+                <Label>Max Words (optional hard cap)</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={20}
+                    max={500}
+                    value={settings.emailBuilder.maxWords ?? ''}
+                    onChange={e => updateEmail('maxWords', e.target.value ? parseInt(e.target.value) : null)}
+                    placeholder="e.g. 80"
+                    className="w-32"
+                  />
+                  <span className="text-sm text-muted-foreground">words max in the body</span>
+                  {settings.emailBuilder.maxWords && (
+                    <button onClick={() => updateEmail('maxWords', null)} className="text-xs text-muted-foreground hover:text-foreground underline">clear</button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">Overrides the length preset if set. The AI is told to count words and stay under this number.</p>
+              </div>
+
+              {/* Custom Prompt */}
+              <div className="space-y-1.5">
+                <Label>Extra Instructions</Label>
+                <Textarea
+                  value={settings.emailBuilder.customPrompt}
+                  onChange={e => updateEmail('customPrompt', e.target.value)}
+                  rows={4}
+                  className="resize-y bg-background text-sm"
+                  placeholder="e.g. Always open with a specific observation about the company. Never use the word 'synergy'. End with a single low-friction ask."
+                  maxLength={500}
+                />
+                <p className="text-right text-xs text-muted-foreground">{settings.emailBuilder.customPrompt.length}/500</p>
+              </div>
+
+              {/* Test Button */}
+              <div className="pt-1">
+                <button
+                  onClick={() => { setTestEmailOpen(true); runTestEmail(); }}
+                  className="flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                >
+                  <FlaskConical className="w-4 h-4" />
+                  Test with these settings
+                </button>
+              </div>
             </div>
           </Section>
+
+          {/* Test Email Modal */}
+          {testEmailOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setTestEmailOpen(false)}>
+              <div className="bg-background border border-border rounded-xl shadow-xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                  <div>
+                    <p className="font-semibold text-sm">Email Preview</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Mock lead: Sarah Chen, VP of Operations at Arclight Solutions</p>
+                  </div>
+                  <button onClick={() => setTestEmailOpen(false)} className="text-muted-foreground hover:text-foreground">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="px-5 py-4">
+                  {testEmailLoading && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground py-6 justify-center">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Generating…
+                    </div>
+                  )}
+                  {testEmailError && (
+                    <p className="text-sm text-destructive py-4">{testEmailError}</p>
+                  )}
+                  {testEmailResult && !testEmailLoading && (
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Subject</p>
+                        <p className="text-sm font-medium">{testEmailResult.subject}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Body</p>
+                        <pre className="text-sm whitespace-pre-wrap font-sans leading-relaxed bg-muted/40 rounded-lg px-4 py-3">{testEmailResult.body}</pre>
+                      </div>
+                      <div className="flex items-center justify-between pt-1">
+                        <p className="text-xs text-muted-foreground">
+                          {testEmailResult.body.split(/\s+/).filter(Boolean).length} words
+                        </p>
+                        <button
+                          onClick={runTestEmail}
+                          className="text-xs text-primary hover:underline flex items-center gap-1"
+                        >
+                          <FlaskConical className="w-3 h-3" />
+                          Regenerate
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Email Templates */}
           <Section

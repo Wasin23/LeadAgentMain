@@ -1403,6 +1403,89 @@ router.delete('/memory/reset-all', async (req, res) => {
   }
 });
 
+// Test email generation with current settings + mock lead
+router.post('/test-email', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { agentId = 'lead-agent', emailSettings } = req.body;
+
+    const OpenAI = (await import('openai')).default;
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+    const length = emailSettings?.length || emailSettings?.emailBuilder?.length || 'medium';
+    const maxWords = emailSettings?.maxWords || emailSettings?.emailBuilder?.maxWords || null;
+    const customPrompt = emailSettings?.customPrompt || emailSettings?.emailBuilder?.customPrompt || '';
+    const tone = emailSettings?.tone || emailSettings?.emailBuilder?.tone || 'professional';
+    const primaryService = emailSettings?.companyBranding?.primaryService || emailSettings?.primaryService || 'our product';
+    const agentName = emailSettings?.companyBranding?.agentName || emailSettings?.agentName || 'Alex';
+    const agentTitle = emailSettings?.companyBranding?.agentTitle || emailSettings?.agentTitle || 'Sales Representative';
+
+    const lengthInstruction = {
+      short: `Write one paragraph only. 3-4 sentences maximum. Total email body under 60 words. Every word earns its place.`,
+      medium: `Write one paragraph only. 4-5 sentences. Target 80-120 words for the body. Tight but not rushed.`,
+      long: `Write 2-3 short paragraphs. 2-3 sentences each. Target 150-200 words total. Each paragraph serves a different purpose.`,
+    }[length] || `Write one paragraph only. 4-5 sentences. Target 80-120 words.`;
+
+    const wordCountRule = maxWords ? `Hard cap: body must be ${maxWords} words or fewer. Count them.` : '';
+
+    const prompt = `You are writing a cold outreach email on behalf of ${agentName}, ${agentTitle}.
+
+MOCK LEAD:
+Name: Sarah Chen
+Title: VP of Operations
+Company: Arclight Solutions
+Industry: SaaS / B2B Software
+Company size: ~85 employees
+Research: Arclight recently raised a Series A ($12M), is actively hiring ops roles, and their CEO posted on LinkedIn about scaling challenges in their fulfillment pipeline.
+
+PRODUCT BEING SOLD: ${primaryService}
+
+TONE: ${tone}
+
+LENGTH RULE: ${lengthInstruction}
+${wordCountRule}
+
+RULES:
+- Subject line: short, specific, sounds human. Reference something real.
+- Never use em dash. No buzzwords (leverage, streamline, synergy, scalable, game-changer).
+- One specific opener from the research. Everything after must follow from that.
+- End with a single direct CTA — no question mark.
+- No invented stats.
+${customPrompt ? `\nEXTRA INSTRUCTIONS:\n${customPrompt}` : ''}
+
+Output exactly:
+SUBJECT: [subject]
+
+BODY:
+Hi Sarah,
+
+[body]
+
+${agentName}
+${agentTitle}`;
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.7,
+      max_tokens: 600,
+    });
+
+    const raw = response.choices[0]?.message?.content || '';
+    const subjectMatch = raw.match(/SUBJECT:\s*(.+)/);
+    const bodyMatch = raw.match(/BODY:\s*([\s\S]+)/);
+
+    res.json({
+      success: true,
+      subject: subjectMatch?.[1]?.trim() || '(no subject)',
+      body: bodyMatch?.[1]?.trim() || raw,
+    });
+  } catch (err) {
+    console.error('[TEST EMAIL]', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Delete agent completely
 router.delete('/:agentId', async (req, res) => {
   try {

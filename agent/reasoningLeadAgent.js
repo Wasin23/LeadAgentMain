@@ -4782,7 +4782,11 @@ RULES:
 - Everything after the opener must come from provided facts. No invented stats or results.
 - End with a single short CTA — one sentence asking for a call or conversation. Not a question with a question mark, just a direct ask.
 - Do not use the "not X, it's Y" sentence structure. No contrast pivots. Just say the thing.
-- Write one paragraph only. 4-5 sentences maximum. The greeting ("Hi [FirstName],") goes on its own line, then ONE block of text, then the signature. If you feel the urge to start a new paragraph, cut a sentence instead.
+- ${{
+  'short': 'Write one paragraph only. 3-4 sentences maximum. Target under 60 words for the body. The greeting ("Hi [FirstName],") goes on its own line, then ONE tight block of text, then the signature. Cut ruthlessly.',
+  'medium': 'Write one paragraph only. 4-5 sentences maximum. Target 80-120 words for the body. The greeting ("Hi [FirstName],") goes on its own line, then ONE block of text, then the signature.',
+  'long': 'Write 2-3 short paragraphs. Target 150-200 words total. The greeting ("Hi [FirstName],") goes on its own line. Each paragraph is 2-3 sentences and serves a different purpose.',
+}[emailSettings?.length || emailSettings?.emailBuilder?.length || 'medium'] || 'Write one paragraph only. 4-5 sentences maximum. The greeting ("Hi [FirstName],") goes on its own line, then ONE block of text, then the signature.'}${(emailSettings?.maxWords || emailSettings?.emailBuilder?.maxWords) ? ` Hard cap: body must be ${emailSettings?.maxWords || emailSettings?.emailBuilder?.maxWords} words or fewer.` : ''}
 - Banned words: mismatch, streamline, cutting-edge, leverage, robust, revolutionize, game-changer, scalable, operationally, stack, scale.
 
 Output exactly:
