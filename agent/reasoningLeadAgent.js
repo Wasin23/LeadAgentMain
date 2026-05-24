@@ -241,14 +241,10 @@ class ReasoningLeadAgent extends EventEmitter {
       },
       {
         name: 'build_personalized_email',
-        description: 'Create personalized email using research data and email builder settings',
+        description: 'Create personalized email using research data and email builder settings from current cycle memory.',
         parameters: {
           type: 'object',
-          properties: {
-            leadData: { type: 'object', description: 'Lead information from Apollo' },
-            researchData: { type: 'object', description: 'Company research from Serper' },
-            emailSettings: { type: 'object', description: 'Email builder settings from AWS DynamoDB' }
-          }
+          properties: {}
         }
       },
       {
