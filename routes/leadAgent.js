@@ -1409,8 +1409,8 @@ router.post('/test-email', async (req, res) => {
     const userId = req.user.userId;
     const { agentId = 'lead-agent', emailSettings } = req.body;
 
-    const OpenAI = (await import('openai')).default;
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const userAgent = getUserAgent(userId, agentId);
+    const openai = userAgent.openai;
 
     const length = emailSettings?.length || emailSettings?.emailBuilder?.length || 'medium';
     const maxWords = emailSettings?.maxWords || emailSettings?.emailBuilder?.maxWords || null;
