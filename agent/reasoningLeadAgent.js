@@ -265,13 +265,10 @@ class ReasoningLeadAgent extends EventEmitter {
       },
       {
         name: 'qualify_lead',
-        description: 'Detailed qualification after research. Scores lead against campaign criteria and decides if they should receive email.',
+        description: 'Detailed qualification after research. Scores lead against campaign criteria and decides if they should receive email. Uses lead and research data from current cycle memory.',
         parameters: {
           type: 'object',
-          properties: {
-            leadData: { type: 'object', description: 'Lead information from Apollo' },
-            researchData: { type: 'object', description: 'Company research from Serper' }
-          }
+          properties: {}
         }
       }
     ];
