@@ -226,6 +226,25 @@ class ChatLabManager {
   }
 
   /**
+   * Update the researchSnapshot on a session (user-edited context).
+   */
+  async updateSessionSnapshot(userId, sessionId, createdAt, researchSnapshot) {
+    await this.ensureSessionTable();
+    await this.dynamodb.send(new UpdateCommand({
+      TableName: this.sessionTable,
+      Key: {
+        PK: this._sessionPK(userId),
+        SK: this._sessionSK(createdAt, sessionId),
+      },
+      UpdateExpression: 'SET researchSnapshot = :snap, updatedAt = :now',
+      ExpressionAttributeValues: {
+        ':snap': researchSnapshot,
+        ':now':  new Date().toISOString(),
+      },
+    }));
+  }
+
+  /**
    * Mark a session as ended.
    */
   async endSession(userId, sessionId, createdAt) {

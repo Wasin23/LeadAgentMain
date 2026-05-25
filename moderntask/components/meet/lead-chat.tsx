@@ -143,7 +143,7 @@ export function LeadChat() {
       <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4">
         {messages.length === 0 && !loading && (
           <div className="text-center text-gray-400 text-sm pt-10">
-            Hi {session.lead.name?.split(' ')[0] || 'there'} 👋 — ask me anything.
+            {(() => { const first = session.lead.name?.split(' ')[0]; return `Hi ${(first && first !== 'Lead' && first !== 'Guest') ? first : 'there'} 👋 — ask me anything.`; })()}
           </div>
         )}
 

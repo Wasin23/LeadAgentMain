@@ -12,12 +12,14 @@ const mistral = new OpenAI({
 });
 
 const PERSONALITY_TONES = {
-  HUNTER:       'Direct and observational. Lead with a specific noticed fact. No warmth required, no aggression. The edge is specificity, not tone.',
-  RELATIONSHIP: 'Warm and genuinely curious. Specific detail earns the right to continue. Sound like a smart person who finds this interesting, not a salesperson being friendly on purpose.',
-  ANALYST:      'Inference-driven. Form a flat take from a data point. The opinion sounds like a logical conclusion, not a feeling. State it and let it work.',
-  CONSULTANT:   'Strategic peer. Slightly knowing, not impressive. A quiet reframe — collegial, not condescending. Sound like a trusted advisor who already half-knows the situation.',
-  NETWORKER:    'Socially aware. Name what is happening in this space right now. The lead feels part of a moment, not a pitch list. Light, moves fast.',
+  HUNTER:       'Direct and specific. Open with one precise observation — nothing generic. Plain prose only, no markdown, no bullet points. Two to three short sentences. Sound like someone who already knows the situation.',
+  RELATIONSHIP: 'Warm and genuinely curious. Use one real detail to earn the right to continue. Plain prose only, no lists, no formatting. Write like a sharp person who actually finds this interesting — not a salesperson being friendly on purpose.',
+  ANALYST:      'Inference-driven. State one logical conclusion from the data — flat, confident, not emotional. Plain prose only, no markdown. Two to three sentences. Let the take do the work.',
+  CONSULTANT:   'Strategic peer. One quiet reframe that shows you half-know the situation already. Plain prose only, collegial, never condescending. Sound like a trusted advisor who has nothing to prove.',
+  NETWORKER:    'Light and fast. One observation about what is actually happening right now in this space. Plain prose only, no lists. Two sentences max. The lead should feel like they are part of a moment, not a sales sequence.',
 };
+
+const CHAT_STYLE = '\n\nCHAT FORMAT RULES: Write in plain, natural prose — no markdown whatsoever. No asterisks for bold, no bullet points, no numbered lists, no headers, no checkboxes. Keep replies short: 2–4 sentences. Sound like a real person in a text conversation, not a formatted email or sales pitch.';
 
 // ── Init: resolve token, create session, fire notification ────────────────────
 
@@ -217,7 +219,7 @@ router.post('/chat', async (req, res) => {
       .replace(/{company_name}/g,     cb.name           || 'the company')
       .replace(/{original_email}/g,   snap.originalEmail || '');
 
-    const systemContent = resolvedPrompt + companyBlock + leadContextBlock + originalEmailBlock + ragContext;
+    const systemContent = resolvedPrompt + companyBlock + leadContextBlock + originalEmailBlock + ragContext + CHAT_STYLE;
 
     const messages = [
       { role: 'system', content: systemContent },

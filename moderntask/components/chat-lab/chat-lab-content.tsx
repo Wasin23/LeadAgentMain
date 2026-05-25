@@ -158,6 +158,11 @@ export function ChatLabContent() {
     docs:       any[]
   } | null>(null)
 
+  // Snapshot editing
+  const [editingSnap, setEditingSnap] = useState(false)
+  const [snapDraft, setSnapDraft]     = useState({ companyName: '', companyOffering: '', companyAdvantages: '', buyerMotivation: '', emailHooksText: '', citedFactsText: '', originalEmail: '' })
+  const [snapSaving, setSnapSaving]   = useState(false)
+
   // ── Load agents on mount ───────────────────────────────────────────────────
   useEffect(() => {
     api.get('/api/auth/agents').then(r => {
@@ -222,15 +227,61 @@ export function ChatLabContent() {
     } catch { /* silent */ }
   }, [])
 
+  const startEditSnap = (snap: ResearchSnapshot) => {
+    const cb = snap.companyBranding || {}
+    setSnapDraft({
+      companyName:      cb.name           || '',
+      companyOffering:  cb.offering       || '',
+      companyAdvantages: cb.advantages    || '',
+      buyerMotivation:  snap.buyerMotivation || '',
+      emailHooksText:   (snap.emailHooks  || []).join('\n'),
+      citedFactsText:   (snap.citedFacts  || []).map((f: any) => f.source ? `${f.fact} — ${f.source}` : f.fact).join('\n'),
+      originalEmail:    snap.originalEmail || '',
+    })
+    setEditingSnap(true)
+  }
+
+  const saveSnapshot = async () => {
+    if (!selectedSession || !sessionContext) return
+    setSnapSaving(true)
+    const original = sessionContext.session?.researchSnapshot || {}
+    const updated: ResearchSnapshot = {
+      ...original,
+      companyBranding: { ...original.companyBranding, name: snapDraft.companyName, offering: snapDraft.companyOffering, advantages: snapDraft.companyAdvantages },
+      buyerMotivation: snapDraft.buyerMotivation,
+      emailHooks: snapDraft.emailHooksText.split('\n').map((s: string) => s.trim()).filter(Boolean),
+      citedFacts: snapDraft.citedFactsText.split('\n').map((line: string) => {
+        const idx = line.indexOf(' — ')
+        if (idx === -1) return { fact: line.trim(), source: '' }
+        return { fact: line.slice(0, idx).trim(), source: line.slice(idx + 3).trim() }
+      }).filter((f: any) => f.fact),
+      originalEmail: snapDraft.originalEmail,
+    }
+    try {
+      await api.patch(`/api/chat-lab/sessions/${selectedSession.sessionId}/snapshot`, {
+        createdAt: selectedSession.createdAt,
+        researchSnapshot: updated,
+      })
+      setSessionContext(prev => prev ? { ...prev, session: { ...prev.session, researchSnapshot: updated } } : null)
+      setEditingSnap(false)
+    } catch (err) {
+      console.error('Failed to save snapshot:', err)
+    } finally {
+      setSnapSaving(false)
+    }
+  }
+
   const openSessionMemory = useCallback(async (session: ChatSession) => {
     if (selectedSession?.sessionId === session.sessionId) {
       setSelectedSession(null)
       setSessionMessages([])
+      setEditingSnap(false)
       return
     }
     setSelectedSession(session)
     setSessionContext(null)
     setSessionMessages([])
+    setEditingSnap(false)
     setActiveTab('sessions')
     setSessionLoading(true)
     try {
@@ -535,7 +586,7 @@ export function ChatLabContent() {
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium">{s.leadName || 'Unknown'}</p>
+                          <p className="text-sm font-medium">{(s.leadName && s.leadName !== 'Lead' && s.leadName !== 'Guest') ? s.leadName : 'Unknown'}</p>
                           <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${intentBadge(s.intentScore)}`}>
                             Intent {s.intentScore}/10
                           </span>
@@ -578,54 +629,112 @@ export function ChatLabContent() {
 
                           {/* Research context the AI has */}
                           {sessionContext?.session?.researchSnapshot && (() => {
-                            const snap = sessionContext.session.researchSnapshot
+                            const snap: ResearchSnapshot = sessionContext.session.researchSnapshot
                             const cb = snap.companyBranding || {}
                             return (
                               <div className="border-t border-border pt-3 space-y-2">
-                                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">What the AI knows</p>
+                                <div className="flex items-center justify-between">
+                                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">What the AI knows</p>
+                                  {editingSnap ? (
+                                    <div className="flex items-center gap-1.5">
+                                      <button onClick={() => setEditingSnap(false)} className="text-[10px] text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded">Cancel</button>
+                                      <button onClick={saveSnapshot} disabled={snapSaving} className="text-[10px] font-medium text-white bg-primary hover:opacity-90 disabled:opacity-50 px-2 py-0.5 rounded">
+                                        {snapSaving ? 'Saving…' : 'Save'}
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button onClick={() => startEditSnap(snap)} className="p-0.5 text-muted-foreground hover:text-foreground rounded transition-colors">
+                                      <Edit2 className="w-3 h-3" />
+                                    </button>
+                                  )}
+                                </div>
 
-                                {(cb.name || cb.offering) && (
-                                  <div className="rounded-lg bg-card border border-border p-2.5 space-y-0.5">
-                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Your company</p>
-                                    {cb.name     && <p className="text-xs"><span className="text-muted-foreground">Name:</span> {cb.name}</p>}
-                                    {cb.offering && <p className="text-xs"><span className="text-muted-foreground">Offering:</span> {cb.offering}</p>}
-                                    {cb.advantages && <p className="text-xs"><span className="text-muted-foreground">Advantages:</span> {cb.advantages}</p>}
+                                {editingSnap ? (
+                                  <div className="space-y-2">
+                                    <div className="rounded-lg bg-card border border-border p-2.5 space-y-2">
+                                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Your company</p>
+                                      <div>
+                                        <p className="text-[9px] text-muted-foreground mb-0.5">Name</p>
+                                        <input value={snapDraft.companyName} onChange={e => setSnapDraft(p => ({ ...p, companyName: e.target.value }))} className="w-full text-xs border border-border rounded px-2 py-1 bg-background focus:outline-none focus:border-primary" />
+                                      </div>
+                                      <div>
+                                        <p className="text-[9px] text-muted-foreground mb-0.5">Offering</p>
+                                        <textarea value={snapDraft.companyOffering} onChange={e => setSnapDraft(p => ({ ...p, companyOffering: e.target.value }))} rows={2} className="w-full text-xs border border-border rounded px-2 py-1 bg-background resize-none focus:outline-none focus:border-primary" />
+                                      </div>
+                                      <div>
+                                        <p className="text-[9px] text-muted-foreground mb-0.5">Advantages</p>
+                                        <textarea value={snapDraft.companyAdvantages} onChange={e => setSnapDraft(p => ({ ...p, companyAdvantages: e.target.value }))} rows={2} className="w-full text-xs border border-border rounded px-2 py-1 bg-background resize-none focus:outline-none focus:border-primary" />
+                                      </div>
+                                    </div>
+
+                                    <div className="rounded-lg bg-card border border-border p-2.5">
+                                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Why they'd buy</p>
+                                      <textarea value={snapDraft.buyerMotivation} onChange={e => setSnapDraft(p => ({ ...p, buyerMotivation: e.target.value }))} rows={3} className="w-full text-xs border border-border rounded px-2 py-1 bg-background resize-none focus:outline-none focus:border-primary" />
+                                    </div>
+
+                                    <div className="rounded-lg bg-card border border-border p-2.5">
+                                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Email hooks</p>
+                                      <p className="text-[9px] text-muted-foreground mb-1">One per line</p>
+                                      <textarea value={snapDraft.emailHooksText} onChange={e => setSnapDraft(p => ({ ...p, emailHooksText: e.target.value }))} rows={3} className="w-full text-xs border border-border rounded px-2 py-1 bg-background resize-none focus:outline-none focus:border-primary" />
+                                    </div>
+
+                                    <div className="rounded-lg bg-card border border-border p-2.5">
+                                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Research facts</p>
+                                      <p className="text-[9px] text-muted-foreground mb-1">One per line · optionally append <span className="font-mono"> — source-url</span></p>
+                                      <textarea value={snapDraft.citedFactsText} onChange={e => setSnapDraft(p => ({ ...p, citedFactsText: e.target.value }))} rows={5} className="w-full text-xs border border-border rounded px-2 py-1 bg-background resize-none focus:outline-none focus:border-primary" />
+                                    </div>
+
+                                    <div className="rounded-lg bg-card border border-border p-2.5">
+                                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Original email sent</p>
+                                      <textarea value={snapDraft.originalEmail} onChange={e => setSnapDraft(p => ({ ...p, originalEmail: e.target.value }))} rows={4} className="w-full text-xs border border-border rounded px-2 py-1 bg-background resize-none focus:outline-none focus:border-primary" />
+                                    </div>
                                   </div>
-                                )}
+                                ) : (
+                                  <div className="space-y-2">
+                                    {(cb.name || cb.offering) && (
+                                      <div className="rounded-lg bg-card border border-border p-2.5 space-y-0.5">
+                                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Your company</p>
+                                        {cb.name       && <p className="text-xs"><span className="text-muted-foreground">Name:</span> {cb.name}</p>}
+                                        {cb.offering   && <p className="text-xs"><span className="text-muted-foreground">Offering:</span> {cb.offering}</p>}
+                                        {cb.advantages && <p className="text-xs"><span className="text-muted-foreground">Advantages:</span> {cb.advantages}</p>}
+                                      </div>
+                                    )}
 
-                                {snap.buyerMotivation && (
-                                  <div className="rounded-lg bg-card border border-border p-2.5">
-                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Why they'd buy</p>
-                                    <p className="text-xs leading-relaxed">{snap.buyerMotivation}</p>
-                                  </div>
-                                )}
+                                    {snap.buyerMotivation && (
+                                      <div className="rounded-lg bg-card border border-border p-2.5">
+                                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Why they'd buy</p>
+                                        <p className="text-xs leading-relaxed">{snap.buyerMotivation}</p>
+                                      </div>
+                                    )}
 
-                                {snap.emailHooks?.length > 0 && (
-                                  <div className="rounded-lg bg-card border border-border p-2.5">
-                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Email hooks used</p>
-                                    <ul className="space-y-0.5">
-                                      {snap.emailHooks.map((h: string, i: number) => (
-                                        <li key={i} className="text-xs text-muted-foreground">· {h}</li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                )}
+                                    {snap.emailHooks && snap.emailHooks.length > 0 && (
+                                      <div className="rounded-lg bg-card border border-border p-2.5">
+                                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Email hooks used</p>
+                                        <ul className="space-y-0.5">
+                                          {snap.emailHooks.map((h: string, i: number) => (
+                                            <li key={i} className="text-xs text-muted-foreground">· {h}</li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
 
-                                {snap.citedFacts?.length > 0 && (
-                                  <div className="rounded-lg bg-card border border-border p-2.5">
-                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Research facts</p>
-                                    <ul className="space-y-0.5">
-                                      {snap.citedFacts.map((f: any, i: number) => (
-                                        <li key={i} className="text-xs text-muted-foreground">· {f.fact}{f.source ? ` — ${f.source}` : ''}</li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                )}
+                                    {snap.citedFacts && snap.citedFacts.length > 0 && (
+                                      <div className="rounded-lg bg-card border border-border p-2.5">
+                                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Research facts</p>
+                                        <ul className="space-y-0.5">
+                                          {snap.citedFacts.map((f: any, i: number) => (
+                                            <li key={i} className="text-xs text-muted-foreground">· {f.fact}{f.source ? ` — ${f.source}` : ''}</li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
 
-                                {snap.originalEmail && (
-                                  <div className="rounded-lg bg-card border border-border p-2.5">
-                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Original email sent</p>
-                                    <p className="text-xs text-muted-foreground leading-relaxed line-clamp-4">{snap.originalEmail}</p>
+                                    {snap.originalEmail && (
+                                      <div className="rounded-lg bg-card border border-border p-2.5">
+                                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Original email sent</p>
+                                        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-4">{snap.originalEmail}</p>
+                                      </div>
+                                    )}
                                   </div>
                                 )}
                               </div>
