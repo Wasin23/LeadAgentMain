@@ -1491,10 +1491,13 @@ router.post('/test-email', async (req, res) => {
       return res.status(500).json({ success: false, error: result?.error || 'Email generation failed' });
     }
 
+    // Strip compliance footer before returning preview
+    const body = (result.email || '').replace(/\n\n[\s\S]*?(?:Stop emails|unsubscribe)[\s\S]*$/i, '').trim();
+
     res.json({
       success: true,
       subject: result.subject,
-      body: result.email,
+      body,
     });
   } catch (err) {
     console.error('[TEST EMAIL] Error:', err?.message, err?.stack);

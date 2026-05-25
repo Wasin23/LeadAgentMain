@@ -446,7 +446,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
   const [resetScraping, setResetScraping] = useState(false);
   const [showResetWebsite, setShowResetWebsite] = useState(false);
   const [testEmailOpen, setTestEmailOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'research' | 'email'>('research');
+  const [activeTab, setActiveTab] = useState<'research' | 'email' | null>(null);
   const [testEmailLoading, setTestEmailLoading] = useState(false);
   const [testEmailResult, setTestEmailResult] = useState<{ subject: string; body: string } | null>(null);
   const [testEmailError, setTestEmailError] = useState<string | null>(null);
@@ -808,32 +808,33 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
           )}
 
           {/* Tab Selector */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             <button
               type="button"
-              onClick={() => setActiveTab('research')}
-              className={`flex items-center gap-3 p-4 rounded-xl border-2 text-left transition-all ${activeTab === 'research' ? 'border-primary bg-primary/5 text-primary' : 'border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground'}`}
+              onClick={() => setActiveTab(activeTab === 'research' ? null : 'research')}
+              className={`flex flex-col items-center justify-center gap-3 p-8 rounded-2xl border-2 text-center transition-all ${activeTab === 'research' ? 'border-primary bg-primary/5 text-primary' : 'border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-muted/40'}`}
             >
-              <Search className="w-5 h-5 shrink-0" />
+              <Search className="w-7 h-7" />
               <div>
-                <p className="font-semibold text-sm">Research</p>
-                <p className="text-xs opacity-70">Targeting &amp; qualification</p>
+                <p className="font-semibold text-base">Research</p>
+                <p className="text-xs opacity-60 mt-0.5">Targeting &amp; qualification</p>
               </div>
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab('email')}
-              className={`flex items-center gap-3 p-4 rounded-xl border-2 text-left transition-all ${activeTab === 'email' ? 'border-primary bg-primary/5 text-primary' : 'border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground'}`}
+              onClick={() => setActiveTab(activeTab === 'email' ? null : 'email')}
+              className={`flex flex-col items-center justify-center gap-3 p-8 rounded-2xl border-2 text-center transition-all ${activeTab === 'email' ? 'border-primary bg-primary/5 text-primary' : 'border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-muted/40'}`}
             >
-              <Mail className="w-5 h-5 shrink-0" />
+              <Mail className="w-7 h-7" />
               <div>
-                <p className="font-semibold text-sm">Email Build</p>
-                <p className="text-xs opacity-70">Writing &amp; preview</p>
+                <p className="font-semibold text-base">Email Build</p>
+                <p className="text-xs opacity-60 mt-0.5">Writing &amp; preview</p>
               </div>
             </button>
           </div>
 
           {activeTab === 'research' && (<>
+
 
           {/* General Instructions */}
           <div className="bg-primary/5 border border-primary/20 rounded-xl p-6">
@@ -1159,6 +1160,113 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
 
           {activeTab === 'email' && (<>
 
+          {/* Email Templates */}
+          <Section
+            title="Email Templates"
+            description="Pre-written email bodies the agent uses instead of generating from scratch"
+            badge={settings.emailBuilder.useTemplates ? (settings.emailBuilder.templates?.length ? `${settings.emailBuilder.templates.length} active` : 'on — no templates') : (settings.emailBuilder.templates?.length ? `${settings.emailBuilder.templates.length} saved (off)` : undefined)}
+          >
+            <div className="mt-4 space-y-4">
+              <ToggleRow
+                label="Use templates instead of AI generation"
+                checked={!!settings.emailBuilder.useTemplates}
+                onChange={v => updateEmail('useTemplates', v)}
+                description="When on, the agent fills your template bodies instead of writing emails from scratch. Writing Rules are ignored in template mode."
+              />
+              <TemplateEditor
+                templates={settings.emailBuilder.templates || []}
+                onChange={tpls => updateEmail('templates', tpls)}
+              />
+            </div>
+          </Section>
+
+          {/* Email Settings */}
+          <Section title="Email Settings" description="Configure follow-ups and sending">
+            <div className="space-y-5 mt-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>CC Emails</Label>
+                  <Input value={settings.emailBuilder.ccEmails} onChange={e => updateEmail('ccEmails', e.target.value)} placeholder="cc@example.com" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>BCC Emails</Label>
+                  <Input value={settings.emailBuilder.bccEmails} onChange={e => updateEmail('bccEmails', e.target.value)} placeholder="bcc@example.com" />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Follow-up Interval (days)</Label>
+                <Input type="number" min={1} max={30} value={settings.emailBuilder.rebumpIntervalDays} onChange={e => updateEmail('rebumpIntervalDays', parseInt(e.target.value) || 3)} />
+                <p className="text-xs text-muted-foreground">Days before sending a follow-up</p>
+              </div>
+
+              {/* Gmail */}
+              <div className="border-t border-border pt-4 space-y-3">
+                <ToggleRow
+                  label="Use Gmail for Sending"
+                  checked={settings.emailBuilder.useGmail}
+                  onChange={v => { updateEmail('useGmail', v); if (v) updateEmail('useOutlook', false); }}
+                  description="Send from your connected Gmail account instead of Mailgun (better deliverability)"
+                />
+                {settings.emailBuilder.useGmail && (
+                  <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                    <p className="text-sm text-blue-500 font-medium">✓ Emails will be sent from your connected Gmail account</p>
+                    <p className="text-xs text-blue-500/70 mt-1">Make sure Gmail is connected in Settings → Outreach → Gmail Connection</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Outlook */}
+              <div className="border-t border-border pt-4 space-y-3">
+                <ToggleRow
+                  label="Use Outlook for Sending"
+                  checked={settings.emailBuilder.useOutlook}
+                  onChange={v => { updateEmail('useOutlook', v); if (v) updateEmail('useGmail', false); }}
+                  description="Send from your connected Outlook account instead of Mailgun (better deliverability)"
+                />
+                {settings.emailBuilder.useOutlook && (
+                  <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                    <p className="text-sm text-blue-500 font-medium">✓ Emails will be sent from your connected Outlook account</p>
+                    <p className="text-xs text-blue-500/70 mt-1">Make sure Outlook is connected in Settings → Outreach → Outlook Connection</p>
+                  </div>
+                )}
+              </div>
+
+              {/* LinkedIn */}
+              <div className="border-t border-border pt-4 space-y-3">
+                <ToggleRow
+                  label="Enable LinkedIn Outreach"
+                  checked={!!settings.emailBuilder.useLinkedIn}
+                  onChange={v => updateEmail('useLinkedIn', v)}
+                  description="Allow this agent to send InMail or connection requests to highly qualified leads via LinkedIn"
+                />
+                {settings.emailBuilder.useLinkedIn && (
+                  <div className="p-3 bg-[#0A66C2]/10 border border-[#0A66C2]/20 rounded-lg">
+                    <p className="text-sm font-medium" style={{ color: '#0A66C2' }}>✓ LinkedIn outreach enabled for this agent</p>
+                    <p className="text-xs mt-1" style={{ color: '#0A66C2', opacity: 0.7 }}>Make sure LinkedIn is connected in Settings → Outreach → Connect LinkedIn</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Custom Signature */}
+              <div className="border-t border-border pt-4 space-y-4">
+                <ToggleRow label="Use Custom Signature" checked={settings.emailBuilder.useCustomSignature} onChange={v => updateEmail('useCustomSignature', v)} description="Use a custom signature instead of AI-generated" />
+                {settings.emailBuilder.useCustomSignature && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label>Signature Name</Label>
+                      <Input value={settings.emailBuilder.signatureName} onChange={e => updateEmail('signatureName', e.target.value)} placeholder="John Smith" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Signature Title</Label>
+                      <Input value={settings.emailBuilder.signatureTitle} onChange={e => updateEmail('signatureTitle', e.target.value)} placeholder="Sales Director" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </Section>
+
           {/* Email Designer */}
           <div className="bg-card border border-border rounded-xl overflow-hidden">
             <div className="grid grid-cols-2 divide-x divide-border" style={{ minHeight: '580px' }}>
@@ -1316,113 +1424,6 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
 
             </div>
           </div>
-
-          {/* Email Templates */}
-          <Section
-            title="Email Templates"
-            description="Pre-written email bodies the agent uses instead of generating from scratch"
-            badge={settings.emailBuilder.useTemplates ? (settings.emailBuilder.templates?.length ? `${settings.emailBuilder.templates.length} active` : 'on — no templates') : (settings.emailBuilder.templates?.length ? `${settings.emailBuilder.templates.length} saved (off)` : undefined)}
-          >
-            <div className="mt-4 space-y-4">
-              <ToggleRow
-                label="Use templates instead of AI generation"
-                checked={!!settings.emailBuilder.useTemplates}
-                onChange={v => updateEmail('useTemplates', v)}
-                description="When on, the agent fills your template bodies instead of writing emails from scratch. Writing Rules are ignored in template mode."
-              />
-              <TemplateEditor
-                templates={settings.emailBuilder.templates || []}
-                onChange={tpls => updateEmail('templates', tpls)}
-              />
-            </div>
-          </Section>
-
-          {/* Email Settings */}
-          <Section title="Email Settings" description="Configure follow-ups and sending">
-            <div className="space-y-5 mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label>CC Emails</Label>
-                  <Input value={settings.emailBuilder.ccEmails} onChange={e => updateEmail('ccEmails', e.target.value)} placeholder="cc@example.com" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>BCC Emails</Label>
-                  <Input value={settings.emailBuilder.bccEmails} onChange={e => updateEmail('bccEmails', e.target.value)} placeholder="bcc@example.com" />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label>Follow-up Interval (days)</Label>
-                <Input type="number" min={1} max={30} value={settings.emailBuilder.rebumpIntervalDays} onChange={e => updateEmail('rebumpIntervalDays', parseInt(e.target.value) || 3)} />
-                <p className="text-xs text-muted-foreground">Days before sending a follow-up</p>
-              </div>
-
-              {/* Gmail */}
-              <div className="border-t border-border pt-4 space-y-3">
-                <ToggleRow
-                  label="Use Gmail for Sending"
-                  checked={settings.emailBuilder.useGmail}
-                  onChange={v => { updateEmail('useGmail', v); if (v) updateEmail('useOutlook', false); }}
-                  description="Send from your connected Gmail account instead of Mailgun (better deliverability)"
-                />
-                {settings.emailBuilder.useGmail && (
-                  <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                    <p className="text-sm text-blue-500 font-medium">✓ Emails will be sent from your connected Gmail account</p>
-                    <p className="text-xs text-blue-500/70 mt-1">Make sure Gmail is connected in Settings → Outreach → Gmail Connection</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Outlook */}
-              <div className="border-t border-border pt-4 space-y-3">
-                <ToggleRow
-                  label="Use Outlook for Sending"
-                  checked={settings.emailBuilder.useOutlook}
-                  onChange={v => { updateEmail('useOutlook', v); if (v) updateEmail('useGmail', false); }}
-                  description="Send from your connected Outlook account instead of Mailgun (better deliverability)"
-                />
-                {settings.emailBuilder.useOutlook && (
-                  <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                    <p className="text-sm text-blue-500 font-medium">✓ Emails will be sent from your connected Outlook account</p>
-                    <p className="text-xs text-blue-500/70 mt-1">Make sure Outlook is connected in Settings → Outreach → Outlook Connection</p>
-                  </div>
-                )}
-              </div>
-
-              {/* LinkedIn */}
-              <div className="border-t border-border pt-4 space-y-3">
-                <ToggleRow
-                  label="Enable LinkedIn Outreach"
-                  checked={!!settings.emailBuilder.useLinkedIn}
-                  onChange={v => updateEmail('useLinkedIn', v)}
-                  description="Allow this agent to send InMail or connection requests to highly qualified leads via LinkedIn"
-                />
-                {settings.emailBuilder.useLinkedIn && (
-                  <div className="p-3 bg-[#0A66C2]/10 border border-[#0A66C2]/20 rounded-lg">
-                    <p className="text-sm font-medium" style={{ color: '#0A66C2' }}>✓ LinkedIn outreach enabled for this agent</p>
-                    <p className="text-xs mt-1" style={{ color: '#0A66C2', opacity: 0.7 }}>Make sure LinkedIn is connected in Settings → Outreach → Connect LinkedIn</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Custom Signature */}
-              <div className="border-t border-border pt-4 space-y-4">
-                <ToggleRow label="Use Custom Signature" checked={settings.emailBuilder.useCustomSignature} onChange={v => updateEmail('useCustomSignature', v)} description="Use a custom signature instead of AI-generated" />
-                {settings.emailBuilder.useCustomSignature && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label>Signature Name</Label>
-                      <Input value={settings.emailBuilder.signatureName} onChange={e => updateEmail('signatureName', e.target.value)} placeholder="John Smith" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Signature Title</Label>
-                      <Input value={settings.emailBuilder.signatureTitle} onChange={e => updateEmail('signatureTitle', e.target.value)} placeholder="Sales Director" />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </Section>
 
           </>)}
 
