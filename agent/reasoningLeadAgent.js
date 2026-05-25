@@ -4843,7 +4843,7 @@ Best,
 ${signatureName}
 ${signatureTitle}${signatureCompany}
 
-Write the email now. First sentence must be specific to this company.`;
+Write the email now. First sentence must be specific to this company.${emailSettings.emailBuilder?.includeChatLink ? `\n\nCHAT LINK: This email should include a personalised chat link. Use the exact placeholder [CHAT_LINK] where the link should appear.${emailSettings.emailBuilder?.chatLinkInstructions ? ` Instructions: ${emailSettings.emailBuilder.chatLinkInstructions}` : ' Add it naturally near the end of the email.'}` : ''}`;
 
       const promptMetrics = this.logEmailPromptMetrics({
         companyName,

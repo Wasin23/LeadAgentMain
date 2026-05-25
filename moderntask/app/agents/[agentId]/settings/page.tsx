@@ -86,6 +86,8 @@ interface AgentSettings {
     useTemplates: boolean;
     smartRebump?: boolean;
     rebumpLinkedinScrape?: boolean;
+    includeChatLink: boolean;
+    chatLinkInstructions: string;
   };
 }
 
@@ -109,7 +111,7 @@ const defaultSettings: AgentSettings = {
   geographicSettings: { targetLocations: ['United States'], excludedLocations: [], leadLimit: 50, timezone: 'America/New_York' },
   concurrencyLevel: 1,
   researchFocus: { focusAreas: [], researchDepth: 'standard', includeCompanyNews: true, includePersonalInfo: false, includeSocialMedia: false },
-  emailBuilder: { emailTemplate: 'professional', customPrompt: '', emailResponsePrompt: '', tone: 'professional', length: 'medium', maxWords: null, callToAction: 'meeting', personalization: 'high', ccEmails: '', bccEmails: '', enableAutoResponse: false, rebumpIntervalDays: 3, useCustomSignature: false, signatureName: '', signatureTitle: '', useGmail: false, useOutlook: false, useLinkedIn: false, templates: [], useTemplates: false, smartRebump: false, rebumpLinkedinScrape: true }
+  emailBuilder: { emailTemplate: 'professional', customPrompt: '', emailResponsePrompt: '', tone: 'professional', length: 'medium', maxWords: null, callToAction: 'meeting', personalization: 'high', ccEmails: '', bccEmails: '', enableAutoResponse: false, rebumpIntervalDays: 3, useCustomSignature: false, signatureName: '', signatureTitle: '', useGmail: false, useOutlook: false, useLinkedIn: false, templates: [], useTemplates: false, smartRebump: false, rebumpLinkedinScrape: true, includeChatLink: false, chatLinkInstructions: '' }
 };
 
 // ─────────────────────────────────────────────────────
@@ -600,6 +602,8 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
             smartRebump: e.smartRebump ?? e.emailBuilder?.smartRebump ?? false,
             rebumpLinkedinScrape: e.rebumpLinkedinScrape ?? e.emailBuilder?.rebumpLinkedinScrape ?? true,
             maxWords: e.maxWords ?? e.emailBuilder?.maxWords ?? null,
+            includeChatLink: e.includeChatLink ?? e.emailBuilder?.includeChatLink ?? false,
+            chatLinkInstructions: e.chatLinkInstructions || e.emailBuilder?.chatLinkInstructions || '',
           },
         };
         setSettings(loaded);
@@ -1261,6 +1265,30 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                       <Label>Signature Title</Label>
                       <Input value={settings.emailBuilder.signatureTitle} onChange={e => updateEmail('signatureTitle', e.target.value)} placeholder="Sales Director" />
                     </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Chat Link */}
+              <div className="border-t border-border pt-4 space-y-3">
+                <ToggleRow
+                  label="Include Chat Link"
+                  checked={settings.emailBuilder.includeChatLink}
+                  onChange={v => updateEmail('includeChatLink', v)}
+                  description="Inserts a personalised chat link into the email so leads can start a live conversation"
+                />
+                {settings.emailBuilder.includeChatLink && (
+                  <div className="space-y-1.5">
+                    <Label>How should the agent use it?</Label>
+                    <Textarea
+                      value={settings.emailBuilder.chatLinkInstructions}
+                      onChange={e => updateEmail('chatLinkInstructions', e.target.value)}
+                      rows={3}
+                      className="resize-y bg-background text-sm"
+                      placeholder={`e.g. Add a P.S. at the end: "If you'd rather just chat now — [CHAT_LINK]"`}
+                      maxLength={300}
+                    />
+                    <p className="text-xs text-muted-foreground">Use <code className="bg-muted px-1 rounded">[CHAT_LINK]</code> to mark where the link goes. The agent will follow your instructions and substitute the real link on send.</p>
                   </div>
                 )}
               </div>

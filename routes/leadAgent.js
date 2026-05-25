@@ -1491,8 +1491,11 @@ router.post('/test-email', async (req, res) => {
       return res.status(500).json({ success: false, error: result?.error || 'Email generation failed' });
     }
 
-    // Strip compliance footer before returning preview
-    const body = (result.email || '').replace(/\n\n[\s\S]*?(?:Stop emails|unsubscribe)[\s\S]*$/i, '').trim();
+    // Strip compliance footer and substitute chat link placeholder for preview
+    const body = (result.email || '')
+      .replace(/\n\n[\s\S]*?(?:Stop emails|unsubscribe)[\s\S]*$/i, '')
+      .replace(/\[CHAT_LINK\]/gi, '<link will go here>')
+      .trim();
 
     res.json({
       success: true,
