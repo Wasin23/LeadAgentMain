@@ -1170,7 +1170,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
               </div>
 
               {/* Test Button */}
-              <div className="pt-1">
+              <div className="pt-1 flex items-center gap-2">
                 <button
                   onClick={() => { setTestEmailOpen(true); runTestEmail(); }}
                   className="flex items-center gap-2 text-sm font-medium text-primary hover:underline"
@@ -1178,6 +1178,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                   <FlaskConical className="w-4 h-4" />
                   Test with these settings
                 </button>
+                {hasUnsavedChanges && <span className="text-xs text-muted-foreground">· save first for accurate results</span>}
               </div>
             </div>
           </Section>
