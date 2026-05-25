@@ -697,7 +697,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
-          agentId,
+          agentId: resolvedParams.agentId,
           emailSettings: { ...settings.emailBuilder, companyBranding: settings.companyBranding },
         }),
         signal: controller.signal,
