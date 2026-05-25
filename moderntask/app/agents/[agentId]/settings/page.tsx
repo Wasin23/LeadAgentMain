@@ -1133,47 +1133,25 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
               <div>
                 <Label className="mb-2 block">Email Length</Label>
                 <div className="flex gap-2">
-                  {(['short', 'medium', 'long'] as const).map(opt => (
+                  {([
+                    { val: 'short',  label: 'Short',  range: '~60 words' },
+                    { val: 'medium', label: 'Medium', range: '80–120 words' },
+                    { val: 'long',   label: 'Long',   range: '150–200 words' },
+                  ] as const).map(opt => (
                     <button
-                      key={opt}
-                      onClick={() => updateEmail('length', opt)}
-                      className={`flex-1 py-2 rounded-lg border text-sm font-medium capitalize transition-colors ${
-                        settings.emailBuilder.length === opt
+                      key={opt.val}
+                      onClick={() => updateEmail('length', opt.val)}
+                      className={`flex-1 py-2.5 rounded-lg border text-sm font-medium transition-colors flex flex-col items-center gap-0.5 ${
+                        settings.emailBuilder.length === opt.val
                           ? 'bg-primary text-primary-foreground border-primary'
                           : 'bg-background border-border text-muted-foreground hover:border-primary/50'
                       }`}
                     >
-                      {opt}
+                      <span>{opt.label}</span>
+                      <span className={`text-[10px] font-normal ${settings.emailBuilder.length === opt.val ? 'text-primary-foreground/70' : 'text-muted-foreground/60'}`}>{opt.range}</span>
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1.5">
-                  {settings.emailBuilder.length === 'short' && 'One paragraph · 3-4 sentences · under 60 words'}
-                  {settings.emailBuilder.length === 'medium' && 'One paragraph · 4-5 sentences · 80-120 words'}
-                  {settings.emailBuilder.length === 'long' && '2-3 paragraphs · 150-200 words'}
-                </p>
-              </div>
-
-              {/* Max Words */}
-              <div className="space-y-1.5">
-                <Label>Max Words (optional hard cap)</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    min={20}
-                    max={500}
-                    value={settings.emailBuilder.maxWords ?? ''}
-                    onChange={e => updateEmail('maxWords', e.target.value ? parseInt(e.target.value) : null)}
-                    placeholder="e.g. 80"
-                    className="w-32"
-                  />
-                  <span className="text-sm text-muted-foreground">words max in the body</span>
-                  {settings.emailBuilder.maxWords && (
-                    <button onClick={() => updateEmail('maxWords', null)} className="text-xs text-muted-foreground hover:text-foreground underline">clear</button>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground">Overrides the length preset if set. The AI is told to count words and stay under this number.</p>
-              </div>
 
               {/* Custom Prompt */}
               <div className="space-y-1.5">
@@ -1206,7 +1184,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
           {/* Test Email Modal */}
           {testEmailOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setTestEmailOpen(false)}>
-              <div className="bg-background border border-border rounded-xl shadow-xl w-full max-w-lg" onClick={e => e.stopPropagation()}>
+              <div className="bg-background border border-border rounded-xl shadow-xl w-full max-w-2xl" onClick={e => e.stopPropagation()}>
                 <div className="flex items-center justify-between px-5 py-4 border-b border-border">
                   <div>
                     <p className="font-semibold text-sm">Email Preview</p>
