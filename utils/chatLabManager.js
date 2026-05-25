@@ -422,7 +422,7 @@ class ChatLabManager {
         clickCount:   0,
       },
     }));
-    const baseUrl = process.env.API_BASE_URL || 'https://meridian-kdew.onrender.com';
+    const baseUrl = process.env.FRONTEND_URL || 'https://meridianprospects.com';
     return { token, url: `${baseUrl}/meet/${token}` };
   }
 
