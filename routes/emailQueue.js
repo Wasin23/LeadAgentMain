@@ -544,27 +544,29 @@ router.post('/:id/approve', async (req, res) => {
     let ccEmails = approvedEmail.cc || approvedEmail.emailData?.cc || null;
     let bccEmails = approvedEmail.bcc || approvedEmail.emailData?.bcc || null;
     let senderName = null;
-    
-    // Fetch agent settings for CC, BCC and sender name
+    let agentEmailBuilder = null;
+
+    // Fetch agent settings for CC, BCC, sender name, and chat link config
     if (userId && effectiveAgentId) {
       try {
         const awsManager = getUserEmailQueue(userId, effectiveAgentId).awsManager;
         if (awsManager) {
           const agentSettings = await awsManager.getLeadAgentSettings(userId, effectiveAgentId);
           if (agentSettings) {
+            agentEmailBuilder = agentSettings.emailBuilder || null;
             // Get CC emails if not already set
-            if (!ccEmails && agentSettings.emailBuilder && agentSettings.emailBuilder.ccEmails) {
-              ccEmails = agentSettings.emailBuilder.ccEmails;
+            if (!ccEmails && agentEmailBuilder?.ccEmails) {
+              ccEmails = agentEmailBuilder.ccEmails;
             }
             // Get BCC emails if not already set
-            if (!bccEmails && agentSettings.emailBuilder && agentSettings.emailBuilder.bccEmails) {
-              bccEmails = agentSettings.emailBuilder.bccEmails;
+            if (!bccEmails && agentEmailBuilder?.bccEmails) {
+              bccEmails = agentEmailBuilder.bccEmails;
             }
             // Get sender name for branding
             if (agentSettings.companyName) {
               senderName = agentSettings.companyName;
-            } else if (agentSettings.emailBuilder && agentSettings.emailBuilder.companyName) {
-              senderName = agentSettings.emailBuilder.companyName;
+            } else if (agentEmailBuilder?.companyName) {
+              senderName = agentEmailBuilder.companyName;
             }
           }
         }
@@ -603,37 +605,44 @@ router.post('/:id/approve', async (req, res) => {
       console.log('🧵 [EMAIL QUEUE] Reply options:', replyOptions);
     }
     
-    // Generate MQL Chat token and inject link into email body
+    // Inject MQL Chat button if enabled in agent settings
     let emailBodyWithChat = finalBody;
-    try {
-      const { chatLabManager } = await import('../utils/chatLabManager.js');
-      const leadName    = personInfo?.fullName || personInfo?.name || approvedEmail.leadName || 'Lead';
-      const leadCompany = approvedEmail.leadDetails?.companyName || personInfo?.company || '';
-      const leadTitle   = personInfo?.title || personInfo?.currentPosition || '';
-      const leadId      = approvedEmail.leadId || approvedEmail.leadDetails?.leadId || null;
-      const { token, url } = await chatLabManager.createChatToken(userId, {
-        agentId:     originalAgentId,
-        leadId,
-        emailId:     id,
-        leadName,
-        leadCompany,
-        leadTitle,
-        leadEmail:   finalRecipient,
-      });
-      const chatLinkHtml = `
-<div style="margin-top:24px;padding:16px 20px;background:#f8f9ff;border-left:3px solid #3b82f6;border-radius:4px;font-family:Arial,sans-serif;">
-  <p style="margin:0 0 8px;font-size:13px;color:#374151;">Want to ask me anything directly? I'm available now:</p>
+    if (agentEmailBuilder?.includeChatLink) {
+      try {
+        const { chatLabManager } = await import('../utils/chatLabManager.js');
+        const leadName    = personInfo?.fullName || personInfo?.name || approvedEmail.leadName || 'Lead';
+        const leadCompany = approvedEmail.leadDetails?.companyName || personInfo?.company || '';
+        const leadTitle   = personInfo?.title || personInfo?.currentPosition || '';
+        const leadId      = approvedEmail.leadId || approvedEmail.leadDetails?.leadId || null;
+        const { token, url } = await chatLabManager.createChatToken(userId, {
+          agentId:   originalAgentId,
+          leadId,
+          emailId:   id,
+          leadName,
+          leadCompany,
+          leadTitle,
+          leadEmail: finalRecipient,
+        });
+        const cardText = agentEmailBuilder.chatLinkInstructions?.trim() || 'Want to ask me anything directly? I\'m available now:';
+        const chatLinkHtml = `\n<div style="margin-top:24px;padding:16px 20px;background:#f8f9ff;border-left:3px solid #3b82f6;border-radius:4px;font-family:Arial,sans-serif;">
+  <p style="margin:0 0 8px;font-size:13px;color:#374151;">${cardText}</p>
   <a href="${url}" style="display:inline-block;padding:8px 18px;background:#3b82f6;color:#ffffff;text-decoration:none;border-radius:6px;font-size:13px;font-weight:600;">Start a conversation →</a>
-</div>`;
-      if (emailBodyWithChat.includes('</body>')) {
-        emailBodyWithChat = emailBodyWithChat.replace('</body>', `${chatLinkHtml}</body>`);
-      } else {
-        emailBodyWithChat += chatLinkHtml;
+</div>\n\n`;
+        if (emailBodyWithChat.includes('<!--MERIDIAN_FOOTER-->')) {
+          emailBodyWithChat = emailBodyWithChat.replace('<!--MERIDIAN_FOOTER-->', `${chatLinkHtml}`);
+        } else if (emailBodyWithChat.includes('</body>')) {
+          emailBodyWithChat = emailBodyWithChat.replace('</body>', `${chatLinkHtml}</body>`);
+        } else {
+          emailBodyWithChat += chatLinkHtml;
+        }
+        console.log(`[EMAIL QUEUE] 💬 MQL Chat link injected — token: ${token}`);
+      } catch (chatErr) {
+        console.error('[EMAIL QUEUE] ⚠️ Failed to inject chat link:', chatErr.message);
       }
-      console.log(`[EMAIL QUEUE] 💬 MQL Chat link injected — token: ${token}`);
-    } catch (chatErr) {
-      console.error('[EMAIL QUEUE] ⚠️ Failed to inject chat link:', chatErr.message);
     }
+
+    // Strip sentinel if chat was disabled or injection failed
+    emailBodyWithChat = emailBodyWithChat.replace('<!--MERIDIAN_FOOTER-->', '');
 
     const sendResult = await leadEmail(
       finalRecipient,

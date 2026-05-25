@@ -4843,7 +4843,7 @@ Best,
 ${signatureName}
 ${signatureTitle}${signatureCompany}
 
-Write the email now. First sentence must be specific to this company.${emailSettings.emailBuilder?.includeChatLink ? `\n\nCHAT LINK: This email should include a personalised chat link. Use the exact placeholder [CHAT_LINK] where the link should appear.${emailSettings.emailBuilder?.chatLinkInstructions ? ` Instructions: ${emailSettings.emailBuilder.chatLinkInstructions}` : ' Add it naturally near the end of the email.'}` : ''}`;
+Write the email now. First sentence must be specific to this company.`;
 
       const promptMetrics = this.logEmailPromptMetrics({
         companyName,
@@ -5122,31 +5122,10 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         const displayHost = companyWebsite.replace(/^https?:\/\//, '').replace(/\/$/, '');
         footerParts.push(`<a href="${companyWebsite}" style="color:#6b7280;text-decoration:none;">${displayHost}</a>`);
       }
-      const footer = `\n\n${footerParts.join(' | ')}\n` +
+      const footer = `\n\n<!--MERIDIAN_FOOTER-->${footerParts.join(' | ')}\n` +
         `<a href="${unsubscribeUrl}">Stop emails</a>`;
-      
-      body = body + footer;
 
-      // Replace [CHAT_LINK] placeholder with a real token URL if enabled
-      if (emailSettings.emailBuilder?.includeChatLink && body.includes('[CHAT_LINK]')) {
-        try {
-          const { chatLabManager } = await import('../utils/chatLabManager.js');
-          const leadName = [leadData.first_name, leadData.last_name].filter(Boolean).join(' ') || 'Guest';
-          const { url: chatUrl } = await chatLabManager.createChatToken(this.userId, {
-            agentId:     this.agentId,
-            leadId:      leadData.id      || null,
-            emailId:     null,
-            leadName,
-            leadCompany: leadData.organization?.name || '',
-            leadTitle:   leadData.title               || '',
-            leadEmail:   leadData.email               || '',
-          });
-          body = body.replace(/\[CHAT_LINK\]/gi, chatUrl);
-        } catch (err) {
-          console.error('[EMAIL BUILDER] Failed to create chat token:', err.message);
-          body = body.replace(/\[CHAT_LINK\]/gi, '');
-        }
-      }
+      body = body + footer;
 
       return {
         success: true,

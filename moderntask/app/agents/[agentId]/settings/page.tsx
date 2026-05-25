@@ -1384,12 +1384,12 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                       <Textarea
                         value={settings.emailBuilder.chatLinkInstructions}
                         onChange={e => updateEmail('chatLinkInstructions', e.target.value)}
-                        rows={3}
+                        rows={2}
                         className="resize-y bg-background text-sm"
-                        placeholder={`e.g. Add a P.S. at the end: "If you'd rather just chat now — [CHAT_LINK]"`}
-                        maxLength={300}
+                        placeholder="Want to ask me anything directly? I'm available now:"
+                        maxLength={200}
                       />
-                      <p className="text-xs text-muted-foreground">Use <code className="bg-muted px-1 rounded">[CHAT_LINK]</code> to mark where the link goes. The agent will follow your instructions and substitute the real link on send.</p>
+                      <p className="text-xs text-muted-foreground">This text appears above the chat button at the bottom of every email.</p>
                     </div>
                   )}
                 </div>
