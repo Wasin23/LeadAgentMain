@@ -6,6 +6,8 @@ export async function POST(req: NextRequest) {
     const authHeader = req.headers.get('authorization') || ''
     const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 120_000)
     const upstream = await fetch(`${apiBase}/api/lead-agent/test-email`, {
       method: 'POST',
       headers: {
@@ -13,9 +15,9 @@ export async function POST(req: NextRequest) {
         ...(authHeader ? { Authorization: authHeader } : {}),
       },
       body: JSON.stringify(body),
-      // @ts-ignore
-      signal: AbortSignal.timeout(120_000),
+      signal: controller.signal,
     })
+    clearTimeout(timer)
 
     const data = await upstream.json()
     return NextResponse.json(data, { status: upstream.status })

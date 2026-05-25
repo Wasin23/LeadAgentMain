@@ -681,6 +681,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
   const updateEmail = (f: string, v: any) => setSettings(p => ({ ...p, emailBuilder: { ...p.emailBuilder, [f]: v } }));
 
   const runTestEmail = async () => {
+    console.log('[TEST EMAIL] button pressed');
     setTestEmailLoading(true);
     setTestEmailResult(null);
     setTestEmailError(null);
