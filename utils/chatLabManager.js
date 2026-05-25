@@ -158,10 +158,13 @@ class ChatLabManager {
    * Create a new chat session. Returns the sessionId.
    * Call this when a lead clicks their chat link and a session is initialized.
    */
-  async createSession(userId, { agentId, leadId, emailId, leadName, leadCompany, leadTitle, token, researchSnapshot = null }) {
+  async createSession(userId, { agentId, leadId, emailId, leadName, leadCompany, leadTitle, token, researchSnapshot = null, expiryDays = 14 }) {
     await this.ensureSessionTable();
     const sessionId = randomUUID();
     const createdAt = new Date().toISOString();
+    const expiresAt = expiryDays != null
+      ? new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000).toISOString()
+      : null;
     const item = {
       PK:               this._sessionPK(userId),
       SK:               this._sessionSK(createdAt, sessionId),
@@ -181,6 +184,7 @@ class ChatLabManager {
       messages:         [],
       topics:           [],
       signals:          [],
+      expiresAt,
       createdAt,
       updatedAt:        createdAt,
       lastActive:       createdAt,
@@ -282,6 +286,7 @@ class ChatLabManager {
   async listSessions(userId, { agentId, limit = 50 } = {}) {
     await this.ensureSessionTable();
 
+    let items;
     if (agentId) {
       const res = await this.dynamodb.send(new QueryCommand({
         TableName: this.sessionTable,
@@ -291,20 +296,61 @@ class ChatLabManager {
         ScanIndexForward: false,
         Limit: limit,
       }));
-      return res.Items || [];
+      items = res.Items || [];
+    } else {
+      const res = await this.dynamodb.send(new QueryCommand({
+        TableName: this.sessionTable,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+        ExpressionAttributeValues: {
+          ':pk':     this._sessionPK(userId),
+          ':prefix': 'SESSION#',
+        },
+        ScanIndexForward: false,
+        Limit: limit,
+      }));
+      items = res.Items || [];
     }
 
-    const res = await this.dynamodb.send(new QueryCommand({
+    // Filter out expired sessions
+    const now = new Date().toISOString();
+    return items.filter(s => !s.expiresAt || s.expiresAt > now);
+  }
+
+  async deleteSession(userId, sessionId, createdAt, token = null) {
+    await this.ensureSessionTable();
+    await this.dynamodb.send(new DeleteCommand({
       TableName: this.sessionTable,
-      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
-      ExpressionAttributeValues: {
-        ':pk':     this._sessionPK(userId),
-        ':prefix': 'SESSION#',
+      Key: {
+        PK: this._sessionPK(userId),
+        SK: this._sessionSK(createdAt, sessionId),
       },
-      ScanIndexForward: false,
-      Limit: limit,
     }));
-    return res.Items || [];
+    if (token) {
+      this.dynamodb.send(new DeleteCommand({
+        TableName: this.tokenTable,
+        Key: { token },
+      })).catch(() => {});
+    }
+  }
+
+  async updateSessionExpiry(userId, sessionId, createdAt, expiryDays) {
+    await this.ensureSessionTable();
+    const expiresAt = expiryDays != null
+      ? new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000).toISOString()
+      : null;
+    await this.dynamodb.send(new UpdateCommand({
+      TableName: this.sessionTable,
+      Key: {
+        PK: this._sessionPK(userId),
+        SK: this._sessionSK(createdAt, sessionId),
+      },
+      UpdateExpression: 'SET expiresAt = :exp, updatedAt = :now',
+      ExpressionAttributeValues: {
+        ':exp': expiresAt,
+        ':now': new Date().toISOString(),
+      },
+    }));
+    return { expiresAt };
   }
 
   /**

@@ -12,14 +12,14 @@ const mistral = new OpenAI({
 });
 
 const PERSONALITY_TONES = {
-  HUNTER:       'Direct and specific. Open with one precise observation — nothing generic. Plain prose only, no markdown, no bullet points. Two to three short sentences. Sound like someone who already knows the situation.',
-  RELATIONSHIP: 'Warm and genuinely curious. Use one real detail to earn the right to continue. Plain prose only, no lists, no formatting. Write like a sharp person who actually finds this interesting — not a salesperson being friendly on purpose.',
-  ANALYST:      'Inference-driven. State one logical conclusion from the data — flat, confident, not emotional. Plain prose only, no markdown. Two to three sentences. Let the take do the work.',
-  CONSULTANT:   'Strategic peer. One quiet reframe that shows you half-know the situation already. Plain prose only, collegial, never condescending. Sound like a trusted advisor who has nothing to prove.',
-  NETWORKER:    'Light and fast. One observation about what is actually happening right now in this space. Plain prose only, no lists. Two sentences max. The lead should feel like they are part of a moment, not a sales sequence.',
+  HUNTER:       'Direct and specific. Open with one precise observation — nothing generic. Plain prose only, no markdown, no bullet points. Two to three short sentences. Sound like someone who already knows the situation. Use "we" and "our" — you represent the company, not just yourself.',
+  RELATIONSHIP: 'Warm and genuinely curious. Use one real detail to earn the right to continue. Plain prose only, no lists, no formatting. Write like a sharp person who actually finds this interesting — not a salesperson being friendly on purpose. Use "we" and "our" — you represent the company.',
+  ANALYST:      'Inference-driven. State one logical conclusion from the data — flat, confident, not emotional. Plain prose only, no markdown. Two to three sentences. Let the take do the work. Use "we" and "our" — you represent the company, not just yourself.',
+  CONSULTANT:   'Strategic peer. One quiet reframe that shows you half-know the situation already. Plain prose only, collegial, never condescending. Sound like a trusted advisor who has nothing to prove. Use "we" and "our" — you speak for the team.',
+  NETWORKER:    'Light and fast. One observation about what is actually happening right now in this space. Plain prose only, no lists. Two sentences max. The lead should feel like they are part of a moment, not a sales sequence. Use "we" and "our" — you represent the company.',
 };
 
-const CHAT_STYLE = '\n\nCHAT FORMAT RULES: Write in plain, natural prose — no markdown whatsoever. No asterisks for bold, no bullet points, no numbered lists, no headers, no checkboxes. Keep replies short: 2–4 sentences. Sound like a real person in a text conversation, not a formatted email or sales pitch.';
+const CHAT_STYLE = '\n\nCHAT FORMAT RULES: Write in plain, natural prose — no markdown whatsoever. No asterisks for bold, no bullet points, no numbered lists, no headers, no checkboxes. Keep replies conversational and concise. Use "we" and "our" instead of "I" and "my" — you represent the company, not just yourself. Sound like a real person in a text conversation, not a formatted email or sales pitch.';
 
 // ── Init: resolve token, create session, fire notification ────────────────────
 
@@ -233,10 +233,10 @@ router.post('/opener', async (req, res) => {
       model:       'mistral-medium-latest',
       messages: [
         { role: 'system', content: systemContent },
-        { role: 'user',   content: `[Open the conversation. Send your first message to ${leadName}. Reference something specific you know about them or their company. Keep it to 2–3 sentences — natural, not a pitch.]` },
+        { role: 'user',   content: `[Send your opening message to ${leadName}. Keep it to one short line — just greet them by first name and ask how you can help. Example: "Hey ${leadName?.split(' ')[0] || leadName}, how can we help you?" Use "we" not "I". Nothing more.]` },
       ],
-      temperature: 0.8,
-      max_tokens:  200,
+      temperature: 0.7,
+      max_tokens:  60,
     });
 
     const reply = completion.choices[0]?.message?.content || '';

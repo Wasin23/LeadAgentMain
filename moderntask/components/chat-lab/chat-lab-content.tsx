@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import {
   Upload, Trash2, Edit2, FileText, Check,
   MessageSquare, History, Sparkles, Save,
-  ExternalLink, FlaskConical,
+  ExternalLink, FlaskConical, Download, Eye, EyeOff,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -48,6 +48,27 @@ interface ChatSession {
   createdAt:        string
   status:           'active' | 'ended'
   researchSnapshot?: ResearchSnapshot
+  expiresAt?:       string | null
+  token?:           string
+}
+
+const EXPIRY_OPTIONS: { label: string; days: number | null }[] = [
+  { label: '1 week',   days: 7   },
+  { label: '2 weeks',  days: 14  },
+  { label: '1 month',  days: 30  },
+  { label: '3 months', days: 90  },
+  { label: '6 months', days: 180 },
+  { label: 'Forever',  days: null },
+]
+
+function expiryLabel(expiresAt?: string | null) {
+  if (!expiresAt) return 'Never expires'
+  const diff = new Date(expiresAt).getTime() - Date.now()
+  if (diff <= 0) return 'Expired'
+  const d = Math.ceil(diff / 86400000)
+  if (d === 1) return 'Expires tomorrow'
+  if (d < 30) return `Expires in ${d}d`
+  return `Expires ${new Date(expiresAt).toLocaleDateString()}`
 }
 
 interface PromptVersion {
@@ -157,6 +178,15 @@ export function ChatLabContent() {
     promptData: any
     docs:       any[]
   } | null>(null)
+
+  // Session delete/expiry
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [expiryUpdating, setExpiryUpdating] = useState<string | null>(null)
+
+  // Doc chunk preview
+  const [docChunks, setDocChunks]         = useState<Record<string, string[]>>({})
+  const [docChunksLoading, setDocChunksLoading] = useState<Record<string, boolean>>({})
+  const [docChunksOpen, setDocChunksOpen] = useState<Record<string, boolean>>({})
 
   // Snapshot editing
   const [editingSnap, setEditingSnap] = useState(false)
@@ -345,6 +375,77 @@ export function ChatLabContent() {
   const toggleEdit = (docId: string) =>
     setDocs(prev => prev.map(d => d.docId === docId ? { ...d, editing: !d.editing } : d))
 
+  const toggleDocChunks = async (docId: string) => {
+    const nowOpen = !docChunksOpen[docId]
+    setDocChunksOpen(prev => ({ ...prev, [docId]: nowOpen }))
+    if (nowOpen && !docChunks[docId]) {
+      setDocChunksLoading(prev => ({ ...prev, [docId]: true }))
+      try {
+        const r = await api.get(`/api/chat-lab/docs/${docId}/chunks`)
+        setDocChunks(prev => ({ ...prev, [docId]: r.data?.chunks ?? [] }))
+      } catch { /* silent */ }
+      finally { setDocChunksLoading(prev => ({ ...prev, [docId]: false })) }
+    }
+  }
+
+  const exportChat = (session: ChatSession, messages: { role: string; content: string }[]) => {
+    const lines: string[] = [
+      `MQL Chat Export`,
+      `Lead: ${session.leadName} · ${session.leadCompany}`,
+      `Date: ${new Date(session.createdAt).toLocaleString()}`,
+      `Messages: ${messages.length}`,
+      '─'.repeat(48),
+      '',
+    ]
+    for (const m of messages) {
+      const speaker = m.role === 'user' ? (session.leadName || 'Lead') : 'Agent'
+      lines.push(`[${speaker}]`)
+      lines.push(m.content)
+      lines.push('')
+    }
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href     = url
+    a.download = `chat-${session.leadName?.replace(/\s+/g, '-') ?? 'export'}-${session.sessionId.slice(0, 8)}.txt`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const deleteSession = async (session: ChatSession) => {
+    try {
+      await api.delete(`/api/chat-lab/sessions/${session.sessionId}`, { params: { createdAt: session.createdAt } })
+      setSessions(prev => prev.filter(s => s.sessionId !== session.sessionId))
+      if (selectedSession?.sessionId === session.sessionId) {
+        setSelectedSession(null)
+        setSessionMessages([])
+        setSessionContext(null)
+      }
+    } catch (err) {
+      console.error('Failed to delete session:', err)
+    } finally {
+      setConfirmDelete(null)
+    }
+  }
+
+  const updateExpiry = async (session: ChatSession, days: number | null) => {
+    setExpiryUpdating(session.sessionId)
+    try {
+      const r = await api.patch(`/api/chat-lab/sessions/${session.sessionId}/expiry`, {
+        createdAt: session.createdAt,
+        expiryDays: days,
+      })
+      const newExpiresAt = r.data?.expiresAt ?? null
+      setSessions(prev => prev.map(s => s.sessionId === session.sessionId ? { ...s, expiresAt: newExpiresAt } : s))
+      if (selectedSession?.sessionId === session.sessionId)
+        setSelectedSession(prev => prev ? { ...prev, expiresAt: newExpiresAt } : null)
+    } catch (err) {
+      console.error('Failed to update expiry:', err)
+    } finally {
+      setExpiryUpdating(null)
+    }
+  }
+
   // ── Save prompt ────────────────────────────────────────────────────────────
   const savePrompt = async () => {
     if (!agentId) return
@@ -483,18 +584,45 @@ export function ChatLabContent() {
                   </div>
 
                   {doc.editing && (
-                    <div className="mt-2.5 pt-2.5 border-t border-border">
-                      <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Document Type</Label>
-                      <Select value={doc.type} onValueChange={v => updateDocType(doc.docId, v as DocType)}>
-                        <SelectTrigger className="h-7 text-xs mt-1">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {(Object.keys(DOC_TYPE_META) as DocType[]).map(t => (
-                            <SelectItem key={t} value={t} className="text-xs">{DOC_TYPE_META[t].label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                    <div className="mt-2.5 pt-2.5 border-t border-border space-y-3">
+                      <div>
+                        <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">Document Type</Label>
+                        <Select value={doc.type} onValueChange={v => updateDocType(doc.docId, v as DocType)}>
+                          <SelectTrigger className="h-7 text-xs mt-1">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(Object.keys(DOC_TYPE_META) as DocType[]).map(t => (
+                              <SelectItem key={t} value={t} className="text-xs">{DOC_TYPE_META[t].label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <button
+                          onClick={() => toggleDocChunks(doc.docId)}
+                          className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {docChunksOpen[doc.docId] ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                          {docChunksOpen[doc.docId] ? 'Hide content' : 'View content'}
+                        </button>
+
+                        {docChunksOpen[doc.docId] && (
+                          <div className="mt-2">
+                            {docChunksLoading[doc.docId] ? (
+                              <p className="text-[10px] text-muted-foreground">Loading…</p>
+                            ) : (
+                              <textarea
+                                readOnly
+                                value={(docChunks[doc.docId] ?? []).join('\n\n— — —\n\n')}
+                                rows={10}
+                                className="w-full text-xs border border-border rounded px-2 py-1.5 bg-muted/40 resize-y focus:outline-none font-mono leading-relaxed"
+                              />
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -590,18 +718,34 @@ export function ChatLabContent() {
                 <div key={s.sessionId}>
                   <div onClick={() => openSessionMemory(s)} className={`border rounded-xl p-3 bg-card hover:bg-muted/40 transition-colors cursor-pointer ${selectedSession?.sessionId === s.sessionId ? 'border-primary' : 'border-border'}`}>
                     <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium">{(s.leadName && s.leadName !== 'Lead' && s.leadName !== 'Guest') ? s.leadName : 'Unknown'}</p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-medium">{(s.leadName && s.leadName !== 'Lead' && s.leadName !== 'Guest' && s.leadName !== 'Unknown') ? s.leadName : 'Unknown'}</p>
                           <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${intentBadge(s.intentScore)}`}>
                             Intent {s.intentScore}/10
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">{s.leadCompany}</p>
+                        <p className="text-[10px] text-muted-foreground/60 mt-0.5">{expiryLabel(s.expiresAt)}</p>
                       </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-xs text-muted-foreground">{relativeTime(s.createdAt)}</p>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">{s.messageCount} messages</p>
+                      <div className="flex items-start gap-2 shrink-0">
+                        <div className="text-right">
+                          <p className="text-xs text-muted-foreground">{relativeTime(s.createdAt)}</p>
+                          <p className="text-[11px] text-muted-foreground mt-0.5">{s.messageCount} messages</p>
+                        </div>
+                        {confirmDelete === s.sessionId ? (
+                          <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                            <button onClick={() => deleteSession(s)} className="text-[10px] font-medium text-white bg-destructive hover:opacity-90 px-2 py-0.5 rounded">Delete</button>
+                            <button onClick={() => setConfirmDelete(null)} className="text-[10px] text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded">Cancel</button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={e => { e.stopPropagation(); setConfirmDelete(s.sessionId) }}
+                            className="p-1 text-muted-foreground hover:text-destructive rounded transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -620,17 +764,28 @@ export function ChatLabContent() {
                           {sessionMessages.length === 0 ? (
                             <p className="text-xs text-muted-foreground text-center py-2">No messages yet</p>
                           ) : (
-                            <div className="space-y-2 max-h-48 overflow-y-auto">
-                              {sessionMessages.map((m, i) => (
-                                <div key={i} className={`flex gap-2 ${m.role !== 'user' ? '' : 'flex-row-reverse'}`}>
-                                  <div className={`max-w-[85%] px-3 py-2 rounded-xl text-xs leading-relaxed whitespace-pre-wrap ${
-                                    m.role !== 'user'
-                                      ? 'bg-card border border-border text-foreground'
-                                      : 'bg-primary text-primary-foreground ml-auto'
-                                  }`}>{m.content}</div>
-                                </div>
-                              ))}
-                            </div>
+                            <>
+                              <div className="flex justify-end">
+                                <button
+                                  onClick={() => exportChat(s, sessionMessages)}
+                                  className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                  <Download className="w-3 h-3" />
+                                  Export chat
+                                </button>
+                              </div>
+                              <div className="space-y-2 max-h-48 overflow-y-auto">
+                                {sessionMessages.map((m, i) => (
+                                  <div key={i} className={`flex gap-2 ${m.role !== 'user' ? '' : 'flex-row-reverse'}`}>
+                                    <div className={`max-w-[85%] px-3 py-2 rounded-xl text-xs leading-relaxed whitespace-pre-wrap ${
+                                      m.role !== 'user'
+                                        ? 'bg-card border border-border text-foreground'
+                                        : 'bg-primary text-primary-foreground ml-auto'
+                                    }`}>{m.content}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            </>
                           )}
 
                           {/* Research context the AI has */}
@@ -746,6 +901,28 @@ export function ChatLabContent() {
                               </div>
                             )
                           })()}
+                          {/* Expiry control */}
+                          <div className="border-t border-border pt-3 flex items-center justify-between gap-2">
+                            <div>
+                              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Chat link expiry</p>
+                              <p className="text-[10px] text-muted-foreground mt-0.5">{expiryLabel(selectedSession?.expiresAt)}</p>
+                            </div>
+                            <Select
+                              disabled={expiryUpdating === s.sessionId}
+                              onValueChange={v => updateExpiry(s, v === 'null' ? null : Number(v))}
+                            >
+                              <SelectTrigger className="h-7 text-xs w-32">
+                                <SelectValue placeholder={expiryUpdating === s.sessionId ? 'Saving…' : 'Change'} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {EXPIRY_OPTIONS.map(opt => (
+                                  <SelectItem key={String(opt.days)} value={String(opt.days)} className="text-xs">
+                                    {opt.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
                       )}
                     </div>

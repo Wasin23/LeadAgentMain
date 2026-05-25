@@ -30,6 +30,32 @@ router.get('/sessions', async (req, res) => {
       agentId: agentId || undefined,
       limit:   limit ? Number(limit) : 50,
     });
+
+    // Backfill placeholder names from the lead table
+    const isPlaceholder = n => !n || n === 'Unknown' || n === 'Lead' || n === 'Guest';
+    const needsName = sessions.filter(s => isPlaceholder(s.leadName) && s.leadId);
+    if (needsName.length) {
+      const { default: AWSManager } = await import('../utils/awsManager.js');
+      const { GetCommand: GC, UpdateCommand: UC } = await import('@aws-sdk/lib-dynamodb');
+      const aws = new AWSManager();
+      await Promise.allSettled(needsName.map(async session => {
+        const lead = await aws.dynamodb.send(new GC({
+          TableName: process.env.AWS_DYNAMODB_LEAD_DATA_TABLE || 'meridian-lead-data',
+          Key: { userId: uid(req), leadId: session.leadId },
+        })).then(r => r.Item || null).catch(() => null);
+        const realName = lead?.fullName || lead?.name || lead?.leadName;
+        if (realName && !isPlaceholder(realName)) {
+          session.leadName = realName;
+          chatLabManager.dynamodb.send(new UC({
+            TableName: chatLabManager.sessionTable,
+            Key: { PK: chatLabManager._sessionPK(uid(req)), SK: chatLabManager._sessionSK(session.createdAt, session.sessionId) },
+            UpdateExpression: 'SET leadName = :n',
+            ExpressionAttributeValues: { ':n': realName },
+          })).catch(() => {});
+        }
+      }));
+    }
+
     res.json({ sessions });
   } catch (err) {
     console.error('[CHAT LAB] list sessions:', err);
@@ -228,6 +254,16 @@ router.patch('/docs/:docId/type', async (req, res) => {
   }
 });
 
+router.get('/docs/:docId/chunks', async (req, res) => {
+  try {
+    const chunks = await zillizCompanyMemory.getDocumentChunks(uid(req), req.params.docId);
+    res.json({ chunks });
+  } catch (err) {
+    console.error('[CHAT LAB] get doc chunks:', err);
+    res.status(500).json({ error: 'Failed to get chunks' });
+  }
+});
+
 router.delete('/docs/:docId', async (req, res) => {
   try {
     await zillizCompanyMemory.deleteDocument(uid(req), req.params.docId);
@@ -254,6 +290,36 @@ router.post('/docs/retrieve', async (req, res) => {
   }
 });
 
+// ── Session delete ────────────────────────────────────────────────────────────
+
+router.delete('/sessions/:sessionId', async (req, res) => {
+  try {
+    const { createdAt } = req.query;
+    if (!createdAt) return res.status(400).json({ error: 'createdAt required' });
+    const session = await chatLabManager.getSession(uid(req), req.params.sessionId, createdAt);
+    if (!session) return res.status(404).json({ error: 'Session not found' });
+    await chatLabManager.deleteSession(uid(req), req.params.sessionId, createdAt, session.token || null);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[CHAT LAB] delete session:', err);
+    res.status(500).json({ error: 'Failed to delete session' });
+  }
+});
+
+// ── Session expiry ────────────────────────────────────────────────────────────
+
+router.patch('/sessions/:sessionId/expiry', async (req, res) => {
+  try {
+    const { createdAt, expiryDays } = req.body;
+    if (!createdAt) return res.status(400).json({ error: 'createdAt required' });
+    const result = await chatLabManager.updateSessionExpiry(uid(req), req.params.sessionId, createdAt, expiryDays ?? null);
+    res.json({ ok: true, expiresAt: result.expiresAt });
+  } catch (err) {
+    console.error('[CHAT LAB] update expiry:', err);
+    res.status(500).json({ error: 'Failed to update expiry' });
+  }
+});
+
 // ── Session snapshot edit ─────────────────────────────────────────────────────
 
 router.patch('/sessions/:sessionId/snapshot', async (req, res) => {
@@ -271,14 +337,14 @@ router.patch('/sessions/:sessionId/snapshot', async (req, res) => {
 // ── Test Chat (Mistral) ───────────────────────────────────────────────────────
 
 const PERSONALITY_TONES = {
-  HUNTER:       'Direct and specific. Open with one precise observation — nothing generic. Plain prose only, no markdown, no bullet points. Two to three short sentences. Sound like someone who already knows the situation.',
-  RELATIONSHIP: 'Warm and genuinely curious. Use one real detail to earn the right to continue. Plain prose only, no lists, no formatting. Write like a sharp person who actually finds this interesting — not a salesperson being friendly on purpose.',
-  ANALYST:      'Inference-driven. State one logical conclusion from the data — flat, confident, not emotional. Plain prose only, no markdown. Two to three sentences. Let the take do the work.',
-  CONSULTANT:   'Strategic peer. One quiet reframe that shows you half-know the situation already. Plain prose only, collegial, never condescending. Sound like a trusted advisor who has nothing to prove.',
-  NETWORKER:    'Light and fast. One observation about what is actually happening right now in this space. Plain prose only, no lists. Two sentences max. The lead should feel like they are part of a moment, not a sales sequence.',
+  HUNTER:       'Direct and specific. Open with one precise observation — nothing generic. Plain prose only, no markdown, no bullet points. Two to three short sentences. Sound like someone who already knows the situation. Use "we" and "our" — you represent the company, not just yourself.',
+  RELATIONSHIP: 'Warm and genuinely curious. Use one real detail to earn the right to continue. Plain prose only, no lists, no formatting. Write like a sharp person who actually finds this interesting — not a salesperson being friendly on purpose. Use "we" and "our" — you represent the company.',
+  ANALYST:      'Inference-driven. State one logical conclusion from the data — flat, confident, not emotional. Plain prose only, no markdown. Two to three sentences. Let the take do the work. Use "we" and "our" — you represent the company, not just yourself.',
+  CONSULTANT:   'Strategic peer. One quiet reframe that shows you half-know the situation already. Plain prose only, collegial, never condescending. Sound like a trusted advisor who has nothing to prove. Use "we" and "our" — you speak for the team.',
+  NETWORKER:    'Light and fast. One observation about what is actually happening right now in this space. Plain prose only, no lists. Two sentences max. The lead should feel like they are part of a moment, not a sales sequence. Use "we" and "our" — you represent the company.',
 };
 
-const CHAT_STYLE = '\n\nCHAT FORMAT RULES: Write in plain, natural prose — no markdown whatsoever. No asterisks for bold, no bullet points, no numbered lists, no headers, no checkboxes. Keep replies short: 2–4 sentences. Sound like a real person in a text conversation, not a formatted email or sales pitch.';
+const CHAT_STYLE = '\n\nCHAT FORMAT RULES: Write in plain, natural prose — no markdown whatsoever. No asterisks for bold, no bullet points, no numbered lists, no headers, no checkboxes. Keep replies conversational and concise. Use "we" and "our" instead of "I" and "my" — you represent the company, not just yourself. Sound like a real person in a text conversation, not a formatted email or sales pitch.';
 
 router.post('/test-chat', async (req, res) => {
   try {

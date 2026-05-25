@@ -165,6 +165,21 @@ export class ZillizCompanyMemory {
     return docs;
   }
 
+  // ── Get chunks ───────────────────────────────────────────────────────────
+
+  async getDocumentChunks(userId, docId) {
+    await this._ensureInit();
+    const res = await this.client.query({
+      collection_name: COLLECTION_NAME,
+      filter:          `user_id == "${userId}" && doc_id == "${docId}"`,
+      output_fields:   ['chunk_index', 'text'],
+      limit:           500,
+    });
+    return (res.data || [])
+      .sort((a, b) => a.chunk_index - b.chunk_index)
+      .map(r => r.text);
+  }
+
   // ── Delete ────────────────────────────────────────────────────────────────
 
   async deleteDocument(userId, docId) {
