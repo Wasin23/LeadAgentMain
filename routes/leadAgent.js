@@ -1481,7 +1481,7 @@ ${agentTitle}`;
       body: bodyMatch?.[1]?.trim() || raw,
     });
   } catch (err) {
-    console.error('[TEST EMAIL]', err);
+    console.error('[TEST EMAIL] Error:', err?.message, err?.stack);
     res.status(500).json({ success: false, error: err.message });
   }
 });
