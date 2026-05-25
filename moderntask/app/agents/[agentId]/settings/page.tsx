@@ -1380,16 +1380,27 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                     description="Inserts a personalised chat link into the email so leads can start a live conversation"
                   />
                   {settings.emailBuilder.includeChatLink && (
-                    <div className="space-y-1.5">
-                      <Textarea
-                        value={settings.emailBuilder.chatLinkInstructions}
-                        onChange={e => updateEmail('chatLinkInstructions', e.target.value)}
-                        rows={2}
-                        className="resize-y bg-background text-sm"
-                        placeholder="Want to ask me anything directly? I'm available now:"
-                        maxLength={200}
-                      />
-                      <p className="text-xs text-muted-foreground">This text appears above the chat button at the bottom of every email.</p>
+                    <div className="space-y-3">
+                      <div className="space-y-1.5">
+                        <Textarea
+                          value={settings.emailBuilder.chatLinkInstructions}
+                          onChange={e => updateEmail('chatLinkInstructions', e.target.value)}
+                          rows={2}
+                          className="resize-y bg-background text-sm"
+                          placeholder="Want to ask me anything directly? I'm available now:"
+                          maxLength={200}
+                        />
+                        <p className="text-xs text-muted-foreground">This text appears above the button in every email.</p>
+                      </div>
+                      {/* Live preview */}
+                      <div style={{ marginTop: '8px', padding: '16px 20px', background: '#f8f9ff', borderLeft: '3px solid #3b82f6', borderRadius: '4px', fontFamily: 'Arial, sans-serif' }}>
+                        <p style={{ margin: '0 0 8px', fontSize: '13px', color: '#374151' }}>
+                          {settings.emailBuilder.chatLinkInstructions.trim() || "Want to ask me anything directly? I'm available now:"}
+                        </p>
+                        <span style={{ display: 'inline-block', padding: '8px 18px', background: '#3b82f6', color: '#ffffff', textDecoration: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 600 }}>
+                          Start a conversation →
+                        </span>
+                      </div>
                     </div>
                   )}
                 </div>
