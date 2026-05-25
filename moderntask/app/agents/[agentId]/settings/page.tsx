@@ -4,7 +4,7 @@ import React, { useState, useEffect, use, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Check, ChevronDown, ChevronRight,
-  Search, X, Plus, AlertCircle, CheckCircle2, Loader2, Lock, Unlock, FlaskConical
+  Search, Mail, X, Plus, AlertCircle, CheckCircle2, Loader2, Lock, Unlock, FlaskConical
 } from 'lucide-react';
 import api from '@/lib/api';
 import { Sidebar } from '@/components/dashboard/sidebar';
@@ -446,6 +446,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
   const [resetScraping, setResetScraping] = useState(false);
   const [showResetWebsite, setShowResetWebsite] = useState(false);
   const [testEmailOpen, setTestEmailOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'research' | 'email'>('research');
   const [testEmailLoading, setTestEmailLoading] = useState(false);
   const [testEmailResult, setTestEmailResult] = useState<{ subject: string; body: string } | null>(null);
   const [testEmailError, setTestEmailError] = useState<string | null>(null);
@@ -806,6 +807,34 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
             </div>
           )}
 
+          {/* Tab Selector */}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setActiveTab('research')}
+              className={`flex items-center gap-3 p-4 rounded-xl border-2 text-left transition-all ${activeTab === 'research' ? 'border-primary bg-primary/5 text-primary' : 'border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground'}`}
+            >
+              <Search className="w-5 h-5 shrink-0" />
+              <div>
+                <p className="font-semibold text-sm">Research</p>
+                <p className="text-xs opacity-70">Targeting &amp; qualification</p>
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('email')}
+              className={`flex items-center gap-3 p-4 rounded-xl border-2 text-left transition-all ${activeTab === 'email' ? 'border-primary bg-primary/5 text-primary' : 'border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground'}`}
+            >
+              <Mail className="w-5 h-5 shrink-0" />
+              <div>
+                <p className="font-semibold text-sm">Email Build</p>
+                <p className="text-xs opacity-70">Writing &amp; preview</p>
+              </div>
+            </button>
+          </div>
+
+          {activeTab === 'research' && (<>
+
           {/* General Instructions */}
           <div className="bg-primary/5 border border-primary/20 rounded-xl p-6">
             <div className="flex items-center justify-between mb-1">
@@ -1126,13 +1155,21 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
             </div>
           </Section>
 
-          {/* Writing Rules */}
-          <Section title="Writing Rules" description="Control how the AI writes emails — length, constraints, and extra instructions">
-            {/* Email Length */}
-            <div className="mt-4 space-y-3">
-              <div>
-                <Label className="mb-2 block">Email Length</Label>
-                <div className="flex gap-2">
+          </>)}
+
+          {activeTab === 'email' && (<>
+
+          {/* Email Designer */}
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            <div className="grid grid-cols-2 divide-x divide-border" style={{ minHeight: '580px' }}>
+
+              {/* Left: Controls */}
+              <div className="p-6 space-y-5 overflow-y-auto">
+
+                {/* Length */}
+                <div>
+                  <Label className="mb-2 block">Email Length</Label>
+                  <div className="flex gap-2">
                   {([
                     { val: 'short',  label: 'Short',  range: '~60 words' },
                     { val: 'medium', label: 'Medium', range: '80–120 words' },
@@ -1152,60 +1189,112 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                     </button>
                   ))}
                 </div>
-
-              {/* Custom Prompt */}
-              <div className="space-y-1.5">
-                <Label>Extra Instructions</Label>
-                <Textarea
-                  value={settings.emailBuilder.customPrompt}
-                  onChange={e => updateEmail('customPrompt', e.target.value)}
-                  rows={4}
-                  className="resize-y bg-background text-sm"
-                  placeholder="e.g. Always open with a specific observation about the company. Never use the word 'synergy'. End with a single low-friction ask."
-                  maxLength={500}
-                />
-                <p className="text-right text-xs text-muted-foreground">{settings.emailBuilder.customPrompt.length}/500</p>
-              </div>
-
-              {/* Test Button */}
-              <div className="pt-1 flex items-center gap-2">
-                <button
-                  onClick={() => { setTestEmailOpen(true); runTestEmail(); }}
-                  className="flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-                >
-                  <FlaskConical className="w-4 h-4" />
-                  Test with these settings
-                </button>
-                <span className="text-xs text-muted-foreground">· save first for accurate results</span>
-              </div>
-            </div>
-          </Section>
-
-          {/* Test Email Modal */}
-          {testEmailOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setTestEmailOpen(false)}>
-              <div className="bg-background border border-border rounded-xl shadow-xl w-full max-w-2xl" onClick={e => e.stopPropagation()}>
-                <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-                  <div>
-                    <p className="font-semibold text-sm">Email Preview</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Mock lead: Sarah Chen, VP of Operations at Arclight Solutions</p>
-                  </div>
-                  <button onClick={() => setTestEmailOpen(false)} className="text-muted-foreground hover:text-foreground">
-                    <X className="w-4 h-4" />
-                  </button>
                 </div>
-                <div className="px-5 py-4">
-                  {testEmailLoading && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground py-6 justify-center">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Generating…
+
+                {/* Tone */}
+                <div className="space-y-1.5">
+                  <Label>Tone</Label>
+                  <select
+                    value={settings.emailBuilder.tone}
+                    onChange={e => updateEmail('tone', e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                  >
+                    <option value="professional">Professional</option>
+                    <option value="friendly">Friendly</option>
+                    <option value="casual">Casual</option>
+                    <option value="formal">Formal</option>
+                    <option value="conversational">Conversational</option>
+                  </select>
+                </div>
+
+                {/* CTA */}
+                <div className="space-y-1.5">
+                  <Label>Call to Action</Label>
+                  <select
+                    value={settings.emailBuilder.callToAction}
+                    onChange={e => updateEmail('callToAction', e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                  >
+                    <option value="meeting">Book a meeting</option>
+                    <option value="call">Schedule a call</option>
+                    <option value="demo">Request a demo</option>
+                    <option value="reply">Simply reply</option>
+                    <option value="learn_more">Learn more</option>
+                  </select>
+                </div>
+
+                {/* Personalization */}
+                <div>
+                  <Label className="mb-2 block">Personalization</Label>
+                  <div className="flex gap-2">
+                    {(['low', 'medium', 'high'] as const).map(p => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => updateEmail('personalization', p)}
+                        className={`flex-1 py-2 rounded-lg border text-sm font-medium capitalize transition-colors ${
+                          settings.emailBuilder.personalization === p
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-background border-border text-muted-foreground hover:border-primary/50'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Extra Instructions */}
+                <div className="space-y-1.5">
+                  <Label>Extra Instructions</Label>
+                  <Textarea
+                    value={settings.emailBuilder.customPrompt}
+                    onChange={e => updateEmail('customPrompt', e.target.value)}
+                    rows={4}
+                    className="resize-y bg-background text-sm"
+                    placeholder="e.g. Always open with a specific observation about the company. Never use the word 'synergy'. End with a single low-friction ask."
+                    maxLength={500}
+                  />
+                  <p className="text-right text-xs text-muted-foreground">{settings.emailBuilder.customPrompt.length}/500</p>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={runTestEmail}
+                    disabled={testEmailLoading}
+                    className="flex items-center gap-2 text-sm font-medium text-primary hover:underline disabled:opacity-50"
+                  >
+                    <FlaskConical className="w-4 h-4" />
+                    {testEmailLoading ? 'Generating…' : 'Generate Preview'}
+                  </button>
+                  <span className="text-xs text-muted-foreground">· save first for accurate results</span>
+                </div>
+              </div>
+
+              {/* Right: Preview */}
+              <div className="p-6 flex flex-col">
+                {testEmailLoading && (
+                  <div className="flex-1 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Generating…
+                  </div>
+                )}
+                {testEmailError && !testEmailLoading && (
+                  <p className="text-sm text-destructive">{testEmailError}</p>
+                )}
+                {!testEmailResult && !testEmailLoading && !testEmailError && (
+                  <div className="flex-1 flex flex-col items-center justify-center text-center gap-3">
+                    <Mail className="w-8 h-8 text-muted-foreground/20" />
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">No preview yet</p>
+                      <p className="text-xs text-muted-foreground/60 mt-0.5">Click Generate Preview to see a sample email</p>
                     </div>
-                  )}
-                  {testEmailError && (
-                    <p className="text-sm text-destructive py-4">{testEmailError}</p>
-                  )}
-                  {testEmailResult && !testEmailLoading && (
-                    <div className="space-y-3">
+                  </div>
+                )}
+                {testEmailResult && !testEmailLoading && (
+                  <div className="flex flex-col h-full">
+                    <div className="space-y-3 flex-1 overflow-y-auto">
                       <div>
                         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Subject</p>
                         <p className="text-sm font-medium">{testEmailResult.subject}</p>
@@ -1214,24 +1303,19 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Body</p>
                         <pre className="text-sm whitespace-pre-wrap font-sans leading-relaxed bg-muted/40 rounded-lg px-4 py-3">{testEmailResult.body}</pre>
                       </div>
-                      <div className="flex items-center justify-between pt-1">
-                        <p className="text-xs text-muted-foreground">
-                          {testEmailResult.body.split(/\s+/).filter(Boolean).length} words
-                        </p>
-                        <button
-                          onClick={runTestEmail}
-                          className="text-xs text-primary hover:underline flex items-center gap-1"
-                        >
-                          <FlaskConical className="w-3 h-3" />
-                          Regenerate
-                        </button>
-                      </div>
                     </div>
-                  )}
-                </div>
+                    <div className="flex items-center justify-between pt-3 mt-3 border-t border-border">
+                      <p className="text-xs text-muted-foreground">{testEmailResult.body.split(/\s+/).filter(Boolean).length} words</p>
+                      <button type="button" onClick={runTestEmail} className="text-xs text-primary hover:underline flex items-center gap-1">
+                        <FlaskConical className="w-3 h-3" /> Regenerate
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
+
             </div>
-          )}
+          </div>
 
           {/* Email Templates */}
           <Section
@@ -1339,6 +1423,8 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
               </div>
             </div>
           </Section>
+
+          </>)}
 
           {/* Bottom Save */}
           <div className="flex items-center justify-between pt-4 border-t border-border pb-8">
