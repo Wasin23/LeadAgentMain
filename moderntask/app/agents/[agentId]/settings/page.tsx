@@ -689,6 +689,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
     const timeout = setTimeout(() => controller.abort(), 120_000);
     try {
       const token = localStorage.getItem('authToken');
+      console.log('[TEST EMAIL] fetching, token?', !!token);
       const res = await fetch('/api/test-email', {
         method: 'POST',
         headers: {
@@ -708,7 +709,8 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
         setTestEmailResult(data);
       }
     } catch (e: any) {
-      setTestEmailError(e?.name === 'AbortError' ? 'Timed out — try again' : 'Failed to generate test email');
+      console.error('[TEST EMAIL] error:', e?.name, e?.message);
+      setTestEmailError(e?.name === 'AbortError' ? 'Timed out — try again' : (e?.message || 'Failed to generate test email'));
     } finally {
       clearTimeout(timeout);
       setTestEmailLoading(false);
