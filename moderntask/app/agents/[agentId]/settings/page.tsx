@@ -812,26 +812,26 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
           )}
 
           {/* Tab Selector */}
-          <div className={`grid grid-cols-2 gap-4 ${activeTab === null ? 'w-full max-w-md' : 'w-full'}`}>
+          <div className={`grid grid-cols-2 gap-6 ${activeTab === null ? 'w-full max-w-2xl' : 'w-full'}`}>
             <button
               type="button"
               onClick={() => setActiveTab(activeTab === 'research' ? null : 'research')}
-              className={`flex flex-col items-center justify-center gap-3 p-8 rounded-2xl border-2 text-center transition-all ${activeTab === 'research' ? 'border-primary bg-primary/5 text-primary' : 'border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-muted/40'}`}
+              className={`flex flex-col items-center justify-center gap-4 rounded-2xl border-2 text-center transition-all ${activeTab === null ? 'p-16' : 'p-8'} ${activeTab === 'research' ? 'border-primary bg-primary/5 text-primary' : 'border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-muted/40'}`}
             >
-              <Search className="w-7 h-7" />
+              <Search className={activeTab === null ? 'w-10 h-10' : 'w-7 h-7'} />
               <div>
-                <p className="font-semibold text-base">Research</p>
+                <p className={`font-semibold ${activeTab === null ? 'text-lg' : 'text-base'}`}>Research</p>
                 <p className="text-xs opacity-60 mt-0.5">Targeting &amp; qualification</p>
               </div>
             </button>
             <button
               type="button"
               onClick={() => setActiveTab(activeTab === 'email' ? null : 'email')}
-              className={`flex flex-col items-center justify-center gap-3 p-8 rounded-2xl border-2 text-center transition-all ${activeTab === 'email' ? 'border-primary bg-primary/5 text-primary' : 'border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-muted/40'}`}
+              className={`flex flex-col items-center justify-center gap-4 rounded-2xl border-2 text-center transition-all ${activeTab === null ? 'p-16' : 'p-8'} ${activeTab === 'email' ? 'border-primary bg-primary/5 text-primary' : 'border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-muted/40'}`}
             >
-              <Mail className="w-7 h-7" />
+              <Mail className={activeTab === null ? 'w-10 h-10' : 'w-7 h-7'} />
               <div>
-                <p className="font-semibold text-base">Email Build</p>
+                <p className={`font-semibold ${activeTab === null ? 'text-lg' : 'text-base'}`}>Email Build</p>
                 <p className="text-xs opacity-60 mt-0.5">Writing &amp; preview</p>
               </div>
             </button>
@@ -1456,12 +1456,14 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
           </>)}
 
           {/* Bottom Save */}
-          <div className="flex items-center justify-between pt-4 border-t border-border pb-8">
-            <p className="text-sm text-muted-foreground">{hasUnsavedChanges ? 'You have unsaved changes' : 'All changes saved'}</p>
-            <Button size="lg" disabled={isSaving || !hasUnsavedChanges} onClick={saveSettings}>
-              {isSaving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</> : 'Save All Changes'}
-            </Button>
-          </div>
+          {activeTab !== null && (
+            <div className="flex items-center justify-between pt-4 border-t border-border pb-8">
+              <p className="text-sm text-muted-foreground">{hasUnsavedChanges ? 'You have unsaved changes' : 'All changes saved'}</p>
+              <Button size="lg" disabled={isSaving || !hasUnsavedChanges} onClick={saveSettings}>
+                {isSaving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</> : 'Save All Changes'}
+              </Button>
+            </div>
+          )}
         </div>
       </main>
     </div>

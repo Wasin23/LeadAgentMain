@@ -5126,8 +5126,28 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         `<a href="${unsubscribeUrl}">Stop emails</a>`;
       
       body = body + footer;
-      
-      
+
+      // Replace [CHAT_LINK] placeholder with a real token URL if enabled
+      if (emailSettings.emailBuilder?.includeChatLink && body.includes('[CHAT_LINK]')) {
+        try {
+          const { chatLabManager } = await import('../utils/chatLabManager.js');
+          const leadName = [leadData.first_name, leadData.last_name].filter(Boolean).join(' ') || 'Guest';
+          const { url: chatUrl } = await chatLabManager.createChatToken(this.userId, {
+            agentId:     this.agentId,
+            leadId:      leadData.id      || null,
+            emailId:     null,
+            leadName,
+            leadCompany: leadData.organization?.name || '',
+            leadTitle:   leadData.title               || '',
+            leadEmail:   leadData.email               || '',
+          });
+          body = body.replace(/\[CHAT_LINK\]/gi, chatUrl);
+        } catch (err) {
+          console.error('[EMAIL BUILDER] Failed to create chat token:', err.message);
+          body = body.replace(/\[CHAT_LINK\]/gi, '');
+        }
+      }
+
       return {
         success: true,
         email: body,
