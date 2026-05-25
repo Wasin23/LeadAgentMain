@@ -684,15 +684,32 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
     setTestEmailLoading(true);
     setTestEmailResult(null);
     setTestEmailError(null);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 120_000);
     try {
-      const res = await api.post('/api/lead-agent/test-email', {
-        agentId,
-        emailSettings: { ...settings.emailBuilder, companyBranding: settings.companyBranding },
+      const token = localStorage.getItem('authToken');
+      const res = await fetch('/api/test-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          agentId,
+          emailSettings: { ...settings.emailBuilder, companyBranding: settings.companyBranding },
+        }),
+        signal: controller.signal,
       });
-      setTestEmailResult(res.data);
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setTestEmailError(data.error || 'Email generation failed');
+      } else {
+        setTestEmailResult(data);
+      }
     } catch (e: any) {
-      setTestEmailError(e?.response?.data?.error || 'Failed to generate test email');
+      setTestEmailError(e?.name === 'AbortError' ? 'Timed out — try again' : 'Failed to generate test email');
     } finally {
+      clearTimeout(timeout);
       setTestEmailLoading(false);
     }
   };
