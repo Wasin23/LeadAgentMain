@@ -1409,76 +1409,91 @@ router.post('/test-email', async (req, res) => {
     const userId = req.user.userId;
     const { agentId = 'lead-agent', emailSettings } = req.body;
 
-    const userAgent = getUserAgent(userId, agentId);
-    const openai = userAgent.openai;
+    // Create a fresh isolated agent instance so we don't pollute any running agent's memory
+    const { ReasoningLeadAgent } = await import('../agent/reasoningLeadAgent.js');
+    const testAgent = new ReasoningLeadAgent(userId, agentId);
 
-    const length = emailSettings?.length || emailSettings?.emailBuilder?.length || 'medium';
-    const maxWords = emailSettings?.maxWords || emailSettings?.emailBuilder?.maxWords || null;
-    const customPrompt = emailSettings?.customPrompt || emailSettings?.emailBuilder?.customPrompt || '';
-    const tone = emailSettings?.tone || emailSettings?.emailBuilder?.tone || 'professional';
-    const primaryService = emailSettings?.companyBranding?.primaryService || emailSettings?.primaryService || 'our product';
-    const agentName = emailSettings?.companyBranding?.agentName || emailSettings?.agentName || 'Alex';
-    const agentTitle = emailSettings?.companyBranding?.agentTitle || emailSettings?.agentTitle || 'Sales Representative';
+    // Mock lead in Apollo format
+    const mockLead = {
+      name: 'Sarah Chen',
+      first_name: 'Sarah',
+      last_name: 'Chen',
+      title: 'VP of Operations',
+      email: 'sarah@arclightsolutions.com',
+      company: 'Arclight Solutions',
+      organization: {
+        name: 'Arclight Solutions',
+        industry: 'saas',
+        estimated_num_employees: 85,
+        primary_domain: 'arclightsolutions.com',
+      },
+    };
 
-    const lengthInstruction = {
-      short: `Write one paragraph only. 3-4 sentences maximum. Total email body under 60 words. Every word earns its place.`,
-      medium: `Write one paragraph only. 4-5 sentences. Target 80-120 words for the body. Tight but not rushed.`,
-      long: `Write 2-3 short paragraphs. 2-3 sentences each. Target 150-200 words total. Each paragraph serves a different purpose.`,
-    }[length] || `Write one paragraph only. 4-5 sentences. Target 80-120 words.`;
+    const mockCitedFacts = [
+      { text: 'Arclight Solutions raised a $12M Series A to expand their fulfillment automation platform', source: 'https://techcrunch.com', sourceTitle: 'TechCrunch', confidence: 0.9 },
+      { text: 'Arclight is actively hiring 8 open operations roles as headcount scales from 60 to 85 employees', source: 'https://linkedin.com', sourceTitle: 'LinkedIn Jobs', confidence: 0.85 },
+      { text: 'CEO posted on LinkedIn about scaling challenges in their fulfillment pipeline as team doubled in 12 months', source: 'https://linkedin.com', sourceTitle: 'LinkedIn', confidence: 0.8 },
+    ];
 
-    const wordCountRule = maxWords ? `Hard cap: body must be ${maxWords} words or fewer. Count them.` : '';
+    // Mock research — include a phase-3 marker so buildPersonalizedEmail skips runSupportingResearch
+    const mockResearch = {
+      searches: [
+        {
+          purpose: 'company_overview',
+          webpageInsights: [{ source: 'arclightsolutions.com', title: 'Arclight Solutions', citedFacts: mockCitedFacts }],
+        },
+        { purpose: 'industry_statistics', webpageInsights: [] },
+      ],
+      citedFacts: mockCitedFacts,
+      totalSources: 2,
+    };
 
-    const prompt = `You are writing a cold outreach email on behalf of ${agentName}, ${agentTitle}.
+    const mockQualification = {
+      tier: 'QUALIFIED',
+      score: 72,
+      qualified: true,
+      reasoning: 'Arclight Solutions meets criteria with recent Series A funding and clear operational scaling challenges.',
+      aiReport: {
+        tier: 'QUALIFIED',
+        score: 72,
+        confidence: 'MEDIUM',
+        qualified: true,
+        buyerMotivation: "Arclight just raised $12M Series A and is scaling from 60 to 85 employees. As VP of Ops, Sarah owns the fulfillment pipeline the CEO is publicly struggling with. The funding means budget exists and the hiring spree means the problem is actively getting worse.",
+        emailHooks: [
+          'Arclight raised a $12M Series A and has 8 open ops roles — classic scaling inflection',
+          "CEO posted publicly about fulfillment pipeline challenges as headcount jumped from 60 to 85",
+        ],
+        emailStrategy: 'moderate personalization',
+        citedEvidence: [{ fact: '$12M Series A raised', source: 'TechCrunch', supportsMatch: true }],
+        allCitedFacts: mockCitedFacts,
+        researchQuality: 'GOOD',
+        totalSources: 2,
+        tierDescription: 'Good match - Moderate personalization',
+      },
+    };
 
-MOCK LEAD:
-Name: Sarah Chen
-Title: VP of Operations
-Company: Arclight Solutions
-Industry: SaaS / B2B Software
-Company size: ~85 employees
-Research: Arclight recently raised a Series A ($12M), is actively hiring ops roles, and their CEO posted on LinkedIn about scaling challenges in their fulfillment pipeline.
+    // Seed agent memory
+    testAgent.memory.emailSettings = emailSettings;
+    testAgent.memory.userSettings = { calendarIntegrationEnabled: false };
+    testAgent.memory.lastResearch = mockResearch;
+    testAgent.memory.currentQualification = mockQualification;
+    testAgent.memory.currentCycle.currentLead = mockLead;
 
-PRODUCT BEING SOLD: ${primaryService}
-
-TONE: ${tone}
-
-LENGTH RULE: ${lengthInstruction}
-${wordCountRule}
-
-RULES:
-- Subject line: short, specific, sounds human. Reference something real.
-- Never use em dash. No buzzwords (leverage, streamline, synergy, scalable, game-changer).
-- One specific opener from the research. Everything after must follow from that.
-- End with a single direct CTA — no question mark.
-- No invented stats.
-${customPrompt ? `\nEXTRA INSTRUCTIONS:\n${customPrompt}` : ''}
-
-Output exactly:
-SUBJECT: [subject]
-
-BODY:
-Hi Sarah,
-
-[body]
-
-${agentName}
-${agentTitle}`;
-
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.7,
-      max_tokens: 600,
+    const result = await testAgent.buildPersonalizedEmail({
+      leadData: mockLead,
+      researchData: mockResearch,
+      qualificationData: mockQualification,
+      emailSettings,
     });
 
-    const raw = response.choices[0]?.message?.content || '';
-    const subjectMatch = raw.match(/SUBJECT:\s*(.+)/);
-    const bodyMatch = raw.match(/BODY:\s*([\s\S]+)/);
+    if (!result?.success) {
+      return res.status(500).json({ success: false, error: result?.error || 'Email generation failed' });
+    }
 
     res.json({
       success: true,
-      subject: subjectMatch?.[1]?.trim() || '(no subject)',
-      body: bodyMatch?.[1]?.trim() || raw,
+      subject: result.subject,
+      body: result.email,
     });
   } catch (err) {
     console.error('[TEST EMAIL] Error:', err?.message, err?.stack);
