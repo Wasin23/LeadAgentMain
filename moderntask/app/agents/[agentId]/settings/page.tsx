@@ -1178,7 +1178,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                   <FlaskConical className="w-4 h-4" />
                   Test with these settings
                 </button>
-                {hasUnsavedChanges && <span className="text-xs text-muted-foreground">· save first for accurate results</span>}
+                <span className="text-xs text-muted-foreground">· save first for accurate results</span>
               </div>
             </div>
           </Section>

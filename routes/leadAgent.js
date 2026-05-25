@@ -1408,6 +1408,7 @@ router.post('/test-email', async (req, res) => {
   try {
     const userId = req.user.userId;
     const { agentId = 'lead-agent', emailSettings } = req.body;
+    console.log('[TEST EMAIL] Hit — userId:', userId, 'agentId:', agentId);
 
     // Create a fresh isolated agent instance so we don't pollute any running agent's memory
     const { ReasoningLeadAgent } = await import('../agent/reasoningLeadAgent.js');
