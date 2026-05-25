@@ -67,22 +67,49 @@ router.get('/init/:token', async (req, res) => {
     // Fire notification on first click
     if (isFirstClick) {
       try {
-        const AWSManager = (await import('../utils/awsManager.js')).default;
+        const [{ default: AWSManager }, { getUserById }] = await Promise.all([
+          import('../utils/awsManager.js'),
+          import('../lib/userManager.js'),
+        ]);
         const aws = new AWSManager();
+        const [userRecord, userSettings] = await Promise.all([
+          getUserById(userId).catch(() => null),
+          aws.getUserSettings(userId).catch(() => null),
+        ]);
+
+        const notifSettings = userSettings?.notificationSettings || { emailEnabled: true, smsEnabled: false, phone: '' };
+        const title   = `💬 ${leadName} started a chat`;
+        const body    = `${leadName}${leadCompany ? ` from ${leadCompany}` : ''} just clicked their MQL Chat link and started a conversation.`;
+
         await Promise.allSettled([
-          aws.addIssue(
-            userId,
-            'chat',
-            'medium',
-            `💬 ${leadName} opened their chat link`,
-            `${leadName}${leadCompany ? ` from ${leadCompany}` : ''} just clicked their MQL Chat link and started a conversation.`,
-            { token, sessionId: session.sessionId, leadName, leadCompany, leadEmail }
-          ),
+          // In-app issue
+          aws.addIssue(userId, 'chat', title, body, { token, sessionId: session.sessionId, leadName, leadCompany, leadEmail }),
+
+          // Desktop/browser notification
           Promise.resolve(desktopNotifications.notifyEmailEvent('email_clicked', {
             recipient: leadName,
             company:   leadCompany,
             message:   `${leadName}${leadCompany ? ` at ${leadCompany}` : ''} just started an MQL Chat`,
           })),
+
+          // Email notification
+          notifSettings.emailEnabled && userRecord?.email
+            ? import('../tools/emailMailgun.js').then(({ sendSystemEmail }) =>
+                sendSystemEmail(
+                  userRecord.email,
+                  title,
+                  `<p style="font-family:Arial,sans-serif;font-size:14px;color:#111;">${body}</p>` +
+                  `<p style="font-family:Arial,sans-serif;font-size:12px;color:#6b7280;">Check your MQL Chat dashboard to view the conversation.</p>`
+                )
+              )
+            : Promise.resolve(),
+
+          // SMS notification
+          notifSettings.smsEnabled && notifSettings.phone
+            ? import('../utils/smsManager.js').then(({ sendSMS }) =>
+                sendSMS(notifSettings.phone, `Meridian: ${leadName}${leadCompany ? ` from ${leadCompany}` : ''} just started a chat. Check your dashboard.`)
+              )
+            : Promise.resolve(),
         ]);
       } catch { /* notifications are non-critical */ }
     }

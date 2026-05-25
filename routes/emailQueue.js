@@ -610,7 +610,7 @@ router.post('/:id/approve', async (req, res) => {
     if (agentEmailBuilder?.includeChatLink) {
       try {
         const { chatLabManager } = await import('../utils/chatLabManager.js');
-        const leadName    = personInfo?.fullName || personInfo?.name || approvedEmail.leadName || 'Lead';
+        const leadName    = personInfo?.fullName || personInfo?.name || approvedEmail.leadName || approvedEmail.leadInfo?.name || 'Lead';
         const leadCompany = approvedEmail.leadDetails?.companyName || personInfo?.company || '';
         const leadTitle   = personInfo?.title || personInfo?.currentPosition || '';
         const leadId      = approvedEmail.leadId || approvedEmail.leadDetails?.leadId || null;

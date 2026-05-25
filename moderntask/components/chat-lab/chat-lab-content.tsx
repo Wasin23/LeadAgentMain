@@ -210,10 +210,15 @@ export function ChatLabContent() {
   }, [])
 
   const openSessionMemory = useCallback(async (session: ChatSession) => {
+    if (selectedSession?.sessionId === session.sessionId) {
+      setSelectedSession(null)
+      setSessionMessages([])
+      return
+    }
     setSelectedSession(session)
     setSessionContext(null)
     setSessionMessages([])
-    setActiveTab('memory')
+    setActiveTab('sessions')
     setSessionLoading(true)
     try {
       const r = await api.get(`/api/chat-lab/sessions/${session.sessionId}/context`, {
@@ -228,7 +233,7 @@ export function ChatLabContent() {
       })
     } catch { setSessionMessages([]) }
     finally { setSessionLoading(false) }
-  }, [])
+  }, [selectedSession])
 
   // ── Doc upload ─────────────────────────────────────────────────────────────
   const uploadFiles = async (files: File[]) => {
@@ -511,22 +516,51 @@ export function ChatLabContent() {
               ))}
 
               {!sessionsLoading && sessions.map(s => (
-                <div key={s.sessionId} onClick={() => openSessionMemory(s)} className={`border rounded-xl p-3 bg-card hover:bg-muted/40 transition-colors cursor-pointer ${selectedSession?.sessionId === s.sessionId ? 'border-primary' : 'border-border'}`}>
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium">{s.leadName}</p>
-                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${intentBadge(s.intentScore)}`}>
-                          Intent {s.intentScore}/10
-                        </span>
+                <div key={s.sessionId}>
+                  <div onClick={() => openSessionMemory(s)} className={`border rounded-xl p-3 bg-card hover:bg-muted/40 transition-colors cursor-pointer ${selectedSession?.sessionId === s.sessionId ? 'border-primary' : 'border-border'}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium">{s.leadName || 'Unknown'}</p>
+                          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${intentBadge(s.intentScore)}`}>
+                            Intent {s.intentScore}/10
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">{s.leadCompany}</p>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">{s.leadCompany}</p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-xs text-muted-foreground">{relativeTime(s.createdAt)}</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">{s.messageCount} messages</p>
+                      <div className="text-right shrink-0">
+                        <p className="text-xs text-muted-foreground">{relativeTime(s.createdAt)}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">{s.messageCount} messages</p>
+                      </div>
                     </div>
                   </div>
+
+                  {selectedSession?.sessionId === s.sessionId && (
+                    <div className="border border-t-0 border-primary rounded-b-xl bg-muted/20 px-3 pb-3">
+                      {sessionLoading ? (
+                        <div className="py-4 space-y-2">
+                          <Skeleton className="h-8 w-3/4 rounded-lg" />
+                          <Skeleton className="h-8 w-1/2 rounded-lg" />
+                        </div>
+                      ) : sessionMessages.length === 0 ? (
+                        <p className="text-xs text-muted-foreground py-4 text-center">No messages yet</p>
+                      ) : (
+                        <div className="pt-3 space-y-2 max-h-64 overflow-y-auto">
+                          {sessionMessages.map((m, i) => (
+                            <div key={i} className={`flex gap-2 ${m.role !== 'user' ? '' : 'flex-row-reverse'}`}>
+                              <div className={`max-w-[85%] px-3 py-2 rounded-xl text-xs leading-relaxed whitespace-pre-wrap ${
+                                m.role !== 'user'
+                                  ? 'bg-card border border-border text-foreground'
+                                  : 'bg-primary text-primary-foreground ml-auto'
+                              }`}>
+                                {m.content}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
 

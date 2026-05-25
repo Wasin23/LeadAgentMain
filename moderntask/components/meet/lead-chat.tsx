@@ -127,8 +127,11 @@ export function LeadChat() {
 
       {/* Header */}
       <div className="shrink-0 border-b border-gray-100 px-5 py-4 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-lg shrink-0">
-          {session.agent.avatar || '🤖'}
+        <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-lg shrink-0 overflow-hidden">
+          {session.agent.avatar && (session.agent.avatar.startsWith('/') || session.agent.avatar.startsWith('http'))
+            ? <img src={session.agent.avatar} alt={session.agent.name} className="w-full h-full object-cover rounded-full" />
+            : <span>{session.agent.avatar || '🤖'}</span>
+          }
         </div>
         <div>
           <p className="text-sm font-semibold text-gray-900">{session.agent.name}</p>
@@ -183,7 +186,7 @@ export function LeadChat() {
       </div>
 
       {/* Input */}
-      <div className="shrink-0 border-t border-gray-100 px-4 py-3">
+      <div className="shrink-0 border-t border-gray-100 px-3 py-3" style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}>
         <div className="flex gap-2 items-end">
           <textarea
             value={input}
@@ -191,18 +194,17 @@ export function LeadChat() {
             onKeyDown={onKeyDown}
             placeholder="Type a message..."
             rows={1}
-            className="flex-1 resize-none rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm focus:outline-none focus:border-blue-400 min-h-[42px] max-h-32"
-            style={{ lineHeight: '1.5' }}
+            className="flex-1 resize-none rounded-2xl border border-gray-200 px-4 py-3 focus:outline-none focus:border-blue-400 min-h-[48px] max-h-36 bg-gray-50"
+            style={{ fontSize: '16px', lineHeight: '1.5' }}
           />
           <button
             onClick={send}
             disabled={!input.trim() || loading}
-            className="shrink-0 w-10 h-10 rounded-xl bg-blue-500 text-white flex items-center justify-center disabled:opacity-40 hover:bg-blue-600 transition-colors"
+            className="shrink-0 w-11 h-11 rounded-2xl bg-blue-500 text-white flex items-center justify-center disabled:opacity-40 active:bg-blue-700 transition-colors"
           >
             <Send className="w-4 h-4" />
           </button>
         </div>
-        <p className="text-center text-[10px] text-gray-300 mt-1.5">Enter to send · Shift+Enter for newline</p>
       </div>
     </div>
   )
