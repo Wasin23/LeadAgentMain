@@ -564,7 +564,8 @@ const publicEmailEndpoints = [
   '/api/auth/gmail/authorize', // Gmail OAuth authorize
   '/api/auth/gmail/callback', // Gmail OAuth callback
   '/api/auth/outlook/authorize', // Outlook OAuth authorize
-  '/api/auth/outlook/callback' // Outlook OAuth callback
+  '/api/auth/outlook/callback', // Outlook OAuth callback
+  '/api/meet', // MQL Chat — public lead-facing chat endpoints
 ];
 
 // Sub-paths of otherwise-public prefixes that must require auth
