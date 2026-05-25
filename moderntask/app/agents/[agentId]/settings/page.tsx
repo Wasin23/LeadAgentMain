@@ -775,10 +775,10 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
         </div>
 
         {/* Content */}
-        <div className="max-w-4xl mx-auto px-6 py-8 space-y-5">
+        <div className={`max-w-4xl mx-auto px-6 space-y-5 ${activeTab === null ? 'flex flex-col items-center justify-center' : 'py-8'}`} style={activeTab === null ? { minHeight: 'calc(100vh - 73px)' } : {}}>
 
-          {/* Presets */}
-          {presets.length > 0 && (
+          {/* Presets — only show under Research */}
+          {presets.length > 0 && activeTab === 'research' && (
             <div className="bg-card border border-border rounded-xl p-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -808,7 +808,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
           )}
 
           {/* Tab Selector */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className={`grid grid-cols-2 gap-4 ${activeTab === null ? 'w-full max-w-md' : 'w-full'}`}>
             <button
               type="button"
               onClick={() => setActiveTab(activeTab === 'research' ? null : 'research')}
