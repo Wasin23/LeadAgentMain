@@ -781,36 +781,6 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
         {/* Content */}
         <div className={`max-w-4xl mx-auto px-6 space-y-5 ${activeTab === null ? 'flex flex-col items-center justify-center' : 'py-8'}`} style={activeTab === null ? { minHeight: 'calc(100vh - 73px)' } : {}}>
 
-          {/* Presets — only show under Research */}
-          {presets.length > 0 && activeTab === 'research' && (
-            <div className="bg-card border border-border rounded-xl p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-base font-semibold text-foreground">Quick Presets</h3>
-                  <p className="text-sm text-muted-foreground">Apply a saved configuration to quickly set up targeting</p>
-                </div>
-                {loadingPresets && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {presets.map(preset => (
-                  <button key={preset.id || preset._id} onClick={() => applyPreset(preset)}
-                    className={cn('text-left p-4 rounded-lg border-2 transition-all',
-                      selectedPreset === (preset.id || preset._id) ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-border bg-background hover:border-primary/40')}>
-                    <div className="flex items-start justify-between mb-2">
-                      <h4 className="text-sm font-semibold text-foreground">{preset.name}</h4>
-                      {selectedPreset === (preset.id || preset._id) && <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center shrink-0"><Check className="w-3 h-3 text-primary-foreground" /></div>}
-                    </div>
-                    <div className="flex flex-wrap gap-1 mb-2">
-                      {(preset.targetIndustries || []).slice(0, 2).map((ind: string, i: number) => <span key={i} className="px-2 py-0.5 bg-purple-500/10 text-purple-500 border border-purple-500/20 rounded text-[10px] font-medium">{ind}</span>)}
-                      {(preset.targetIndustries?.length || 0) > 2 && <span className="px-2 py-0.5 bg-muted text-muted-foreground rounded text-[10px] font-medium">+{preset.targetIndustries.length - 2}</span>}
-                    </div>
-                    <p className="text-xs text-muted-foreground">{preset.companySizeMin}–{preset.companySizeMax} employees · {preset.leadLimit} leads/cycle</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Tab Selector */}
           <div className={`grid grid-cols-2 gap-6 ${activeTab === null ? 'w-full max-w-2xl' : 'w-full'}`}>
             <button
@@ -1160,6 +1130,36 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
             </div>
           </Section>
 
+          {/* Presets */}
+          {presets.length > 0 && (
+            <div className="bg-card border border-border rounded-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-base font-semibold text-foreground">Quick Presets</h3>
+                  <p className="text-sm text-muted-foreground">Apply a saved configuration to quickly set up targeting</p>
+                </div>
+                {loadingPresets && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {presets.map(preset => (
+                  <button key={preset.id || preset._id} onClick={() => applyPreset(preset)}
+                    className={cn('text-left p-4 rounded-lg border-2 transition-all',
+                      selectedPreset === (preset.id || preset._id) ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-border bg-background hover:border-primary/40')}>
+                    <div className="flex items-start justify-between mb-2">
+                      <h4 className="text-sm font-semibold text-foreground">{preset.name}</h4>
+                      {selectedPreset === (preset.id || preset._id) && <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center shrink-0"><Check className="w-3 h-3 text-primary-foreground" /></div>}
+                    </div>
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {(preset.targetIndustries || []).slice(0, 2).map((ind: string, i: number) => <span key={i} className="px-2 py-0.5 bg-purple-500/10 text-purple-500 border border-purple-500/20 rounded text-[10px] font-medium">{ind}</span>)}
+                      {(preset.targetIndustries?.length || 0) > 2 && <span className="px-2 py-0.5 bg-muted text-muted-foreground rounded text-[10px] font-medium">+{preset.targetIndustries.length - 2}</span>}
+                    </div>
+                    <p className="text-xs text-muted-foreground">{preset.companySizeMin}–{preset.companySizeMax} employees · {preset.leadLimit} leads/cycle</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           </>)}
 
           {activeTab === 'email' && (<>
@@ -1269,29 +1269,6 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                 )}
               </div>
 
-              {/* Chat Link */}
-              <div className="border-t border-border pt-4 space-y-3">
-                <ToggleRow
-                  label="Include Chat Link"
-                  checked={settings.emailBuilder.includeChatLink}
-                  onChange={v => updateEmail('includeChatLink', v)}
-                  description="Inserts a personalised chat link into the email so leads can start a live conversation"
-                />
-                {settings.emailBuilder.includeChatLink && (
-                  <div className="space-y-1.5">
-                    <Label>How should the agent use it?</Label>
-                    <Textarea
-                      value={settings.emailBuilder.chatLinkInstructions}
-                      onChange={e => updateEmail('chatLinkInstructions', e.target.value)}
-                      rows={3}
-                      className="resize-y bg-background text-sm"
-                      placeholder={`e.g. Add a P.S. at the end: "If you'd rather just chat now — [CHAT_LINK]"`}
-                      maxLength={300}
-                    />
-                    <p className="text-xs text-muted-foreground">Use <code className="bg-muted px-1 rounded">[CHAT_LINK]</code> to mark where the link goes. The agent will follow your instructions and substitute the real link on send.</p>
-                  </div>
-                )}
-              </div>
             </div>
           </Section>
 
@@ -1392,6 +1369,29 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                     maxLength={500}
                   />
                   <p className="text-right text-xs text-muted-foreground">{settings.emailBuilder.customPrompt.length}/500</p>
+                </div>
+
+                {/* Chat Link */}
+                <div className="border-t border-border pt-4 space-y-3">
+                  <ToggleRow
+                    label="Include Chat Link"
+                    checked={settings.emailBuilder.includeChatLink}
+                    onChange={v => updateEmail('includeChatLink', v)}
+                    description="Inserts a personalised chat link into the email so leads can start a live conversation"
+                  />
+                  {settings.emailBuilder.includeChatLink && (
+                    <div className="space-y-1.5">
+                      <Textarea
+                        value={settings.emailBuilder.chatLinkInstructions}
+                        onChange={e => updateEmail('chatLinkInstructions', e.target.value)}
+                        rows={3}
+                        className="resize-y bg-background text-sm"
+                        placeholder={`e.g. Add a P.S. at the end: "If you'd rather just chat now — [CHAT_LINK]"`}
+                        maxLength={300}
+                      />
+                      <p className="text-xs text-muted-foreground">Use <code className="bg-muted px-1 rounded">[CHAT_LINK]</code> to mark where the link goes. The agent will follow your instructions and substitute the real link on send.</p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 pt-1">
