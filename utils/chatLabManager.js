@@ -158,31 +158,32 @@ class ChatLabManager {
    * Create a new chat session. Returns the sessionId.
    * Call this when a lead clicks their chat link and a session is initialized.
    */
-  async createSession(userId, { agentId, leadId, emailId, leadName, leadCompany, leadTitle, token }) {
+  async createSession(userId, { agentId, leadId, emailId, leadName, leadCompany, leadTitle, token, researchSnapshot = null }) {
     await this.ensureSessionTable();
     const sessionId = randomUUID();
     const createdAt = new Date().toISOString();
     const item = {
-      PK:           this._sessionPK(userId),
-      SK:           this._sessionSK(createdAt, sessionId),
+      PK:               this._sessionPK(userId),
+      SK:               this._sessionSK(createdAt, sessionId),
       sessionId,
       userId,
-      agentId:      agentId  || null,
-      leadId:       leadId   || null,
-      emailId:      emailId  || null,
-      token:        token    || null,
-      leadName:     leadName || 'Unknown',
-      leadCompany:  leadCompany || '',
-      leadTitle:    leadTitle   || '',
-      status:       'active',
-      intentScore:  0,
-      messageCount: 0,
-      messages:     [],
-      topics:       [],
-      signals:      [],
+      agentId:          agentId      || null,
+      leadId:           leadId       || null,
+      emailId:          emailId      || null,
+      token:            token        || null,
+      leadName:         leadName     || 'Unknown',
+      leadCompany:      leadCompany  || '',
+      leadTitle:        leadTitle    || '',
+      researchSnapshot: researchSnapshot || null,
+      status:           'active',
+      intentScore:      0,
+      messageCount:     0,
+      messages:         [],
+      topics:           [],
+      signals:          [],
       createdAt,
-      updatedAt:    createdAt,
-      lastActive:   createdAt,
+      updatedAt:        createdAt,
+      lastActive:       createdAt,
     };
     await this.dynamodb.send(new PutCommand({ TableName: this.sessionTable, Item: item }));
     return { sessionId, createdAt };
@@ -399,7 +400,7 @@ class ChatLabManager {
    * Create a one-time chat link token for a lead.
    * Returns { token, url } — url is the full link to embed in the email.
    */
-  async createChatToken(userId, { agentId, leadId, emailId, leadName, leadCompany, leadTitle, leadEmail }) {
+  async createChatToken(userId, { agentId, leadId, emailId, leadName, leadCompany, leadTitle, leadEmail, researchSnapshot = null }) {
     await this.ensureTokenTable();
     const token     = randomUUID();
     const now       = new Date();
@@ -409,17 +410,18 @@ class ChatLabManager {
       Item: {
         token,
         userId,
-        agentId:     agentId     || null,
-        leadId:      leadId      || null,
-        emailId:     emailId     || null,
-        leadName:    leadName    || 'Guest',
-        leadCompany: leadCompany || '',
-        leadTitle:   leadTitle   || '',
-        leadEmail:   leadEmail   || '',
-        createdAt:   now.toISOString(),
+        agentId:          agentId          || null,
+        leadId:           leadId           || null,
+        emailId:          emailId          || null,
+        leadName:         leadName         || 'Guest',
+        leadCompany:      leadCompany      || '',
+        leadTitle:        leadTitle        || '',
+        leadEmail:        leadEmail        || '',
+        researchSnapshot: researchSnapshot || null,
+        createdAt:        now.toISOString(),
         expiresAt,
-        firstClickAt: null,
-        clickCount:   0,
+        firstClickAt:     null,
+        clickCount:       0,
       },
     }));
     const baseUrl = process.env.FRONTEND_URL || 'https://meridianprospects.com';

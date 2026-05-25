@@ -50,6 +50,7 @@ router.get('/init/:token', async (req, res) => {
       const { sessionId, createdAt } = await chatLabManager.createSession(userId, {
         agentId, leadId, emailId,
         leadName, leadCompany, leadTitle, token,
+        researchSnapshot: tokenData.researchSnapshot || null,
       });
 
       // Store session ref on the token
@@ -118,17 +119,18 @@ router.get('/init/:token', async (req, res) => {
     const tone = PERSONALITY_TONES[personalityType] || PERSONALITY_TONES.HUNTER;
 
     res.json({
-      sessionId:      session.sessionId,
+      sessionId:        session.sessionId,
       sessionCreatedAt: session.createdAt,
-      messages:       session.messages || [],
+      messages:         session.messages || [],
       agent: {
-        name:    agent?.name || 'AI Assistant',
-        avatar:  agent?.personality?.avatar || null,
+        name:        agent?.name || 'AI Assistant',
+        avatar:      agent?.personality?.avatar || null,
         personality: agent?.personality?.name || null,
       },
-      lead: { name: leadName, company: leadCompany, title: leadTitle },
-      systemPrompt: prompt?.promptText || null,
+      lead:             { name: leadName, company: leadCompany, title: leadTitle },
+      systemPrompt:     prompt?.promptText || null,
       tone,
+      researchSnapshot: tokenData.researchSnapshot || null,
     });
   } catch (err) {
     console.error('[MEET] init:', err);
@@ -148,7 +150,7 @@ router.post('/chat', async (req, res) => {
     const tokenData = await chatLabManager.resolveToken(token);
     if (!tokenData) return res.status(404).json({ error: 'Link expired or invalid' });
 
-    const { userId, agentId, leadName, leadCompany, leadTitle } = tokenData;
+    const { userId, agentId, leadName, leadCompany, leadTitle, researchSnapshot } = tokenData;
 
     // Save user message
     await chatLabManager.addMessage(userId, sessionId, sessionCreatedAt, {
@@ -162,7 +164,7 @@ router.post('/chat', async (req, res) => {
     } catch { /* no docs */ }
 
     const ragContext = chunks.length
-      ? `\n\nRELEVANT COMPANY KNOWLEDGE:\n${chunks.map((c, i) => `[${i + 1}] (${c.source}) ${c.text}`).join('\n\n')}`
+      ? `\n\nCOMPANY KNOWLEDGE BASE:\n${chunks.map((c, i) => `[${i + 1}] (${c.source}) ${c.text}`).join('\n\n')}`
       : '';
 
     // System prompt
@@ -183,15 +185,39 @@ router.post('/chat', async (req, res) => {
     const personalityType = (agent?.personality?.type || 'hunter').toUpperCase();
     const tone = PERSONALITY_TONES[personalityType] || PERSONALITY_TONES.HUNTER;
 
-    const resolvedPrompt = promptText
-      .replace(/{lead_name}/g,        leadName    || 'the lead')
-      .replace(/{lead_company}/g,     leadCompany || 'their company')
-      .replace(/{lead_title}/g,       leadTitle   || '')
-      .replace(/{personality_tone}/g, tone)
-      .replace(/{company_name}/g,     'the company')
-      .replace(/{original_email}/g,   '');
+    const snap = researchSnapshot || {};
+    const cb   = snap.companyBranding || {};
 
-    const systemContent = resolvedPrompt + ragContext;
+    const companyBlock = (cb.name || cb.description || cb.offering || cb.advantages) ? `\n\nYOUR COMPANY:\n` +
+      (cb.name        ? `Name: ${cb.name}\n`        : '') +
+      (cb.offering    ? `Offering: ${cb.offering}\n` : '') +
+      (cb.description ? `About: ${cb.description}\n` : '') +
+      (cb.advantages  ? `Key advantages: ${cb.advantages}\n` : '') +
+      (cb.website     ? `Website: ${cb.website}\n`   : '')
+      : '';
+
+    const leadContextBlock = (snap.buyerMotivation || snap.citedFacts?.length || snap.emailHooks?.length) ? `\n\nLEAD INTELLIGENCE (from pre-send research):\n` +
+      `Lead: ${leadName}${leadTitle ? `, ${leadTitle}` : ''} at ${leadCompany}\n` +
+      (snap.tier        ? `Qualification: ${snap.tier} (score ${snap.score}/100)\n` : '') +
+      (snap.buyerMotivation ? `Why they'd buy: ${snap.buyerMotivation}\n` : '') +
+      (snap.emailHooks?.length ? `Key hooks used in email:\n${snap.emailHooks.map(h => `- ${h}`).join('\n')}\n` : '') +
+      (snap.citedFacts?.length ? `Research facts:\n${snap.citedFacts.map(f => `- ${f.fact}${f.source ? ` (${f.source})` : ''}`).join('\n')}\n` : '') +
+      (snap.specificInsights?.length ? `Additional insights:\n${snap.specificInsights.map(s => `- ${typeof s === 'string' ? s : s.insight || s.text || JSON.stringify(s)}`).join('\n')}\n` : '')
+      : '';
+
+    const originalEmailBlock = snap.originalEmail
+      ? `\n\nORIGINAL EMAIL SENT TO THEM:\n${snap.originalEmail}`
+      : '';
+
+    const resolvedPrompt = promptText
+      .replace(/{lead_name}/g,        leadName          || 'the lead')
+      .replace(/{lead_company}/g,     leadCompany       || 'their company')
+      .replace(/{lead_title}/g,       leadTitle         || '')
+      .replace(/{personality_tone}/g, tone)
+      .replace(/{company_name}/g,     cb.name           || 'the company')
+      .replace(/{original_email}/g,   snap.originalEmail || '');
+
+    const systemContent = resolvedPrompt + companyBlock + leadContextBlock + originalEmailBlock + ragContext;
 
     const messages = [
       { role: 'system', content: systemContent },

@@ -545,6 +545,7 @@ router.post('/:id/approve', async (req, res) => {
     let bccEmails = approvedEmail.bcc || approvedEmail.emailData?.bcc || null;
     let senderName = null;
     let agentEmailBuilder = null;
+    let agentCompanyBranding = null;
 
     // Fetch agent settings for CC, BCC, sender name, and chat link config
     if (userId && effectiveAgentId) {
@@ -554,6 +555,7 @@ router.post('/:id/approve', async (req, res) => {
           const agentSettings = await awsManager.getLeadAgentSettings(userId, effectiveAgentId);
           if (agentSettings) {
             agentEmailBuilder = agentSettings.emailBuilder || null;
+            agentCompanyBranding = agentSettings.companyBranding || null;
             // Get CC emails if not already set
             if (!ccEmails && agentEmailBuilder?.ccEmails) {
               ccEmails = agentEmailBuilder.ccEmails;
@@ -614,6 +616,26 @@ router.post('/:id/approve', async (req, res) => {
         const leadCompany = approvedEmail.leadDetails?.companyName || personInfo?.company || '';
         const leadTitle   = personInfo?.title || personInfo?.currentPosition || '';
         const leadId      = approvedEmail.leadId || approvedEmail.leadDetails?.leadId || null;
+        const researchSnapshot = {
+          buyerMotivation: approvedEmail.aiReport?.buyerMotivation || null,
+          emailHooks:      (approvedEmail.aiReport?.emailHooks || []).slice(0, 3),
+          tier:            approvedEmail.aiReport?.tier || null,
+          score:           approvedEmail.aiReport?.score || null,
+          citedFacts:      (approvedEmail.aiReport?.allCitedFacts || approvedEmail.aiReport?.citedEvidence || []).slice(0, 8).map(f => ({
+            fact:   f.fact || f.text || '',
+            source: f.source || '',
+          })),
+          specificInsights: (approvedEmail.researchData?.specificInsights || []).slice(0, 5),
+          originalEmail:    (approvedEmail.body || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 1200),
+          companyBranding: {
+            name:        agentCompanyBranding?.companyName || null,
+            description: agentCompanyBranding?.companyDescription || null,
+            offering:    agentCompanyBranding?.primaryService || agentCompanyBranding?.coreOffering || null,
+            advantages:  agentCompanyBranding?.keyAdvantages || null,
+            website:     agentCompanyBranding?.companyWebsite || null,
+          },
+        };
+
         const { token, url } = await chatLabManager.createChatToken(userId, {
           agentId:   originalAgentId,
           leadId,
@@ -622,6 +644,7 @@ router.post('/:id/approve', async (req, res) => {
           leadCompany,
           leadTitle,
           leadEmail: finalRecipient,
+          researchSnapshot,
         });
         const cardText = agentEmailBuilder.chatLinkInstructions?.trim() || 'Want to ask me anything directly? I\'m available now:';
         const chatLinkHtml = `\n<div style="margin-top:24px;padding:16px 20px;background:#f8f9ff;border-left:3px solid #3b82f6;border-radius:4px;font-family:Arial,sans-serif;">

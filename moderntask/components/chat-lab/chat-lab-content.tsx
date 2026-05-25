@@ -28,14 +28,26 @@ interface KnowledgeDoc {
   editing:    boolean
 }
 
+interface ResearchSnapshot {
+  buyerMotivation?:   string
+  emailHooks?:        string[]
+  tier?:              string
+  score?:             number
+  citedFacts?:        { fact: string; source: string }[]
+  specificInsights?:  any[]
+  originalEmail?:     string
+  companyBranding?:   { name?: string; description?: string; offering?: string; advantages?: string; website?: string }
+}
+
 interface ChatSession {
-  sessionId:   string
-  leadName:    string
-  leadCompany: string
-  messageCount: number
-  intentScore: number
-  createdAt:   string
-  status:      'active' | 'ended'
+  sessionId:        string
+  leadName:         string
+  leadCompany:      string
+  messageCount:     number
+  intentScore:      number
+  createdAt:        string
+  status:           'active' | 'ended'
+  researchSnapshot?: ResearchSnapshot
 }
 
 interface PromptVersion {
@@ -139,6 +151,7 @@ export function ChatLabContent() {
   const [sessionMessages, setSessionMessages]   = useState<{ role: string; content: string }[]>([])
   const [sessionLoading, setSessionLoading]     = useState(false)
   const [sessionContext, setSessionContext]     = useState<{
+    session:    any
     leadData:   any
     emailData:  any
     promptData: any
@@ -226,6 +239,7 @@ export function ChatLabContent() {
       })
       setSessionMessages(r.data?.session?.messages ?? [])
       setSessionContext({
+        session:    r.data?.session    ?? null,
         leadData:   r.data?.leadData   ?? null,
         emailData:  r.data?.emailData  ?? null,
         promptData: r.data?.promptData ?? null,
@@ -542,21 +556,81 @@ export function ChatLabContent() {
                           <Skeleton className="h-8 w-3/4 rounded-lg" />
                           <Skeleton className="h-8 w-1/2 rounded-lg" />
                         </div>
-                      ) : sessionMessages.length === 0 ? (
-                        <p className="text-xs text-muted-foreground py-4 text-center">No messages yet</p>
                       ) : (
-                        <div className="pt-3 space-y-2 max-h-64 overflow-y-auto">
-                          {sessionMessages.map((m, i) => (
-                            <div key={i} className={`flex gap-2 ${m.role !== 'user' ? '' : 'flex-row-reverse'}`}>
-                              <div className={`max-w-[85%] px-3 py-2 rounded-xl text-xs leading-relaxed whitespace-pre-wrap ${
-                                m.role !== 'user'
-                                  ? 'bg-card border border-border text-foreground'
-                                  : 'bg-primary text-primary-foreground ml-auto'
-                              }`}>
-                                {m.content}
-                              </div>
+                        <div className="pt-3 space-y-3">
+
+                          {/* Conversation */}
+                          {sessionMessages.length === 0 ? (
+                            <p className="text-xs text-muted-foreground text-center py-2">No messages yet</p>
+                          ) : (
+                            <div className="space-y-2 max-h-48 overflow-y-auto">
+                              {sessionMessages.map((m, i) => (
+                                <div key={i} className={`flex gap-2 ${m.role !== 'user' ? '' : 'flex-row-reverse'}`}>
+                                  <div className={`max-w-[85%] px-3 py-2 rounded-xl text-xs leading-relaxed whitespace-pre-wrap ${
+                                    m.role !== 'user'
+                                      ? 'bg-card border border-border text-foreground'
+                                      : 'bg-primary text-primary-foreground ml-auto'
+                                  }`}>{m.content}</div>
+                                </div>
+                              ))}
                             </div>
-                          ))}
+                          )}
+
+                          {/* Research context the AI has */}
+                          {sessionContext?.session?.researchSnapshot && (() => {
+                            const snap = sessionContext.session.researchSnapshot
+                            const cb = snap.companyBranding || {}
+                            return (
+                              <div className="border-t border-border pt-3 space-y-2">
+                                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">What the AI knows</p>
+
+                                {(cb.name || cb.offering) && (
+                                  <div className="rounded-lg bg-card border border-border p-2.5 space-y-0.5">
+                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Your company</p>
+                                    {cb.name     && <p className="text-xs"><span className="text-muted-foreground">Name:</span> {cb.name}</p>}
+                                    {cb.offering && <p className="text-xs"><span className="text-muted-foreground">Offering:</span> {cb.offering}</p>}
+                                    {cb.advantages && <p className="text-xs"><span className="text-muted-foreground">Advantages:</span> {cb.advantages}</p>}
+                                  </div>
+                                )}
+
+                                {snap.buyerMotivation && (
+                                  <div className="rounded-lg bg-card border border-border p-2.5">
+                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Why they'd buy</p>
+                                    <p className="text-xs leading-relaxed">{snap.buyerMotivation}</p>
+                                  </div>
+                                )}
+
+                                {snap.emailHooks?.length > 0 && (
+                                  <div className="rounded-lg bg-card border border-border p-2.5">
+                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Email hooks used</p>
+                                    <ul className="space-y-0.5">
+                                      {snap.emailHooks.map((h: string, i: number) => (
+                                        <li key={i} className="text-xs text-muted-foreground">· {h}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+
+                                {snap.citedFacts?.length > 0 && (
+                                  <div className="rounded-lg bg-card border border-border p-2.5">
+                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Research facts</p>
+                                    <ul className="space-y-0.5">
+                                      {snap.citedFacts.map((f: any, i: number) => (
+                                        <li key={i} className="text-xs text-muted-foreground">· {f.fact}{f.source ? ` — ${f.source}` : ''}</li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+
+                                {snap.originalEmail && (
+                                  <div className="rounded-lg bg-card border border-border p-2.5">
+                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Original email sent</p>
+                                    <p className="text-xs text-muted-foreground leading-relaxed line-clamp-4">{snap.originalEmail}</p>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })()}
                         </div>
                       )}
                     </div>
