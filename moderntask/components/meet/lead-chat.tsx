@@ -44,7 +44,7 @@ export function LeadChat() {
     if (!token) return
     fetch(`${API}/api/meet/init/${token}`)
       .then(r => r.json())
-      .then(data => {
+      .then(async data => {
         if (data.error) { setInitError(data.error); return }
         setSession(data)
         const prior: Message[] = (data.messages || []).map((m: any) => ({
@@ -52,6 +52,27 @@ export function LeadChat() {
           content: m.content,
         }))
         setMessages(prior)
+
+        // If no prior messages, have the AI send an opener
+        if (prior.length === 0) {
+          setLoading(true)
+          try {
+            const r = await fetch(`${API}/api/meet/opener`, {
+              method:  'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                token,
+                sessionId:        data.sessionId,
+                sessionCreatedAt: data.sessionCreatedAt,
+              }),
+            })
+            const openerData = await r.json()
+            if (openerData.reply) {
+              setMessages([{ role: 'assistant', content: openerData.reply }])
+            }
+          } catch { /* silent — lead can still message first */ }
+          finally { setLoading(false) }
+        }
       })
       .catch(() => setInitError('Could not connect. Please try again.'))
   }, [token])
@@ -143,7 +164,7 @@ export function LeadChat() {
       <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4">
         {messages.length === 0 && !loading && (
           <div className="text-center text-gray-400 text-sm pt-10">
-            {(() => { const first = session.lead.name?.split(' ')[0]; return `Hi ${(first && first !== 'Lead' && first !== 'Guest') ? first : 'there'} 👋 — ask me anything.`; })()}
+            Starting conversation…
           </div>
         )}
 

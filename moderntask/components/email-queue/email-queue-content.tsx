@@ -47,7 +47,7 @@ interface QueueEmail {
   aiReport?: AIReport
 }
 
-interface AIReport {
+export interface AIReport {
   companyName: string
   contactName: string
   score: number
@@ -1054,7 +1054,7 @@ function Empty({ icon: Icon, text, sub }: { icon: React.ElementType; text: strin
 }
 
 // ── AI report modal ───────────────────────────────────────────────────────────
-function AIReportModal({ report, onClose }: { report: AIReport; onClose: () => void }) {
+export function AIReportModal({ report, onClose }: { report: AIReport; onClose: () => void }) {
   const tierColors = {
     HIGHLY_QUALIFIED: 'bg-green-500/10 text-green-500 border-green-500/30',
     QUALIFIED: 'bg-blue-500/10 text-blue-500 border-blue-500/30',

@@ -28,7 +28,24 @@ router.get('/init/:token', async (req, res) => {
     const tokenData = await chatLabManager.resolveToken(req.params.token);
     if (!tokenData) return res.status(404).json({ error: 'Link expired or invalid' });
 
-    const { userId, agentId, leadId, emailId, leadName, leadCompany, leadTitle, leadEmail, isFirstClick, token } = tokenData;
+    const { userId, agentId, leadId, emailId, leadCompany, leadTitle, leadEmail, isFirstClick, token } = tokenData;
+    let leadName = tokenData.leadName;
+
+    // If token has a placeholder name, look up the real lead record
+    if ((!leadName || leadName === 'Lead' || leadName === 'Guest') && leadId) {
+      try {
+        const { default: AWSManager } = await import('../utils/awsManager.js');
+        const aws = new AWSManager();
+        const { GetCommand: GC } = await import('@aws-sdk/lib-dynamodb');
+        const leadRecord = await aws.dynamodb.send(new GC({
+          TableName: process.env.AWS_DYNAMODB_LEAD_DATA_TABLE || 'meridian-lead-data',
+          Key: { userId, leadId },
+        })).then(r => r.Item || null).catch(() => null);
+        if (leadRecord) {
+          leadName = leadRecord.fullName || leadRecord.name || leadRecord.leadName || leadName;
+        }
+      } catch { /* keep original */ }
+    }
 
     // Get system prompt and agent info in parallel
     const [promptData, agentSettings] = await Promise.allSettled([
@@ -65,6 +82,26 @@ router.get('/init/:token', async (req, res) => {
       }));
 
       session = { sessionId, createdAt, messages: [] };
+    }
+
+    // Backfill the real name onto the session + token if we resolved a better one
+    const isPlaceholder = n => !n || n === 'Lead' || n === 'Guest';
+    if (!isPlaceholder(leadName) && isPlaceholder(tokenData.leadName)) {
+      const { UpdateCommand: UC2 } = await import('@aws-sdk/lib-dynamodb');
+      await Promise.allSettled([
+        chatLabManager.dynamodb.send(new UC2({
+          TableName: chatLabManager.sessionTable,
+          Key: { PK: chatLabManager._sessionPK(userId), SK: chatLabManager._sessionSK(session.createdAt, session.sessionId) },
+          UpdateExpression: 'SET leadName = :n',
+          ExpressionAttributeValues: { ':n': leadName },
+        })),
+        chatLabManager.dynamodb.send(new UC2({
+          TableName: chatLabManager.tokenTable,
+          Key: { token },
+          UpdateExpression: 'SET leadName = :n',
+          ExpressionAttributeValues: { ':n': leadName },
+        })),
+      ]);
     }
 
     // Fire notification on first click
@@ -137,6 +174,81 @@ router.get('/init/:token', async (req, res) => {
   } catch (err) {
     console.error('[MEET] init:', err);
     res.status(500).json({ error: 'Failed to initialize chat' });
+  }
+});
+
+// ── Opener: AI sends the first message ───────────────────────────────────────
+
+router.post('/opener', async (req, res) => {
+  try {
+    const { token, sessionId, sessionCreatedAt } = req.body;
+    if (!token || !sessionId) return res.status(400).json({ error: 'token and sessionId required' });
+
+    const tokenData = await chatLabManager.resolveToken(token);
+    if (!tokenData) return res.status(404).json({ error: 'Link expired or invalid' });
+
+    const { userId, agentId, leadName, leadCompany, leadTitle, researchSnapshot } = tokenData;
+
+    const [promptData, agentData] = await Promise.allSettled([
+      chatLabManager.getSystemPrompt(userId, agentId),
+      (async () => {
+        const { getUserById } = await import('../lib/userManager.js');
+        const user = await getUserById(userId);
+        return (user?.activeAgents || []).find(a => a.agentId === agentId) || null;
+      })(),
+    ]);
+
+    const promptText = promptData.status === 'fulfilled' && promptData.value?.promptText
+      ? promptData.value.promptText
+      : `You are an AI sales representative. You are about to open a chat with ${leadName} from ${leadCompany}.`;
+
+    const agent = agentData.status === 'fulfilled' ? agentData.value : null;
+    const personalityType = (agent?.personality?.type || 'hunter').toUpperCase();
+    const tone = PERSONALITY_TONES[personalityType] || PERSONALITY_TONES.HUNTER;
+
+    const snap = researchSnapshot || {};
+    const cb   = snap.companyBranding || {};
+
+    const companyBlock = (cb.name || cb.offering) ? `\n\nYOUR COMPANY:\n` +
+      (cb.name     ? `Name: ${cb.name}\n`        : '') +
+      (cb.offering ? `Offering: ${cb.offering}\n` : '') +
+      (cb.advantages ? `Key advantages: ${cb.advantages}\n` : '') : '';
+
+    const leadContextBlock = (snap.buyerMotivation || snap.emailHooks?.length) ? `\n\nLEAD INTELLIGENCE:\n` +
+      `Lead: ${leadName}${leadTitle ? `, ${leadTitle}` : ''} at ${leadCompany}\n` +
+      (snap.buyerMotivation ? `Why they'd buy: ${snap.buyerMotivation}\n` : '') +
+      (snap.emailHooks?.length ? `Hooks from the email that brought them here:\n${snap.emailHooks.map(h => `- ${h}`).join('\n')}\n` : '') : '';
+
+    const resolvedPrompt = promptText
+      .replace(/{lead_name}/g,        leadName     || 'the lead')
+      .replace(/{lead_company}/g,     leadCompany  || 'their company')
+      .replace(/{lead_title}/g,       leadTitle    || '')
+      .replace(/{personality_tone}/g, tone)
+      .replace(/{company_name}/g,     cb.name      || 'the company')
+      .replace(/{original_email}/g,   snap.originalEmail || '');
+
+    const systemContent = resolvedPrompt + companyBlock + leadContextBlock + CHAT_STYLE;
+
+    const completion = await mistral.chat.completions.create({
+      model:       'mistral-medium-latest',
+      messages: [
+        { role: 'system', content: systemContent },
+        { role: 'user',   content: `[Open the conversation. Send your first message to ${leadName}. Reference something specific you know about them or their company. Keep it to 2–3 sentences — natural, not a pitch.]` },
+      ],
+      temperature: 0.8,
+      max_tokens:  200,
+    });
+
+    const reply = completion.choices[0]?.message?.content || '';
+
+    await chatLabManager.addMessage(userId, sessionId, sessionCreatedAt, {
+      role: 'assistant', content: reply,
+    });
+
+    res.json({ reply });
+  } catch (err) {
+    console.error('[MEET] opener:', err);
+    res.status(500).json({ error: 'Opener failed: ' + err.message });
   }
 });
 

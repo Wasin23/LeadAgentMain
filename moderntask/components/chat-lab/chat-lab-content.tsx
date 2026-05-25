@@ -296,6 +296,12 @@ export function ChatLabContent() {
         promptData: r.data?.promptData ?? null,
         docs:       r.data?.docs       ?? [],
       })
+      // If the server backfilled a real name, update the sessions list in place
+      const resolvedName = r.data?.session?.leadName
+      if (resolvedName && resolvedName !== 'Lead' && resolvedName !== 'Guest') {
+        setSessions(prev => prev.map(s => s.sessionId === session.sessionId ? { ...s, leadName: resolvedName } : s))
+        setSelectedSession(prev => prev ? { ...prev, leadName: resolvedName } : null)
+      }
     } catch { setSessionMessages([]) }
     finally { setSessionLoading(false) }
   }, [selectedSession])

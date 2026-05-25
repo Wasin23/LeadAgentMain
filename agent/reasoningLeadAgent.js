@@ -1837,6 +1837,8 @@ Call the appropriate function to continue the workflow.`;
             // Add AI confidence report from email generation
             confidenceReport: actionResult.confidenceReport,
             confidenceLevel: actionResult.confidenceLevel,
+            // Explicitly carry aiReport so addToEmailQueue doesn't need shared-memory fallback
+            aiReport: qualification.aiReport || null,
             // Add qualification metadata
             qualificationScore: qualification.score,
             qualificationConfidence: confidence,
@@ -6732,12 +6734,25 @@ Target Positions:`;
                     employees: lead.organization?.estimated_num_employees || 'unknown'
                   });
                   
+                  // Qualify lead to generate AI research report
+                  const qualification = await this.qualifyLead({
+                    leadData: lead,
+                    researchData: research
+                  });
+
+                  // Skip leads that don't meet qualification criteria
+                  if (qualification?.tier === 'REJECT' || qualification?.qualified === false) {
+                    this.logOperation('Lead Rejected', `Skipping ${lead.name} at ${lead.organization?.name} — qualification tier ${qualification?.tier || 'REJECT'}`, 'info');
+                    continue;
+                  }
+
                   const personalizedEmail = await this.buildPersonalizedEmail({
                     leadData: lead,
                     researchData: research,
+                    qualificationData: qualification,
                     emailSettings: this.memory.emailSettings
                   });
-                  
+
                   // Create complete lead data
                   const completeLead = {
                     ...lead,
@@ -6749,6 +6764,7 @@ Target Positions:`;
                     confidenceReport: personalizedEmail.confidenceReport,
                     confidenceLevel: personalizedEmail.confidenceLevel,
                     salesAngle: personalizedEmail.salesAngle || null,
+                    aiReport: qualification?.aiReport || null,
                     emailUnlockStatus: 'success'
                   };
                   

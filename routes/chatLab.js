@@ -89,9 +89,25 @@ router.get('/sessions/:sessionId/context', async (req, res) => {
       zillizCompanyMemory.listDocuments(uid(req)),
     ]);
 
+    // Backfill leadName on the session if it's a placeholder and we have real lead data
+    const lead = leadData.status === 'fulfilled' ? leadData.value : null;
+    const isPlaceholder = n => !n || n === 'Lead' || n === 'Guest';
+    if (isPlaceholder(session.leadName) && lead) {
+      const realName = lead.fullName || lead.name || lead.leadName;
+      if (realName && !isPlaceholder(realName)) {
+        session.leadName = realName;
+        chatLabManager.dynamodb.send(new (await import('@aws-sdk/lib-dynamodb')).UpdateCommand({
+          TableName: chatLabManager.sessionTable,
+          Key: { PK: chatLabManager._sessionPK(uid(req)), SK: chatLabManager._sessionSK(createdAt, req.params.sessionId) },
+          UpdateExpression: 'SET leadName = :n',
+          ExpressionAttributeValues: { ':n': realName },
+        })).catch(() => {});
+      }
+    }
+
     res.json({
       session,
-      leadData:   leadData.status   === 'fulfilled' ? leadData.value   : null,
+      leadData:   lead,
       emailData:  emailData.status  === 'fulfilled' ? emailData.value  : null,
       promptData: promptData.status === 'fulfilled' ? promptData.value : null,
       docs:       docList.status    === 'fulfilled' ? docList.value    : [],

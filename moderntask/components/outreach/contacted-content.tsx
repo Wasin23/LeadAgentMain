@@ -16,6 +16,7 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
+import { AIReportModal, AIReport } from '@/components/email-queue/email-queue-content'
 
 // ── types ─────────────────────────────────────────────────────────────────────
 interface AnalyticsEmail {
@@ -53,6 +54,7 @@ interface AnalyticsEmail {
     openCount?: number
   }
   unsubscribed?: boolean
+  aiReport?: AIReport
 }
 
 interface AgentFull {
@@ -156,12 +158,13 @@ function replyBadgeClasses(kind: 'classification' | 'status' | 'sentiment', valu
 }
 
 // ── sent email row ─────────────────────────────────────────────────────────────
-function SentRow({ email, onEditFollowUp, onScheduleFollowUp, onSendNow, onCancelAllFollowUps }: {
+function SentRow({ email, onEditFollowUp, onScheduleFollowUp, onSendNow, onCancelAllFollowUps, onViewReport }: {
   email: AnalyticsEmail
   onEditFollowUp: (e: AnalyticsEmail) => void
   onScheduleFollowUp?: (e: AnalyticsEmail) => void
   onSendNow?: (e: AnalyticsEmail) => void
   onCancelAllFollowUps?: (e: AnalyticsEmail) => void
+  onViewReport?: () => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const a = email.analyticsStatus || {}
@@ -286,6 +289,17 @@ function SentRow({ email, onEditFollowUp, onScheduleFollowUp, onSendNow, onCance
             </div>
           )}
           {email.body && <div className="col-span-2"><span className="font-medium text-foreground mr-1">Body</span><span className="whitespace-pre-wrap">{email.body}</span></div>}
+          {email.aiReport && onViewReport && (
+            <div className="col-span-2 pt-1">
+              <button
+                onClick={e => { e.stopPropagation(); onViewReport() }}
+                className="flex items-center gap-1.5 text-xs text-primary hover:opacity-80 transition-opacity font-medium"
+              >
+                <FileText className="w-3 h-3" />
+                View Research Report
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -774,6 +788,7 @@ export function ContactedContent() {
   const [selectionMode, setSelectionMode] = useState(false)
   const [selectedIds, setSelectedIds]     = useState<Set<string>>(new Set())
   const [editFollowUpEmail, setEditFollowUpEmail] = useState<AnalyticsEmail | null>(null)
+  const [activeReport, setActiveReport]           = useState<AIReport | null>(null)
   const [showMassReschedule, setShowMassReschedule]       = useState(false)
   const [showMassFollowUpModal, setShowMassFollowUpModal] = useState(false)
   const [saved, setSaved]                 = useState(false)
@@ -1042,7 +1057,7 @@ export function ContactedContent() {
                         onChange={() => setSelectedIds(prev => { const s = new Set(prev); s.has(emailId(e)) ? s.delete(emailId(e)) : s.add(emailId(e)); return s })}
                         onClick={ev => ev.stopPropagation()} />
                     )}
-                    <div className="flex-1 min-w-0"><SentRow email={e} onEditFollowUp={setEditFollowUpEmail} onScheduleFollowUp={scheduleFollowUp} onSendNow={retryFollowUp} onCancelAllFollowUps={cancelFollowUp} /></div>
+                    <div className="flex-1 min-w-0"><SentRow email={e} onEditFollowUp={setEditFollowUpEmail} onScheduleFollowUp={scheduleFollowUp} onSendNow={retryFollowUp} onCancelAllFollowUps={cancelFollowUp} onViewReport={e.aiReport ? () => setActiveReport(e.aiReport!) : undefined} /></div>
                   </div>
                 ))}
               </div>
@@ -1351,6 +1366,7 @@ export function ContactedContent() {
       )}
 
       {/* modals */}
+      {activeReport && <AIReportModal report={activeReport} onClose={() => setActiveReport(null)} />}
       {editFollowUpEmail && <EditFollowUpModal email={editFollowUpEmail} onClose={() => setEditFollowUpEmail(null)} onSaved={load} />}
       {showMassReschedule && (
         <MassRescheduleModal emails={sent.filter(e => selectedIds.has(emailId(e)))} onClose={() => setShowMassReschedule(false)}
