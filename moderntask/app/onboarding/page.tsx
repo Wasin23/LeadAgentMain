@@ -7,6 +7,7 @@ import api from '@/lib/api'
 import OnboardingFlow from '@/components/onboarding/onboarding-flow'
 import GlobeBackground from '@/components/onboarding/globe-background'
 import { BlobField } from '@/components/landing/blob-field'
+import { MeridianWordmark } from '@/components/ui/meridian-wordmark'
 
 type OnboardingStage = 'loading' | 'team-prompt' | 'onboarding' | 'done'
 
@@ -55,14 +56,8 @@ function TeamPrompt({ onSkip, onJoined }: { onSkip: () => void; onJoined: () => 
       {/* Left sidebar — matches onboarding stepper */}
       <div className="relative z-10 w-[220px] shrink-0 hidden md:flex flex-col pt-10 pl-8">
         <div className="flex items-center gap-2.5 mb-10">
-          <svg width="26" height="26" viewBox="0 0 48 48">
-            <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="#111" strokeWidth="2"/>
-            <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="#111" strokeWidth="2"/>
-            <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="#111" strokeWidth="2"/>
-            <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="#111" strokeWidth="2"/>
-            <line x1="4" y1="24" x2="44" y2="24" stroke="#111" strokeWidth="2"/>
-          </svg>
-          <span className="font-bold text-[15px] text-gray-900" style={{ textShadow: '0 0 12px rgba(255,255,255,0.95)' }}>Meridian</span>
+          <img src="/MeridianM.png" alt="Meridian" className="h-6 w-auto object-contain" style={{ filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.6))' }} />
+          <MeridianWordmark className="h-4 w-auto text-gray-900" style={{ filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.95))' } as React.CSSProperties} />
         </div>
         <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3" style={{ textShadow: '0 0 8px rgba(255,255,255,0.9)' }}>Getting started</p>
         <div className="flex flex-col gap-0.5">
@@ -214,31 +209,14 @@ function OnboardingInner() {
 
   if (stage === 'loading') {
     return (
-      <div className="relative min-h-screen flex flex-col items-center justify-center gap-8">
-        <GlobeBackground />
-        <div className="relative z-10 flex flex-col items-center gap-8">
-          <div className="flex items-center gap-3 mb-2">
-            <svg width="44" height="44" viewBox="0 0 48 48" className="drop-shadow-lg">
-              <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
-              <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
-              <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
-              <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="white" strokeWidth="1.5"/>
-              <line x1="4" y1="24" x2="44" y2="24" stroke="white" strokeWidth="1.5"/>
-            </svg>
-            <span className="text-3xl font-bold text-white tracking-tight">Meridian</span>
+      <div className="relative min-h-screen flex flex-col items-center justify-center gap-6">
+        <BlobField />
+        <div className="relative z-10 flex flex-col items-center gap-6">
+          <div className="flex items-center gap-3">
+            <img src="/MeridianM.png" alt="Meridian" className="h-8 w-auto object-contain" />
+            <MeridianWordmark className="h-5 w-auto text-gray-900" style={{ filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.95))' } as React.CSSProperties} />
           </div>
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-12 h-12 border-[3px] border-white border-t-transparent rounded-full animate-spin" />
-            <p className="text-white/70 text-base font-medium">Loading your setup…</p>
-          </div>
-          <div className="flex items-center gap-2 mt-4">
-            {(['Company Profile', 'Agent Setup'] as const).map((label, i) => (
-              <div key={label} className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-white/40 animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />
-                <span className="text-white/60 text-xs font-medium">{label}</span>
-              </div>
-            ))}
-          </div>
+          <div className="w-10 h-10 border-[3px] border-gray-900 border-t-transparent rounded-full animate-spin" />
         </div>
       </div>
     )

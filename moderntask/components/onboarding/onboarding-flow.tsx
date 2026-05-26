@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Check, X, CloudUpload } from 'lucide-react'
 import api from '@/lib/api'
 import { BlobField } from '@/components/landing/blob-field'
+import { MeridianWordmark } from '@/components/ui/meridian-wordmark'
 
 const PERSONALITY_TYPES = [
   { id: 'hunter', name: 'The Hunter', color: 'red', description: 'Aggressive prospector focused on high-volume outreach and quick conversions', avatar: '/avatars/Hunter.png', traits: ['High-energy', 'Direct', 'Persistent'], emailStyle: 'Bold, action-oriented', prompt: 'You are The Hunter - a high-energy, results-driven AI sales agent focused on quick conversions.' },
@@ -123,8 +124,6 @@ export default function OnboardingFlow({ onComplete }: Props) {
   const [companySizeMax, setCompanySizeMax] = useState(500)
   const [leadsPerCycle, setLeadsPerCycle] = useState(10)
   const [specialInstructions, setSpecialInstructions] = useState('')
-  const [industrySearch, setIndustrySearch] = useState('')
-  const [jobSearch, setJobSearch] = useState('')
   const [autofilling, setAutofilling] = useState(false)
 
   // ── Step 3: Agent ─────────────────────────────────────────────────────────
@@ -190,15 +189,8 @@ export default function OnboardingFlow({ onComplete }: Props) {
   const [presetNameTouched, setPresetNameTouched] = useState(false)
   useEffect(() => { if (!presetNameTouched) setPresetName(agentName) }, [agentName, presetNameTouched])
 
-  const filteredIndustries = industrySearch
-    ? APOLLO_INDUSTRIES.filter(i => i.toLowerCase().includes(industrySearch.toLowerCase()) && !industries.includes(i)).slice(0, 12)
-    : []
-  const filteredJobs = jobSearch
-    ? JOB_TITLES.filter(t => t.toLowerCase().includes(jobSearch.toLowerCase()) && !jobTitles.includes(t)).slice(0, 12)
-    : []
-
-  const addIndustry = (i: string) => { setIndustries(p => [...p, i]); setIndustrySearch('') }
-  const addJob = (t: string) => { setJobTitles(p => [...p, t]); setJobSearch('') }
+  const addIndustry = (i: string) => setIndustries(p => [...p, i])
+  const addJob = (t: string) => setJobTitles(p => [...p, t])
 
   const applyProfile = (p: Record<string, string>) => {
     if (p.companyName) setCompanyName(p.companyName)
@@ -486,12 +478,9 @@ export default function OnboardingFlow({ onComplete }: Props) {
             <label className={lc}>Employees</label>
             <input type="text" placeholder="25" value={employees} onChange={e => setEmployees(e.target.value)} className={ic} />
           </div>
-          <div className="col-span-2 sm:col-span-1">
+          <div className="col-span-2">
             <label className={lc}>Company size range</label>
-            <select value={companySize} onChange={e => setCompanySize(e.target.value)} className={`${ic} cursor-pointer`}>
-              <option value="">Select…</option>
-              {COMPANY_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
+            <PillSelect options={COMPANY_SIZES} value={companySize} onChange={setCompanySize} />
           </div>
           <div className="col-span-2">
             <label className={lc}>Target market</label>
@@ -554,56 +543,26 @@ export default function OnboardingFlow({ onComplete }: Props) {
 
         <div className="mb-4">
           <label className={lc}>Target industries</label>
-          <div className="relative">
-            <input type="text" placeholder="Search or type an industry…" value={industrySearch}
-              onChange={e => setIndustrySearch(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && industrySearch.trim()) addIndustry(industrySearch.trim()) }}
-              className={ic} />
-            {filteredIndustries.length > 0 && (
-              <div className="absolute z-10 left-0 right-0 border border-gray-200 bg-white rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
-                {filteredIndustries.map(ind => (
-                  <button key={ind} onMouseDown={() => addIndustry(ind)} className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 border-b last:border-b-0 border-gray-100">{ind}</button>
-                ))}
-              </div>
-            )}
-          </div>
-          <p className="text-xs text-gray-400 mt-1">Not in the list? Type it and press Enter.</p>
-          {industries.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {industries.map(ind => (
-                <span key={ind} className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 rounded-md text-xs text-purple-700">
-                  {ind}<button onClick={() => setIndustries(p => p.filter(i => i !== ind))} className="text-purple-400 hover:text-purple-700 leading-none"><X size={10} /></button>
-                </span>
-              ))}
-            </div>
-          )}
+          <MultiPillSelect
+            suggestions={['Technology', 'Healthcare', 'Finance', 'SaaS', 'E-commerce', 'Consulting', 'Manufacturing', 'Real Estate']}
+            selected={industries}
+            onAdd={addIndustry}
+            onRemove={i => setIndustries(p => p.filter(x => x !== i))}
+            searchList={APOLLO_INDUSTRIES}
+            placeholder="Search industries…"
+          />
         </div>
 
         <div className="mb-4">
           <label className={lc}>Target job titles</label>
-          <div className="relative">
-            <input type="text" placeholder="Search or type a title…" value={jobSearch}
-              onChange={e => setJobSearch(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && jobSearch.trim()) addJob(jobSearch.trim()) }}
-              className={ic} />
-            {filteredJobs.length > 0 && (
-              <div className="absolute z-10 left-0 right-0 border border-gray-200 bg-white rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
-                {filteredJobs.map(t => (
-                  <button key={t} onMouseDown={() => addJob(t)} className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 border-b last:border-b-0 border-gray-100">{t}</button>
-                ))}
-              </div>
-            )}
-          </div>
-          <p className="text-xs text-gray-400 mt-1">Not in the list? Type it and press Enter.</p>
-          {jobTitles.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {jobTitles.map(t => (
-                <span key={t} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 rounded-md text-xs text-blue-700">
-                  {t}<button onClick={() => setJobTitles(p => p.filter(j => j !== t))} className="text-blue-400 hover:text-blue-700 leading-none"><X size={10} /></button>
-                </span>
-              ))}
-            </div>
-          )}
+          <MultiPillSelect
+            suggestions={['CEO', 'CTO', 'VP Sales', 'VP Marketing', 'Director of Sales', 'Founder', 'COO']}
+            selected={jobTitles}
+            onAdd={addJob}
+            onRemove={t => setJobTitles(p => p.filter(x => x !== t))}
+            searchList={JOB_TITLES}
+            placeholder="Search titles…"
+          />
         </div>
 
         <div className="grid grid-cols-2 gap-4 mb-6">
@@ -748,34 +707,22 @@ export default function OnboardingFlow({ onComplete }: Props) {
         )}
 
         {/* Email style settings */}
-        <div className="border-t border-gray-100 pt-4 space-y-4 mb-5">
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className={lc}>Email length</label>
-              <select value={emailLength} onChange={e => setEmailLength(e.target.value)} className={`${ic} cursor-pointer`}>
-                <option value="short">Short</option>
-                <option value="medium">Medium</option>
-                <option value="long">Long</option>
-              </select>
-            </div>
-            <div>
-              <label className={lc}>Call to action</label>
-              <select value={callToAction} onChange={e => setCallToAction(e.target.value)} className={`${ic} cursor-pointer`}>
-                <option value="schedule-meeting">Schedule meeting</option>
-                <option value="reply-interest">Reply if interested</option>
-                <option value="demo-request">Request a demo</option>
-                <option value="phone-call">Phone call</option>
-                <option value="learn-more">Learn more</option>
-              </select>
-            </div>
-            <div>
-              <label className={lc}>Personalization</label>
-              <select value={personalizationLevel} onChange={e => setPersonalizationLevel(e.target.value)} className={`${ic} cursor-pointer`}>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
-            </div>
+        <div className="border-t border-gray-100 pt-4 space-y-5 mb-5">
+          <div>
+            <label className={lc}>Email length</label>
+            <PillSelect options={['Short', 'Medium', 'Long']} value={emailLength} onChange={v => setEmailLength(v.toLowerCase())} />
+          </div>
+          <div>
+            <label className={lc}>Call to action</label>
+            <PillSelect
+              options={['Schedule meeting', 'Reply if interested', 'Request a demo', 'Phone call', 'Learn more']}
+              value={{ 'schedule-meeting': 'Schedule meeting', 'reply-interest': 'Reply if interested', 'demo-request': 'Request a demo', 'phone-call': 'Phone call', 'learn-more': 'Learn more' }[callToAction] ?? ''}
+              onChange={v => setCallToAction({ 'Schedule meeting': 'schedule-meeting', 'Reply if interested': 'reply-interest', 'Request a demo': 'demo-request', 'Phone call': 'phone-call', 'Learn more': 'learn-more' }[v] ?? v)}
+            />
+          </div>
+          <div>
+            <label className={lc}>Personalization</label>
+            <PillSelect options={['Low', 'Medium', 'High']} value={personalizationLevel} onChange={v => setPersonalizationLevel(v.toLowerCase())} />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -1114,27 +1061,29 @@ export default function OnboardingFlow({ onComplete }: Props) {
       {/* Left stepper */}
       <div className="relative z-10 w-[220px] shrink-0 hidden md:flex flex-col pt-10 pl-8">
         <div className="flex items-center gap-2.5 mb-10">
-          <svg width="26" height="26" viewBox="0 0 48 48">
-            <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="#111" strokeWidth="2"/>
-            <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="#111" strokeWidth="2"/>
-            <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="#111" strokeWidth="2"/>
-            <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="#111" strokeWidth="2"/>
-            <line x1="4" y1="24" x2="44" y2="24" stroke="#111" strokeWidth="2"/>
-          </svg>
-          <span className="font-bold text-[15px] text-gray-900" style={{ textShadow: '0 0 12px rgba(255,255,255,0.95)' }}>Meridian</span>
+          <img src="/MeridianM.png" alt="Meridian" className="h-6 w-auto object-contain" style={{ filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.6))' }} />
+          <MeridianWordmark className="h-4 w-auto text-gray-900" style={{ filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.95))' } as React.CSSProperties} />
         </div>
-        <div className="flex flex-col gap-0.5">
+        <div className="flex flex-col gap-4">
           {STEPS.map(s => {
             const done = step > s.id
             const active = step === s.id
             return (
-              <div key={s.id} className="flex items-center gap-3 py-1.5">
+              <div key={s.id} className="flex items-center gap-3 py-1">
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold transition-all ${done || active ? 'bg-gray-900 text-white' : 'bg-white/70 border border-gray-300 text-gray-400'}`}
                   style={!(done || active) ? { backdropFilter: 'blur(4px)' } : {}}>
                   {done ? <Check size={11} strokeWidth={3} /> : s.id}
                 </div>
-                <span className={`text-base font-semibold transition-colors ${active ? 'text-gray-900' : done ? 'text-gray-600' : 'text-gray-400'}`}
-                  style={{ textShadow: '0 0 10px rgba(255,255,255,0.9)' }}>
+                <span
+                  className={`transition-colors ${active ? 'text-gray-900' : done ? 'text-gray-600' : 'text-gray-400'}`}
+                  style={{
+                    fontFamily: "'Times New Roman', Times, serif",
+                    fontSize: '1.2rem',
+                    fontWeight: active ? 700 : 400,
+                    textDecoration: 'underline',
+                    textUnderlineOffset: '3px',
+                    textShadow: '0 0 10px rgba(255,255,255,0.9)',
+                  }}>
                   {s.label}
                 </span>
               </div>
@@ -1178,6 +1127,89 @@ function ReviewRow({ label, onEdit, children }: { label: string; onEdit: () => v
         <button onClick={onEdit} className="text-xs text-blue-600 hover:text-blue-800 font-medium">Edit</button>
       </div>
       {children}
+    </div>
+  )
+}
+
+// Single-select pill row
+function PillSelect({ options, value, onChange }: { options: string[]; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="flex flex-wrap gap-2 mt-1.5">
+      {options.map(o => (
+        <button key={o} onClick={() => onChange(o)}
+          className={`px-4 py-2 rounded-full border text-sm font-medium transition-all ${value.toLowerCase() === o.toLowerCase() ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300 hover:border-gray-600'}`}>
+          {o}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// Multi-select pill row with suggestions + search + "Add your own"
+function MultiPillSelect({ suggestions, selected, onAdd, onRemove, searchList, placeholder }: {
+  suggestions: string[]
+  selected: string[]
+  onAdd: (v: string) => void
+  onRemove: (v: string) => void
+  searchList: string[]
+  placeholder: string
+}) {
+  const [query, setQuery] = useState('')
+  const [adding, setAdding] = useState(false)
+  const filtered = query ? searchList.filter(i => i.toLowerCase().includes(query.toLowerCase()) && !selected.includes(i)).slice(0, 8) : []
+
+  return (
+    <div className="mt-1.5 space-y-3">
+      {/* Suggestion pills */}
+      <div className="flex flex-wrap gap-2">
+        {suggestions.map(s => {
+          const on = selected.includes(s)
+          return (
+            <button key={s} onClick={() => on ? onRemove(s) : onAdd(s)}
+              className={`px-4 py-2 rounded-full border text-sm font-medium transition-all flex items-center gap-1.5 ${on ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-700 border-gray-300 hover:border-gray-600'}`}>
+              {on && <X size={11} strokeWidth={2.5} />}
+              {s}
+            </button>
+          )
+        })}
+
+        {/* Add your own */}
+        {adding ? (
+          <div className="relative">
+            <input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder={placeholder}
+              onKeyDown={e => { if (e.key === 'Enter' && query.trim()) { onAdd(query.trim()); setQuery(''); setAdding(false) } if (e.key === 'Escape') { setQuery(''); setAdding(false) } }}
+              onBlur={() => setTimeout(() => { setQuery(''); setAdding(false) }, 150)}
+              className="px-4 py-2 rounded-full border border-gray-400 text-sm outline-none focus:border-gray-900 w-44 transition-colors" />
+            {filtered.length > 0 && (
+              <div className="absolute z-20 top-full mt-1 left-0 bg-white border border-gray-200 rounded-xl shadow-lg max-h-40 overflow-y-auto min-w-[180px]">
+                {filtered.map(i => (
+                  <button key={i} onMouseDown={() => { onAdd(i); setQuery(''); setAdding(false) }}
+                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 border-b last:border-b-0 border-gray-100">
+                    {i}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <button onClick={() => setAdding(true)}
+            className="px-4 py-2 rounded-full border border-dashed border-gray-300 text-sm text-gray-400 hover:border-gray-500 hover:text-gray-600 transition-all">
+            + Add your own
+          </button>
+        )}
+      </div>
+
+      {/* Extra selected items not in suggestions */}
+      {selected.filter(s => !suggestions.includes(s)).length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {selected.filter(s => !suggestions.includes(s)).map(s => (
+            <button key={s} onClick={() => onRemove(s)}
+              className="px-4 py-2 rounded-full border text-sm font-medium bg-gray-900 text-white border-gray-900 flex items-center gap-1.5 transition-all">
+              <X size={11} strokeWidth={2.5} />{s}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
