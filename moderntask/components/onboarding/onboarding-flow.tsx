@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Check, X, CloudUpload } from 'lucide-react'
 import api from '@/lib/api'
-import { BlobField } from '@/components/landing/blob-field'
 import { MeridianWordmark } from '@/components/ui/meridian-wordmark'
 
 const PERSONALITY_TYPES = [
@@ -112,6 +111,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
   const [coreOffering, setCoreOffering] = useState('')
   const [keyAdvantages, setKeyAdvantages] = useState('')
   const [termsAccepted, setTermsAccepted] = useState(false)
+  const [step1Details, setStep1Details] = useState(false)
   const [scraping, setScraping] = useState(false)
   const [scrapeError, setScrapeError] = useState<string | null>(null)
   const [fileUploading, setFileUploading] = useState(false)
@@ -223,6 +223,18 @@ export default function OnboardingFlow({ onComplete }: Props) {
     finally { setScraping(false) }
   }
 
+  const scrapeAndAdvance = async () => {
+    if (!website.trim()) return
+    setScraping(true); setScrapeError(null)
+    try {
+      let url = website.trim()
+      if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url
+      const r = await api.post('/api/company-profile/scrape-website', { url, fromOnboarding: true })
+      if (r.data.success && r.data.profile) applyProfile(r.data.profile)
+    } catch { setScrapeError('Could not fetch website. Fill in manually.') }
+    finally { setScraping(false); setStep1Details(true) }
+  }
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -244,6 +256,29 @@ export default function OnboardingFlow({ onComplete }: Props) {
       if (r.data.success && r.data.profile) applyProfile(r.data.profile)
     } catch { setUploadedFileName(null) }
     finally { setFileUploading(false) }
+  }
+
+  const handleFileUploadAndAdvance = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setFileUploading(true); setUploadedFileName(file.name)
+    try {
+      const isImage = file.type.startsWith('image/')
+      let content: string
+      if (isImage) {
+        const reader = new FileReader()
+        content = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string)
+          reader.onerror = reject
+          reader.readAsDataURL(file)
+        })
+      } else {
+        content = await file.text()
+      }
+      const r = await api.post('/api/company-profile/analyze', { content, fileName: file.name, isImage })
+      if (r.data.success && r.data.profile) applyProfile(r.data.profile)
+    } catch { setUploadedFileName(null) }
+    finally { setFileUploading(false); setStep1Details(true) }
   }
 
   const autofillTargeting = async () => {
@@ -406,101 +441,70 @@ export default function OnboardingFlow({ onComplete }: Props) {
 
   function StepContent() {
 
-    // ── Step 1: Company ──────────────────────────────────────────────────────
-    if (step === 1) return (
+    // ── Step 1a: Autofill source ─────────────────────────────────────────────
+    if (step === 1 && !step1Details) return (
       <>
-        <h2 className="text-xl font-bold text-gray-900 mb-1">Your company</h2>
-        <p className="text-sm text-gray-500 mb-5">Tell us about your company. Upload a doc or paste your URL to autofill.</p>
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">Let's start with your company</h2>
+        <p className="text-sm text-gray-500 mb-8">Paste your website URL or upload a doc and we'll fill everything in for you.</p>
 
-        {/* Autofill bar */}
-        <div className="flex gap-2 mb-5">
-          <div className="flex-1 flex gap-2">
+        <div className="space-y-3 mb-8">
+          <div className="flex gap-2">
             <input type="url" placeholder="https://yourcompany.com" value={website}
               onChange={e => setWebsite(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && scrapeWebsite()}
+              onKeyDown={e => { if (e.key === 'Enter' && website.trim()) scrapeAndAdvance() }}
               className={`${ic} flex-1`} />
-            <button onClick={scrapeWebsite} disabled={!website.trim() || scraping}
-              className="h-10 px-3 bg-gray-100 border border-gray-200 text-gray-700 text-sm rounded-lg font-medium disabled:opacity-40 hover:bg-gray-200 transition-colors shrink-0">
-              {scraping ? '…' : 'Scrape'}
+            <button onClick={scrapeAndAdvance} disabled={!website.trim() || scraping}
+              className="h-10 px-4 bg-gray-900 text-white text-sm rounded-lg font-medium disabled:opacity-40 hover:bg-gray-700 transition-colors shrink-0">
+              {scraping ? 'Scraping…' : 'Autofill →'}
             </button>
           </div>
-          <button onClick={() => fileInputRef.current?.click()} disabled={fileUploading}
-            className="h-10 px-3 bg-gray-100 border border-gray-200 text-gray-700 text-sm rounded-lg font-medium hover:bg-gray-200 transition-colors shrink-0 flex items-center gap-1.5 disabled:opacity-40">
-            <CloudUpload size={14} />
-            {fileUploading ? 'Reading…' : uploadedFileName ? '✓ Uploaded' : 'Upload doc'}
-          </button>
-          <input ref={fileInputRef} type="file" accept=".pdf,.txt,.doc,.docx,.md,.png,.jpg,.jpeg" onChange={handleFileUpload} className="hidden" />
-        </div>
-        {scrapeError && <p className="text-red-500 text-xs mb-3">{scrapeError}</p>}
 
-        <div className="grid grid-cols-2 gap-x-4 gap-y-4 mb-5">
-          <div className="col-span-2 sm:col-span-1">
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-xs text-gray-400">or</span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+
+          <button onClick={() => fileInputRef.current?.click()} disabled={fileUploading}
+            className="w-full h-12 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-40">
+            <CloudUpload size={16} />
+            {fileUploading ? 'Reading doc…' : uploadedFileName ? `✓ ${uploadedFileName}` : 'Upload a whitepaper, one-pager, or pitch deck'}
+          </button>
+          <input ref={fileInputRef} type="file" accept=".pdf,.txt,.doc,.docx,.md,.png,.jpg,.jpeg" onChange={handleFileUploadAndAdvance} className="hidden" />
+        </div>
+
+        {scrapeError && <p className="text-red-500 text-xs mb-4">{scrapeError}</p>}
+
+        <button onClick={() => setStep1Details(true)} className="w-full text-sm text-gray-400 hover:text-gray-600 transition-colors">
+          Fill in manually →
+        </button>
+      </>
+    )
+
+    // ── Step 1b: Company details ──────────────────────────────────────────────
+    if (step === 1 && step1Details) return (
+      <>
+        <div className="flex items-center gap-2 mb-6">
+          <button onClick={() => setStep1Details(false)} className="text-gray-400 hover:text-gray-600 transition-colors">←</button>
+          <h2 className="text-3xl font-bold text-gray-900">Your company</h2>
+          {(companyName || services) && <span className="ml-auto text-xs text-green-600 font-medium">Autofilled ✓</span>}
+        </div>
+
+        <div className="space-y-4 mb-6">
+          <div>
             <label className={lc}>Company name <span className="text-red-400">*</span></label>
             <input type="text" placeholder="Acme Corp" value={companyName} onChange={e => setCompanyName(e.target.value)} className={ic} />
           </div>
-          <div className="col-span-2 sm:col-span-1">
-            <label className={lc}>Tagline</label>
-            <input type="text" placeholder="A brief memorable phrase" value={tagline} onChange={e => setTagline(e.target.value)} className={ic} />
+          <div>
+            <label className={lc}>What you sell <span className="text-red-400">*</span></label>
+            <textarea placeholder="Describe your product or service…" value={services} onChange={e => setServices(e.target.value)} rows={3} className={ta} />
           </div>
-          <div className="col-span-2">
-            <label className={lc}>Company description</label>
-            <textarea placeholder="Describe what your company does…" value={description} onChange={e => setDescription(e.target.value)} rows={3} className={ta} />
-          </div>
-          <div className="col-span-2 sm:col-span-1">
-            <label className={lc}>Industry <span className="text-red-400">*</span></label>
-            <input type="text" placeholder="e.g. Technology, Healthcare" value={industry} onChange={e => setIndustry(e.target.value)} className={ic} />
-          </div>
-          <div className="col-span-2 sm:col-span-1">
-            <label className={lc}>LinkedIn</label>
-            <input type="url" placeholder="https://linkedin.com/company/…" value={linkedinProfile} onChange={e => setLinkedinProfile(e.target.value)} className={ic} />
-          </div>
-          <div className="col-span-2 sm:col-span-1">
-            <label className={lc}>Contact email</label>
-            <input type="email" placeholder="contact@company.com" value={companyEmail} onChange={e => setCompanyEmail(e.target.value)} className={ic} />
-          </div>
-          <div className="col-span-2 sm:col-span-1">
-            <label className={lc}>Phone</label>
-            <input type="tel" placeholder="+1 (555) 000-0000" value={phone} onChange={e => setPhone(e.target.value)} className={ic} />
-          </div>
-          <div className="col-span-2">
-            <label className={lc}>Address</label>
-            <input type="text" placeholder="123 Main St, City, State ZIP" value={companyAddress} onChange={e => setCompanyAddress(e.target.value)} className={ic} />
-          </div>
-          <div className="col-span-2 sm:col-span-1">
-            <label className={lc}>Location / HQ</label>
-            <input type="text" placeholder="City, Country" value={location} onChange={e => setLocation(e.target.value)} className={ic} />
-          </div>
-          <div className="col-span-2 sm:col-span-1">
-            <label className={lc}>Founded</label>
-            <input type="text" placeholder="2020" value={founded} onChange={e => setFounded(e.target.value)} className={ic} />
-          </div>
-          <div className="col-span-2 sm:col-span-1">
-            <label className={lc}>Employees</label>
-            <input type="text" placeholder="25" value={employees} onChange={e => setEmployees(e.target.value)} className={ic} />
-          </div>
-          <div className="col-span-2">
-            <label className={lc}>Company size range</label>
-            <PillSelect options={COMPANY_SIZES} value={companySize} onChange={setCompanySize} />
-          </div>
-          <div className="col-span-2">
-            <label className={lc}>Target market</label>
-            <textarea placeholder="e.g. B2B SaaS companies with 50–500 employees" value={targetMarket} onChange={e => setTargetMarket(e.target.value)} rows={2} className={ta} />
-          </div>
-          <div className="col-span-2">
-            <label className={lc}>Services / products offered <span className="text-red-400">*</span></label>
-            <textarea placeholder="Describe your offerings…" value={services} onChange={e => setServices(e.target.value)} rows={3} className={ta} />
-          </div>
-          <div className="col-span-2">
-            <label className={lc}>Core offering</label>
-            <textarea placeholder="e.g. AI-powered outbound platform" value={coreOffering} onChange={e => setCoreOffering(e.target.value)} rows={2} className={ta} />
-          </div>
-          <div className="col-span-2">
-            <label className={lc}>Key advantages / differentiators</label>
-            <textarea placeholder="What makes you different from competitors?" value={keyAdvantages} onChange={e => setKeyAdvantages(e.target.value)} rows={3} className={ta} />
+          <div>
+            <label className={lc}>Your key advantage</label>
+            <textarea placeholder="What makes you different from competitors?" value={keyAdvantages} onChange={e => setKeyAdvantages(e.target.value)} rows={2} className={ta} />
           </div>
         </div>
 
-        {/* Terms */}
         <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
           <label className="flex items-start gap-3 cursor-pointer">
             <input type="checkbox" checked={termsAccepted} onChange={e => setTermsAccepted(e.target.checked)}
@@ -508,14 +512,13 @@ export default function OnboardingFlow({ onComplete }: Props) {
             <span className="text-xs text-gray-600">
               I agree to the{' '}
               <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium">Terms of Service</a>{' '}and{' '}
-              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium">Privacy Policy</a>,
-              and I consent to Meridian processing my company data to provide AI-powered lead generation services.
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium">Privacy Policy</a>.
             </span>
           </label>
         </div>
 
         <div className="flex justify-end">
-          <button onClick={() => setStep(2)} disabled={!companyName.trim() || !industry.trim() || !services.trim() || !termsAccepted} className={bp}>
+          <button onClick={() => setStep(2)} disabled={!companyName.trim() || !services.trim() || !termsAccepted} className={bp}>
             Continue →
           </button>
         </div>
@@ -525,7 +528,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
     // ── Step 2: Targeting ────────────────────────────────────────────────────
     if (step === 2) return (
       <>
-        <h2 className="text-xl font-bold text-gray-900 mb-1">Who to target</h2>
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">Who to target</h2>
         <p className="text-sm text-gray-500 mb-4">Define your ideal customer profile.</p>
 
         <button onClick={autofillTargeting} disabled={autofilling}
@@ -598,8 +601,8 @@ export default function OnboardingFlow({ onComplete }: Props) {
     // ── Step 3: Agent ────────────────────────────────────────────────────────
     if (step === 3) return (
       <>
-        <h2 className="text-xl font-bold text-gray-900 mb-1">Your agent</h2>
-        <p className="text-sm text-gray-500 mb-5">Pick a personality and give your agent a name.</p>
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">Your agent</h2>
+        <p className="text-base text-gray-500 mb-8">Pick a personality and give your agent a name.</p>
 
         <div className="space-y-2 mb-5">
           {PERSONALITY_TYPES.map(p => (
@@ -647,8 +650,8 @@ export default function OnboardingFlow({ onComplete }: Props) {
     // ── Step 4: Email & Outreach ─────────────────────────────────────────────
     if (step === 4) return (
       <>
-        <h2 className="text-xl font-bold text-gray-900 mb-1">Email &amp; outreach</h2>
-        <p className="text-sm text-gray-500 mb-5">Connect your inbox and configure outreach settings.</p>
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">Email &amp; outreach</h2>
+        <p className="text-base text-gray-500 mb-8">Connect your inbox and configure outreach settings.</p>
 
         {/* Email providers */}
         <div className="space-y-2.5 mb-5">
@@ -817,8 +820,8 @@ export default function OnboardingFlow({ onComplete }: Props) {
     // ── Step 5: Plan + Notifications ─────────────────────────────────────────
     if (step === 5) return (
       <>
-        <h2 className="text-xl font-bold text-gray-900 mb-1">Choose a plan</h2>
-        <p className="text-sm text-gray-500 mb-5">Start free and upgrade anytime.</p>
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">Choose a plan</h2>
+        <p className="text-base text-gray-500 mb-8">Start free and upgrade anytime.</p>
 
         <div className="space-y-2 mb-4">
           {PLANS.map(p => (
@@ -926,7 +929,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
     // ── Step 6: CRM ──────────────────────────────────────────────────────────
     if (step === 6) return (
       <>
-        <h2 className="text-xl font-bold text-gray-900 mb-1">CRM setup</h2>
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">CRM setup</h2>
         <p className="text-sm text-gray-500 mb-4">Auto-sync researched leads to your CRM. You can also do this later in Settings.</p>
 
         <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl mb-5 text-xs text-blue-800 leading-relaxed">
@@ -983,8 +986,8 @@ export default function OnboardingFlow({ onComplete }: Props) {
     // ── Step 7: Review + Launch ───────────────────────────────────────────────
     if (step === 7) return (
       <>
-        <h2 className="text-xl font-bold text-gray-900 mb-1">Review &amp; launch</h2>
-        <p className="text-sm text-gray-500 mb-5">Everything look good?</p>
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">Review &amp; launch</h2>
+        <p className="text-base text-gray-500 mb-8">Everything look good?</p>
 
         <div className="space-y-2.5 mb-6">
           <ReviewRow label="Company" onEdit={() => setStep(1)}>
@@ -1054,60 +1057,38 @@ export default function OnboardingFlow({ onComplete }: Props) {
     return null
   }
 
+  const totalSteps = STEPS.length
+  const progressPct = Math.round(((step - 1) / totalSteps) * 100)
+
   return (
-    <div className="min-h-screen flex relative">
-      <BlobField />
+    <div className="min-h-screen flex bg-white">
+      {/* Left: white panel */}
+      <div className="relative z-10 w-full bg-white min-h-screen flex flex-col">
 
-      {/* Left stepper */}
-      <div className="relative z-10 w-[220px] shrink-0 hidden md:flex flex-col pt-10 pl-8">
-        <div className="flex items-center gap-2.5 mb-10">
-          <img src="/MeridianM.png" alt="Meridian" className="h-6 w-auto object-contain" style={{ filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.6))' }} />
-          <MeridianWordmark className="h-4 w-auto text-gray-900" style={{ filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.95))' } as React.CSSProperties} />
+        {/* Logo */}
+        <div className="flex items-center gap-2 p-8 pb-0">
+          <img src="/MeridianM.png" alt="Meridian" className="h-5 w-auto object-contain" />
+          <MeridianWordmark className="h-3.5 w-auto text-gray-900" />
         </div>
-        <div className="flex flex-col gap-4">
-          {STEPS.map(s => {
-            const done = step > s.id
-            const active = step === s.id
-            return (
-              <div key={s.id} className="flex items-center gap-3 py-1">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold transition-all ${done || active ? 'bg-gray-900 text-white' : 'bg-white/70 border border-gray-300 text-gray-400'}`}
-                  style={!(done || active) ? { backdropFilter: 'blur(4px)' } : {}}>
-                  {done ? <Check size={11} strokeWidth={3} /> : s.id}
-                </div>
-                <span
-                  className={`transition-colors ${active ? 'text-gray-900' : done ? 'text-gray-600' : 'text-gray-400'}`}
-                  style={{
-                    fontFamily: "'Times New Roman', Times, serif",
-                    fontSize: '1.2rem',
-                    fontWeight: active ? 700 : 400,
-                    textDecoration: 'underline',
-                    textUnderlineOffset: '3px',
-                    textShadow: '0 0 10px rgba(255,255,255,0.9)',
-                  }}>
-                  {s.label}
-                </span>
-              </div>
-            )
-          })}
+
+        {/* Progress bar */}
+        <div className="px-8 pt-5">
+          <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-full bg-gray-900 rounded-full transition-all duration-500" style={{ width: `${progressPct}%` }} />
+          </div>
+          <p className="text-xs text-gray-400 mt-1.5">Step {step} of {totalSteps}</p>
+        </div>
+
+        {/* Step content */}
+        <div className="flex-1 flex flex-col justify-center px-12 py-8 max-w-lg mx-auto w-full">
+          <StepContent />
         </div>
       </div>
 
-      {/* Right content */}
-      <div className="relative z-10 flex-1 flex items-start justify-center p-5 md:p-10 overflow-y-auto" style={{ minHeight: '100vh' }}>
-        <div className="w-full max-w-2xl py-4">
-          <div className="md:hidden flex items-center justify-center gap-1.5 mb-5">
-            {STEPS.map(s => (
-              <div key={s.id} className={`rounded-full transition-all ${step === s.id ? 'w-4 h-2 bg-gray-900' : step > s.id ? 'w-2 h-2 bg-gray-500' : 'w-2 h-2 bg-gray-300'}`} />
-            ))}
-          </div>
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-7 md:p-8">
-            <StepContent />
-          </div>
-        </div>
-      </div>
+      
 
       {creating && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/85 backdrop-blur-sm gap-5">
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm gap-5">
           <div className="w-12 h-12 border-[3px] border-gray-900 border-t-transparent rounded-full animate-spin" />
           <div className="text-center">
             <p className="text-lg font-semibold text-gray-900">Launching your agent…</p>

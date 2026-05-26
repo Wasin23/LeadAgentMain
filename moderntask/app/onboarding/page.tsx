@@ -6,7 +6,6 @@ import Cookies from 'js-cookie'
 import api from '@/lib/api'
 import OnboardingFlow from '@/components/onboarding/onboarding-flow'
 import GlobeBackground from '@/components/onboarding/globe-background'
-import { BlobField } from '@/components/landing/blob-field'
 import { MeridianWordmark } from '@/components/ui/meridian-wordmark'
 
 type OnboardingStage = 'loading' | 'team-prompt' | 'onboarding' | 'done'
@@ -50,82 +49,62 @@ function TeamPrompt({ onSkip, onJoined }: { onSkip: () => void; onJoined: () => 
   }
 
   return (
-    <div className="min-h-screen flex relative">
-      <BlobField />
-
-      {/* Left sidebar — matches onboarding stepper */}
-      <div className="relative z-10 w-[220px] shrink-0 hidden md:flex flex-col pt-10 pl-8">
-        <div className="flex items-center gap-2.5 mb-10">
-          <img src="/MeridianM.png" alt="Meridian" className="h-6 w-auto object-contain" style={{ filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.6))' }} />
-          <MeridianWordmark className="h-4 w-auto text-gray-900" style={{ filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.95))' } as React.CSSProperties} />
+    <div className="min-h-screen bg-white">
+      {/* Left white panel */}
+      <div className="relative z-10 w-full bg-white min-h-screen flex flex-col">
+        <div className="flex items-center gap-2 p-8 pb-0">
+          <img src="/MeridianM.png" alt="Meridian" className="h-5 w-auto object-contain" />
+          <MeridianWordmark className="h-3.5 w-auto text-gray-900" />
         </div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3" style={{ textShadow: '0 0 8px rgba(255,255,255,0.9)' }}>Getting started</p>
-        <div className="flex flex-col gap-0.5">
-          {['Join a team', 'Setup account'].map((label, i) => (
-            <div key={label} className="flex items-center gap-3 py-1.5">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold ${i === 0 ? 'bg-gray-900 text-white' : 'bg-white/70 border border-gray-300 text-gray-400'}`}
-                style={i !== 0 ? { backdropFilter: 'blur(4px)' } : {}}>
-                {i + 1}
-              </div>
-              <span className={`text-base font-semibold transition-colors ${i === 0 ? 'text-gray-900' : 'text-gray-400'}`}
-                style={{ textShadow: '0 0 10px rgba(255,255,255,0.9)' }}>
-                {label}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Right content */}
-      <div className="relative z-10 flex-1 flex items-center justify-center p-5 md:p-10">
-        <div className="w-full max-w-lg">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-7 md:p-8 space-y-5">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">Joining a team?</h2>
-              <p className="text-sm text-gray-500 mt-1 leading-relaxed">
-                If someone invited you to their Meridian seat, paste the invite code below.
-                You&apos;ll share their agents, contacts, and credits.
-              </p>
-            </div>
-
-            {preview && (
-              <div className="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900">
-                <span className="font-semibold">{preview.name}</span>
-                <span className="text-gray-400 ml-2">· {preview.memberCount} member{preview.memberCount !== 1 ? 's' : ''}</span>
-              </div>
-            )}
-
-            {error && <p className="text-red-500 text-xs">{error}</p>}
-
-            <input
-              type="text"
-              placeholder="Invite code or link"
-              value={code}
-              onChange={e => {
-                const val = e.target.value
-                const match = val.match(/[?&]join=([^&]+)/)
-                setCode(match ? match[1] : val)
-              }}
-              className="w-full h-10 px-3 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-gray-400 transition-colors bg-white"
-            />
-
-            <button
-              onClick={handleJoin}
-              disabled={joining || !code.trim()}
-              className="w-full h-10 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              {joining ? 'Joining…' : 'Join team'}
-            </button>
-
-            <button
-              onClick={onSkip}
-              className="w-full text-sm text-gray-400 hover:text-gray-700 transition-colors pt-1"
-            >
-              No, I&apos;m setting up my own account →
-            </button>
+        <div className="flex-1 flex flex-col justify-center px-12 py-8 max-w-lg mx-auto w-full space-y-6">
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">Joining a team?</h2>
+            <p className="text-base text-gray-500 leading-relaxed">
+              If someone invited you to their Meridian seat, paste the invite code below.
+              You&apos;ll share their agents, contacts, and credits.
+            </p>
           </div>
+
+          {preview && (
+            <div className="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900">
+              <span className="font-semibold">{preview.name}</span>
+              <span className="text-gray-400 ml-2">· {preview.memberCount} member{preview.memberCount !== 1 ? 's' : ''}</span>
+            </div>
+          )}
+
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+
+          <input
+            type="text"
+            placeholder="Invite code or link"
+            value={code}
+            onChange={e => {
+              const val = e.target.value
+              const match = val.match(/[?&]join=([^&]+)/)
+              setCode(match ? match[1] : val)
+            }}
+            className="w-full h-11 px-4 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-gray-400 transition-colors bg-white"
+          />
+
+          <button
+            onClick={handleJoin}
+            disabled={joining || !code.trim()}
+            className="w-full h-11 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {joining ? 'Joining…' : 'Join team →'}
+          </button>
+
+          <button
+            onClick={onSkip}
+            className="text-sm text-gray-400 hover:text-gray-700 transition-colors text-left"
+          >
+            No, I&apos;m setting up my own account →
+          </button>
         </div>
       </div>
+
+      
     </div>
   )
 }
@@ -209,15 +188,16 @@ function OnboardingInner() {
 
   if (stage === 'loading') {
     return (
-      <div className="relative min-h-screen flex flex-col items-center justify-center gap-6">
-        <BlobField />
-        <div className="relative z-10 flex flex-col items-center gap-6">
-          <div className="flex items-center gap-3">
-            <img src="/MeridianM.png" alt="Meridian" className="h-8 w-auto object-contain" />
-            <MeridianWordmark className="h-5 w-auto text-gray-900" style={{ filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.95))' } as React.CSSProperties} />
+      <div className="min-h-screen bg-white">
+        
+        <div className="relative z-10 w-full bg-white flex flex-col items-start justify-center px-12 min-h-screen">
+          <div className="flex items-center gap-2 mb-8">
+            <img src="/MeridianM.png" alt="Meridian" className="h-5 w-auto object-contain" />
+            <MeridianWordmark className="h-3.5 w-auto text-gray-900" />
           </div>
-          <div className="w-10 h-10 border-[3px] border-gray-900 border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-[3px] border-gray-900 border-t-transparent rounded-full animate-spin" />
         </div>
+        
       </div>
     )
   }
