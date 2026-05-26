@@ -4,11 +4,10 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Cookies from 'js-cookie'
 import api from '@/lib/api'
-import CompanyProfile from '@/components/onboarding/company-profile'
-import AgentSetup from '@/components/onboarding/agent-setup'
+import OnboardingFlow from '@/components/onboarding/onboarding-flow'
 import GlobeBackground from '@/components/onboarding/globe-background'
 
-type OnboardingStage = 'loading' | 'team-prompt' | 'company-profile' | 'agent-setup' | 'done'
+type OnboardingStage = 'loading' | 'team-prompt' | 'onboarding' | 'done'
 
 function TeamPrompt({ onSkip, onJoined }: { onSkip: () => void; onJoined: () => void }) {
   const [code, setCode] = useState('')
@@ -164,12 +163,7 @@ function OnboardingInner() {
         }
 
         if (!hasProfile) {
-          setStage('company-profile')
-          return
-        }
-
-        if (!saved.hasAgentSetup) {
-          setStage('agent-setup')
+          setStage('onboarding')
           return
         }
 
@@ -181,14 +175,6 @@ function OnboardingInner() {
     init()
   }, [router, searchParams])
 
-  const saveProgress = (update: Record<string, boolean>) => {
-    try {
-      const raw = localStorage.getItem('onboardingProgress')
-      const prev = raw ? JSON.parse(raw) : {}
-      localStorage.setItem('onboardingProgress', JSON.stringify({ ...prev, ...update }))
-    } catch {}
-  }
-
   const handleTeamJoined = () => {
     // Joined a team — no need to set up their own profile
     localStorage.removeItem('onboardingProgress')
@@ -196,20 +182,10 @@ function OnboardingInner() {
   }
 
   const handleTeamSkip = () => {
-    setStage('company-profile')
+    setStage('onboarding')
   }
 
-  const handleCompanyProfileComplete = () => {
-    saveProgress({ hasCompanyProfile: true })
-    setStage('agent-setup')
-  }
-
-  const handleAgentSetupComplete = () => {
-    localStorage.removeItem('onboardingProgress')
-    router.replace('/home')
-  }
-
-  const handleAgentSetupSkip = () => {
+  const handleOnboardingComplete = () => {
     localStorage.removeItem('onboardingProgress')
     router.replace('/home')
   }
@@ -250,12 +226,8 @@ function OnboardingInner() {
     return <TeamPrompt onSkip={handleTeamSkip} onJoined={handleTeamJoined} />
   }
 
-  if (stage === 'company-profile') {
-    return <CompanyProfile onComplete={handleCompanyProfileComplete} />
-  }
-
-  if (stage === 'agent-setup') {
-    return <AgentSetup onComplete={handleAgentSetupComplete} onSkip={handleAgentSetupSkip} />
+  if (stage === 'onboarding') {
+    return <OnboardingFlow onComplete={handleOnboardingComplete} />
   }
 
   return null

@@ -1,0 +1,1183 @@
+'use client'
+
+import { useState, useEffect, useRef } from 'react'
+import { Check, X, CloudUpload } from 'lucide-react'
+import api from '@/lib/api'
+import { BlobField } from '@/components/landing/blob-field'
+
+const PERSONALITY_TYPES = [
+  { id: 'hunter', name: 'The Hunter', color: 'red', description: 'Aggressive prospector focused on high-volume outreach and quick conversions', avatar: '/avatars/Hunter.png', traits: ['High-energy', 'Direct', 'Persistent'], emailStyle: 'Bold, action-oriented', prompt: 'You are The Hunter - a high-energy, results-driven AI sales agent focused on quick conversions.' },
+  { id: 'relationship-builder', name: 'Relationship Builder', color: 'blue', description: 'Warm, consultative approach building long-term partnerships', avatar: '/avatars/Relationship-Builder.png', traits: ['Empathetic', 'Patient', 'Consultative'], emailStyle: 'Warm, personal', prompt: 'You are The Relationship Builder - a warm, empathetic AI sales agent building genuine partnerships.' },
+  { id: 'analyst', name: 'The Analyst', color: 'purple', description: 'Data-driven methodology with deep research and industry insights', avatar: '/avatars/Analyst.png', traits: ['Analytical', 'Detail-oriented', 'Evidence-based'], emailStyle: 'Data-rich, insightful', prompt: 'You are The Analyst - a data-driven, research-focused AI sales agent who leads with insights.' },
+  { id: 'consultant', name: 'The Consultant', color: 'green', description: 'Solution-focused expert positioning as a strategic advisor', avatar: '/avatars/consultant.png', traits: ['Advisory', 'Strategic', 'Solution-focused'], emailStyle: 'Advisory, strategic', prompt: 'You are The Consultant - a strategic advisor positioning yourself as a trusted partner.' },
+  { id: 'networker', name: 'The Networker', color: 'indigo', description: 'Connection-based approach leveraging mutual contacts', avatar: '/avatars/Networker.png', traits: ['Social', 'Community-driven', 'Referral-based'], emailStyle: 'Social, community-focused', prompt: 'You are The Networker - a socially-savvy AI agent who leverages connections.' },
+]
+
+const APOLLO_INDUSTRIES = [
+  'Software Development','SaaS','Cloud Computing','Cybersecurity','AI/Machine Learning','Data Analytics',
+  'Healthcare','Hospitals & Health Systems','Medical Devices','Pharmaceuticals','Biotechnology','Telemedicine',
+  'Banking','Investment Management','Insurance','FinTech','Payment Processing','Wealth Management',
+  'Automotive','Aerospace & Defense','Electronics Manufacturing','Chemicals','Food & Beverage',
+  'E-commerce','Fashion & Apparel','Grocery & Food Retail','Electronics Retail','Beauty & Cosmetics',
+  'Consulting','Legal Services','Marketing & Advertising','Public Relations','Architecture','Engineering Services',
+  'Commercial Real Estate','Residential Real Estate','Property Management','Construction',
+  'K-12 Education','Higher Education','Online Learning','Corporate Training','EdTech',
+  'Digital Media','Broadcasting','Publishing','Entertainment','Gaming','Social Media',
+  'Hotels & Resorts','Restaurants & Food Service','Travel & Tourism','Airlines',
+  'Nonprofit','Charitable Organizations','Environmental','Research Foundations',
+  'Technology','Finance','Retail','Manufacturing','Hospitality','Media',
+]
+
+const JOB_TITLES = [
+  'CEO','COO','CFO','CTO','CMO','President','Founder','Co-Founder','Managing Director',
+  'VP Sales','VP Marketing','VP Engineering','VP Operations','VP Finance','VP Product','VP Business Development',
+  'Director of Sales','Marketing Director','Engineering Director','Operations Director','IT Director',
+  'Sales Manager','Marketing Manager','Engineering Manager','Product Manager','Project Manager',
+  'Sales Representative','Marketing Specialist','Software Engineer','Data Analyst','Account Manager',
+]
+
+const CRM_CONFIGS = [
+  { id: 'hubspot', name: 'HubSpot', fields: [{ name: 'Private App Access Token', key: 'apiKey', type: 'password', placeholder: 'pat-na1-...', helpText: 'Create a Private App in Settings → Integrations' }] },
+  { id: 'salesforce', name: 'Salesforce', fields: [{ name: 'Instance URL', key: 'apiUrl', type: 'text', placeholder: 'https://yourinstance.salesforce.com', helpText: undefined }, { name: 'Access Token', key: 'apiKey', type: 'password', placeholder: 'Your Salesforce access token', helpText: undefined }] },
+  { id: 'pipedrive', name: 'Pipedrive', fields: [{ name: 'API Token', key: 'apiKey', type: 'password', placeholder: 'Your Pipedrive API token', helpText: 'Settings → Personal preferences → API' }] },
+  { id: 'zoho', name: 'Zoho CRM', fields: [{ name: 'Data Center', key: 'apiUrl', type: 'text', placeholder: 'https://www.zohoapis.com', helpText: undefined }, { name: 'Access Token', key: 'apiKey', type: 'password', placeholder: 'Your Zoho OAuth access token', helpText: undefined }] },
+  { id: 'activecampaign', name: 'ActiveCampaign', fields: [{ name: 'API URL', key: 'apiUrl', type: 'text', placeholder: 'https://youraccount.api-us1.com', helpText: 'Settings → Developer' }, { name: 'API Key', key: 'apiKey', type: 'password', placeholder: 'Your ActiveCampaign API Key', helpText: undefined }] },
+  { id: 'close', name: 'Close', fields: [{ name: 'API Key', key: 'apiKey', type: 'password', placeholder: 'api_...', helpText: 'Settings → API Keys' }] },
+  { id: 'copper', name: 'Copper', fields: [{ name: 'User Email', key: 'apiUrl', type: 'text', placeholder: 'your@email.com', helpText: undefined }, { name: 'API Key', key: 'apiKey', type: 'password', placeholder: 'Your Copper API key', helpText: 'Settings → Integrations → API Keys' }] },
+  { id: 'dynamics365', name: 'Microsoft Dynamics 365', fields: [{ name: 'Organization URL', key: 'apiUrl', type: 'text', placeholder: 'https://yourorg.crm.dynamics.com', helpText: undefined }, { name: 'Access Token', key: 'apiKey', type: 'password', placeholder: 'Your Azure AD access token', helpText: undefined }] },
+  { id: 'nutshell', name: 'Nutshell', fields: [{ name: 'User Email', key: 'apiUrl', type: 'text', placeholder: 'your@email.com', helpText: undefined }, { name: 'API Key', key: 'apiKey', type: 'password', placeholder: 'Your Nutshell API key', helpText: undefined }] },
+  { id: 'insightly', name: 'Insightly', fields: [{ name: 'API Key', key: 'apiKey', type: 'password', placeholder: 'Your Insightly API key', helpText: 'User Settings → API' }] },
+  { id: 'capsule', name: 'Capsule', fields: [{ name: 'API Token', key: 'apiKey', type: 'password', placeholder: 'Your Capsule API token', helpText: 'My Preferences → API Authentication Tokens' }] },
+  { id: 'zendesksell', name: 'Zendesk Sell', fields: [{ name: 'Access Token', key: 'apiKey', type: 'password', placeholder: 'Your Zendesk Sell access token', helpText: undefined }] },
+]
+
+const PLANS = [
+  { id: 'free-trial', name: 'Free Trial', price: 0, credits: 250, maxAgents: 1, maxConcurrency: 3, description: 'Perfect for trying out Meridian', features: ['250 free credits', '1 agent included', 'Up to 3x speed', 'No credit card required'] },
+  { id: 'basic', name: 'Basic', price: 100, credits: 1200, maxAgents: 3, maxConcurrency: 5, description: 'Get started on a budget', features: ['1,200 credits', 'Up to 3 agents', 'Up to 5x speed'] },
+  { id: 'starter', name: 'Starter', price: 500, credits: 13000, maxAgents: 5, maxConcurrency: 10, description: 'For solo entrepreneurs', features: ['13,000 credits', 'Up to 5 agents', 'Up to 10x speed'] },
+  { id: 'professional', name: 'Professional', price: 1000, credits: 30000, maxAgents: 10, maxConcurrency: 20, description: 'For growing teams', features: ['30,000 credits', 'Up to 10 agents', 'Up to 20x speed'], popular: true },
+  { id: 'enterprise', name: 'Enterprise', price: 2500, credits: 70000, maxAgents: 30, maxConcurrency: 30, description: 'High-volume operations', features: ['70,000 credits', 'Up to 30 agents', 'Up to 30x speed'] },
+]
+
+const COMPANY_SIZES = ['1-10', '11-50', '51-200', '201-500', '501-1000', '1000+']
+
+const STEPS = [
+  { id: 1, label: 'Company' },
+  { id: 2, label: 'Targeting' },
+  { id: 3, label: 'Your Agent' },
+  { id: 4, label: 'Email & Outreach' },
+  { id: 5, label: 'Plan' },
+  { id: 6, label: 'CRM Setup' },
+  { id: 7, label: 'Review' },
+]
+
+type PersonalityType = typeof PERSONALITY_TYPES[0]
+type CrmConfig = typeof CRM_CONFIGS[0]
+
+function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+  return (
+    <button onClick={onChange} style={{ width: '44px', height: '24px' }}
+      className={`relative rounded-full transition-colors flex-shrink-0 ${checked ? 'bg-blue-500' : 'bg-gray-200'}`}>
+      <span className="absolute top-[3px] w-[18px] h-[18px] rounded-full bg-white shadow-sm transition-all"
+        style={{ left: checked ? '23px' : '3px' }} />
+    </button>
+  )
+}
+
+interface Props { onComplete: () => void }
+
+export default function OnboardingFlow({ onComplete }: Props) {
+  const [step, setStep] = useState(1)
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // ── Step 1: Company Profile ───────────────────────────────────────────────
+  const [companyName, setCompanyName] = useState('')
+  const [tagline, setTagline] = useState('')
+  const [description, setDescription] = useState('')
+  const [industry, setIndustry] = useState('')
+  const [website, setWebsite] = useState('')
+  const [linkedinProfile, setLinkedinProfile] = useState('')
+  const [companyEmail, setCompanyEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [companyAddress, setCompanyAddress] = useState('')
+  const [location, setLocation] = useState('')
+  const [founded, setFounded] = useState('')
+  const [employees, setEmployees] = useState('')
+  const [companySize, setCompanySize] = useState('')
+  const [targetMarket, setTargetMarket] = useState('')
+  const [services, setServices] = useState('')
+  const [coreOffering, setCoreOffering] = useState('')
+  const [keyAdvantages, setKeyAdvantages] = useState('')
+  const [termsAccepted, setTermsAccepted] = useState(false)
+  const [scraping, setScraping] = useState(false)
+  const [scrapeError, setScrapeError] = useState<string | null>(null)
+  const [fileUploading, setFileUploading] = useState(false)
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null)
+
+  // ── Step 2: Targeting ─────────────────────────────────────────────────────
+  const [industries, setIndustries] = useState<string[]>([])
+  const [jobTitles, setJobTitles] = useState<string[]>([])
+  const [companySizeMin, setCompanySizeMin] = useState(50)
+  const [companySizeMax, setCompanySizeMax] = useState(500)
+  const [leadsPerCycle, setLeadsPerCycle] = useState(10)
+  const [specialInstructions, setSpecialInstructions] = useState('')
+  const [industrySearch, setIndustrySearch] = useState('')
+  const [jobSearch, setJobSearch] = useState('')
+  const [autofilling, setAutofilling] = useState(false)
+
+  // ── Step 3: Agent ─────────────────────────────────────────────────────────
+  const [personality, setPersonality] = useState<PersonalityType | null>(null)
+  const [agentName, setAgentName] = useState('')
+  const [presetName, setPresetName] = useState('')
+
+  // ── Step 4: Email & Outreach ──────────────────────────────────────────────
+  const [gmailConnected, setGmailConnected] = useState(false)
+  const [outlookConnected, setOutlookConnected] = useState(false)
+  const [linkedinConnected, setLinkedinConnected] = useState(false)
+  const [linkedinConnecting, setLinkedinConnecting] = useState(false)
+  const [useGmail, setUseGmail] = useState(false)
+  const [useOutlook, setUseOutlook] = useState(false)
+  const [ccEmails, setCcEmails] = useState('')
+  const [bccEmails, setBccEmails] = useState('')
+  const [followupIntervalDays, setFollowupIntervalDays] = useState(7)
+  const [enableAutoResponse, setEnableAutoResponse] = useState(true)
+  const [useCustomSignature, setUseCustomSignature] = useState(true)
+  const [signatureName, setSignatureName] = useState('')
+  const [signatureTitle, setSignatureTitle] = useState('')
+  const [useTemplate, setUseTemplate] = useState(false)
+  const [templateSubject, setTemplateSubject] = useState('')
+  const [templateBody, setTemplateBody] = useState('')
+  const [emailLength, setEmailLength] = useState('medium')
+  const [callToAction, setCallToAction] = useState('schedule-meeting')
+  const [personalizationLevel, setPersonalizationLevel] = useState('high')
+
+  // ── Step 5: Plan + Notifications ─────────────────────────────────────────
+  const [selectedPlan, setSelectedPlan] = useState('free-trial')
+  const [planPurchased, setPlanPurchased] = useState(false)
+  const [paymentAdded, setPaymentAdded] = useState(false)
+  const [concurrencyLevel, setConcurrencyLevel] = useState(1)
+  const [notifEmailEnabled, setNotifEmailEnabled] = useState(true)
+  const [notifSmsEnabled, setNotifSmsEnabled] = useState(false)
+
+  // ── Step 6: CRM ───────────────────────────────────────────────────────────
+  const [selectedCrm, setSelectedCrm] = useState<CrmConfig | null>(null)
+  const [crmCreds, setCrmCreds] = useState<Record<string, string>>({})
+  const [crmConnecting, setCrmConnecting] = useState(false)
+  const [crmConnected, setCrmConnected] = useState(false)
+  const [crmError, setCrmError] = useState<string | null>(null)
+
+  const planDetails = PLANS.find(p => p.id === selectedPlan) || PLANS[0]
+  const highestPlan = PLANS[PLANS.length - 1]
+
+  useEffect(() => {
+    api.get('/api/auth/gmail/status').then(r => { if (r.data?.connected) { setGmailConnected(true); setUseGmail(true) } }).catch(() => {})
+    api.get('/api/auth/outlook/status').then(r => { if (r.data?.connected) { setOutlookConnected(true); setUseOutlook(true) } }).catch(() => {})
+    api.get('/api/auth/linkedin/status').then(r => { if (r.data?.connected) setLinkedinConnected(true) }).catch(() => {})
+    api.get('/api/auth/profile').then(r => { if (r.data?.user?.paymentMethodAdded) setPaymentAdded(true) }).catch(() => {})
+    api.get('/api/auth/settings').then(r => {
+      if (r.data?.preferences?.defaultUseGmail) setUseGmail(true)
+      if (r.data?.preferences?.defaultUseOutlook) setUseOutlook(true)
+    }).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    if (concurrencyLevel > planDetails.maxConcurrency) setConcurrencyLevel(planDetails.maxConcurrency)
+  }, [planDetails.maxConcurrency, concurrencyLevel])
+
+  // Sync presetName with agentName if user hasn't customised it
+  const [presetNameTouched, setPresetNameTouched] = useState(false)
+  useEffect(() => { if (!presetNameTouched) setPresetName(agentName) }, [agentName, presetNameTouched])
+
+  const filteredIndustries = industrySearch
+    ? APOLLO_INDUSTRIES.filter(i => i.toLowerCase().includes(industrySearch.toLowerCase()) && !industries.includes(i)).slice(0, 12)
+    : []
+  const filteredJobs = jobSearch
+    ? JOB_TITLES.filter(t => t.toLowerCase().includes(jobSearch.toLowerCase()) && !jobTitles.includes(t)).slice(0, 12)
+    : []
+
+  const addIndustry = (i: string) => { setIndustries(p => [...p, i]); setIndustrySearch('') }
+  const addJob = (t: string) => { setJobTitles(p => [...p, t]); setJobSearch('') }
+
+  const applyProfile = (p: Record<string, string>) => {
+    if (p.companyName) setCompanyName(p.companyName)
+    if (p.tagline) setTagline(p.tagline)
+    if (p.description) setDescription(p.description)
+    if (p.industry) setIndustry(p.industry)
+    if (p.website) setWebsite(p.website)
+    if (p.linkedinProfile) setLinkedinProfile(p.linkedinProfile)
+    if (p.email) setCompanyEmail(p.email)
+    if (p.phone) setPhone(p.phone)
+    if (p.location) setLocation(p.location)
+    if (p.founded) setFounded(p.founded)
+    if (p.employees) setEmployees(p.employees)
+    if (p.companySize) setCompanySize(p.companySize)
+    if (p.targetMarket) setTargetMarket(p.targetMarket)
+    if (p.services) setServices(p.services)
+    if (p.coreOffering) setCoreOffering(p.coreOffering)
+    if (p.keyAdvantages) setKeyAdvantages(p.keyAdvantages)
+  }
+
+  const scrapeWebsite = async () => {
+    if (!website.trim()) return
+    setScraping(true); setScrapeError(null)
+    try {
+      let url = website.trim()
+      if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url
+      const r = await api.post('/api/company-profile/scrape-website', { url, fromOnboarding: true })
+      if (r.data.success && r.data.profile) applyProfile(r.data.profile)
+    } catch { setScrapeError('Could not fetch website. Fill in manually.') }
+    finally { setScraping(false) }
+  }
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setFileUploading(true); setUploadedFileName(file.name)
+    try {
+      const isImage = file.type.startsWith('image/')
+      let content: string
+      if (isImage) {
+        const reader = new FileReader()
+        content = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string)
+          reader.onerror = reject
+          reader.readAsDataURL(file)
+        })
+      } else {
+        content = await file.text()
+      }
+      const r = await api.post('/api/company-profile/analyze', { content, fileName: file.name, isImage })
+      if (r.data.success && r.data.profile) applyProfile(r.data.profile)
+    } catch { setUploadedFileName(null) }
+    finally { setFileUploading(false) }
+  }
+
+  const autofillTargeting = async () => {
+    setAutofilling(true)
+    try {
+      const r = await api.post('/api/company-profile/autofill-targeting')
+      const a = r.data.autofill
+      if (a.industries?.length) setIndustries(a.industries)
+      if (a.jobTitles?.length) setJobTitles(a.jobTitles)
+      if (a.companySizeMin) setCompanySizeMin(a.companySizeMin)
+      if (a.companySizeMax) setCompanySizeMax(a.companySizeMax)
+      if (a.generalInstructions) setSpecialInstructions(a.generalInstructions)
+    } catch {}
+    finally { setAutofilling(false) }
+  }
+
+  const connectGmail = async () => {
+    try {
+      const r = await api.get('/api/auth/gmail/oauth-url')
+      const w = window.open(r.data.authUrl, 'Gmail OAuth', 'width=600,height=700')
+      const check = setInterval(async () => {
+        if (w?.closed) {
+          clearInterval(check)
+          await new Promise(res => setTimeout(res, 1000))
+          api.get('/api/auth/gmail/status').then(sr => {
+            if (sr.data?.connected) { setGmailConnected(true); setUseGmail(true); setUseOutlook(false) }
+          }).catch(() => {})
+        }
+      }, 500)
+    } catch {}
+  }
+
+  const connectOutlook = async () => {
+    try {
+      setUseOutlook(true); setUseGmail(false)
+      await api.post('/api/auth/settings/preferences', { preferences: { defaultUseOutlook: true, defaultUseGmail: false } }).catch(() => {})
+      const r = await api.get('/api/auth/outlook/oauth-url')
+      const w = window.open(r.data.authUrl, 'Outlook OAuth', 'width=600,height=700')
+      const check = setInterval(async () => {
+        if (w?.closed) {
+          clearInterval(check)
+          await new Promise(res => setTimeout(res, 1000))
+          api.get('/api/auth/outlook/status').then(sr => {
+            if (sr.data?.connected) { setOutlookConnected(true); setUseOutlook(true); setUseGmail(false) }
+          }).catch(() => {})
+        }
+      }, 500)
+    } catch {}
+  }
+
+  const connectLinkedIn = async () => {
+    try {
+      setLinkedinConnecting(true)
+      const r = await api.get('/api/auth/linkedin/oauth-url')
+      const w = window.open(r.data.authUrl, 'LinkedIn OAuth', 'width=600,height=700')
+      const onMsg = (e: MessageEvent) => {
+        if (e.data?.type === 'LINKEDIN_CONNECTED') { setLinkedinConnected(true); window.removeEventListener('message', onMsg); setLinkedinConnecting(false) }
+      }
+      window.addEventListener('message', onMsg)
+      const check = setInterval(() => {
+        if (w?.closed) { clearInterval(check); window.removeEventListener('message', onMsg); setLinkedinConnecting(false) }
+      }, 500)
+    } catch { setLinkedinConnecting(false) }
+  }
+
+  const connectCrm = async () => {
+    if (!selectedCrm) return
+    const missing = selectedCrm.fields.filter(f => !crmCreds[f.key]?.trim())
+    if (missing.length) { setCrmError(`Please fill in: ${missing.map(f => f.name).join(', ')}`); return }
+    setCrmConnecting(true); setCrmError(null)
+    try {
+      await api.post('/api/crm/connect-direct', { integrationName: selectedCrm.id, apiUrl: crmCreds.apiUrl?.trim() || '', apiKey: crmCreds.apiKey?.trim() || '' })
+      setCrmConnected(true)
+    } catch (e: unknown) {
+      setCrmError((e as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed to connect. Check your credentials.')
+    } finally { setCrmConnecting(false) }
+  }
+
+  const purchasePlan = async () => {
+    try {
+      const r = await api.post('/api/plans/upgrade', { planType: selectedPlan })
+      if (r.data.success) setPlanPurchased(true)
+    } catch {}
+  }
+
+  const launch = async () => {
+    setCreating(true); setCreateError(null)
+    try {
+      await api.post('/api/company-profile/save', {
+        profile: {
+          companyName, tagline, description, industry, website, linkedinProfile,
+          email: companyEmail, phone, companyAddress, location, founded, employees,
+          companySize, targetMarket, services: services || coreOffering, coreOffering, keyAdvantages,
+          logo: '',
+          termsAccepted, termsAcceptedAt: termsAccepted ? new Date().toISOString() : undefined,
+        },
+        recommendedPreset: null,
+      })
+
+      const presetRes = await api.post('/api/settings/presets', {
+        name: presetName || agentName,
+        targetIndustries: industries,
+        targetPositions: jobTitles,
+        companySizeMin, companySizeMax,
+        leadLimit: leadsPerCycle,
+        emailLength,
+        callToAction,
+        personalizationLevel,
+        ccEmails, bccEmails,
+        followupIntervalDays,
+        enableAutoResponse,
+        useCustomSignature, signatureName, signatureTitle,
+        templates: useTemplate && templateBody.trim()
+          ? [{ id: `tpl_${Date.now()}`, name: 'Default', subject: templateSubject.trim(), body: templateBody.trim() }]
+          : [],
+        useTemplates: !!(useTemplate && templateBody.trim()),
+        specialInstructions,
+      })
+      if (!presetRes.data.success) throw new Error('Failed to create preset')
+      const cp = presetRes.data.preset
+
+      const agentRes = await api.post('/api/auth/create-agent', {
+        name: agentName,
+        type: 'reasoning-lead-agent',
+        specialInstructions,
+        useGmail,
+        useOutlook,
+        concurrencyLevel,
+        personality: personality ? {
+          type: personality.id, name: personality.name, description: personality.description,
+          avatar: personality.avatar, emailPrompt: personality.prompt,
+          emailStyle: personality.emailStyle, traits: personality.traits, color: personality.color,
+        } : undefined,
+        preset: {
+          presetId: cp.id, name: cp.name,
+          targetIndustries: cp.targetIndustries, targetPositions: cp.targetPositions,
+          companySizeMin: cp.companySizeMin, companySizeMax: cp.companySizeMax,
+          leadLimit: cp.leadLimit, emailLength: cp.emailLength,
+          callToAction: cp.callToAction, personalizationLevel: cp.personalizationLevel,
+          ccEmails: cp.ccEmails, bccEmails: cp.bccEmails,
+          followupIntervalDays: cp.followupIntervalDays, enableAutoResponse: cp.enableAutoResponse,
+          useCustomSignature: cp.useCustomSignature, signatureName: cp.signatureName, signatureTitle: cp.signatureTitle,
+          templates: cp.templates || [], useTemplates: cp.useTemplates ?? false,
+        },
+      })
+      if (!agentRes.data.success) throw new Error('Failed to create agent')
+      await api.put('/api/settings/notifications', { emailEnabled: notifEmailEnabled, smsEnabled: notifSmsEnabled }).catch(() => {})
+      setTimeout(onComplete, 1500)
+    } catch (err: unknown) {
+      setCreateError((err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || (err as { message?: string })?.message || 'Something went wrong')
+      setCreating(false)
+    }
+  }
+
+  const ic = 'w-full h-10 px-3 border border-gray-200 rounded-lg text-sm text-gray-900 outline-none focus:border-gray-400 transition-colors bg-white'
+  const ta = 'w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 outline-none focus:border-gray-400 transition-colors resize-none bg-white'
+  const lc = 'block text-[11px] font-semibold text-gray-400 mb-1.5 uppercase tracking-wider'
+  const bp = 'h-10 px-5 bg-gray-900 text-white text-sm rounded-lg font-medium hover:bg-gray-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
+  const bb = 'h-10 px-4 text-sm text-gray-400 hover:text-gray-700 transition-colors'
+
+  function StepContent() {
+
+    // ── Step 1: Company ──────────────────────────────────────────────────────
+    if (step === 1) return (
+      <>
+        <h2 className="text-xl font-bold text-gray-900 mb-1">Your company</h2>
+        <p className="text-sm text-gray-500 mb-5">Tell us about your company. Upload a doc or paste your URL to autofill.</p>
+
+        {/* Autofill bar */}
+        <div className="flex gap-2 mb-5">
+          <div className="flex-1 flex gap-2">
+            <input type="url" placeholder="https://yourcompany.com" value={website}
+              onChange={e => setWebsite(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && scrapeWebsite()}
+              className={`${ic} flex-1`} />
+            <button onClick={scrapeWebsite} disabled={!website.trim() || scraping}
+              className="h-10 px-3 bg-gray-100 border border-gray-200 text-gray-700 text-sm rounded-lg font-medium disabled:opacity-40 hover:bg-gray-200 transition-colors shrink-0">
+              {scraping ? '…' : 'Scrape'}
+            </button>
+          </div>
+          <button onClick={() => fileInputRef.current?.click()} disabled={fileUploading}
+            className="h-10 px-3 bg-gray-100 border border-gray-200 text-gray-700 text-sm rounded-lg font-medium hover:bg-gray-200 transition-colors shrink-0 flex items-center gap-1.5 disabled:opacity-40">
+            <CloudUpload size={14} />
+            {fileUploading ? 'Reading…' : uploadedFileName ? '✓ Uploaded' : 'Upload doc'}
+          </button>
+          <input ref={fileInputRef} type="file" accept=".pdf,.txt,.doc,.docx,.md,.png,.jpg,.jpeg" onChange={handleFileUpload} className="hidden" />
+        </div>
+        {scrapeError && <p className="text-red-500 text-xs mb-3">{scrapeError}</p>}
+
+        <div className="grid grid-cols-2 gap-x-4 gap-y-4 mb-5">
+          <div className="col-span-2 sm:col-span-1">
+            <label className={lc}>Company name <span className="text-red-400">*</span></label>
+            <input type="text" placeholder="Acme Corp" value={companyName} onChange={e => setCompanyName(e.target.value)} className={ic} />
+          </div>
+          <div className="col-span-2 sm:col-span-1">
+            <label className={lc}>Tagline</label>
+            <input type="text" placeholder="A brief memorable phrase" value={tagline} onChange={e => setTagline(e.target.value)} className={ic} />
+          </div>
+          <div className="col-span-2">
+            <label className={lc}>Company description</label>
+            <textarea placeholder="Describe what your company does…" value={description} onChange={e => setDescription(e.target.value)} rows={3} className={ta} />
+          </div>
+          <div className="col-span-2 sm:col-span-1">
+            <label className={lc}>Industry <span className="text-red-400">*</span></label>
+            <input type="text" placeholder="e.g. Technology, Healthcare" value={industry} onChange={e => setIndustry(e.target.value)} className={ic} />
+          </div>
+          <div className="col-span-2 sm:col-span-1">
+            <label className={lc}>LinkedIn</label>
+            <input type="url" placeholder="https://linkedin.com/company/…" value={linkedinProfile} onChange={e => setLinkedinProfile(e.target.value)} className={ic} />
+          </div>
+          <div className="col-span-2 sm:col-span-1">
+            <label className={lc}>Contact email</label>
+            <input type="email" placeholder="contact@company.com" value={companyEmail} onChange={e => setCompanyEmail(e.target.value)} className={ic} />
+          </div>
+          <div className="col-span-2 sm:col-span-1">
+            <label className={lc}>Phone</label>
+            <input type="tel" placeholder="+1 (555) 000-0000" value={phone} onChange={e => setPhone(e.target.value)} className={ic} />
+          </div>
+          <div className="col-span-2">
+            <label className={lc}>Address</label>
+            <input type="text" placeholder="123 Main St, City, State ZIP" value={companyAddress} onChange={e => setCompanyAddress(e.target.value)} className={ic} />
+          </div>
+          <div className="col-span-2 sm:col-span-1">
+            <label className={lc}>Location / HQ</label>
+            <input type="text" placeholder="City, Country" value={location} onChange={e => setLocation(e.target.value)} className={ic} />
+          </div>
+          <div className="col-span-2 sm:col-span-1">
+            <label className={lc}>Founded</label>
+            <input type="text" placeholder="2020" value={founded} onChange={e => setFounded(e.target.value)} className={ic} />
+          </div>
+          <div className="col-span-2 sm:col-span-1">
+            <label className={lc}>Employees</label>
+            <input type="text" placeholder="25" value={employees} onChange={e => setEmployees(e.target.value)} className={ic} />
+          </div>
+          <div className="col-span-2 sm:col-span-1">
+            <label className={lc}>Company size range</label>
+            <select value={companySize} onChange={e => setCompanySize(e.target.value)} className={`${ic} cursor-pointer`}>
+              <option value="">Select…</option>
+              {COMPANY_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div className="col-span-2">
+            <label className={lc}>Target market</label>
+            <textarea placeholder="e.g. B2B SaaS companies with 50–500 employees" value={targetMarket} onChange={e => setTargetMarket(e.target.value)} rows={2} className={ta} />
+          </div>
+          <div className="col-span-2">
+            <label className={lc}>Services / products offered <span className="text-red-400">*</span></label>
+            <textarea placeholder="Describe your offerings…" value={services} onChange={e => setServices(e.target.value)} rows={3} className={ta} />
+          </div>
+          <div className="col-span-2">
+            <label className={lc}>Core offering</label>
+            <textarea placeholder="e.g. AI-powered outbound platform" value={coreOffering} onChange={e => setCoreOffering(e.target.value)} rows={2} className={ta} />
+          </div>
+          <div className="col-span-2">
+            <label className={lc}>Key advantages / differentiators</label>
+            <textarea placeholder="What makes you different from competitors?" value={keyAdvantages} onChange={e => setKeyAdvantages(e.target.value)} rows={3} className={ta} />
+          </div>
+        </div>
+
+        {/* Terms */}
+        <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input type="checkbox" checked={termsAccepted} onChange={e => setTermsAccepted(e.target.checked)}
+              className="mt-0.5 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 shrink-0" />
+            <span className="text-xs text-gray-600">
+              I agree to the{' '}
+              <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium">Terms of Service</a>{' '}and{' '}
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium">Privacy Policy</a>,
+              and I consent to Meridian processing my company data to provide AI-powered lead generation services.
+            </span>
+          </label>
+        </div>
+
+        <div className="flex justify-end">
+          <button onClick={() => setStep(2)} disabled={!companyName.trim() || !industry.trim() || !services.trim() || !termsAccepted} className={bp}>
+            Continue →
+          </button>
+        </div>
+      </>
+    )
+
+    // ── Step 2: Targeting ────────────────────────────────────────────────────
+    if (step === 2) return (
+      <>
+        <h2 className="text-xl font-bold text-gray-900 mb-1">Who to target</h2>
+        <p className="text-sm text-gray-500 mb-4">Define your ideal customer profile.</p>
+
+        <button onClick={autofillTargeting} disabled={autofilling}
+          className="mb-5 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors flex items-center gap-1 disabled:opacity-50">
+          {autofilling ? 'Filling…' : '✦ Autofill from company profile'}
+        </button>
+
+        <div className="mb-4">
+          <label className={lc}>Campaign instructions</label>
+          <textarea value={specialInstructions} onChange={e => setSpecialInstructions(e.target.value)}
+            placeholder="e.g. Target CTOs at Series A startups in healthcare. Focus on scaling engineering team pain points."
+            rows={3} maxLength={1000} className={ta} />
+          <div className="flex justify-end mt-0.5"><span className="text-gray-300 text-xs">{specialInstructions.length}/1000</span></div>
+        </div>
+
+        <div className="mb-4">
+          <label className={lc}>Target industries</label>
+          <div className="relative">
+            <input type="text" placeholder="Search or type an industry…" value={industrySearch}
+              onChange={e => setIndustrySearch(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && industrySearch.trim()) addIndustry(industrySearch.trim()) }}
+              className={ic} />
+            {filteredIndustries.length > 0 && (
+              <div className="absolute z-10 left-0 right-0 border border-gray-200 bg-white rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
+                {filteredIndustries.map(ind => (
+                  <button key={ind} onMouseDown={() => addIndustry(ind)} className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 border-b last:border-b-0 border-gray-100">{ind}</button>
+                ))}
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-gray-400 mt-1">Not in the list? Type it and press Enter.</p>
+          {industries.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {industries.map(ind => (
+                <span key={ind} className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 rounded-md text-xs text-purple-700">
+                  {ind}<button onClick={() => setIndustries(p => p.filter(i => i !== ind))} className="text-purple-400 hover:text-purple-700 leading-none"><X size={10} /></button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="mb-4">
+          <label className={lc}>Target job titles</label>
+          <div className="relative">
+            <input type="text" placeholder="Search or type a title…" value={jobSearch}
+              onChange={e => setJobSearch(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && jobSearch.trim()) addJob(jobSearch.trim()) }}
+              className={ic} />
+            {filteredJobs.length > 0 && (
+              <div className="absolute z-10 left-0 right-0 border border-gray-200 bg-white rounded-lg mt-1 max-h-40 overflow-y-auto shadow-lg">
+                {filteredJobs.map(t => (
+                  <button key={t} onMouseDown={() => addJob(t)} className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 border-b last:border-b-0 border-gray-100">{t}</button>
+                ))}
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-gray-400 mt-1">Not in the list? Type it and press Enter.</p>
+          {jobTitles.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {jobTitles.map(t => (
+                <span key={t} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 rounded-md text-xs text-blue-700">
+                  {t}<button onClick={() => setJobTitles(p => p.filter(j => j !== t))} className="text-blue-400 hover:text-blue-700 leading-none"><X size={10} /></button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <div>
+            <label className={lc}>Company size (employees)</label>
+            <div className="flex items-center gap-1.5">
+              <input type="number" value={companySizeMin} onChange={e => setCompanySizeMin(Number(e.target.value))} min={1}
+                className="w-full h-10 px-2 border border-gray-200 rounded-lg text-sm text-gray-900 outline-none focus:border-gray-400 bg-white text-center" />
+              <span className="text-gray-400 text-xs shrink-0">–</span>
+              <input type="number" value={companySizeMax} onChange={e => setCompanySizeMax(Number(e.target.value))} min={1}
+                className="w-full h-10 px-2 border border-gray-200 rounded-lg text-sm text-gray-900 outline-none focus:border-gray-400 bg-white text-center" />
+            </div>
+          </div>
+          <div>
+            <label className={lc}>Leads per cycle</label>
+            <input type="number" value={leadsPerCycle} onChange={e => setLeadsPerCycle(Number(e.target.value))} min={1} max={100} className={ic} />
+            <p className="text-xs text-gray-400 mt-1">~{Math.ceil(leadsPerCycle * 2 / 3)} credits/cycle</p>
+          </div>
+        </div>
+
+        <div className="flex justify-between items-center">
+          <button onClick={() => setStep(1)} className={bb}>← Back</button>
+          <div className="flex flex-col items-end gap-1">
+            {(industries.length === 0 || jobTitles.length === 0) && (
+              <p className="text-xs text-amber-600">Add at least one industry and one job title</p>
+            )}
+            <button onClick={() => setStep(3)} disabled={industries.length === 0 || jobTitles.length === 0} className={bp}>Continue →</button>
+          </div>
+        </div>
+      </>
+    )
+
+    // ── Step 3: Agent ────────────────────────────────────────────────────────
+    if (step === 3) return (
+      <>
+        <h2 className="text-xl font-bold text-gray-900 mb-1">Your agent</h2>
+        <p className="text-sm text-gray-500 mb-5">Pick a personality and give your agent a name.</p>
+
+        <div className="space-y-2 mb-5">
+          {PERSONALITY_TYPES.map(p => (
+            <button key={p.id} onClick={() => setPersonality(p)}
+              className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${personality?.id === p.id ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50/50'}`}>
+              <img src={p.avatar} alt={p.name} className="w-9 h-9 rounded-full object-cover shrink-0 bg-gray-100"
+                onError={e => { (e.target as HTMLImageElement).style.opacity = '0' }} />
+              <div className="min-w-0 flex-1">
+                <div className="font-semibold text-sm text-gray-900">{p.name}</div>
+                <div className="text-xs text-gray-500 mt-0.5 leading-tight">{p.description}</div>
+                <div className="flex gap-1 mt-1.5 flex-wrap">
+                  {p.traits.map(t => <span key={t} className="px-1.5 py-0.5 bg-gray-100 rounded text-[10px] text-gray-600">{t}</span>)}
+                </div>
+              </div>
+              {personality?.id === p.id && (
+                <div className="w-5 h-5 rounded-full bg-gray-900 flex items-center justify-center shrink-0">
+                  <Check size={11} strokeWidth={3} className="text-white" />
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <div>
+            <label className={lc}>Agent name <span className="text-red-400">*</span></label>
+            <input type="text" placeholder='e.g. "Alex"' value={agentName} onChange={e => setAgentName(e.target.value)} className={ic} />
+            <p className="text-xs text-gray-400 mt-1">The agent&apos;s display name.</p>
+          </div>
+          <div>
+            <label className={lc}>Preset name <span className="text-red-400">*</span></label>
+            <input type="text" placeholder='e.g. "SMB Campaign"' value={presetName}
+              onChange={e => { setPresetName(e.target.value); setPresetNameTouched(true) }} className={ic} />
+            <p className="text-xs text-gray-400 mt-1">Name for these targeting settings.</p>
+          </div>
+        </div>
+
+        <div className="flex justify-between">
+          <button onClick={() => setStep(2)} className={bb}>← Back</button>
+          <button onClick={() => setStep(4)} disabled={!personality || !agentName.trim() || !presetName.trim()} className={bp}>Continue →</button>
+        </div>
+      </>
+    )
+
+    // ── Step 4: Email & Outreach ─────────────────────────────────────────────
+    if (step === 4) return (
+      <>
+        <h2 className="text-xl font-bold text-gray-900 mb-1">Email &amp; outreach</h2>
+        <p className="text-sm text-gray-500 mb-5">Connect your inbox and configure outreach settings.</p>
+
+        {/* Email providers */}
+        <div className="space-y-2.5 mb-5">
+          <button onClick={() => { setUseGmail(true); setUseOutlook(false); if (!gmailConnected) connectGmail() }}
+            className={`w-full flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all ${gmailConnected && useGmail ? 'border-green-400 bg-green-50' : 'border-gray-200 hover:border-gray-300'}`}>
+            <div className="w-8 h-8 rounded-lg bg-red-500 flex items-center justify-center text-white text-xs font-bold shrink-0">G</div>
+            <div className="flex-1">
+              <div className="font-semibold text-sm text-gray-900">Gmail</div>
+              <div className="text-xs text-gray-500">Send from your Google inbox</div>
+            </div>
+            {gmailConnected && useGmail ? <span className="text-green-600 text-xs font-semibold">Active ✓</span>
+              : gmailConnected ? <span className="text-gray-400 text-xs">Connected — click to activate</span>
+              : <span className="text-gray-400 text-xs">Connect →</span>}
+          </button>
+
+          <button onClick={() => { if (!outlookConnected) connectOutlook(); else { setUseOutlook(true); setUseGmail(false) } }}
+            className={`w-full flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all ${outlookConnected && useOutlook ? 'border-green-400 bg-green-50' : 'border-gray-200 hover:border-gray-300'}`}>
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">O</div>
+            <div className="flex-1">
+              <div className="font-semibold text-sm text-gray-900">Outlook</div>
+              <div className="text-xs text-gray-500">Send from your Microsoft inbox</div>
+            </div>
+            {outlookConnected && useOutlook ? <span className="text-green-600 text-xs font-semibold">Active ✓</span>
+              : outlookConnected ? <span className="text-gray-400 text-xs">Connected — click to activate</span>
+              : <span className="text-gray-400 text-xs">Connect →</span>}
+          </button>
+
+          <button onClick={() => { setUseGmail(false); setUseOutlook(false) }}
+            className={`w-full flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all ${!useGmail && !useOutlook ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:border-gray-300'}`}>
+            <div className="w-8 h-8 rounded-lg bg-gray-700 flex items-center justify-center text-white text-xs font-bold shrink-0">M</div>
+            <div className="flex-1">
+              <div className="font-semibold text-sm text-gray-900">Mailgun <span className="text-gray-400 font-normal text-xs">(default)</span></div>
+              <div className="text-xs text-gray-500">Replies tracked via webhooks</div>
+            </div>
+            {!useGmail && !useOutlook && <span className="text-gray-900 text-xs font-semibold">Active ✓</span>}
+          </button>
+
+          {/* LinkedIn */}
+          <button onClick={() => { if (!linkedinConnected) connectLinkedIn() }} disabled={linkedinConnected || linkedinConnecting}
+            className={`w-full flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all ${linkedinConnected ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:border-gray-300'} disabled:cursor-default`}>
+            <div className="w-8 h-8 rounded-lg bg-[#0A66C2] flex items-center justify-center text-white text-xs font-bold shrink-0">in</div>
+            <div className="flex-1">
+              <div className="font-semibold text-sm text-gray-900">LinkedIn <span className="text-gray-400 font-normal text-xs">optional</span></div>
+              <div className="text-xs text-gray-500">InMail + connection requests for top-tier leads</div>
+            </div>
+            {linkedinConnected ? <span className="text-blue-600 text-xs font-semibold">Connected ✓</span>
+              : linkedinConnecting ? <span className="text-gray-400 text-xs">Connecting…</span>
+              : <span className="text-gray-400 text-xs">Connect →</span>}
+          </button>
+        </div>
+
+        {!gmailConnected && !outlookConnected && (
+          <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 mb-4">
+            No email connected — agent will use Mailgun. Add Gmail or Outlook anytime in Settings.
+          </p>
+        )}
+
+        {/* Email style settings */}
+        <div className="border-t border-gray-100 pt-4 space-y-4 mb-5">
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className={lc}>Email length</label>
+              <select value={emailLength} onChange={e => setEmailLength(e.target.value)} className={`${ic} cursor-pointer`}>
+                <option value="short">Short</option>
+                <option value="medium">Medium</option>
+                <option value="long">Long</option>
+              </select>
+            </div>
+            <div>
+              <label className={lc}>Call to action</label>
+              <select value={callToAction} onChange={e => setCallToAction(e.target.value)} className={`${ic} cursor-pointer`}>
+                <option value="schedule-meeting">Schedule meeting</option>
+                <option value="reply-interest">Reply if interested</option>
+                <option value="demo-request">Request a demo</option>
+                <option value="phone-call">Phone call</option>
+                <option value="learn-more">Learn more</option>
+              </select>
+            </div>
+            <div>
+              <label className={lc}>Personalization</label>
+              <select value={personalizationLevel} onChange={e => setPersonalizationLevel(e.target.value)} className={`${ic} cursor-pointer`}>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={lc}>CC emails</label>
+              <input type="text" value={ccEmails} onChange={e => setCcEmails(e.target.value)} placeholder="cc@example.com" className={ic} />
+            </div>
+            <div>
+              <label className={lc}>BCC emails</label>
+              <input type="text" value={bccEmails} onChange={e => setBccEmails(e.target.value)} placeholder="bcc@example.com" className={ic} />
+            </div>
+          </div>
+
+          <div>
+            <label className={lc}>Follow-up interval (days)</label>
+            <input type="number" min={1} max={30} value={followupIntervalDays} onChange={e => setFollowupIntervalDays(Number(e.target.value))}
+              className="w-28 h-10 px-3 border border-gray-200 rounded-lg text-sm text-gray-900 outline-none focus:border-gray-400 bg-white" />
+          </div>
+
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+            <div>
+              <div className="text-sm font-medium text-gray-900">Auto-respond to replies</div>
+              <div className="text-xs text-gray-500">Agent handles initial replies automatically</div>
+            </div>
+            <Toggle checked={enableAutoResponse} onChange={() => setEnableAutoResponse(v => !v)} />
+          </div>
+
+          {/* Signature */}
+          <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <div className="text-sm font-medium text-gray-900">Auto-sign emails <span className="text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded ml-1">Recommended</span></div>
+                <div className="text-xs text-gray-500">Adds your name and title to each email</div>
+              </div>
+              <Toggle checked={useCustomSignature} onChange={() => setUseCustomSignature(v => !v)} />
+            </div>
+            {useCustomSignature && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={lc}>Your name</label>
+                  <input type="text" value={signatureName} onChange={e => setSignatureName(e.target.value)} placeholder="John Smith" className={ic} />
+                </div>
+                <div>
+                  <label className={lc}>Your title</label>
+                  <input type="text" value={signatureTitle} onChange={e => setSignatureTitle(e.target.value)} placeholder="VP of Sales" className={ic} />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Email template */}
+          <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <div className="text-sm font-medium text-gray-900">Start with a template <span className="text-gray-400 font-normal text-xs">optional</span></div>
+                <div className="text-xs text-gray-500">Write a static body; agent fills in merge tags using research</div>
+              </div>
+              <Toggle checked={useTemplate} onChange={() => setUseTemplate(v => !v)} />
+            </div>
+            {useTemplate && (
+              <div className="space-y-3">
+                <div>
+                  <label className={lc}>Subject line <span className="text-gray-300 font-normal normal-case">optional</span></label>
+                  <input type="text" value={templateSubject} onChange={e => setTemplateSubject(e.target.value)} placeholder="Quick question for {{firstName}}" className={ic} />
+                </div>
+                <div>
+                  <label className={lc}>Email body</label>
+                  <textarea rows={6} value={templateBody} onChange={e => setTemplateBody(e.target.value)}
+                    placeholder={`Hi {{firstName}},\n\nI noticed {{company}} recently…\n\n{{painPoint}}\n\nBest,\n{{senderName}}`}
+                    className={`${ta} font-mono`} />
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {['{{firstName}}','{{lastName}}','{{company}}','{{role}}','{{painPoint}}','{{recentNews}}','{{senderName}}'].map(tag => (
+                    <button key={tag} type="button" onClick={() => setTemplateBody(b => b + tag)}
+                      className="text-[11px] font-mono px-2 py-0.5 bg-white rounded border border-gray-200 hover:bg-blue-50 hover:border-blue-200 transition-colors text-gray-700">
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex justify-between">
+          <button onClick={() => setStep(3)} className={bb}>← Back</button>
+          <button onClick={() => setStep(5)} className={bp}>Continue →</button>
+        </div>
+      </>
+    )
+
+    // ── Step 5: Plan + Notifications ─────────────────────────────────────────
+    if (step === 5) return (
+      <>
+        <h2 className="text-xl font-bold text-gray-900 mb-1">Choose a plan</h2>
+        <p className="text-sm text-gray-500 mb-5">Start free and upgrade anytime.</p>
+
+        <div className="space-y-2 mb-4">
+          {PLANS.map(p => (
+            <button key={p.id} onClick={() => { setSelectedPlan(p.id); setPlanPurchased(false) }}
+              className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${selectedPlan === p.id ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:border-gray-300'}`}>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-sm text-gray-900">{p.name}</span>
+                  {'popular' in p && p.popular && <span className="px-1.5 py-0.5 bg-blue-600 text-white text-[10px] rounded font-medium">Popular</span>}
+                </div>
+                <div className="text-xs text-gray-500 mt-0.5">{p.credits.toLocaleString()} credits · {p.maxAgents} agent{p.maxAgents > 1 ? 's' : ''} · {p.maxConcurrency}× speed</div>
+              </div>
+              <div className="text-right shrink-0">
+                {p.price === 0 ? <span className="text-sm font-bold text-gray-900">Free</span>
+                  : <span className="text-sm font-bold text-gray-900">${p.price.toLocaleString()}<span className="font-normal text-gray-500 text-xs">/mo</span></span>}
+              </div>
+              {selectedPlan === p.id && <div className="w-4 h-4 rounded-full bg-gray-900 flex items-center justify-center shrink-0 ml-1"><Check size={9} strokeWidth={3} className="text-white" /></div>}
+            </button>
+          ))}
+        </div>
+
+        {/* Payment for paid plans */}
+        {selectedPlan !== 'free-trial' && (
+          <div className="mb-4 p-4 border border-gray-200 rounded-xl">
+            <p className="text-sm font-semibold text-gray-900 mb-1">{planDetails.name} — ${planDetails.price}</p>
+            {planPurchased ? (
+              <div className="flex items-center gap-2 text-green-600 text-sm font-medium mt-2">
+                <Check size={14} /> Plan purchased — {planDetails.credits.toLocaleString()} credits added
+              </div>
+            ) : !paymentAdded ? (
+              <div className="space-y-2 mt-2">
+                <p className="text-xs text-gray-500">A payment method is required. Add one in Billing settings, then return here.</p>
+                <button onClick={() => window.open('/settings?tab=billing', '_blank')}
+                  className="w-full h-10 bg-blue-600 text-white text-sm rounded-lg font-medium hover:bg-blue-700 transition-colors">
+                  Add Payment Method →
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2 mt-2">
+                <div className="flex items-center gap-2 text-green-600 text-xs font-medium">
+                  <Check size={12} /> Payment method on file
+                </div>
+                <button onClick={purchasePlan}
+                  className="w-full h-10 bg-blue-600 text-white text-sm rounded-lg font-medium hover:bg-blue-700 transition-colors">
+                  Purchase {planDetails.name} — ${planDetails.price}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {selectedPlan === 'free-trial' && (
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl text-xs text-green-800">
+            ✓ No credit card required. 250 credits included. Upgrade anytime up to {highestPlan.maxAgents} agents and {highestPlan.maxConcurrency}× speed.
+          </div>
+        )}
+
+        {/* Research speed */}
+        <div className="border border-gray-100 rounded-xl p-4 mb-4">
+          <label className={lc}>Research speed</label>
+          <p className="text-xs text-gray-500 mb-3">Leads researched in parallel per cycle. Higher = faster, more API usage at once.</p>
+          <div className="flex items-center gap-3">
+            <input type="range" min={1} max={planDetails.maxConcurrency} step={1} value={concurrencyLevel}
+              onChange={e => setConcurrencyLevel(Number(e.target.value))} className="flex-1 accent-gray-900" />
+            <span className="w-20 text-center text-sm font-bold text-gray-900 shrink-0">
+              {concurrencyLevel === 1 ? '1 (default)' : `${concurrencyLevel}×`}
+            </span>
+          </div>
+          <p className="text-xs text-gray-400 mt-2">Plan cap: {planDetails.maxConcurrency}× · up to {planDetails.maxAgents} agent{planDetails.maxAgents > 1 ? 's' : ''}</p>
+          {concurrencyLevel > 3 && <p className="text-xs text-amber-600 mt-1">⚠ High concurrency uses more API credits at once</p>}
+        </div>
+
+        {/* Notifications */}
+        <div className="border-t border-gray-100 pt-4 mb-6">
+          <p className={`${lc} mb-3`}>Notifications</p>
+          <p className="text-xs text-gray-500 mb-3">You&apos;ll be alerted for replies, opens, meetings booked, failed sends, and agent errors.</p>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-gray-700">Email notifications</div>
+                <div className="text-xs text-gray-400">Receive alerts in your inbox</div>
+              </div>
+              <Toggle checked={notifEmailEnabled} onChange={() => setNotifEmailEnabled(v => !v)} />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-gray-700">SMS notifications</div>
+                <div className="text-xs text-gray-400">Text alerts for replies and meetings</div>
+              </div>
+              <Toggle checked={notifSmsEnabled} onChange={() => setNotifSmsEnabled(v => !v)} />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-between">
+          <button onClick={() => setStep(4)} className={bb}>← Back</button>
+          <button onClick={() => setStep(6)}
+            disabled={selectedPlan !== 'free-trial' && !planPurchased} className={bp}>
+            Continue →
+          </button>
+        </div>
+      </>
+    )
+
+    // ── Step 6: CRM ──────────────────────────────────────────────────────────
+    if (step === 6) return (
+      <>
+        <h2 className="text-xl font-bold text-gray-900 mb-1">CRM setup</h2>
+        <p className="text-sm text-gray-500 mb-4">Auto-sync researched leads to your CRM. You can also do this later in Settings.</p>
+
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl mb-5 text-xs text-blue-800 leading-relaxed">
+          <p className="font-semibold mb-1">CRM Auditor mode</p>
+          Connect a CRM to unlock a second mode: instead of finding new leads on Apollo, your agent can read through your existing CRM contacts, research each one, write personalized emails, and sync notes back onto each record.
+        </div>
+
+        {crmConnected ? (
+          <div className="flex items-center gap-2.5 p-4 bg-green-50 border border-green-200 rounded-xl mb-5">
+            <Check className="text-green-600 shrink-0" size={16} />
+            <span className="text-sm text-green-700 font-medium">CRM connected — leads will auto-sync after research</span>
+          </div>
+        ) : (
+          <div className="mb-5">
+            <label className={lc}>Select your CRM</label>
+            <select value={selectedCrm?.id || ''}
+              onChange={e => { const found = CRM_CONFIGS.find(c => c.id === e.target.value) || null; setSelectedCrm(found); setCrmCreds({}); setCrmError(null) }}
+              className="w-full h-10 px-3 border border-gray-200 rounded-lg text-sm text-gray-900 outline-none focus:border-gray-400 bg-white mb-4 cursor-pointer">
+              <option value="">Choose a CRM…</option>
+              {CRM_CONFIGS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+
+            {selectedCrm && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                  <span className="text-sm font-semibold text-gray-900">{selectedCrm.name}</span>
+                  <button onClick={() => { setSelectedCrm(null); setCrmCreds({}); setCrmError(null) }} className="text-xs text-blue-600 hover:text-blue-800">Change</button>
+                </div>
+                {selectedCrm.fields.map(field => (
+                  <div key={field.key}>
+                    <label className={lc}>{field.name}</label>
+                    <input type={field.type} placeholder={field.placeholder} value={crmCreds[field.key] || ''}
+                      onChange={e => setCrmCreds(p => ({ ...p, [field.key]: e.target.value }))} className={ic} />
+                    {field.helpText && <p className="text-xs text-gray-400 mt-1">{field.helpText}</p>}
+                  </div>
+                ))}
+                {crmError && <p className="text-red-500 text-xs">{crmError}</p>}
+                <button onClick={connectCrm} disabled={crmConnecting}
+                  className="w-full h-10 bg-gray-900 text-white text-sm rounded-lg font-medium disabled:opacity-40 hover:bg-gray-700 transition-colors">
+                  {crmConnecting ? 'Connecting…' : 'Connect CRM'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="flex justify-between">
+          <button onClick={() => setStep(5)} className={bb}>← Back</button>
+          <button onClick={() => setStep(7)} className={bp}>{crmConnected ? 'Continue →' : 'Skip →'}</button>
+        </div>
+      </>
+    )
+
+    // ── Step 7: Review + Launch ───────────────────────────────────────────────
+    if (step === 7) return (
+      <>
+        <h2 className="text-xl font-bold text-gray-900 mb-1">Review &amp; launch</h2>
+        <p className="text-sm text-gray-500 mb-5">Everything look good?</p>
+
+        <div className="space-y-2.5 mb-6">
+          <ReviewRow label="Company" onEdit={() => setStep(1)}>
+            <div className="text-sm font-semibold text-gray-900">{companyName}</div>
+            {industry && <div className="text-xs text-gray-500">{industry}</div>}
+            {services && <div className="text-xs text-gray-500 mt-0.5 line-clamp-1">{services}</div>}
+            {keyAdvantages && <div className="text-xs text-gray-400 mt-0.5 line-clamp-1 italic">&ldquo;{keyAdvantages.slice(0, 80)}{keyAdvantages.length > 80 ? '…' : ''}&rdquo;</div>}
+          </ReviewRow>
+
+          <ReviewRow label="Targeting" onEdit={() => setStep(2)}>
+            <div className="text-xs text-gray-700 space-y-0.5">
+              {industries.length > 0 && <div className="truncate">{industries.slice(0, 3).join(' · ')}{industries.length > 3 ? ` +${industries.length - 3}` : ''}</div>}
+              {jobTitles.length > 0 && <div className="truncate">{jobTitles.slice(0, 3).join(' · ')}{jobTitles.length > 3 ? ` +${jobTitles.length - 3}` : ''}</div>}
+              <div className="text-gray-500">{companySizeMin}–{companySizeMax} employees · {leadsPerCycle} leads/cycle</div>
+              {specialInstructions && <div className="text-gray-400 truncate italic">&ldquo;{specialInstructions.slice(0, 60)}{specialInstructions.length > 60 ? '…' : ''}&rdquo;</div>}
+            </div>
+          </ReviewRow>
+
+          <ReviewRow label="Agent" onEdit={() => setStep(3)}>
+            <div className="flex items-center gap-2">
+              {personality && <img src={personality.avatar} alt="" className="w-7 h-7 rounded-full object-cover bg-gray-100 shrink-0" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />}
+              <div>
+                <div className="text-sm font-semibold text-gray-900">{agentName}</div>
+                {personality && <div className="text-xs text-gray-500">{personality.name} · Preset: {presetName}</div>}
+              </div>
+            </div>
+          </ReviewRow>
+
+          <ReviewRow label="Email &amp; Outreach" onEdit={() => setStep(4)}>
+            <div className="text-xs text-gray-700 space-y-0.5">
+              {gmailConnected && useGmail ? <div className="text-green-700 font-medium">Gmail connected ✓</div>
+                : outlookConnected && useOutlook ? <div className="text-green-700 font-medium">Outlook connected ✓</div>
+                : <div className="text-gray-500">Mailgun (default)</div>}
+              {linkedinConnected && <div className="text-blue-600 font-medium">LinkedIn connected ✓</div>}
+              <div className="text-gray-500">{emailLength} emails · {callToAction.replace(/-/g, ' ')} · {personalizationLevel} personalization</div>
+              {(ccEmails || bccEmails) && <div className="text-gray-400 truncate">{ccEmails && `CC: ${ccEmails}`}{ccEmails && bccEmails && ' · '}{bccEmails && `BCC: ${bccEmails}`}</div>}
+              {useCustomSignature && (signatureName || signatureTitle) && <div className="text-gray-400">Signed as: {[signatureName, signatureTitle].filter(Boolean).join(', ')}</div>}
+            </div>
+          </ReviewRow>
+
+          <ReviewRow label="Plan" onEdit={() => setStep(5)}>
+            <div className="text-sm font-semibold text-gray-900">{planDetails.name}</div>
+            <div className="text-xs text-gray-500">{concurrencyLevel}× research speed · {notifEmailEnabled ? 'email alerts on' : 'email alerts off'}{notifSmsEnabled ? ' · SMS on' : ''}</div>
+          </ReviewRow>
+
+          {crmConnected && (
+            <ReviewRow label="CRM" onEdit={() => setStep(6)}>
+              <div className="text-sm text-green-700 font-medium">Connected ✓</div>
+            </ReviewRow>
+          )}
+        </div>
+
+        {createError && (
+          <div className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg px-3 py-2.5 mb-4">{createError}</div>
+        )}
+
+        <div className="flex justify-between items-center">
+          <button onClick={() => setStep(6)} className={bb}>← Back</button>
+          <button onClick={launch} disabled={creating}
+            className="h-11 px-8 bg-gray-900 text-white text-sm rounded-xl font-semibold hover:bg-gray-700 transition-colors disabled:opacity-40">
+            Launch Agent →
+          </button>
+        </div>
+      </>
+    )
+
+    return null
+  }
+
+  return (
+    <div className="min-h-screen flex relative">
+      <BlobField />
+
+      {/* Left stepper */}
+      <div className="relative z-10 w-[200px] shrink-0 hidden md:flex flex-col pt-10 pl-8">
+        <div className="flex items-center gap-2.5 mb-10">
+          <svg width="26" height="26" viewBox="0 0 48 48">
+            <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="#111" strokeWidth="2"/>
+            <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="#111" strokeWidth="2"/>
+            <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="#111" strokeWidth="2"/>
+            <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="#111" strokeWidth="2"/>
+            <line x1="4" y1="24" x2="44" y2="24" stroke="#111" strokeWidth="2"/>
+          </svg>
+          <span className="font-bold text-[15px] text-gray-900" style={{ textShadow: '0 0 12px rgba(255,255,255,0.95)' }}>Meridian</span>
+        </div>
+        <div className="flex flex-col gap-0.5">
+          {STEPS.map(s => {
+            const done = step > s.id
+            const active = step === s.id
+            return (
+              <div key={s.id} className="flex items-center gap-3 py-1.5">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold transition-all ${done || active ? 'bg-gray-900 text-white' : 'bg-white/70 border border-gray-300 text-gray-400'}`}
+                  style={!(done || active) ? { backdropFilter: 'blur(4px)' } : {}}>
+                  {done ? <Check size={11} strokeWidth={3} /> : s.id}
+                </div>
+                <span className={`text-[13px] font-medium transition-colors ${active ? 'text-gray-900' : done ? 'text-gray-600' : 'text-gray-400'}`}
+                  style={{ textShadow: '0 0 10px rgba(255,255,255,0.9)' }}>
+                  {s.label}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Right content */}
+      <div className="relative z-10 flex-1 flex items-start justify-center p-5 md:p-10 overflow-y-auto" style={{ minHeight: '100vh' }}>
+        <div className="w-full max-w-lg py-4">
+          <div className="md:hidden flex items-center justify-center gap-1.5 mb-5">
+            {STEPS.map(s => (
+              <div key={s.id} className={`rounded-full transition-all ${step === s.id ? 'w-4 h-2 bg-gray-900' : step > s.id ? 'w-2 h-2 bg-gray-500' : 'w-2 h-2 bg-gray-300'}`} />
+            ))}
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-7 md:p-8">
+            <StepContent />
+          </div>
+        </div>
+      </div>
+
+      {creating && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/85 backdrop-blur-sm gap-5">
+          <div className="w-12 h-12 border-[3px] border-gray-900 border-t-transparent rounded-full animate-spin" />
+          <div className="text-center">
+            <p className="text-lg font-semibold text-gray-900">Launching your agent…</p>
+            <p className="text-sm text-gray-500 mt-1">Setting everything up, just a moment.</p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ReviewRow({ label, onEdit, children }: { label: string; onEdit: () => void; children: React.ReactNode }) {
+  return (
+    <div className="p-3.5 border border-gray-100 rounded-xl">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{label}</span>
+        <button onClick={onEdit} className="text-xs text-blue-600 hover:text-blue-800 font-medium">Edit</button>
+      </div>
+      {children}
+    </div>
+  )
+}
