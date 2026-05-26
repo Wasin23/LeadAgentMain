@@ -491,17 +491,31 @@ export default function OnboardingFlow({ onComplete }: Props) {
         </div>
 
         <div className="space-y-4 mb-6">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2 sm:col-span-1">
+              <label className={lc}>Company name <span className="text-red-400">*</span></label>
+              <input type="text" placeholder="Acme Corp" value={companyName} onChange={e => setCompanyName(e.target.value)} className={ic} />
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <label className={lc}>Industry</label>
+              <input type="text" placeholder="e.g. Technology, SaaS" value={industry} onChange={e => setIndustry(e.target.value)} className={ic} />
+            </div>
+          </div>
           <div>
-            <label className={lc}>Company name <span className="text-red-400">*</span></label>
-            <input type="text" placeholder="Acme Corp" value={companyName} onChange={e => setCompanyName(e.target.value)} className={ic} />
+            <label className={lc}>Website</label>
+            <input type="url" placeholder="https://yourcompany.com" value={website} onChange={e => setWebsite(e.target.value)} className={ic} />
           </div>
           <div>
             <label className={lc}>What you sell <span className="text-red-400">*</span></label>
             <textarea placeholder="Describe your product or service…" value={services} onChange={e => setServices(e.target.value)} rows={3} className={ta} />
           </div>
           <div>
-            <label className={lc}>Your key advantage</label>
+            <label className={lc}>Key differentiator</label>
             <textarea placeholder="What makes you different from competitors?" value={keyAdvantages} onChange={e => setKeyAdvantages(e.target.value)} rows={2} className={ta} />
+          </div>
+          <div>
+            <label className={lc}>Target market</label>
+            <textarea placeholder="e.g. B2B SaaS companies with 50–500 employees" value={targetMarket} onChange={e => setTargetMarket(e.target.value)} rows={2} className={ta} />
           </div>
         </div>
 
@@ -1081,7 +1095,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
 
         {/* Step content */}
         <div className="flex-1 flex flex-col justify-center px-12 py-8 max-w-lg mx-auto w-full">
-          <StepContent />
+          {StepContent()}
         </div>
       </div>
 
