@@ -6,6 +6,7 @@ import Cookies from 'js-cookie'
 import api from '@/lib/api'
 import OnboardingFlow from '@/components/onboarding/onboarding-flow'
 import GlobeBackground from '@/components/onboarding/globe-background'
+import { BlobField } from '@/components/landing/blob-field'
 
 type OnboardingStage = 'loading' | 'team-prompt' | 'onboarding' | 'done'
 
@@ -48,66 +49,87 @@ function TeamPrompt({ onSkip, onJoined }: { onSkip: () => void; onJoined: () => 
   }
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-center gap-8">
-      <GlobeBackground />
-      <div className="relative z-10 flex flex-col items-center gap-6 w-full max-w-sm px-6">
-        {/* Logo */}
-        <div className="flex items-center gap-3 mb-2">
-          <svg width="36" height="36" viewBox="0 0 48 48" className="drop-shadow-lg">
-            <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
-            <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
-            <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="white" strokeWidth="1.5"/>
-            <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="white" strokeWidth="1.5"/>
-            <line x1="4" y1="24" x2="44" y2="24" stroke="white" strokeWidth="1.5"/>
+    <div className="min-h-screen flex relative">
+      <BlobField />
+
+      {/* Left sidebar — matches onboarding stepper */}
+      <div className="relative z-10 w-[220px] shrink-0 hidden md:flex flex-col pt-10 pl-8">
+        <div className="flex items-center gap-2.5 mb-10">
+          <svg width="26" height="26" viewBox="0 0 48 48">
+            <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="#111" strokeWidth="2"/>
+            <ellipse cx="24" cy="24" rx="14" ry="20" fill="none" stroke="#111" strokeWidth="2"/>
+            <ellipse cx="24" cy="24" rx="20" ry="20" fill="none" stroke="#111" strokeWidth="2"/>
+            <ellipse cx="24" cy="24" rx="20" ry="8" fill="none" stroke="#111" strokeWidth="2"/>
+            <line x1="4" y1="24" x2="44" y2="24" stroke="#111" strokeWidth="2"/>
           </svg>
-          <span className="text-2xl font-bold text-white tracking-tight">Meridian</span>
+          <span className="font-bold text-[15px] text-gray-900" style={{ textShadow: '0 0 12px rgba(255,255,255,0.95)' }}>Meridian</span>
         </div>
-
-        <div className="bg-white/10 backdrop-blur-md border border-white/20 p-6 w-full space-y-4">
-          <div>
-            <h2 className="text-white font-semibold text-base">Joining a team?</h2>
-            <p className="text-white/60 text-sm mt-1 leading-relaxed">
-              If someone invited you to their Meridian seat, paste the invite code below.
-              You&apos;ll share their agents, contacts, and credits.
-            </p>
-          </div>
-
-          {preview && (
-            <div className="px-3 py-2 bg-white/10 border border-white/20 text-xs text-white">
-              <span className="font-medium">{preview.name}</span>
-              <span className="text-white/60 ml-2">· {preview.memberCount} member{preview.memberCount !== 1 ? 's' : ''}</span>
+        <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3" style={{ textShadow: '0 0 8px rgba(255,255,255,0.9)' }}>Getting started</p>
+        <div className="flex flex-col gap-0.5">
+          {['Join a team', 'Setup account'].map((label, i) => (
+            <div key={label} className="flex items-center gap-3 py-1.5">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold ${i === 0 ? 'bg-gray-900 text-white' : 'bg-white/70 border border-gray-300 text-gray-400'}`}
+                style={i !== 0 ? { backdropFilter: 'blur(4px)' } : {}}>
+                {i + 1}
+              </div>
+              <span className={`text-base font-semibold transition-colors ${i === 0 ? 'text-gray-900' : 'text-gray-400'}`}
+                style={{ textShadow: '0 0 10px rgba(255,255,255,0.9)' }}>
+                {label}
+              </span>
             </div>
-          )}
-
-          {error && <p className="text-red-300 text-xs">{error}</p>}
-
-          <input
-            type="text"
-            placeholder="Invite code or link"
-            value={code}
-            onChange={e => {
-              const val = e.target.value
-              const match = val.match(/[?&]join=([^&]+)/)
-              setCode(match ? match[1] : val)
-            }}
-            className="w-full bg-white/10 border border-white/20 text-white placeholder-white/40 px-3 py-2 text-sm outline-none focus:border-white/50 transition-colors"
-          />
-
-          <button
-            onClick={handleJoin}
-            disabled={joining || !code.trim()}
-            className="w-full py-2 text-sm font-medium bg-white text-black hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {joining ? 'Joining…' : 'Join team'}
-          </button>
+          ))}
         </div>
+      </div>
 
-        <button
-          onClick={onSkip}
-          className="text-white/50 text-sm hover:text-white/80 transition-colors"
-        >
-          No, I&apos;m setting up my own account →
-        </button>
+      {/* Right content */}
+      <div className="relative z-10 flex-1 flex items-center justify-center p-5 md:p-10">
+        <div className="w-full max-w-lg">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-7 md:p-8 space-y-5">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Joining a team?</h2>
+              <p className="text-sm text-gray-500 mt-1 leading-relaxed">
+                If someone invited you to their Meridian seat, paste the invite code below.
+                You&apos;ll share their agents, contacts, and credits.
+              </p>
+            </div>
+
+            {preview && (
+              <div className="px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-900">
+                <span className="font-semibold">{preview.name}</span>
+                <span className="text-gray-400 ml-2">· {preview.memberCount} member{preview.memberCount !== 1 ? 's' : ''}</span>
+              </div>
+            )}
+
+            {error && <p className="text-red-500 text-xs">{error}</p>}
+
+            <input
+              type="text"
+              placeholder="Invite code or link"
+              value={code}
+              onChange={e => {
+                const val = e.target.value
+                const match = val.match(/[?&]join=([^&]+)/)
+                setCode(match ? match[1] : val)
+              }}
+              className="w-full h-10 px-3 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-gray-400 transition-colors bg-white"
+            />
+
+            <button
+              onClick={handleJoin}
+              disabled={joining || !code.trim()}
+              className="w-full h-10 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              {joining ? 'Joining…' : 'Join team'}
+            </button>
+
+            <button
+              onClick={onSkip}
+              className="w-full text-sm text-gray-400 hover:text-gray-700 transition-colors pt-1"
+            >
+              No, I&apos;m setting up my own account →
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )

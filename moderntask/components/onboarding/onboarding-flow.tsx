@@ -1112,7 +1112,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
       <BlobField />
 
       {/* Left stepper */}
-      <div className="relative z-10 w-[200px] shrink-0 hidden md:flex flex-col pt-10 pl-8">
+      <div className="relative z-10 w-[220px] shrink-0 hidden md:flex flex-col pt-10 pl-8">
         <div className="flex items-center gap-2.5 mb-10">
           <svg width="26" height="26" viewBox="0 0 48 48">
             <ellipse cx="24" cy="24" rx="6" ry="20" fill="none" stroke="#111" strokeWidth="2"/>
@@ -1133,7 +1133,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
                   style={!(done || active) ? { backdropFilter: 'blur(4px)' } : {}}>
                   {done ? <Check size={11} strokeWidth={3} /> : s.id}
                 </div>
-                <span className={`text-[13px] font-medium transition-colors ${active ? 'text-gray-900' : done ? 'text-gray-600' : 'text-gray-400'}`}
+                <span className={`text-base font-semibold transition-colors ${active ? 'text-gray-900' : done ? 'text-gray-600' : 'text-gray-400'}`}
                   style={{ textShadow: '0 0 10px rgba(255,255,255,0.9)' }}>
                   {s.label}
                 </span>
@@ -1145,7 +1145,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
 
       {/* Right content */}
       <div className="relative z-10 flex-1 flex items-start justify-center p-5 md:p-10 overflow-y-auto" style={{ minHeight: '100vh' }}>
-        <div className="w-full max-w-lg py-4">
+        <div className="w-full max-w-2xl py-4">
           <div className="md:hidden flex items-center justify-center gap-1.5 mb-5">
             {STEPS.map(s => (
               <div key={s.id} className={`rounded-full transition-all ${step === s.id ? 'w-4 h-2 bg-gray-900' : step > s.id ? 'w-2 h-2 bg-gray-500' : 'w-2 h-2 bg-gray-300'}`} />
