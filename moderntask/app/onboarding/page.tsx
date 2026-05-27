@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Cookies from 'js-cookie'
 import api from '@/lib/api'
 import OnboardingFlow from '@/components/onboarding/onboarding-flow'
-import GlobeBackground from '@/components/onboarding/globe-background'
 import { MeridianWordmark } from '@/components/ui/meridian-wordmark'
 
 type OnboardingStage = 'loading' | 'team-prompt' | 'onboarding' | 'done'

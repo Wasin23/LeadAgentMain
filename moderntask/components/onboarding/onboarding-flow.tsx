@@ -65,10 +65,12 @@ const STEPS = [
   { id: 1, label: 'Company' },
   { id: 2, label: 'Targeting' },
   { id: 3, label: 'Your Agent' },
-  { id: 4, label: 'Email & Outreach' },
-  { id: 5, label: 'Plan' },
-  { id: 6, label: 'CRM Setup' },
-  { id: 7, label: 'Review' },
+  { id: 4, label: 'Connect Email' },
+  { id: 5, label: 'Outreach' },
+  { id: 6, label: 'Plan' },
+  { id: 7, label: 'Speed & Alerts' },
+  { id: 8, label: 'CRM' },
+  { id: 9, label: 'Review' },
 ]
 
 type PersonalityType = typeof PERSONALITY_TYPES[0]
@@ -88,6 +90,7 @@ interface Props { onComplete: () => void }
 
 export default function OnboardingFlow({ onComplete }: Props) {
   const [step, setStep] = useState(1)
+  const [returnToReview, setReturnToReview] = useState(false)
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -433,11 +436,14 @@ export default function OnboardingFlow({ onComplete }: Props) {
     }
   }
 
-  const ic = 'w-full h-10 px-3 border border-gray-200 rounded-lg text-sm text-gray-900 outline-none focus:border-gray-400 transition-colors bg-white'
-  const ta = 'w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-900 outline-none focus:border-gray-400 transition-colors resize-none bg-white'
+  const ic = 'w-full h-10 px-3 border border-gray-200 rounded-xl text-sm text-gray-900 outline-none focus:border-gray-400 transition-colors bg-white'
+  const ta = 'w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 outline-none focus:border-gray-400 transition-colors resize-none bg-white'
   const lc = 'block text-[11px] font-semibold text-gray-400 mb-1.5 uppercase tracking-wider'
-  const bp = 'h-10 px-5 bg-gray-900 text-white text-sm rounded-lg font-medium hover:bg-gray-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
+  const bp = 'h-10 px-5 bg-gray-900 text-white text-sm rounded-xl font-medium hover:bg-gray-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed'
   const bb = 'h-10 px-4 text-sm text-gray-400 hover:text-gray-700 transition-colors'
+
+  const next = (n: number) => { if (returnToReview) { setReturnToReview(false); setStep(9) } else setStep(n) }
+  const editStep = (n: number) => { setReturnToReview(true); setStep(n) }
 
   function StepContent() {
 
@@ -661,17 +667,16 @@ export default function OnboardingFlow({ onComplete }: Props) {
       </>
     )
 
-    // ── Step 4: Email & Outreach ─────────────────────────────────────────────
+    // ── Step 4: Connect Email ────────────────────────────────────────────────
     if (step === 4) return (
       <>
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Email &amp; outreach</h2>
-        <p className="text-base text-gray-500 mb-8">Connect your inbox and configure outreach settings.</p>
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">Connect your inbox</h2>
+        <p className="text-base text-gray-500 mb-8">Your agent sends from your real email address — your name, your domain.</p>
 
-        {/* Email providers */}
         <div className="space-y-2.5 mb-5">
           <button onClick={() => { setUseGmail(true); setUseOutlook(false); if (!gmailConnected) connectGmail() }}
-            className={`w-full flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all ${gmailConnected && useGmail ? 'border-green-400 bg-green-50' : 'border-gray-200 hover:border-gray-300'}`}>
-            <div className="w-8 h-8 rounded-lg bg-red-500 flex items-center justify-center text-white text-xs font-bold shrink-0">G</div>
+            className={`w-full flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${gmailConnected && useGmail ? 'border-green-400 bg-green-50' : 'border-gray-200 hover:border-gray-300'}`}>
+            <div className="w-9 h-9 rounded-xl bg-red-500 flex items-center justify-center text-white text-sm font-bold shrink-0">G</div>
             <div className="flex-1">
               <div className="font-semibold text-sm text-gray-900">Gmail</div>
               <div className="text-xs text-gray-500">Send from your Google inbox</div>
@@ -682,8 +687,8 @@ export default function OnboardingFlow({ onComplete }: Props) {
           </button>
 
           <button onClick={() => { if (!outlookConnected) connectOutlook(); else { setUseOutlook(true); setUseGmail(false) } }}
-            className={`w-full flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all ${outlookConnected && useOutlook ? 'border-green-400 bg-green-50' : 'border-gray-200 hover:border-gray-300'}`}>
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">O</div>
+            className={`w-full flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${outlookConnected && useOutlook ? 'border-green-400 bg-green-50' : 'border-gray-200 hover:border-gray-300'}`}>
+            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white text-sm font-bold shrink-0">O</div>
             <div className="flex-1">
               <div className="font-semibold text-sm text-gray-900">Outlook</div>
               <div className="text-xs text-gray-500">Send from your Microsoft inbox</div>
@@ -694,8 +699,8 @@ export default function OnboardingFlow({ onComplete }: Props) {
           </button>
 
           <button onClick={() => { setUseGmail(false); setUseOutlook(false) }}
-            className={`w-full flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all ${!useGmail && !useOutlook ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:border-gray-300'}`}>
-            <div className="w-8 h-8 rounded-lg bg-gray-700 flex items-center justify-center text-white text-xs font-bold shrink-0">M</div>
+            className={`w-full flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${!useGmail && !useOutlook ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:border-gray-300'}`}>
+            <div className="w-9 h-9 rounded-xl bg-gray-700 flex items-center justify-center text-white text-sm font-bold shrink-0">M</div>
             <div className="flex-1">
               <div className="font-semibold text-sm text-gray-900">Mailgun <span className="text-gray-400 font-normal text-xs">(default)</span></div>
               <div className="text-xs text-gray-500">Replies tracked via webhooks</div>
@@ -703,10 +708,9 @@ export default function OnboardingFlow({ onComplete }: Props) {
             {!useGmail && !useOutlook && <span className="text-gray-900 text-xs font-semibold">Active ✓</span>}
           </button>
 
-          {/* LinkedIn */}
           <button onClick={() => { if (!linkedinConnected) connectLinkedIn() }} disabled={linkedinConnected || linkedinConnecting}
-            className={`w-full flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all ${linkedinConnected ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:border-gray-300'} disabled:cursor-default`}>
-            <div className="w-8 h-8 rounded-lg bg-[#0A66C2] flex items-center justify-center text-white text-xs font-bold shrink-0">in</div>
+            className={`w-full flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${linkedinConnected ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:border-gray-300'} disabled:cursor-default`}>
+            <div className="w-9 h-9 rounded-xl bg-[#0A66C2] flex items-center justify-center text-white text-sm font-bold shrink-0">in</div>
             <div className="flex-1">
               <div className="font-semibold text-sm text-gray-900">LinkedIn <span className="text-gray-400 font-normal text-xs">optional</span></div>
               <div className="text-xs text-gray-500">InMail + connection requests for top-tier leads</div>
@@ -718,13 +722,25 @@ export default function OnboardingFlow({ onComplete }: Props) {
         </div>
 
         {!gmailConnected && !outlookConnected && (
-          <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 mb-4">
-            No email connected — agent will use Mailgun. Add Gmail or Outlook anytime in Settings.
+          <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 mb-5">
+            No email connected — agent will use Mailgun. You can add Gmail or Outlook anytime in Settings.
           </p>
         )}
 
-        {/* Email style settings */}
-        <div className="border-t border-gray-100 pt-4 space-y-5 mb-5">
+        <div className="flex justify-between">
+          <button onClick={() => setStep(3)} className={bb}>← Back</button>
+          <button onClick={() => next(5)} className={bp}>Continue →</button>
+        </div>
+      </>
+    )
+
+    // ── Step 5: Outreach settings ────────────────────────────────────────────
+    if (step === 5) return (
+      <>
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">Outreach settings</h2>
+        <p className="text-base text-gray-500 mb-8">How should your agent write and send emails?</p>
+
+        <div className="space-y-6 mb-6">
           <div>
             <label className={lc}>Email length</label>
             <PillSelect options={['Short', 'Medium', 'Long']} value={emailLength} onChange={v => setEmailLength(v.toLowerCase())} />
@@ -738,7 +754,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
             />
           </div>
           <div>
-            <label className={lc}>Personalization</label>
+            <label className={lc}>Personalization level</label>
             <PillSelect options={['Low', 'Medium', 'High']} value={personalizationLevel} onChange={v => setPersonalizationLevel(v.toLowerCase())} />
           </div>
 
@@ -756,10 +772,10 @@ export default function OnboardingFlow({ onComplete }: Props) {
           <div>
             <label className={lc}>Follow-up interval (days)</label>
             <input type="number" min={1} max={30} value={followupIntervalDays} onChange={e => setFollowupIntervalDays(Number(e.target.value))}
-              className="w-28 h-10 px-3 border border-gray-200 rounded-lg text-sm text-gray-900 outline-none focus:border-gray-400 bg-white" />
+              className="w-28 h-10 px-3 border border-gray-200 rounded-xl text-sm text-gray-900 outline-none focus:border-gray-400 bg-white" />
           </div>
 
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+          <div className="flex items-center justify-between p-3.5 bg-gray-50 rounded-xl border border-gray-100">
             <div>
               <div className="text-sm font-medium text-gray-900">Auto-respond to replies</div>
               <div className="text-xs text-gray-500">Agent handles initial replies automatically</div>
@@ -767,11 +783,10 @@ export default function OnboardingFlow({ onComplete }: Props) {
             <Toggle checked={enableAutoResponse} onChange={() => setEnableAutoResponse(v => !v)} />
           </div>
 
-          {/* Signature */}
-          <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+          <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-100">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <div className="text-sm font-medium text-gray-900">Auto-sign emails <span className="text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded ml-1">Recommended</span></div>
+                <div className="text-sm font-medium text-gray-900">Email signature <span className="text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded ml-1">Recommended</span></div>
                 <div className="text-xs text-gray-500">Adds your name and title to each email</div>
               </div>
               <Toggle checked={useCustomSignature} onChange={() => setUseCustomSignature(v => !v)} />
@@ -790,31 +805,30 @@ export default function OnboardingFlow({ onComplete }: Props) {
             )}
           </div>
 
-          {/* Email template */}
-          <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+          <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-100">
             <div className="flex items-center justify-between mb-3">
               <div>
                 <div className="text-sm font-medium text-gray-900">Start with a template <span className="text-gray-400 font-normal text-xs">optional</span></div>
-                <div className="text-xs text-gray-500">Write a static body; agent fills in merge tags using research</div>
+                <div className="text-xs text-gray-500">Agent fills merge tags using research</div>
               </div>
               <Toggle checked={useTemplate} onChange={() => setUseTemplate(v => !v)} />
             </div>
             {useTemplate && (
               <div className="space-y-3">
                 <div>
-                  <label className={lc}>Subject line <span className="text-gray-300 font-normal normal-case">optional</span></label>
+                  <label className={lc}>Subject line</label>
                   <input type="text" value={templateSubject} onChange={e => setTemplateSubject(e.target.value)} placeholder="Quick question for {{firstName}}" className={ic} />
                 </div>
                 <div>
                   <label className={lc}>Email body</label>
-                  <textarea rows={6} value={templateBody} onChange={e => setTemplateBody(e.target.value)}
-                    placeholder={`Hi {{firstName}},\n\nI noticed {{company}} recently…\n\n{{painPoint}}\n\nBest,\n{{senderName}}`}
+                  <textarea rows={5} value={templateBody} onChange={e => setTemplateBody(e.target.value)}
+                    placeholder={`Hi {{firstName}},\n\nI noticed {{company}} recently…\n\nBest,\n{{senderName}}`}
                     className={`${ta} font-mono`} />
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  {['{{firstName}}','{{lastName}}','{{company}}','{{role}}','{{painPoint}}','{{recentNews}}','{{senderName}}'].map(tag => (
+                  {['{{firstName}}','{{company}}','{{role}}','{{painPoint}}','{{recentNews}}','{{senderName}}'].map(tag => (
                     <button key={tag} type="button" onClick={() => setTemplateBody(b => b + tag)}
-                      className="text-[11px] font-mono px-2 py-0.5 bg-white rounded border border-gray-200 hover:bg-blue-50 hover:border-blue-200 transition-colors text-gray-700">
+                      className="text-[11px] font-mono px-2 py-0.5 bg-white rounded-lg border border-gray-200 hover:bg-blue-50 hover:border-blue-200 transition-colors text-gray-700">
                       {tag}
                     </button>
                   ))}
@@ -825,14 +839,14 @@ export default function OnboardingFlow({ onComplete }: Props) {
         </div>
 
         <div className="flex justify-between">
-          <button onClick={() => setStep(3)} className={bb}>← Back</button>
-          <button onClick={() => setStep(5)} className={bp}>Continue →</button>
+          <button onClick={() => setStep(4)} className={bb}>← Back</button>
+          <button onClick={() => next(6)} className={bp}>Continue →</button>
         </div>
       </>
     )
 
-    // ── Step 5: Plan + Notifications ─────────────────────────────────────────
-    if (step === 5) return (
+    // ── Step 6: Plan ─────────────────────────────────────────────────────────
+    if (step === 6) return (
       <>
         <h2 className="text-3xl font-bold text-gray-900 mb-2">Choose a plan</h2>
         <p className="text-base text-gray-500 mb-8">Start free and upgrade anytime.</p>
@@ -840,7 +854,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
         <div className="space-y-2 mb-4">
           {PLANS.map(p => (
             <button key={p.id} onClick={() => { setSelectedPlan(p.id); setPlanPurchased(false) }}
-              className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${selectedPlan === p.id ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:border-gray-300'}`}>
+              className={`w-full flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all ${selectedPlan === p.id ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:border-gray-300'}`}>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-sm text-gray-900">{p.name}</span>
@@ -857,10 +871,9 @@ export default function OnboardingFlow({ onComplete }: Props) {
           ))}
         </div>
 
-        {/* Payment for paid plans */}
         {selectedPlan !== 'free-trial' && (
           <div className="mb-4 p-4 border border-gray-200 rounded-xl">
-            <p className="text-sm font-semibold text-gray-900 mb-1">{planDetails.name} — ${planDetails.price}</p>
+            <p className="text-sm font-semibold text-gray-900 mb-1">{planDetails.name} — ${planDetails.price}/mo</p>
             {planPurchased ? (
               <div className="flex items-center gap-2 text-green-600 text-sm font-medium mt-2">
                 <Check size={14} /> Plan purchased — {planDetails.credits.toLocaleString()} credits added
@@ -869,17 +882,15 @@ export default function OnboardingFlow({ onComplete }: Props) {
               <div className="space-y-2 mt-2">
                 <p className="text-xs text-gray-500">A payment method is required. Add one in Billing settings, then return here.</p>
                 <button onClick={() => window.open('/settings?tab=billing', '_blank')}
-                  className="w-full h-10 bg-blue-600 text-white text-sm rounded-lg font-medium hover:bg-blue-700 transition-colors">
+                  className="w-full h-10 bg-blue-600 text-white text-sm rounded-xl font-medium hover:bg-blue-700 transition-colors">
                   Add Payment Method →
                 </button>
               </div>
             ) : (
               <div className="space-y-2 mt-2">
-                <div className="flex items-center gap-2 text-green-600 text-xs font-medium">
-                  <Check size={12} /> Payment method on file
-                </div>
+                <div className="flex items-center gap-2 text-green-600 text-xs font-medium"><Check size={12} /> Payment method on file</div>
                 <button onClick={purchasePlan}
-                  className="w-full h-10 bg-blue-600 text-white text-sm rounded-lg font-medium hover:bg-blue-700 transition-colors">
+                  className="w-full h-10 bg-blue-600 text-white text-sm rounded-xl font-medium hover:bg-blue-700 transition-colors">
                   Purchase {planDetails.name} — ${planDetails.price}
                 </button>
               </div>
@@ -889,38 +900,48 @@ export default function OnboardingFlow({ onComplete }: Props) {
 
         {selectedPlan === 'free-trial' && (
           <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl text-xs text-green-800">
-            ✓ No credit card required. 250 credits included. Upgrade anytime up to {highestPlan.maxAgents} agents and {highestPlan.maxConcurrency}× speed.
+            ✓ No credit card required. 250 credits included. Upgrade anytime.
           </div>
         )}
 
-        {/* Research speed */}
-        <div className="border border-gray-100 rounded-xl p-4 mb-4">
-          <label className={lc}>Research speed</label>
-          <p className="text-xs text-gray-500 mb-3">Leads researched in parallel per cycle. Higher = faster, more API usage at once.</p>
-          <div className="flex items-center gap-3">
-            <input type="range" min={1} max={planDetails.maxConcurrency} step={1} value={concurrencyLevel}
-              onChange={e => setConcurrencyLevel(Number(e.target.value))} className="flex-1 accent-gray-900" />
-            <span className="w-20 text-center text-sm font-bold text-gray-900 shrink-0">
-              {concurrencyLevel === 1 ? '1 (default)' : `${concurrencyLevel}×`}
-            </span>
-          </div>
-          <p className="text-xs text-gray-400 mt-2">Plan cap: {planDetails.maxConcurrency}× · up to {planDetails.maxAgents} agent{planDetails.maxAgents > 1 ? 's' : ''}</p>
-          {concurrencyLevel > 3 && <p className="text-xs text-amber-600 mt-1">⚠ High concurrency uses more API credits at once</p>}
+        <div className="flex justify-between">
+          <button onClick={() => setStep(5)} className={bb}>← Back</button>
+          <button onClick={() => next(7)} disabled={selectedPlan !== 'free-trial' && !planPurchased} className={bp}>Continue →</button>
         </div>
+      </>
+    )
 
-        {/* Notifications */}
-        <div className="border-t border-gray-100 pt-4 mb-6">
-          <p className={`${lc} mb-3`}>Notifications</p>
-          <p className="text-xs text-gray-500 mb-3">You&apos;ll be alerted for replies, opens, meetings booked, failed sends, and agent errors.</p>
+    // ── Step 7: Speed & Notifications ────────────────────────────────────────
+    if (step === 7) return (
+      <>
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">Speed &amp; alerts</h2>
+        <p className="text-base text-gray-500 mb-8">How fast should your agent work, and how do you want to be notified?</p>
+
+        <div className="space-y-6 mb-6">
+          <div className="border border-gray-100 rounded-xl p-4">
+            <label className={lc}>Research speed</label>
+            <p className="text-xs text-gray-500 mb-3">Leads researched in parallel per cycle. Higher = faster.</p>
+            <div className="flex items-center gap-3">
+              <input type="range" min={1} max={planDetails.maxConcurrency} step={1} value={concurrencyLevel}
+                onChange={e => setConcurrencyLevel(Number(e.target.value))} className="flex-1 accent-gray-900" />
+              <span className="w-20 text-center text-sm font-bold text-gray-900 shrink-0">
+                {concurrencyLevel === 1 ? '1 (default)' : `${concurrencyLevel}×`}
+              </span>
+            </div>
+            <p className="text-xs text-gray-400 mt-2">Plan cap: {planDetails.maxConcurrency}×</p>
+            {concurrencyLevel > 3 && <p className="text-xs text-amber-600 mt-1">⚠ High concurrency uses more credits at once</p>}
+          </div>
+
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
+            <p className={lc}>Notifications</p>
+            <div className="flex items-center justify-between p-3.5 border border-gray-100 rounded-xl">
               <div>
                 <div className="text-sm text-gray-700">Email notifications</div>
-                <div className="text-xs text-gray-400">Receive alerts in your inbox</div>
+                <div className="text-xs text-gray-400">Replies, opens, meetings, errors</div>
               </div>
               <Toggle checked={notifEmailEnabled} onChange={() => setNotifEmailEnabled(v => !v)} />
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between p-3.5 border border-gray-100 rounded-xl">
               <div>
                 <div className="text-sm text-gray-700">SMS notifications</div>
                 <div className="text-xs text-gray-400">Text alerts for replies and meetings</div>
@@ -931,17 +952,14 @@ export default function OnboardingFlow({ onComplete }: Props) {
         </div>
 
         <div className="flex justify-between">
-          <button onClick={() => setStep(4)} className={bb}>← Back</button>
-          <button onClick={() => setStep(6)}
-            disabled={selectedPlan !== 'free-trial' && !planPurchased} className={bp}>
-            Continue →
-          </button>
+          <button onClick={() => setStep(6)} className={bb}>← Back</button>
+          <button onClick={() => next(8)} className={bp}>Continue →</button>
         </div>
       </>
     )
 
-    // ── Step 6: CRM ──────────────────────────────────────────────────────────
-    if (step === 6) return (
+    // ── Step 8: CRM ──────────────────────────────────────────────────────────
+    if (step === 8) return (
       <>
         <h2 className="text-3xl font-bold text-gray-900 mb-2">CRM setup</h2>
         <p className="text-sm text-gray-500 mb-4">Auto-sync researched leads to your CRM. You can also do this later in Settings.</p>
@@ -991,27 +1009,27 @@ export default function OnboardingFlow({ onComplete }: Props) {
         )}
 
         <div className="flex justify-between">
-          <button onClick={() => setStep(5)} className={bb}>← Back</button>
-          <button onClick={() => setStep(7)} className={bp}>{crmConnected ? 'Continue →' : 'Skip →'}</button>
+          <button onClick={() => setStep(7)} className={bb}>← Back</button>
+          <button onClick={() => next(9)} className={bp}>{crmConnected ? 'Continue →' : 'Skip →'}</button>
         </div>
       </>
     )
 
-    // ── Step 7: Review + Launch ───────────────────────────────────────────────
-    if (step === 7) return (
+    // ── Step 9: Review + Launch ───────────────────────────────────────────────
+    if (step === 9) return (
       <>
         <h2 className="text-3xl font-bold text-gray-900 mb-2">Review &amp; launch</h2>
         <p className="text-base text-gray-500 mb-8">Everything look good?</p>
 
         <div className="space-y-2.5 mb-6">
-          <ReviewRow label="Company" onEdit={() => setStep(1)}>
+          <ReviewRow label="Company" onEdit={() => editStep(1)}>
             <div className="text-sm font-semibold text-gray-900">{companyName}</div>
             {industry && <div className="text-xs text-gray-500">{industry}</div>}
             {services && <div className="text-xs text-gray-500 mt-0.5 line-clamp-1">{services}</div>}
             {keyAdvantages && <div className="text-xs text-gray-400 mt-0.5 line-clamp-1 italic">&ldquo;{keyAdvantages.slice(0, 80)}{keyAdvantages.length > 80 ? '…' : ''}&rdquo;</div>}
           </ReviewRow>
 
-          <ReviewRow label="Targeting" onEdit={() => setStep(2)}>
+          <ReviewRow label="Targeting" onEdit={() => editStep(2)}>
             <div className="text-xs text-gray-700 space-y-0.5">
               {industries.length > 0 && <div className="truncate">{industries.slice(0, 3).join(' · ')}{industries.length > 3 ? ` +${industries.length - 3}` : ''}</div>}
               {jobTitles.length > 0 && <div className="truncate">{jobTitles.slice(0, 3).join(' · ')}{jobTitles.length > 3 ? ` +${jobTitles.length - 3}` : ''}</div>}
@@ -1020,7 +1038,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
             </div>
           </ReviewRow>
 
-          <ReviewRow label="Agent" onEdit={() => setStep(3)}>
+          <ReviewRow label="Agent" onEdit={() => editStep(3)}>
             <div className="flex items-center gap-2">
               {personality && <img src={personality.avatar} alt="" className="w-7 h-7 rounded-full object-cover bg-gray-100 shrink-0" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />}
               <div>
@@ -1030,25 +1048,33 @@ export default function OnboardingFlow({ onComplete }: Props) {
             </div>
           </ReviewRow>
 
-          <ReviewRow label="Email &amp; Outreach" onEdit={() => setStep(4)}>
+          <ReviewRow label="Email" onEdit={() => editStep(4)}>
             <div className="text-xs text-gray-700 space-y-0.5">
               {gmailConnected && useGmail ? <div className="text-green-700 font-medium">Gmail connected ✓</div>
                 : outlookConnected && useOutlook ? <div className="text-green-700 font-medium">Outlook connected ✓</div>
                 : <div className="text-gray-500">Mailgun (default)</div>}
               {linkedinConnected && <div className="text-blue-600 font-medium">LinkedIn connected ✓</div>}
+            </div>
+          </ReviewRow>
+
+          <ReviewRow label="Outreach" onEdit={() => editStep(5)}>
+            <div className="text-xs text-gray-700 space-y-0.5">
               <div className="text-gray-500">{emailLength} emails · {callToAction.replace(/-/g, ' ')} · {personalizationLevel} personalization</div>
               {(ccEmails || bccEmails) && <div className="text-gray-400 truncate">{ccEmails && `CC: ${ccEmails}`}{ccEmails && bccEmails && ' · '}{bccEmails && `BCC: ${bccEmails}`}</div>}
               {useCustomSignature && (signatureName || signatureTitle) && <div className="text-gray-400">Signed as: {[signatureName, signatureTitle].filter(Boolean).join(', ')}</div>}
             </div>
           </ReviewRow>
 
-          <ReviewRow label="Plan" onEdit={() => setStep(5)}>
+          <ReviewRow label="Plan" onEdit={() => editStep(6)}>
             <div className="text-sm font-semibold text-gray-900">{planDetails.name}</div>
+          </ReviewRow>
+
+          <ReviewRow label="Speed &amp; Alerts" onEdit={() => editStep(7)}>
             <div className="text-xs text-gray-500">{concurrencyLevel}× research speed · {notifEmailEnabled ? 'email alerts on' : 'email alerts off'}{notifSmsEnabled ? ' · SMS on' : ''}</div>
           </ReviewRow>
 
           {crmConnected && (
-            <ReviewRow label="CRM" onEdit={() => setStep(6)}>
+            <ReviewRow label="CRM" onEdit={() => editStep(8)}>
               <div className="text-sm text-green-700 font-medium">Connected ✓</div>
             </ReviewRow>
           )}
@@ -1059,7 +1085,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
         )}
 
         <div className="flex justify-between items-center">
-          <button onClick={() => setStep(6)} className={bb}>← Back</button>
+          <button onClick={() => setStep(8)} className={bb}>← Back</button>
           <button onClick={launch} disabled={creating}
             className="h-11 px-8 bg-gray-900 text-white text-sm rounded-xl font-semibold hover:bg-gray-700 transition-colors disabled:opacity-40">
             Launch Agent →
