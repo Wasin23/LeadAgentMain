@@ -48,9 +48,9 @@ function TeamPrompt({ onSkip, onJoined }: { onSkip: () => void; onJoined: () => 
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Left white panel */}
-      <div className="relative z-10 w-full bg-white min-h-screen flex flex-col">
+    <div className="min-h-screen flex bg-white">
+      {/* Left: form panel */}
+      <div className="relative z-10 w-full lg:w-[52%] bg-white min-h-screen flex flex-col">
         <div className="flex items-center gap-2 p-8 pb-0">
           <img src="/MeridianM.png" alt="Meridian" className="h-5 w-auto object-contain" />
           <MeridianWordmark className="h-3.5 w-auto text-gray-900" />
@@ -103,7 +103,8 @@ function TeamPrompt({ onSkip, onJoined }: { onSkip: () => void; onJoined: () => 
         </div>
       </div>
 
-      
+      {/* Right: dark green panel */}
+      <div className="hidden lg:block lg:w-[48%] sticky top-0 h-screen bg-[#0d2b1e]" />
     </div>
   )
 }
@@ -187,16 +188,15 @@ function OnboardingInner() {
 
   if (stage === 'loading') {
     return (
-      <div className="min-h-screen bg-white">
-        
-        <div className="relative z-10 w-full bg-white flex flex-col items-start justify-center px-12 min-h-screen">
+      <div className="min-h-screen flex bg-white">
+        <div className="relative z-10 w-full lg:w-[52%] bg-white flex flex-col items-start justify-center px-12 min-h-screen">
           <div className="flex items-center gap-2 mb-8">
             <img src="/MeridianM.png" alt="Meridian" className="h-5 w-auto object-contain" />
             <MeridianWordmark className="h-3.5 w-auto text-gray-900" />
           </div>
           <div className="w-8 h-8 border-[3px] border-gray-900 border-t-transparent rounded-full animate-spin" />
         </div>
-        
+        <div className="hidden lg:block lg:w-[48%] sticky top-0 h-screen bg-[#0d2b1e]" />
       </div>
     )
   }
