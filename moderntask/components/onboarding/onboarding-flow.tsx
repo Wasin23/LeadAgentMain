@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Check, X, CloudUpload } from 'lucide-react'
 import api from '@/lib/api'
 import { MeridianWordmark } from '@/components/ui/meridian-wordmark'
+import { IllustrationCompanyScrape } from './step-illustrations'
 
 const PERSONALITY_TYPES = [
   { id: 'hunter', name: 'The Hunter', color: 'red', description: 'Aggressive prospector focused on high-volume outreach and quick conversions', avatar: '/avatars/Hunter.png', traits: ['High-energy', 'Direct', 'Persistent'], emailStyle: 'Bold, action-oriented', prompt: 'You are The Hunter - a high-energy, results-driven AI sales agent focused on quick conversions.' },
@@ -59,7 +60,6 @@ const PLANS = [
   { id: 'enterprise', name: 'Enterprise', price: 2500, credits: 70000, maxAgents: 30, maxConcurrency: 30, description: 'High-volume operations', features: ['70,000 credits', 'Up to 30 agents', 'Up to 30x speed'] },
 ]
 
-const COMPANY_SIZES = ['1-10', '11-50', '51-200', '201-500', '501-1000', '1000+']
 
 const STEPS = [
   { id: 1, label: 'Company' },
@@ -104,7 +104,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
   const [linkedinProfile, setLinkedinProfile] = useState('')
   const [companyEmail, setCompanyEmail] = useState('')
   const [phone, setPhone] = useState('')
-  const [companyAddress, setCompanyAddress] = useState('')
+  const [companyAddress] = useState('')
   const [location, setLocation] = useState('')
   const [founded, setFounded] = useState('')
   const [employees, setEmployees] = useState('')
@@ -171,7 +171,6 @@ export default function OnboardingFlow({ onComplete }: Props) {
   const [crmError, setCrmError] = useState<string | null>(null)
 
   const planDetails = PLANS.find(p => p.id === selectedPlan) || PLANS[0]
-  const highestPlan = PLANS[PLANS.length - 1]
 
   useEffect(() => {
     api.get('/api/auth/gmail/status').then(r => { if (r.data?.connected) { setGmailConnected(true); setUseGmail(true) } }).catch(() => {})
@@ -214,18 +213,6 @@ export default function OnboardingFlow({ onComplete }: Props) {
     if (p.keyAdvantages) setKeyAdvantages(p.keyAdvantages)
   }
 
-  const scrapeWebsite = async () => {
-    if (!website.trim()) return
-    setScraping(true); setScrapeError(null)
-    try {
-      let url = website.trim()
-      if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url
-      const r = await api.post('/api/company-profile/scrape-website', { url, fromOnboarding: true })
-      if (r.data.success && r.data.profile) applyProfile(r.data.profile)
-    } catch { setScrapeError('Could not fetch website. Fill in manually.') }
-    finally { setScraping(false) }
-  }
-
   const scrapeAndAdvance = async () => {
     if (!website.trim()) return
     setScraping(true); setScrapeError(null)
@@ -236,29 +223,6 @@ export default function OnboardingFlow({ onComplete }: Props) {
       if (r.data.success && r.data.profile) applyProfile(r.data.profile)
     } catch { setScrapeError('Could not fetch website. Fill in manually.') }
     finally { setScraping(false); setStep1Details(true) }
-  }
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setFileUploading(true); setUploadedFileName(file.name)
-    try {
-      const isImage = file.type.startsWith('image/')
-      let content: string
-      if (isImage) {
-        const reader = new FileReader()
-        content = await new Promise<string>((resolve, reject) => {
-          reader.onload = () => resolve(reader.result as string)
-          reader.onerror = reject
-          reader.readAsDataURL(file)
-        })
-      } else {
-        content = await file.text()
-      }
-      const r = await api.post('/api/company-profile/analyze', { content, fileName: file.name, isImage })
-      if (r.data.success && r.data.profile) applyProfile(r.data.profile)
-    } catch { setUploadedFileName(null) }
-    finally { setFileUploading(false) }
   }
 
   const handleFileUploadAndAdvance = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1127,13 +1091,17 @@ export default function OnboardingFlow({ onComplete }: Props) {
 
       {/* Right: step illustration */}
       <div className="hidden lg:flex lg:w-[48%] sticky top-0 h-screen bg-[#0d2b1e] items-center justify-center p-12">
-        <img
-          key={`${step}-${step1Details}`}
-          src={`/onboarding/step-${step === 1 ? (step1Details ? '1b' : '1a') : step}.png`}
-          alt=""
-          className="w-3/4 object-contain"
-          onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-        />
+        {step === 1 && !step1Details && <IllustrationCompanyScrape />}
+        {step === 1 && step1Details && <IllustrationCompanyScrape />}
+        {step !== 1 && (
+          <img
+            key={step}
+            src={`/onboarding/step-${step}.png`}
+            alt=""
+            className="w-[90%] object-contain"
+            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+          />
+        )}
       </div>
 
       {creating && (
