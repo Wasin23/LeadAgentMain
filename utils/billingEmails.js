@@ -5,31 +5,34 @@ const APP_URL = process.env.FRONTEND_URL || 'https://app.meridianai.co';
 function emailShell({ title, body, ctaHref, ctaLabel, footerNote }) {
   return `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#09090b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<body style="margin:0;padding:0;background:#050f09;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:48px 20px;">
 <table width="560" cellpadding="0" cellspacing="0">
 
   <!-- logo -->
   <tr><td style="padding-bottom:32px;">
     <table cellpadding="0" cellspacing="0"><tr>
-      <td style="width:28px;height:28px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:6px;text-align:center;vertical-align:middle;line-height:28px;">
-        <span style="color:#fff;font-weight:800;font-size:14px;">M</span>
+      <td style="vertical-align:middle;">
+        <img src="${APP_URL}/MeridianM.png" width="32" height="21" alt="M" style="display:block;border-radius:4px;" />
       </td>
       <td style="padding-left:9px;vertical-align:middle;">
-        <span style="color:#a1a1aa;font-size:13px;font-weight:500;letter-spacing:0.02em;">Meridian</span>
+        <span style="color:#a1a1aa;font-size:13px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;">Meridian</span>
       </td>
     </tr></table>
   </td></tr>
 
+  <!-- accent bar -->
+  <tr><td style="background:linear-gradient(90deg,#0d2b1e,#166534,#15803d);height:2px;border-radius:2px 2px 0 0;font-size:0;">&nbsp;</td></tr>
+
   <!-- card -->
-  <tr><td style="background:#18181b;border-radius:12px;border:1px solid #27272a;padding:36px 40px;">
+  <tr><td style="background:#0d1f14;border-radius:0 0 12px 12px;border:1px solid #1a3d28;border-top:none;padding:36px 40px;">
 
     <h2 style="margin:0 0 16px;font-size:20px;font-weight:600;color:#f4f4f5;line-height:1.3;">${title}</h2>
 
     ${body}
 
     ${ctaHref ? `<table cellpadding="0" cellspacing="0" style="margin-top:28px;"><tr>
-      <td style="background:#6366f1;border-radius:8px;">
+      <td style="background:#166534;border-radius:8px;">
         <a href="${ctaHref}" style="display:inline-block;color:#fff;text-decoration:none;font-size:14px;font-weight:500;padding:11px 24px;">${ctaLabel}</a>
       </td>
     </tr></table>` : ''}
@@ -39,7 +42,7 @@ function emailShell({ title, body, ctaHref, ctaLabel, footerNote }) {
   <!-- footer -->
   <tr><td style="padding:24px 4px 0;">
     <p style="margin:0;color:#52525b;font-size:12px;line-height:1.8;">
-      ${footerNote} &middot; <a href="${APP_URL}/settings?tab=notifications" style="color:#71717a;text-decoration:none;">Manage preferences</a>
+      ${footerNote} &middot; <a href="${APP_URL}/settings?tab=notifications" style="color:#4ade80;text-decoration:none;">Manage preferences</a>
     </p>
   </td></tr>
 
@@ -54,8 +57,8 @@ function p(text) {
 
 function detail(label, value) {
   return `<tr>
-    <td style="padding:10px 0;color:#71717a;font-size:13px;border-bottom:1px solid #27272a;">${label}</td>
-    <td style="padding:10px 0;color:#e4e4e7;font-size:13px;text-align:right;border-bottom:1px solid #27272a;">${value}</td>
+    <td style="padding:10px 0;color:#71717a;font-size:13px;border-bottom:1px solid #1a3d28;">${label}</td>
+    <td style="padding:10px 0;color:#e4e4e7;font-size:13px;text-align:right;border-bottom:1px solid #1a3d28;">${value}</td>
   </tr>`;
 }
 
