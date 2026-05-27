@@ -169,7 +169,7 @@ router.get('/callback', async (req, res) => {
               justify-content: center;
               height: 100vh;
               margin: 0;
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              background: linear-gradient(135deg, #0d2b1e 0%, #166534 100%);
             }
             .container {
               text-align: center;

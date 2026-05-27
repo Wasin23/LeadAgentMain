@@ -113,11 +113,11 @@ function isDue(schedule, now, tz) {
 function buildBatchEmailHTML({ agentName, emailCount, dailyLimit, sendTime, timezone, recipients, appUrl }) {
   const recipientRows = recipients.slice(0, 5).map(r => `
     <tr>
-      <td style="padding:10px 16px;border-bottom:1px solid #27272a;">
+      <td style="padding:10px 16px;border-bottom:1px solid #1a3d28;">
         <span style="color:#e4e4e7;font-size:13px;font-weight:500;">${r.name || ''}</span>
         ${r.company ? `<span style="color:#71717a;font-size:12px;"> &middot; ${r.company}</span>` : ''}
       </td>
-      <td style="padding:10px 16px;border-bottom:1px solid #27272a;text-align:right;">
+      <td style="padding:10px 16px;border-bottom:1px solid #1a3d28;text-align:right;">
         <span style="color:#71717a;font-size:12px;">${r.to || ''}</span>
       </td>
     </tr>`).join('');
@@ -136,22 +136,22 @@ function buildBatchEmailHTML({ agentName, emailCount, dailyLimit, sendTime, time
 
   return `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#09090b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<body style="margin:0;padding:0;background:#050f09;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 20px;">
-<table width="600" cellpadding="0" cellspacing="0" style="background:#18181b;border-radius:16px;overflow:hidden;border:1px solid #27272a;">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#0d1f14;border-radius:16px;overflow:hidden;border:1px solid #1a3d28;">
 
   <!-- accent bar -->
-  <tr><td style="background:linear-gradient(90deg,#6366f1 0%,#8b5cf6 50%,#a855f7 100%);height:3px;font-size:0;">&nbsp;</td></tr>
+  <tr><td style="background:linear-gradient(90deg,#0d2b1e,#166534,#15803d);height:3px;font-size:0;">&nbsp;</td></tr>
 
   <!-- header row -->
   <tr><td style="padding:32px 40px 20px;">
     <table width="100%" cellpadding="0" cellspacing="0"><tr>
       <td><table cellpadding="0" cellspacing="0"><tr>
-        <td style="width:36px;height:36px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:8px;text-align:center;vertical-align:middle;line-height:36px;">
-          <span style="color:#fff;font-weight:800;font-size:18px;">M</span>
+        <td style="vertical-align:middle;">
+          <img src="${appUrl}/MeridianM.png" width="32" height="21" alt="M" style="display:block;border-radius:4px;" />
         </td>
         <td style="padding-left:10px;vertical-align:middle;">
-          <span style="color:#71717a;font-size:13px;font-weight:600;letter-spacing:0.06em;">MERIDIAN</span>
+          <span style="color:#a1a1aa;font-size:13px;font-weight:600;letter-spacing:0.06em;">MERIDIAN</span>
         </td>
       </tr></table></td>
       <td align="right">
@@ -168,14 +168,14 @@ function buildBatchEmailHTML({ agentName, emailCount, dailyLimit, sendTime, time
 
   <!-- stats -->
   <tr><td style="padding:0 40px 28px;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #27272a;border-radius:12px;border-collapse:collapse;overflow:hidden;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #1a3d28;border-radius:12px;border-collapse:collapse;overflow:hidden;">
       <tr>
-        <td width="33%" style="padding:20px;border-right:1px solid #27272a;text-align:center;">
-          <div style="font-size:26px;font-weight:700;color:#6366f1;">${emailCount}</div>
+        <td width="33%" style="padding:20px;border-right:1px solid #1a3d28;text-align:center;">
+          <div style="font-size:26px;font-weight:700;color:#4ade80;">${emailCount}</div>
           <div style="color:#71717a;font-size:11px;margin-top:3px;text-transform:uppercase;letter-spacing:0.06em;">Sent</div>
         </td>
-        <td width="33%" style="padding:20px;border-right:1px solid #27272a;text-align:center;">
-          <div style="font-size:26px;font-weight:700;color:#8b5cf6;">${dailyLimit}</div>
+        <td width="33%" style="padding:20px;border-right:1px solid #1a3d28;text-align:center;">
+          <div style="font-size:26px;font-weight:700;color:#4ade80;">${dailyLimit}</div>
           <div style="color:#71717a;font-size:11px;margin-top:3px;text-transform:uppercase;letter-spacing:0.06em;">Daily Limit</div>
         </td>
         <td width="33%" style="padding:20px;text-align:center;">
@@ -190,14 +190,14 @@ function buildBatchEmailHTML({ agentName, emailCount, dailyLimit, sendTime, time
 
   <!-- CTA button -->
   <tr><td style="padding:4px 40px 32px;">
-    <a href="${appUrl}/email-queue" style="display:inline-block;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;text-decoration:none;font-size:14px;font-weight:600;padding:13px 28px;border-radius:10px;">View Email Queue &rarr;</a>
+    <a href="${appUrl}/email-queue" style="display:inline-block;background:#166534;color:#fff;text-decoration:none;font-size:14px;font-weight:600;padding:13px 28px;border-radius:10px;">View Email Queue &rarr;</a>
   </td></tr>
 
   <!-- footer -->
   <tr><td style="padding:20px 40px;border-top:1px solid #27272a;">
     <p style="margin:0;color:#52525b;font-size:12px;line-height:1.7;">
       You received this because email batch notifications are enabled on your account.
-      <a href="${appUrl}/notifications" style="color:#6366f1;text-decoration:none;">Manage preferences</a>
+      <a href="${appUrl}/notifications" style="color:#4ade80;text-decoration:none;">Manage preferences</a>
     </p>
   </td></tr>
 
