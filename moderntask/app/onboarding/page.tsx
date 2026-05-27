@@ -6,6 +6,7 @@ import Cookies from 'js-cookie'
 import api from '@/lib/api'
 import OnboardingFlow from '@/components/onboarding/onboarding-flow'
 import { MeridianWordmark } from '@/components/ui/meridian-wordmark'
+import { IllustrationTeam } from '@/components/onboarding/step-illustrations'
 
 type OnboardingStage = 'loading' | 'team-prompt' | 'onboarding' | 'done'
 
@@ -105,7 +106,7 @@ function TeamPrompt({ onSkip, onJoined }: { onSkip: () => void; onJoined: () => 
 
       {/* Right: dark green panel */}
       <div className="hidden lg:flex lg:w-[48%] sticky top-0 h-screen bg-[#0d2b1e] items-center justify-center p-12">
-        <img src="/onboarding/team.png" alt="" className="w-[65%] object-contain" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+        <IllustrationTeam />
       </div>
     </div>
   )

@@ -4,7 +4,17 @@ import { useState, useEffect, useRef } from 'react'
 import { Check, X, CloudUpload } from 'lucide-react'
 import api from '@/lib/api'
 import { MeridianWordmark } from '@/components/ui/meridian-wordmark'
-import { IllustrationCompanyScrape } from './step-illustrations'
+import {
+  IllustrationCompanyScrape,
+  IllustrationTargeting,
+  IllustrationAgent,
+  IllustrationEmailConnect,
+  IllustrationOutreach,
+  IllustrationPlan,
+  IllustrationSpeed,
+  IllustrationCRM,
+  IllustrationReview,
+} from './step-illustrations'
 
 const PERSONALITY_TYPES = [
   { id: 'hunter', name: 'The Hunter', color: 'red', description: 'Aggressive prospector focused on high-volume outreach and quick conversions', avatar: '/avatars/Hunter.png', traits: ['High-energy', 'Direct', 'Persistent'], emailStyle: 'Bold, action-oriented', prompt: 'You are The Hunter - a high-energy, results-driven AI sales agent focused on quick conversions.' },
@@ -1091,17 +1101,15 @@ export default function OnboardingFlow({ onComplete }: Props) {
 
       {/* Right: step illustration */}
       <div className="hidden lg:flex lg:w-[48%] sticky top-0 h-screen bg-[#0d2b1e] items-center justify-center p-12">
-        {step === 1 && !step1Details && <IllustrationCompanyScrape />}
-        {step === 1 && step1Details && <IllustrationCompanyScrape />}
-        {step !== 1 && (
-          <img
-            key={step}
-            src={`/onboarding/step-${step}.png`}
-            alt=""
-            className="w-[90%] object-contain"
-            onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
-          />
-        )}
+        {step === 1 && <IllustrationCompanyScrape />}
+        {step === 2 && <IllustrationTargeting />}
+        {step === 3 && <IllustrationAgent />}
+        {step === 4 && <IllustrationEmailConnect />}
+        {step === 5 && <IllustrationOutreach />}
+        {step === 6 && <IllustrationPlan />}
+        {step === 7 && <IllustrationSpeed />}
+        {step === 8 && <IllustrationCRM />}
+        {step === 9 && <IllustrationReview />}
       </div>
 
       {creating && (
