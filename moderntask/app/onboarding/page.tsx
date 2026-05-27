@@ -104,7 +104,9 @@ function TeamPrompt({ onSkip, onJoined }: { onSkip: () => void; onJoined: () => 
       </div>
 
       {/* Right: dark green panel */}
-      <div className="hidden lg:block lg:w-[48%] sticky top-0 h-screen bg-[#0d2b1e]" />
+      <div className="hidden lg:block lg:w-[48%] sticky top-0 h-screen overflow-hidden bg-[#0d2b1e]">
+        <img src="/onboarding/team.png" alt="" className="w-full h-full object-cover" />
+      </div>
     </div>
   )
 }
