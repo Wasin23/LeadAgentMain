@@ -13,7 +13,7 @@ function emailShell({ title, body, ctaHref, ctaLabel, footerNote }) {
   <tr><td style="padding-bottom:32px;">
     <table cellpadding="0" cellspacing="0"><tr>
       <td style="vertical-align:middle;">
-        <img src="${APP_URL}/MeridianM.png" width="32" height="21" alt="M" style="display:block;border-radius:4px;" />
+        <img src="${APP_URL}/MeridianM-square.png" width="32" height="32" alt="M" style="display:block;border-radius:6px;" />
       </td>
       <td style="padding-left:9px;vertical-align:middle;">
         <span style="color:#a1a1aa;font-size:13px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;">Meridian</span>

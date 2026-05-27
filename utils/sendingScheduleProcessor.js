@@ -148,7 +148,7 @@ function buildBatchEmailHTML({ agentName, emailCount, dailyLimit, sendTime, time
     <table width="100%" cellpadding="0" cellspacing="0"><tr>
       <td><table cellpadding="0" cellspacing="0"><tr>
         <td style="vertical-align:middle;">
-          <img src="${appUrl}/MeridianM.png" width="32" height="21" alt="M" style="display:block;border-radius:4px;" />
+          <img src="${appUrl}/MeridianM-square.png" width="32" height="32" alt="M" style="display:block;border-radius:6px;" />
         </td>
         <td style="padding-left:10px;vertical-align:middle;">
           <span style="color:#a1a1aa;font-size:13px;font-weight:600;letter-spacing:0.06em;">MERIDIAN</span>
