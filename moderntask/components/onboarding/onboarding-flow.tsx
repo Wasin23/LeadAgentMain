@@ -1126,12 +1126,12 @@ export default function OnboardingFlow({ onComplete }: Props) {
       </div>
 
       {/* Right: step illustration */}
-      <div className="hidden lg:block lg:w-[48%] sticky top-0 h-screen overflow-hidden bg-[#0d2b1e]">
+      <div className="hidden lg:flex lg:w-[48%] sticky top-0 h-screen bg-[#0d2b1e] items-center justify-center p-12">
         <img
           key={`${step}-${step1Details}`}
           src={`/onboarding/step-${step === 1 ? (step1Details ? '1b' : '1a') : step}.png`}
           alt=""
-          className="w-full h-full object-cover"
+          className="w-1/3 object-contain"
           onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
         />
       </div>
