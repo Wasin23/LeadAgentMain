@@ -1132,6 +1132,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
           src={`/onboarding/step-${step === 1 ? (step1Details ? '1b' : '1a') : step}.png`}
           alt=""
           className="w-full h-full object-cover"
+          onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
         />
       </div>
 
