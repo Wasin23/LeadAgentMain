@@ -79,7 +79,7 @@ type CrmConfig = typeof CRM_CONFIGS[0]
 function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
   return (
     <button onClick={onChange} style={{ width: '44px', height: '24px' }}
-      className={`relative rounded-full transition-colors flex-shrink-0 ${checked ? 'bg-blue-500' : 'bg-gray-200'}`}>
+      className={`relative rounded-full transition-colors flex-shrink-0 ${checked ? 'bg-green-800' : 'bg-gray-200'}`}>
       <span className="absolute top-[3px] w-[18px] h-[18px] rounded-full bg-white shadow-sm transition-all"
         style={{ left: checked ? '23px' : '3px' }} />
     </button>
@@ -528,11 +528,11 @@ export default function OnboardingFlow({ onComplete }: Props) {
         <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
           <label className="flex items-start gap-3 cursor-pointer">
             <input type="checkbox" checked={termsAccepted} onChange={e => setTermsAccepted(e.target.checked)}
-              className="mt-0.5 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 shrink-0" />
+              className="mt-0.5 w-4 h-4 rounded border-gray-300 text-green-800 focus:ring-green-700 shrink-0" />
             <span className="text-xs text-gray-600">
               I agree to the{' '}
-              <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium">Terms of Service</a>{' '}and{' '}
-              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline font-medium">Privacy Policy</a>.
+              <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-green-700 hover:underline font-medium">Terms of Service</a>{' '}and{' '}
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-green-700 hover:underline font-medium">Privacy Policy</a>.
             </span>
           </label>
         </div>
@@ -552,7 +552,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
         <p className="text-sm text-gray-500 mb-4">Define your ideal customer profile.</p>
 
         <button onClick={autofillTargeting} disabled={autofilling}
-          className="mb-5 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors flex items-center gap-1 disabled:opacity-50">
+          className="mb-5 text-sm text-green-700 hover:text-green-900 font-medium transition-colors flex items-center gap-1 disabled:opacity-50">
           {autofilling ? 'Filling…' : '✦ Autofill from company profile'}
         </button>
 
@@ -709,13 +709,13 @@ export default function OnboardingFlow({ onComplete }: Props) {
           </button>
 
           <button onClick={() => { if (!linkedinConnected) connectLinkedIn() }} disabled={linkedinConnected || linkedinConnecting}
-            className={`w-full flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${linkedinConnected ? 'border-blue-400 bg-blue-50' : 'border-gray-200 hover:border-gray-300'} disabled:cursor-default`}>
+            className={`w-full flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${linkedinConnected ? 'border-green-400 bg-green-50' : 'border-gray-200 hover:border-gray-300'} disabled:cursor-default`}>
             <div className="w-9 h-9 rounded-xl bg-[#0A66C2] flex items-center justify-center text-white text-sm font-bold shrink-0">in</div>
             <div className="flex-1">
               <div className="font-semibold text-sm text-gray-900">LinkedIn <span className="text-gray-400 font-normal text-xs">optional</span></div>
               <div className="text-xs text-gray-500">InMail + connection requests for top-tier leads</div>
             </div>
-            {linkedinConnected ? <span className="text-blue-600 text-xs font-semibold">Connected ✓</span>
+            {linkedinConnected ? <span className="text-green-700 text-xs font-semibold">Connected ✓</span>
               : linkedinConnecting ? <span className="text-gray-400 text-xs">Connecting…</span>
               : <span className="text-gray-400 text-xs">Connect →</span>}
           </button>
@@ -786,7 +786,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
           <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-100">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <div className="text-sm font-medium text-gray-900">Email signature <span className="text-xs text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded ml-1">Recommended</span></div>
+                <div className="text-sm font-medium text-gray-900">Email signature <span className="text-xs text-green-800 bg-green-50 px-1.5 py-0.5 rounded ml-1">Recommended</span></div>
                 <div className="text-xs text-gray-500">Adds your name and title to each email</div>
               </div>
               <Toggle checked={useCustomSignature} onChange={() => setUseCustomSignature(v => !v)} />
@@ -828,7 +828,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
                 <div className="flex flex-wrap gap-1.5">
                   {['{{firstName}}','{{company}}','{{role}}','{{painPoint}}','{{recentNews}}','{{senderName}}'].map(tag => (
                     <button key={tag} type="button" onClick={() => setTemplateBody(b => b + tag)}
-                      className="text-[11px] font-mono px-2 py-0.5 bg-white rounded-lg border border-gray-200 hover:bg-blue-50 hover:border-blue-200 transition-colors text-gray-700">
+                      className="text-[11px] font-mono px-2 py-0.5 bg-white rounded-lg border border-gray-200 hover:bg-green-50 hover:border-green-200 transition-colors text-gray-700">
                       {tag}
                     </button>
                   ))}
@@ -858,7 +858,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-sm text-gray-900">{p.name}</span>
-                  {'popular' in p && p.popular && <span className="px-1.5 py-0.5 bg-blue-600 text-white text-[10px] rounded font-medium">Popular</span>}
+                  {'popular' in p && p.popular && <span className="px-1.5 py-0.5 bg-green-800 text-white text-[10px] rounded font-medium">Popular</span>}
                 </div>
                 <div className="text-xs text-gray-500 mt-0.5">{p.credits.toLocaleString()} credits · {p.maxAgents} agent{p.maxAgents > 1 ? 's' : ''} · {p.maxConcurrency}× speed</div>
               </div>
@@ -882,7 +882,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
               <div className="space-y-2 mt-2">
                 <p className="text-xs text-gray-500">A payment method is required. Add one in Billing settings, then return here.</p>
                 <button onClick={() => window.open('/settings?tab=billing', '_blank')}
-                  className="w-full h-10 bg-blue-600 text-white text-sm rounded-xl font-medium hover:bg-blue-700 transition-colors">
+                  className="w-full h-10 bg-green-800 text-white text-sm rounded-xl font-medium hover:bg-green-900 transition-colors">
                   Add Payment Method →
                 </button>
               </div>
@@ -890,7 +890,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
               <div className="space-y-2 mt-2">
                 <div className="flex items-center gap-2 text-green-600 text-xs font-medium"><Check size={12} /> Payment method on file</div>
                 <button onClick={purchasePlan}
-                  className="w-full h-10 bg-blue-600 text-white text-sm rounded-xl font-medium hover:bg-blue-700 transition-colors">
+                  className="w-full h-10 bg-green-800 text-white text-sm rounded-xl font-medium hover:bg-green-900 transition-colors">
                   Purchase {planDetails.name} — ${planDetails.price}
                 </button>
               </div>
@@ -964,7 +964,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
         <h2 className="text-3xl font-bold text-gray-900 mb-2">CRM setup</h2>
         <p className="text-sm text-gray-500 mb-4">Auto-sync researched leads to your CRM. You can also do this later in Settings.</p>
 
-        <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl mb-5 text-xs text-blue-800 leading-relaxed">
+        <div className="p-4 bg-green-50 border border-green-200 rounded-xl mb-5 text-xs text-green-900 leading-relaxed">
           <p className="font-semibold mb-1">CRM Auditor mode</p>
           Connect a CRM to unlock a second mode: instead of finding new leads on Apollo, your agent can read through your existing CRM contacts, research each one, write personalized emails, and sync notes back onto each record.
         </div>
@@ -988,7 +988,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
               <div className="space-y-3">
                 <div className="flex items-center justify-between pb-2 border-b border-gray-100">
                   <span className="text-sm font-semibold text-gray-900">{selectedCrm.name}</span>
-                  <button onClick={() => { setSelectedCrm(null); setCrmCreds({}); setCrmError(null) }} className="text-xs text-blue-600 hover:text-blue-800">Change</button>
+                  <button onClick={() => { setSelectedCrm(null); setCrmCreds({}); setCrmError(null) }} className="text-xs text-green-700 hover:text-green-900">Change</button>
                 </div>
                 {selectedCrm.fields.map(field => (
                   <div key={field.key}>
@@ -1053,7 +1053,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
               {gmailConnected && useGmail ? <div className="text-green-700 font-medium">Gmail connected ✓</div>
                 : outlookConnected && useOutlook ? <div className="text-green-700 font-medium">Outlook connected ✓</div>
                 : <div className="text-gray-500">Mailgun (default)</div>}
-              {linkedinConnected && <div className="text-blue-600 font-medium">LinkedIn connected ✓</div>}
+              {linkedinConnected && <div className="text-green-700 font-medium">LinkedIn connected ✓</div>}
             </div>
           </ReviewRow>
 
@@ -1102,8 +1102,8 @@ export default function OnboardingFlow({ onComplete }: Props) {
 
   return (
     <div className="min-h-screen flex bg-white">
-      {/* Left: white panel */}
-      <div className="relative z-10 w-full bg-white min-h-screen flex flex-col">
+      {/* Left: form panel */}
+      <div className="relative z-10 w-full lg:w-[52%] bg-white min-h-screen flex flex-col">
 
         {/* Logo */}
         <div className="flex items-center gap-2 p-8 pb-0">
@@ -1125,7 +1125,15 @@ export default function OnboardingFlow({ onComplete }: Props) {
         </div>
       </div>
 
-      
+      {/* Right: step illustration */}
+      <div className="hidden lg:block lg:w-[48%] sticky top-0 h-screen overflow-hidden bg-[#0d2b1e]">
+        <img
+          key={`${step}-${step1Details}`}
+          src={`/onboarding/step-${step === 1 ? (step1Details ? '1b' : '1a') : step}.png`}
+          alt=""
+          className="w-full h-full object-cover"
+        />
+      </div>
 
       {creating && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm gap-5">
@@ -1145,7 +1153,7 @@ function ReviewRow({ label, onEdit, children }: { label: string; onEdit: () => v
     <div className="p-3.5 border border-gray-100 rounded-xl">
       <div className="flex items-center justify-between mb-1.5">
         <span className="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{label}</span>
-        <button onClick={onEdit} className="text-xs text-blue-600 hover:text-blue-800 font-medium">Edit</button>
+        <button onClick={onEdit} className="text-xs text-green-700 hover:text-green-900 font-medium">Edit</button>
       </div>
       {children}
     </div>
