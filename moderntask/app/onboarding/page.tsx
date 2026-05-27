@@ -53,7 +53,7 @@ function TeamPrompt({ onSkip, onJoined }: { onSkip: () => void; onJoined: () => 
       {/* Left: form panel */}
       <div className="relative z-10 w-full lg:w-[52%] bg-white min-h-screen flex flex-col">
         <div className="flex items-center gap-2 p-8 pb-0">
-          <img src="/MeridianM.png" alt="Meridian" className="h-5 w-auto object-contain" />
+          <img src="/MeridianM.png" alt="Meridian" className="h-8 w-auto object-contain" />
           <MeridianWordmark className="h-3.5 w-auto text-gray-900" />
         </div>
 
@@ -194,7 +194,7 @@ function OnboardingInner() {
       <div className="min-h-screen flex bg-white">
         <div className="relative z-10 w-full lg:w-[52%] bg-white flex flex-col items-start justify-center px-12 min-h-screen">
           <div className="flex items-center gap-2 mb-8">
-            <img src="/MeridianM.png" alt="Meridian" className="h-5 w-auto object-contain" />
+            <img src="/MeridianM.png" alt="Meridian" className="h-8 w-auto object-contain" />
             <MeridianWordmark className="h-3.5 w-auto text-gray-900" />
           </div>
           <div className="w-8 h-8 border-[3px] border-gray-900 border-t-transparent rounded-full animate-spin" />

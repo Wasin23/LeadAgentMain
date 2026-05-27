@@ -650,7 +650,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
         <div className="space-y-2.5 mb-5">
           <button onClick={() => { setUseGmail(true); setUseOutlook(false); if (!gmailConnected) connectGmail() }}
             className={`w-full flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${gmailConnected && useGmail ? 'border-green-400 bg-green-50' : 'border-gray-200 hover:border-gray-300'}`}>
-            <div className="w-9 h-9 rounded-xl bg-red-500 flex items-center justify-center text-white text-sm font-bold shrink-0">G</div>
+            <img src="/gmail.png" alt="Gmail" className="w-9 h-9 rounded-xl object-contain shrink-0" />
             <div className="flex-1">
               <div className="font-semibold text-sm text-gray-900">Gmail</div>
               <div className="text-xs text-gray-500">Send from your Google inbox</div>
@@ -662,7 +662,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
 
           <button onClick={() => { if (!outlookConnected) connectOutlook(); else { setUseOutlook(true); setUseGmail(false) } }}
             className={`w-full flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${outlookConnected && useOutlook ? 'border-green-400 bg-green-50' : 'border-gray-200 hover:border-gray-300'}`}>
-            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white text-sm font-bold shrink-0">O</div>
+            <img src="/outlook.png" alt="Outlook" className="w-9 h-9 rounded-xl object-contain shrink-0" />
             <div className="flex-1">
               <div className="font-semibold text-sm text-gray-900">Outlook</div>
               <div className="text-xs text-gray-500">Send from your Microsoft inbox</div>
@@ -674,7 +674,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
 
           <button onClick={() => { setUseGmail(false); setUseOutlook(false) }}
             className={`w-full flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${!useGmail && !useOutlook ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:border-gray-300'}`}>
-            <div className="w-9 h-9 rounded-xl bg-gray-700 flex items-center justify-center text-white text-sm font-bold shrink-0">M</div>
+            <div className="w-9 h-9 rounded-xl bg-[#C13B3B] flex items-center justify-center text-white text-sm font-bold shrink-0">M</div>
             <div className="flex-1">
               <div className="font-semibold text-sm text-gray-900">Mailgun <span className="text-gray-400 font-normal text-xs">(default)</span></div>
               <div className="text-xs text-gray-500">Replies tracked via webhooks</div>
@@ -684,7 +684,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
 
           <button onClick={() => { if (!linkedinConnected) connectLinkedIn() }} disabled={linkedinConnected || linkedinConnecting}
             className={`w-full flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${linkedinConnected ? 'border-green-400 bg-green-50' : 'border-gray-200 hover:border-gray-300'} disabled:cursor-default`}>
-            <div className="w-9 h-9 rounded-xl bg-[#0A66C2] flex items-center justify-center text-white text-sm font-bold shrink-0">in</div>
+            <img src="/linkedin.png" alt="LinkedIn" className="w-9 h-9 rounded-xl object-contain shrink-0" />
             <div className="flex-1">
               <div className="font-semibold text-sm text-gray-900">LinkedIn <span className="text-gray-400 font-normal text-xs">optional</span></div>
               <div className="text-xs text-gray-500">InMail + connection requests for top-tier leads</div>
@@ -1081,7 +1081,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
 
         {/* Logo */}
         <div className="flex items-center gap-2 p-8 pb-0">
-          <img src="/MeridianM.png" alt="Meridian" className="h-5 w-auto object-contain" />
+          <img src="/MeridianM.png" alt="Meridian" className="h-8 w-auto object-contain" />
           <MeridianWordmark className="h-3.5 w-auto text-gray-900" />
         </div>
 
@@ -1094,7 +1094,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
         </div>
 
         {/* Step content */}
-        <div className="flex-1 flex flex-col justify-center px-12 py-8 max-w-lg mx-auto w-full">
+        <div className="flex-1 flex flex-col justify-center px-10 py-4 max-w-2xl mx-auto w-full">
           {StepContent()}
         </div>
       </div>

@@ -49,9 +49,9 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: "/icon.svg", type: "image/svg+xml" },
-      { url: "/MeridianLogo.png", type: "image/png" },
+      { url: "/MeridianM.png", type: "image/png", sizes: "any" },
     ],
-    apple: "/MeridianLogo.png",
+    apple: "/MeridianM.png",
   },
 }
 
