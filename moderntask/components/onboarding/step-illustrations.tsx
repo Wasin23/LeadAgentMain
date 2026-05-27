@@ -33,44 +33,61 @@ export function IllustrationTeam() {
       {/* ── Team member cards ── */}
       {/* Card 1 — top center */}
       <rect x="96" y="30" width="168" height="52" rx="12" fill="white" fillOpacity="0.08" stroke="white" strokeOpacity="0.15" strokeWidth="1" />
-      {/* People icon */}
-      <circle cx="124" cy="48" r="7" fill="white" fillOpacity="0.2" />
-      <circle cx="134" cy="48" r="7" fill="white" fillOpacity="0.15" />
-      <circle cx="144" cy="48" r="7" fill="white" fillOpacity="0.1" />
-      <rect x="160" y="40" width="80" height="7" rx="2" fill="white" fillOpacity="0.4" />
-      <rect x="160" y="52" width="56" height="5" rx="2" fill="white" fillOpacity="0.2" />
+      {/* People icon: left */}
+      <circle cx="122" cy="49" r="3.5" fill="white" fillOpacity="0.22" />
+      <path d="M118.5 62 Q118.5 56 122 56 Q125.5 56 125.5 62" fill="white" fillOpacity="0.18" />
+      {/* center (front) */}
+      <circle cx="132" cy="47" r="5" fill="white" fillOpacity="0.5" />
+      <path d="M127 62 Q127 54 132 54 Q137 54 137 62" fill="white" fillOpacity="0.38" />
+      {/* right */}
+      <circle cx="142" cy="49" r="3.5" fill="white" fillOpacity="0.3" />
+      <path d="M138.5 62 Q138.5 56 142 56 Q145.5 56 145.5 62" fill="white" fillOpacity="0.24" />
+      <rect x="156" y="40" width="80" height="7" rx="2" fill="white" fillOpacity="0.4" />
+      <rect x="156" y="52" width="56" height="5" rx="2" fill="white" fillOpacity="0.2" />
 
       {/* Card 2 — right */}
       <rect x="208" y="130" width="144" height="52" rx="12" fill="white" fillOpacity="0.07" stroke="white" strokeOpacity="0.12" strokeWidth="1" />
-      <circle cx="232" cy="148" r="7" fill="white" fillOpacity="0.18" />
-      <circle cx="242" cy="148" r="7" fill="white" fillOpacity="0.13" />
-      <circle cx="252" cy="148" r="7" fill="white" fillOpacity="0.08" />
-      <rect x="268" y="140" width="64" height="7" rx="2" fill="white" fillOpacity="0.38" />
-      <rect x="268" y="152" width="44" height="5" rx="2" fill="white" fillOpacity="0.18" />
+      <circle cx="228" cy="148" r="3.5" fill="white" fillOpacity="0.2" />
+      <path d="M224.5 161 Q224.5 155 228 155 Q231.5 155 231.5 161" fill="white" fillOpacity="0.15" />
+      <circle cx="238" cy="146" r="5" fill="white" fillOpacity="0.42" />
+      <path d="M233 161 Q233 153 238 153 Q243 153 243 161" fill="white" fillOpacity="0.32" />
+      <circle cx="248" cy="148" r="3.5" fill="white" fillOpacity="0.26" />
+      <path d="M244.5 161 Q244.5 155 248 155 Q251.5 155 251.5 161" fill="white" fillOpacity="0.2" />
+      <rect x="260" y="140" width="64" height="7" rx="2" fill="white" fillOpacity="0.38" />
+      <rect x="260" y="152" width="44" height="5" rx="2" fill="white" fillOpacity="0.18" />
 
       {/* Card 3 — left */}
       <rect x="10" y="170" width="144" height="52" rx="12" fill="white" fillOpacity="0.07" stroke="white" strokeOpacity="0.12" strokeWidth="1" />
-      <circle cx="34" cy="188" r="7" fill="white" fillOpacity="0.18" />
-      <circle cx="44" cy="188" r="7" fill="white" fillOpacity="0.13" />
-      <circle cx="54" cy="188" r="7" fill="white" fillOpacity="0.08" />
-      <rect x="70" y="180" width="68" height="7" rx="2" fill="white" fillOpacity="0.38" />
-      <rect x="70" y="192" width="48" height="5" rx="2" fill="white" fillOpacity="0.18" />
+      <circle cx="30" cy="188" r="3.5" fill="white" fillOpacity="0.2" />
+      <path d="M26.5 201 Q26.5 195 30 195 Q33.5 195 33.5 201" fill="white" fillOpacity="0.15" />
+      <circle cx="40" cy="186" r="5" fill="white" fillOpacity="0.42" />
+      <path d="M35 201 Q35 193 40 193 Q45 193 45 201" fill="white" fillOpacity="0.32" />
+      <circle cx="50" cy="188" r="3.5" fill="white" fillOpacity="0.26" />
+      <path d="M46.5 201 Q46.5 195 50 195 Q53.5 195 53.5 201" fill="white" fillOpacity="0.2" />
+      <rect x="62" y="180" width="68" height="7" rx="2" fill="white" fillOpacity="0.38" />
+      <rect x="62" y="192" width="48" height="5" rx="2" fill="white" fillOpacity="0.18" />
 
       {/* Card 4 — bottom right */}
       <rect x="186" y="278" width="144" height="52" rx="12" fill="white" fillOpacity="0.06" stroke="white" strokeOpacity="0.1" strokeWidth="1" />
-      <circle cx="210" cy="296" r="7" fill="white" fillOpacity="0.15" />
-      <circle cx="220" cy="296" r="7" fill="white" fillOpacity="0.1" />
-      <circle cx="230" cy="296" r="7" fill="white" fillOpacity="0.07" />
-      <rect x="246" y="288" width="64" height="7" rx="2" fill="white" fillOpacity="0.32" />
-      <rect x="246" y="300" width="44" height="5" rx="2" fill="white" fillOpacity="0.15" />
+      <circle cx="206" cy="295" r="3.5" fill="white" fillOpacity="0.17" />
+      <path d="M202.5 308 Q202.5 302 206 302 Q209.5 302 209.5 308" fill="white" fillOpacity="0.13" />
+      <circle cx="216" cy="293" r="5" fill="white" fillOpacity="0.36" />
+      <path d="M211 308 Q211 300 216 300 Q221 300 221 308" fill="white" fillOpacity="0.27" />
+      <circle cx="226" cy="295" r="3.5" fill="white" fillOpacity="0.22" />
+      <path d="M222.5 308 Q222.5 302 226 302 Q229.5 302 229.5 308" fill="white" fillOpacity="0.17" />
+      <rect x="238" y="287" width="64" height="7" rx="2" fill="white" fillOpacity="0.32" />
+      <rect x="238" y="299" width="44" height="5" rx="2" fill="white" fillOpacity="0.15" />
 
       {/* Card 5 — bottom left */}
       <rect x="20" y="318" width="148" height="52" rx="12" fill="white" fillOpacity="0.06" stroke="white" strokeOpacity="0.1" strokeWidth="1" />
-      <circle cx="44" cy="336" r="7" fill="white" fillOpacity="0.15" />
-      <circle cx="54" cy="336" r="7" fill="white" fillOpacity="0.1" />
-      <circle cx="64" cy="336" r="7" fill="white" fillOpacity="0.07" />
-      <rect x="80" y="328" width="68" height="7" rx="2" fill="white" fillOpacity="0.3" />
-      <rect x="80" y="340" width="48" height="5" rx="2" fill="white" fillOpacity="0.14" />
+      <circle cx="40" cy="335" r="3.5" fill="white" fillOpacity="0.17" />
+      <path d="M36.5 348 Q36.5 342 40 342 Q43.5 342 43.5 348" fill="white" fillOpacity="0.13" />
+      <circle cx="50" cy="333" r="5" fill="white" fillOpacity="0.36" />
+      <path d="M45 348 Q45 340 50 340 Q55 340 55 348" fill="white" fillOpacity="0.27" />
+      <circle cx="60" cy="335" r="3.5" fill="white" fillOpacity="0.22" />
+      <path d="M56.5 348 Q56.5 342 60 342 Q63.5 342 63.5 348" fill="white" fillOpacity="0.17" />
+      <rect x="72" y="327" width="68" height="7" rx="2" fill="white" fillOpacity="0.3" />
+      <rect x="72" y="339" width="48" height="5" rx="2" fill="white" fillOpacity="0.14" />
 
       {/* ── Stat widgets ── */}
       {/* 68% Active teams */}
@@ -87,8 +104,13 @@ export function IllustrationTeam() {
 
       {/* +18 New members */}
       <rect x="130" y="400" width="100" height="88" rx="12" fill="white" fillOpacity="0.07" stroke="white" strokeOpacity="0.12" strokeWidth="1" />
-      <circle cx="155" cy="426" r="8" fill="white" fillOpacity="0.12" />
-      <circle cx="166" cy="426" r="8" fill="white" fillOpacity="0.09" />
+      {/* People icon in +18 widget */}
+      <circle cx="150" cy="422" r="4" fill="white" fillOpacity="0.2" />
+      <path d="M146 433 Q146 427 150 427 Q154 427 154 433" fill="white" fillOpacity="0.15" />
+      <circle cx="160" cy="420" r="5" fill="white" fillOpacity="0.38" />
+      <path d="M155 433 Q155 425 160 425 Q165 425 165 433" fill="white" fillOpacity="0.28" />
+      <circle cx="170" cy="422" r="4" fill="white" fillOpacity="0.25" />
+      <path d="M166 433 Q166 427 170 427 Q174 427 174 433" fill="white" fillOpacity="0.18" />
       {/* Trend line */}
       <polyline points="142,452 154,444 166,448 178,438 190,432 202,426" stroke={G} strokeOpacity="0.6" strokeWidth="1.5" strokeLinejoin="round" fill="none" />
       <rect x="142" y="460" width="36" height="6" rx="2" fill={G} fillOpacity="0.5" />
@@ -265,34 +287,32 @@ export function IllustrationEmailConnect() {
       {/* Green glow behind center */}
       <circle cx="180" cy="150" r="40" fill={G} fillOpacity="0.05" />
       {/* Connection nodes */}
+
       {/* Gmail — top left, connected */}
-      <line x1="128" y1="128" x2="72" y2="80" stroke={G} strokeOpacity="0.4" strokeWidth="1" strokeDasharray="4 3" />
+      <line x1="128" y1="128" x2="72" y2="82" stroke={G} strokeOpacity="0.4" strokeWidth="1" strokeDasharray="4 3" />
       <rect x="44" y="56" width="54" height="48" rx="10" fill="white" fillOpacity="0.07" stroke={G} strokeOpacity="0.4" strokeWidth="1" />
-      <circle cx="71" cy="80" r="14" fill="#ef4444" fillOpacity="0.15" />
-      <rect x="62" y="75" width="18" height="5" rx="2" fill="white" fillOpacity="0.5" />
-      <rect x="64" y="83" width="14" height="4" rx="2" fill="white" fillOpacity="0.3" />
+      <image href="/gmail.png" x="57" y="66" width="28" height="28" />
+      {/* Connected green dot */}
       <circle cx="86" cy="60" r="5" fill={G} fillOpacity="0.9" />
 
       {/* Outlook — top right */}
-      <line x1="232" y1="128" x2="286" y2="80" stroke="white" strokeOpacity="0.15" strokeWidth="1" strokeDasharray="4 3" />
+      <line x1="232" y1="128" x2="288" y2="82" stroke="white" strokeOpacity="0.15" strokeWidth="1" strokeDasharray="4 3" />
       <rect x="262" y="56" width="54" height="48" rx="10" fill="white" fillOpacity="0.05" stroke="white" strokeOpacity="0.1" strokeWidth="1" />
-      <circle cx="289" cy="80" r="14" fill="white" fillOpacity="0.08" />
-      <rect x="280" y="75" width="18" height="5" rx="2" fill="white" fillOpacity="0.35" />
-      <rect x="282" y="83" width="14" height="4" rx="2" fill="white" fillOpacity="0.2" />
+      <image href="/outlook.png" x="275" y="66" width="28" height="28" />
 
       {/* Mailgun — bottom left */}
       <line x1="128" y1="172" x2="72" y2="218" stroke="white" strokeOpacity="0.12" strokeWidth="1" strokeDasharray="4 3" />
       <rect x="44" y="196" width="54" height="48" rx="10" fill="white" fillOpacity="0.05" stroke="white" strokeOpacity="0.1" strokeWidth="1" />
-      <circle cx="71" cy="220" r="14" fill="white" fillOpacity="0.07" />
-      <rect x="62" y="215" width="18" height="5" rx="2" fill="white" fillOpacity="0.3" />
-      <rect x="64" y="223" width="14" height="4" rx="2" fill="white" fillOpacity="0.18" />
+      {/* Mailgun SVG fallback — crimson envelope */}
+      <rect x="57" y="206" width="28" height="28" rx="5" fill="#C13B3B" />
+      <rect x="60" y="214" width="22" height="16" rx="1.5" fill="white" fillOpacity="0.9" />
+      <path d="M60 214 L60 210 L82 210 L82 214 L71 221 Z" fill="#C13B3B" />
+      <path d="M60 214 L71 221 L82 214" fill="none" stroke="white" strokeOpacity="0.85" strokeWidth="1.5" strokeLinejoin="round" />
 
       {/* LinkedIn — bottom right */}
-      <line x1="232" y1="172" x2="286" y2="218" stroke="white" strokeOpacity="0.12" strokeWidth="1" strokeDasharray="4 3" />
+      <line x1="232" y1="172" x2="288" y2="218" stroke="white" strokeOpacity="0.12" strokeWidth="1" strokeDasharray="4 3" />
       <rect x="262" y="196" width="54" height="48" rx="10" fill="white" fillOpacity="0.05" stroke="white" strokeOpacity="0.1" strokeWidth="1" />
-      <circle cx="289" cy="220" r="14" fill="white" fillOpacity="0.07" />
-      <rect x="280" y="215" width="18" height="5" rx="2" fill="white" fillOpacity="0.25" />
-      <rect x="282" y="223" width="10" height="4" rx="2" fill="white" fillOpacity="0.15" />
+      <image href="/linkedin.png" x="275" y="206" width="28" height="28" />
 
       {/* "Connected" label under Gmail */}
       <rect x="44" y="110" width="54" height="14" rx="7" fill={G} fillOpacity="0.18" stroke={G} strokeOpacity="0.35" strokeWidth="1" />
