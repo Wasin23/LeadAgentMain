@@ -1131,7 +1131,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
           key={`${step}-${step1Details}`}
           src={`/onboarding/step-${step === 1 ? (step1Details ? '1b' : '1a') : step}.png`}
           alt=""
-          className="w-1/3 object-contain"
+          className="w-3/4 object-contain"
           onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
         />
       </div>

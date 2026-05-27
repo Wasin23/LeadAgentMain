@@ -105,7 +105,7 @@ function TeamPrompt({ onSkip, onJoined }: { onSkip: () => void; onJoined: () => 
 
       {/* Right: dark green panel */}
       <div className="hidden lg:flex lg:w-[48%] sticky top-0 h-screen bg-[#0d2b1e] items-center justify-center p-12">
-        <img src="/onboarding/team.png" alt="" className="w-1/3 object-contain" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+        <img src="/onboarding/team.png" alt="" className="w-3/4 object-contain" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
       </div>
     </div>
   )
