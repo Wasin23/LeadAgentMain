@@ -1492,6 +1492,11 @@ export function SettingsContent() {
               </p>
             </div>
 
+            <div className="p-4 bg-green-50 border border-green-200 rounded-xl text-xs text-green-900 leading-relaxed">
+              <p className="font-semibold mb-1">CRM Auditor mode</p>
+              Connect a CRM to unlock a second mode: instead of finding new leads on Apollo, your agent can read through your existing CRM contacts, research each one, write personalized emails, and sync notes back onto each record.
+            </div>
+
             {/* Connected state */}
             {crmStatus.connected && (
               <div className="space-y-4">
