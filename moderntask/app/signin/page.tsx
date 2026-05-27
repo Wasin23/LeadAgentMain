@@ -291,7 +291,7 @@ export default function SignInPage() {
         variant="ghost"
         size="icon"
         title="Help & Support"
-        onClick={() => window.location.href = '/help'}
+        onClick={() => window.location.href = '/#faq'}
         className="signin-pressable absolute top-4 right-4 h-8 w-8 rounded-full transition-all duration-300 hover:scale-110"
         style={{ zIndex: 20, color: '#111', background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(8px)', border: '1px solid rgba(0,0,0,0.10)' }}
       >
@@ -396,6 +396,7 @@ export default function SignInPage() {
 
               {/* Sign Up */}
               <TabsContent value="signup">
+                <div className="max-h-[52vh] overflow-y-auto pr-1">
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-1.5">
                     <Label htmlFor="su-username">Username</Label>
@@ -457,6 +458,7 @@ export default function SignInPage() {
                     <GoogleIcon /><span className="ml-2">Continue with Google</span>
                   </Button>
                 </form>
+                </div>
               </TabsContent>
             </Tabs>
           </CardContent>

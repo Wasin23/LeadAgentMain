@@ -139,7 +139,7 @@ export function FaqSection() {
         <div className="flex flex-col lg:flex-row gap-16">
 
           {/* left: FAQ */}
-          <div className="flex-1">
+          <div className="flex-1" id="faq">
             <p className="enter-0 text-indigo-400 text-xs font-semibold tracking-widest uppercase mb-4">FAQ</p>
             <h2 className="enter-1 text-3xl sm:text-4xl font-black text-gray-900 tracking-tight mb-8">
               Common questions.

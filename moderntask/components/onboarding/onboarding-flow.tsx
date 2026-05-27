@@ -1,8 +1,113 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Check, X, CloudUpload } from 'lucide-react'
+import { Check, X, CloudUpload, Loader2, Lock, XCircle } from 'lucide-react'
+import { loadStripe } from '@stripe/stripe-js'
+import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import api from '@/lib/api'
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '')
+
+function AddCardForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: () => void }) {
+  const stripe = useStripe()
+  const elements = useElements()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [cardholderName, setCardholderName] = useState('')
+  const [cardReady, setCardReady] = useState(false)
+  const [clientSecret, setClientSecret] = useState<string | null>(null)
+
+  useEffect(() => {
+    api.post('/api/billing/setup-intent')
+      .then(({ data }) => setClientSecret(data.clientSecret))
+      .catch(() => setError('Failed to initialize payment form. Please try again.'))
+  }, [])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!stripe || !elements || !clientSecret) return
+    setLoading(true); setError(null)
+    try {
+      const { error: stripeError, setupIntent } = await stripe.confirmCardSetup(clientSecret, {
+        payment_method: { card: elements.getElement(CardElement)!, billing_details: { name: cardholderName } },
+      })
+      if (stripeError) {
+        setError(stripeError.message || 'Failed to add card')
+      } else if (setupIntent?.payment_method) {
+        await api.post('/api/billing/add-payment-method', { paymentMethodId: setupIntent.payment_method })
+        onSuccess()
+      }
+    } catch (err: unknown) {
+      setError((err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed to add card')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="rounded-xl border border-gray-200 overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-200">
+          <label className="block text-[11px] text-gray-400 mb-1.5 font-medium uppercase tracking-wide">Name on card</label>
+          <input
+            type="text"
+            value={cardholderName}
+            onChange={e => setCardholderName(e.target.value)}
+            placeholder="Full name"
+            required
+            className="w-full bg-transparent text-sm text-gray-900 placeholder-gray-400 focus:outline-none"
+          />
+        </div>
+        <div className="px-4 py-3">
+          <label className="block text-[11px] text-gray-400 mb-1.5 font-medium uppercase tracking-wide">Card details</label>
+          <CardElement
+            onReady={() => setCardReady(true)}
+            onChange={e => setError(e.error?.message ?? null)}
+            options={{ style: { base: { fontSize: '15px', fontFamily: 'inherit', color: '#111827', '::placeholder': { color: '#9ca3af' } }, invalid: { color: '#ef4444' } } }}
+          />
+        </div>
+      </div>
+      {error && (
+        <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-200">
+          <XCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+          <p className="text-sm text-red-600">{error}</p>
+        </div>
+      )}
+      <button
+        type="submit"
+        disabled={!stripe || !elements || loading || !cardholderName.trim() || !cardReady || !clientSecret}
+        className="w-full h-11 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+      >
+        {loading ? <><Loader2 className="w-4 h-4 animate-spin" />Processing…</> : !clientSecret ? <><Loader2 className="w-4 h-4 animate-spin" />Loading…</> : 'Save card'}
+      </button>
+      <button type="button" onClick={onCancel} disabled={loading} className="w-full text-center text-sm text-gray-400 hover:text-gray-700 transition disabled:opacity-50">
+        Cancel
+      </button>
+      <div className="flex items-center justify-center gap-1 text-xs text-gray-400 pt-1">
+        <Lock className="w-3 h-3" />
+        <span>Secured by Stripe</span>
+      </div>
+    </form>
+  )
+}
+
+function AddPaymentModal({ onSuccess, onClose }: { onSuccess: () => void; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-lg font-semibold text-gray-900">Add payment method</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+        <Elements stripe={stripePromise}>
+          <AddCardForm onSuccess={onSuccess} onCancel={onClose} />
+        </Elements>
+      </div>
+    </div>
+  )
+}
 import { MeridianWordmark } from '@/components/ui/meridian-wordmark'
 import {
   IllustrationCompanyScrape,
@@ -169,6 +274,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
   const [selectedPlan, setSelectedPlan] = useState('free-trial')
   const [planPurchased, setPlanPurchased] = useState(false)
   const [paymentAdded, setPaymentAdded] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [concurrencyLevel, setConcurrencyLevel] = useState(1)
   const [notifEmailEnabled, setNotifEmailEnabled] = useState(true)
   const [notifSmsEnabled, setNotifSmsEnabled] = useState(false)
@@ -512,7 +618,20 @@ export default function OnboardingFlow({ onComplete }: Props) {
         </div>
 
         <div className="flex justify-end">
-          <button onClick={() => setStep(2)} disabled={!companyName.trim() || !services.trim() || !termsAccepted} className={bp}>
+          <button onClick={async () => {
+            try {
+              await api.post('/api/company-profile/save', {
+                profile: {
+                  companyName, tagline, description, industry, website, linkedinProfile,
+                  email: companyEmail, phone, companyAddress, location, founded, employees,
+                  companySize, targetMarket, services: services || coreOffering, coreOffering, keyAdvantages,
+                  logo: '', termsAccepted, termsAcceptedAt: termsAccepted ? new Date().toISOString() : undefined,
+                },
+                recommendedPreset: null,
+              })
+            } catch {}
+            setStep(2)
+          }} disabled={!companyName.trim() || !services.trim() || !termsAccepted} className={bp}>
             Continue →
           </button>
         </div>
@@ -854,9 +973,9 @@ export default function OnboardingFlow({ onComplete }: Props) {
               </div>
             ) : !paymentAdded ? (
               <div className="space-y-2 mt-2">
-                <p className="text-xs text-gray-500">A payment method is required. Add one in Billing settings, then return here.</p>
-                <button onClick={() => window.open('/settings?tab=billing', '_blank')}
-                  className="w-full h-10 bg-green-800 text-white text-sm rounded-xl font-medium hover:bg-green-900 transition-colors">
+                <p className="text-xs text-gray-500">A payment method is required to activate a paid plan.</p>
+                <button onClick={() => setShowPaymentModal(true)}
+                  className="w-full h-10 bg-gray-900 text-white text-sm rounded-xl font-medium hover:bg-gray-700 transition-colors">
                   Add Payment Method →
                 </button>
               </div>
@@ -1076,6 +1195,12 @@ export default function OnboardingFlow({ onComplete }: Props) {
 
   return (
     <div className="min-h-screen flex bg-white">
+      {showPaymentModal && (
+        <AddPaymentModal
+          onSuccess={() => { setPaymentAdded(true); setShowPaymentModal(false) }}
+          onClose={() => setShowPaymentModal(false)}
+        />
+      )}
       {/* Left: form panel */}
       <div className="relative z-10 w-full lg:w-[52%] bg-white min-h-screen flex flex-col">
 
