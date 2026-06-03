@@ -1439,7 +1439,12 @@ Call the appropriate function to continue the workflow.`;
         if (actionResult?.leads?.length > 0) {
           // Reset duplicate counter when we find new leads
           this.memory.consecutiveDuplicateSearches = 0;
-          
+
+          // Accumulate Apollo search cost and lead count for per-lead refund math
+          if (!this.memory.cycleCosts) this.memory.cycleCosts = { apollo: 0, leadsFound: 0 };
+          this.memory.cycleCosts.apollo += this.awsManager.apiCosts.apollo;
+          this.memory.cycleCosts.leadsFound += actionResult.leads.length;
+
           // Add leads to the queue, capped to remaining capacity
           const capacity = this.memory.currentCycle.targetLeads > 0
             ? Math.max(0, this.memory.currentCycle.targetLeads
@@ -1476,6 +1481,7 @@ Call the appropriate function to continue the workflow.`;
           // Start processing the first lead from queue
           if (this.memory.currentCycle.leadQueue.length > 0 && !this.memory.currentCycle.currentLead) {
             this.memory.currentCycle.currentLead = this.memory.currentCycle.leadQueue.shift();
+            this.memory.currentLeadCost = 0; // reset per-lead cost tracker
             // Always start with research (Apollo just gave us names, we need Serper data)
             this.memory.currentCycle.processingPhase = 'research';
             const domain = this.memory.currentCycle.currentLead.organization?.primary_domain;
@@ -1669,14 +1675,27 @@ Call the appropriate function to continue the workflow.`;
               this.memory.currentCycle.processingPhase = 'email';
             }
           } else {
-            // Qualification failed — increment streak and maybe rotate keyword
-            console.log(`[DISQ] Lead disqualified (score: ${actionResult.score}/100), skipping lead`);
+            // Qualification failed — refund per-lead costs + proportional Apollo share
+            const disqLead = this.memory.currentCycle.currentLead;
+            const apolloShare = this.memory.cycleCosts.leadsFound > 0
+              ? this.memory.cycleCosts.apollo / this.memory.cycleCosts.leadsFound
+              : 0;
+            const totalRefund = (this.memory.currentLeadCost || 0) + apolloShare;
+            console.log(`[DISQ] Lead disqualified (score: ${actionResult.score}/100), refunding $${totalRefund.toFixed(4)}`);
+            this.awsManager.refundCredits(this.userId, totalRefund, {
+              leadName: disqLead?.name,
+              leadCompany: disqLead?.company || disqLead?.organization?.name,
+              reason: 'disqualified',
+              agentId: this.agentId
+            }).catch(err => console.error('[REFUND] Failed to refund disqualified lead:', err));
+
             this._rotateKeywordOnDisq();
             this.memory.currentCycle.currentLead = null;
-            
+
             // Get next lead from queue or search for more
             if (this.memory.currentCycle.leadQueue.length > 0) {
               this.memory.currentCycle.currentLead = this.memory.currentCycle.leadQueue.shift();
+              this.memory.currentLeadCost = 0; // reset for next lead
               this.memory.currentCycle.processingPhase = 'research';
               this.broadcastAgentActivity({
                 agentId: this.agentId,
@@ -1845,7 +1864,9 @@ Call the appropriate function to continue the workflow.`;
             researchQuality: qualification.researchQuality,
             requiresReview: requiresReview,
             keyStrengths: qualification.keyStrengths,
-            weaknesses: qualification.weaknesses
+            weaknesses: qualification.weaknesses,
+            // Cost tracking for refund if user rejects this email
+            leadCost: this.memory.currentLeadCost || 0
           };
           
           const queueResult = await this.addToEmailQueue(leadData);
@@ -2489,6 +2510,10 @@ Respond in JSON format:
             recommendation: result.recommendation
           }
         }).catch(err => console.error('Failed to log OpenAI usage:', err));
+        // Accumulate for per-lead refund tracking
+        if (this.memory.currentLeadCost !== undefined) {
+          this.memory.currentLeadCost += response.usage.total_tokens * this.awsManager.apiCosts.openaiMini;
+        }
       }
       
       // Calculate confidence based on how well research answered our questions
@@ -2839,6 +2864,10 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
             qualified: result.qualified
           }
         }).catch(err => console.error('Failed to log OpenAI usage:', err));
+        // Accumulate for per-lead refund tracking
+        if (this.memory.currentLeadCost !== undefined) {
+          this.memory.currentLeadCost += response.usage.total_tokens * this.awsManager.apiCosts.openaiMini;
+        }
       }
       
       // Build comprehensive AI Report
@@ -3093,6 +3122,10 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
                   timestamp: new Date().toISOString()
                 }
               });
+              // Accumulate for per-lead refund tracking
+              if (this.memory.currentLeadCost !== undefined) {
+                this.memory.currentLeadCost += this.awsManager.apiCosts.serper;
+              }
             } catch (logError) {
               console.error(`   ⚠️ Failed to log API usage: ${logError.message}`);
             }
@@ -8981,6 +9014,9 @@ Target Positions:`;
       leadQueue: [],
       processingPhase: 'search'
     };
+    // Cost tracking for refunds
+    this.memory.cycleCosts = { apollo: 0, leadsFound: 0 };
+    this.memory.currentLeadCost = 0;
 
     // CRM MODE: If contacts were pre-loaded from a CRM, inject them now and skip Apollo search
     if (this.crmContactList && this.crmContactList.length > 0) {

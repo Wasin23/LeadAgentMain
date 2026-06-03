@@ -45,17 +45,17 @@ class AWSManager {
       leadSourceBandit: process.env.AWS_DYNAMODB_LEAD_SOURCE_BANDIT_TABLE || 'meridian-lead-source-bandit'
     };
     
-    // API Cost rates (with 1.2x multiplier for platform margin)
+    // API Cost rates (with 1.5x multiplier for platform margin)
     this.apiCosts = {
       apollo: 0.005, // $0.005 per lead search (half a cent)
-      openai: (0.005 / 1000) * 1.2,     // $0.006 per 1K tokens for GPT-4o (blended input/output)
-      openaiMini: (0.0002 / 1000) * 1.2, // $0.00024 per 1K tokens for GPT-4o-mini (accurate current pricing)
-      anthropic: (0.005 / 1000) * 1.2, // fallback blended rate if token split is unavailable
-      anthropicInput: (3 / 1000000) * 1.2, // Claude Sonnet input tokens with platform margin
-      anthropicOutput: (15 / 1000000) * 1.2, // Claude Sonnet output tokens with platform margin
-      mailgun: 0.0008 * 1.2, // $0.00096 per email
-      zerobounce: 0.005 * 1.2, // $0.006 per validation
-      serper: 0.001 * 1.2 // $0.0012 per search query ($50 for 50k credits)
+      openai: (0.005 / 1000) * 1.5,     // GPT-4o with platform margin
+      openaiMini: (0.0002 / 1000) * 1.5, // GPT-4o-mini with platform margin
+      anthropic: (0.005 / 1000) * 1.5, // fallback blended rate
+      anthropicInput: (3 / 1000000) * 1.5, // Claude Sonnet input tokens with platform margin
+      anthropicOutput: (15 / 1000000) * 1.5, // Claude Sonnet output tokens with platform margin
+      mailgun: 0.0008 * 1.5, // per email with platform margin
+      zerobounce: 0.005 * 1.5, // per validation with platform margin
+      serper: 0.001 * 1.5 // per search query with platform margin
     };
 
     // Plan system with credit limits and purchase options
@@ -1708,6 +1708,50 @@ class AWSManager {
       console.error('❌ [AWS] Failed to log API usage:', error);
       console.error('❌ [AWS] Error details:', JSON.stringify(error, null, 2));
       return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Refund credits to a user for a disqualified or rejected lead
+   * costInDollars: the raw dollar amount to convert back to credits
+   */
+  async refundCredits(userId, costInDollars, { leadName, leadCompany, reason = 'disqualified', agentId } = {}) {
+    try {
+      if (!costInDollars || costInDollars <= 0) return { success: false, reason: 'no_cost' };
+
+      const creditsToRefund = costInDollars / 0.05; // same rate as deduction
+      const user = await this.getUserById(userId);
+      if (!user) return { success: false, reason: 'user_not_found' };
+
+      if (user.creditBalance !== undefined) {
+        await this.updateUser(userId, { creditBalance: (user.creditBalance || 0) + creditsToRefund });
+      } else {
+        const newUsed = Math.max(0, (user.trialCreditsUsed || 0) - creditsToRefund);
+        await this.updateUser(userId, { trialCreditsUsed: newUsed });
+      }
+
+      console.log(`[REFUND] +${creditsToRefund.toFixed(2)} credits → ${leadName || 'lead'} at ${leadCompany || 'company'} (${reason})`);
+
+      const label = reason === 'rejected' ? 'rejected from queue' : 'disqualified';
+      const title = `+${creditsToRefund.toFixed(1)} credits refunded`;
+      const message = leadName && leadCompany
+        ? `${leadName} at ${leadCompany} was ${label} — research and qualification costs returned.`
+        : `Lead ${label} — costs returned.`;
+
+      await this.addIssue(userId, 'agent', title, message, {
+        severity: 'low',
+        agentId,
+        creditsRefunded: parseFloat(creditsToRefund.toFixed(2)),
+        costRefunded: parseFloat(costInDollars.toFixed(4)),
+        leadName,
+        leadCompany,
+        reason
+      });
+
+      return { success: true, creditsRefunded: creditsToRefund };
+    } catch (err) {
+      console.error('❌ [REFUND] Failed to refund credits:', err);
+      return { success: false, error: err.message };
     }
   }
 
