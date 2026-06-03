@@ -45,7 +45,7 @@ class AWSManager {
       leadSourceBandit: process.env.AWS_DYNAMODB_LEAD_SOURCE_BANDIT_TABLE || 'meridian-lead-source-bandit'
     };
     
-    // API Cost rates (with 1.5x multiplier for platform margin)
+    // API Cost rates (with 1.5x multiplier for platform margin) — updated
     this.apiCosts = {
       apollo: 0.005, // $0.005 per lead search (half a cent)
       openai: (0.005 / 1000) * 1.5,     // GPT-4o with platform margin
