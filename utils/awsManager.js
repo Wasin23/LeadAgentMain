@@ -108,6 +108,16 @@ class AWSManager {
         maxAgents: 30,
         maxConcurrency: 30,
         description: 'Unlimited scale for large organizations'
+      },
+      'developer': {
+        name: 'Developer',
+        initialCredits: 999999,
+        maxCredits: 999999,
+        canPurchaseMore: true,
+        creditPackages: [],
+        maxAgents: 999,
+        maxConcurrency: 999,
+        description: 'Internal developer account — all limits lifted'
       }
     };
     
@@ -3544,6 +3554,35 @@ class AWSManager {
   }
 
   /**
+   * Upgrade any user to the developer plan with full credits
+   */
+  async upgradeUserToDeveloper(userId) {
+    try {
+      const user = await this.getUserById(userId);
+      if (!user) throw new Error(`User ${userId} not found`);
+
+      const plan = this.plans['developer'];
+      await this.updateUser(userId, {
+        plan: 'developer',
+        creditBalance: plan.initialCredits,
+        trialCreditsLimit: plan.initialCredits,
+        trialCreditsUsed: 0,
+        maxCredits: plan.maxCredits,
+        maxAgents: plan.maxAgents,
+        maxConcurrency: plan.maxConcurrency,
+        trialEligible: true,
+        planUpdatedAt: new Date().toISOString()
+      });
+
+      console.log(`✅ [DEVELOPER] Upgraded ${user.email || userId} to Developer plan (999,999 credits)`);
+      return { success: true, userId, email: user.email, plan: 'developer', credits: plan.initialCredits };
+    } catch (err) {
+      console.error('❌ [DEVELOPER] Upgrade failed:', err);
+      throw err;
+    }
+  }
+
+  /**
    * Purchase additional credits for user
    */
   async purchaseCredits(userId, creditAmount) {
@@ -3617,14 +3656,24 @@ class AWSManager {
         throw new Error('User not found');
       }
 
-      const planConfig = this.getPlanConfig(user.plan || 'free-trial');
+      const planId = user.plan || 'free-trial';
+      const planConfig = this.plans[planId] || {
+        ...(this.plans['enterprise'] || {}),
+        name: planId.charAt(0).toUpperCase() + planId.slice(1),
+        initialCredits: user.creditBalance ?? user.trialCreditsLimit ?? 999999,
+        maxCredits: 999999,
+        maxAgents: user.maxAgents ?? 999,
+        maxConcurrency: user.maxConcurrency ?? 999,
+        canPurchaseMore: true,
+        creditPackages: []
+      };
 
       // New credit balance system takes priority
       if (user.creditBalance !== undefined) {
         const remainingCredits = Math.max(0, user.creditBalance);
         return {
           plan: {
-            id: user.plan || 'free-trial',
+            id: planId,
             remainingCredits,
             ...planConfig
           },
@@ -3656,7 +3705,7 @@ class AWSManager {
 
       return {
         plan: {
-          id: user.plan || 'free-trial',
+          id: planId,
           remainingCredits: remainingCredits,
           ...planConfig
         },
