@@ -1719,7 +1719,7 @@ class AWSManager {
     try {
       if (!costInDollars || costInDollars <= 0) return { success: false, reason: 'no_cost' };
 
-      const creditsToRefund = costInDollars / 0.05; // same rate as deduction
+      const creditsToRefund = (costInDollars / 0.05) * 0.9; // 90% partial refund
       const user = await this.getUserById(userId);
       if (!user) return { success: false, reason: 'user_not_found' };
 
