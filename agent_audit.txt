@@ -1,0 +1,1001 @@
+================================================================================
+FULL AUDIT: reasoningLeadAgent.js
+File: c:\Users\colto\OneDrive\Meridian\agent\reasoningLeadAgent.js
+Total lines: ~9,481
+Audited: 2026-06-14
+================================================================================
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 1: FULL AGENT FLOW (start to email queued)
+────────────────────────────────────────────────────────────────────────────────
+
+This describes the complete lifecycle of one cycle in standard Apollo (non-CRM) mode.
+
+STARTUP (start(), lines 8077–8273)
+  1. start() called
+  2. Load Zilliz keyword-performance memory → restore industryExhaustion tracker
+  3. Load bandit (Thompson Sampling) from DynamoDB → restore keywordSourceAssignments
+  4. Call runLoop(), which immediately calls executeReasoningCycle()
+
+CYCLE START (executeReasoningCycle(), lines 8979–9389)
+  5. Refresh agent settings from DynamoDB (concurrencyLevel, specialInstructions, etc.)
+  6. Reset currentCycle state (leadsProcessed=0, targetLeads=0, phase='search')
+  7. If specialInstructions and no campaignPlan yet:
+       → Call getUserSettings() to get baseline targeting
+       → Call convertInstructionsToPlan() [LLM CALL #1 — gpt-4o-mini]
+       → Call generatePlanDescription() [LLM CALL #2 — gpt-4o-mini, ~50 tokens]
+  8. Begin the while(stepCount < 5000 && isRunning) loop
+
+MAIN LOOP ITERATION (each step)
+  9.  Every 5 steps: checkCreditsStatus() — DynamoDB lookup
+  10. Build context object (hasUserSettings, hasEmailSettings, processingPhase, etc.)
+  11. Call reason(context) [LLM CALL #3 — gpt-4o-mini, forced function_call]
+  12. Translate action to friendly UI message, log to SSE
+  13. Call executeFunction(action, parameters)
+  14. Call updateCycleState(action, result) — pure state machine, no LLM
+  15. If lead_search returned leads AND concurrencyLevel > 1: drainQueueConcurrently()
+  16. Loop continues
+
+PHASE: get_user_settings (first iteration or if settings not loaded)
+  - executeFunction → getUserSettings() → DynamoDB read (two calls: getLeadAgentSettings + getUserSettings)
+  - Stores in memory.userSettings
+  - If error: returns shouldStop=true, cycle ends
+
+PHASE: get_email_settings
+  - executeFunction → getEmailSettings() → DynamoDB read (getLeadAgentSettings again — same table, same agentId)
+  - Stores in memory.emailSettings
+  - Note: This is a SECOND call to the same DynamoDB item already fetched by getUserSettings (REDUNDANCY #1)
+
+PHASE: search
+  - executeFunction → leadSearch(parameters)
+  - Rotates keyword/position (deterministic logic, no LLM)
+  - Optionally validates keyword+position pair [LLM CALL #4 — gpt-3.5-turbo, ~80 tokens]
+  - After 20 leads/cycle may call generateDynamicTargetPositions() [LLM CALL #5 — gpt-3.5-turbo]
+  - After cycling all base keywords: generateRelatedIndustryKeywordsAndPositions() [LLM CALL #6 — gpt-3.5-turbo]
+  - Calls Apollo API to search for people (mixed_people/api_search)
+  - Enriches each lead via Apollo people/enrich to get email
+  - DynamoDB deduplication check (checkForDuplicateContacts)
+  - Junk company filter (regex, no LLM)
+  - Returns newLeads[], duplicateLeads[]
+  - updateCycleState sets processingPhase = 'research', primes currentLead from queue
+
+PHASE: research (for each lead)
+  - executeFunction → serperResearch(parameters)
+  - Gets agent personality from DynamoDB
+  - Runs 2–3 Serper searches (company overview, recent news, optionally LinkedIn)
+  - For each non-LinkedIn URL: fetchMultipleWebpages (top 3 URLs per search)
+  - For each webpage: [LLM CALL #7 — gpt-4o-mini, insight extraction, ~300 tokens each]
+    → Up to ~9 insight extraction calls (3 searches × 3 URLs)
+  - For LinkedIn search results: [LLM CALL #8 — gpt-4o-mini, LinkedIn snippet extraction, ~200 tokens]
+  - Calls analyzeResearchFindings() [LLM CALL #9 — gpt-4o-mini, research analysis, ~500 tokens]
+    → Only runs if there are any contentFindings (the old-format data path)
+    → In practice this runs on the fallback path (single search), not the multi-search path
+  - Stores allResearchData in memory.lastResearch
+  - updateCycleState: if campaignPlan.qualificationCriteria → phase='pre-qualify', else phase='email'
+
+PHASE: pre-qualify (only if campaignPlan has qualificationCriteria)
+  - executeFunction → preQualifyLead()
+  - Reads memory.lastResearch (organic snippets, top 5)
+  - [LLM CALL #10 — gpt-4o-mini, qualification prompt, ~300 tokens out]
+  - If score < 20 → SKIP lead, get next from queue or search again
+  - If score >= 20 → updateCycleState sets phase='qualify'
+
+PHASE: qualify
+  - executeFunction → qualifyLead()
+  - Reads memory.lastResearch (citedFacts from webpage extraction)
+  - [LLM CALL #11 — gpt-4o-mini, tiered qualification, ~1500 tokens out]
+  - Produces: tier (HIGHLY_QUALIFIED/QUALIFIED/SHOTGUN/REJECT), score, reasoning, emailHooks, buyerMotivation, citedEvidence
+  - If REJECT: refund credits, rotate keyword, get next lead
+  - If qualified: stores memory.currentQualification with full aiReport
+  - updateCycleState: if lead has email → phase='build', else phase='email'
+
+PHASE: email (unlock email if not already present)
+  - executeFunction → unlockEmail(parameters)
+  - Apollo search (mixed_people/api_search) by person name + domain/company
+  - Apollo enrich (people/enrich) to get actual email
+  - ZeroBounce validation (non-blocking, rejects only spamtrap/do_not_mail)
+  - updateCycleState: phase='build' if success, or skip lead if failure
+
+PHASE: build
+  - executeFunction → buildPersonalizedEmail()
+  - First runs runSupportingResearch() if not already done:
+    → Checks Zilliz RAG for industry facts
+    → Serper search for industry statistics [LLM CALL #12 — gpt-4o-mini, industry stats extraction]
+    → Serper search for user company wins [LLM CALL #13 — gpt-4o-mini, company wins extraction]
+    → Each with up to 3 URL fetches + insight extraction calls
+  - Queries Zilliz RAG for relevant facts (queryRelevantFacts)
+  - If useTemplates=true: fills merge tags, optionally generates subject [LLM CALL #14 — gpt-4o-mini]
+  - If AI mode (default):
+    → [LLM CALL #15 — gpt-4o (full model), Sales Strategist reasoning, ~900 tokens out]
+    → Mistral email generation [LLM CALL #16 — mistral-medium-latest, ~300 tokens out]
+    → Optionally subject line generation if strategist didn't produce one [LLM CALL #17 — gpt-4o-mini]
+    → [LLM CALL #18 — gpt-4o-mini, lead confidence analysis, ~200 tokens out]
+  - Appends unsubscribe footer
+  - Returns { success, email body, subject, confidenceReport, confidenceLevel, salesAngle }
+  - updateCycleState: leadsProcessed++, get next lead, phase='research' or 'search' or 'complete'
+
+POST-EMAIL
+  - addToEmailQueue() called from updateCycleState
+  - Stores to DynamoDB email queue
+  - Tracks contact in contactedLeads DB (addContactedLead)
+  - Optional CRM sync (syncLeadToCRMUnified or addNoteToExistingCRMContact)
+  - Broadcasts SSE events to frontend
+
+CYCLE END
+  - When processingPhase='complete' or stepCount>=5000 or empty searches >= 8
+  - logCycleCompletion to DynamoDB
+  - runLoop schedules next cycle via setTimeout (default 30 minutes)
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 2: ALL LLM CALLS — DECISION POINTS
+────────────────────────────────────────────────────────────────────────────────
+
+════════════════════════════════════════════════════════════════════════
+LLM CALL #1: reason() — The Main Orchestration Call
+Lines: 1096–1369
+Function: reason(context)
+Model: gpt-4o-mini
+════════════════════════════════════════════════════════════════════════
+
+PURPOSE: Decide which tool/function to call next in the agent loop.
+
+PROMPT SIZE:
+  Input: ~150 tokens (comment at line 1095 claims "61% savings" from 700→150 tokens)
+  The prompt is:
+    "Lead agent cycle decision:
+     STATUS:
+     Settings: ✓/✗ | Email templates: ✓/✗
+     Progress: X/Y | Phase: <phase>
+     Lead: <name> (<company>, domain: <domain>)
+     Complete: <bool>
+     Call the appropriate function to continue the workflow."
+  Then the full tools[] array is passed as OpenAI function definitions.
+  The tools[] array adds ~300–500 tokens in schema overhead.
+  Total: roughly 450–700 tokens per call.
+
+CONTEXT PASSED:
+  - Whether user/email settings are loaded (booleans)
+  - leads processed / target leads
+  - processingPhase ('search', 'research', 'pre-qualify', 'qualify', 'email', 'build', 'complete')
+  - currentLead name/company/domain (if active)
+  - cycleComplete (bool)
+
+WHAT IT'S DECIDING:
+  Which of 7 tools to call:
+    get_user_settings, get_email_settings, lead_search, serper_research,
+    unlock_email, build_personalized_email, pre_qualify_lead, qualify_lead
+
+COULD THIS BE HARDCODED?
+  YES. Almost completely. See determineFunctionCall() at lines 1372–1433,
+  which already hardcodes the exact same logic as a fallback:
+    - No user settings → get_user_settings
+    - No email settings → get_email_settings
+    - cycleComplete → 'none'
+    - phase='search' + no lead + empty queue → lead_search
+    - phase='pre-qualify' + lead → pre_qualify_lead
+    - phase='research' + lead → serper_research
+    - phase='qualify' + lead → qualify_lead
+    - phase='email' + lead + no email → unlock_email
+    - phase='email' + lead + email → build_personalized_email
+    - phase='build' + lead → build_personalized_email
+
+  The LLM is called AFTER determineFunctionCall() builds the forced function_call
+  parameter, so the LLM is ALREADY forced to call a specific function. It only
+  provides "reasoning" text in message.content. The actual decision is hardcoded.
+
+GENUINELY BRANCHES? NO.
+  The function_call parameter is passed as { name: 'specific_tool' } or 'auto'.
+  When forced, the LLM cannot deviate. The only time 'auto' is returned is when
+  processingPhase is 'paused' or cycleComplete=true — and in those cases the
+  loop already breaks before reason() would have a meaningful effect.
+
+WHAT HAPPENS IN EACH BRANCH:
+  Always calls the same function that determineFunctionCall() would return.
+  The only "branch" is the error fallback (lines 1281–1368) when OpenAI is rate-
+  limited — which runs identical deterministic logic.
+
+REMOVING IT WOULD BREAK ANYTHING?
+  No. You could replace reason() entirely with determineFunctionCall() + a direct
+  call to executeFunction(). The LLM adds:
+    - A human-readable "reasoning" string logged to console/UI
+    - Parameters for lead_search (query, companySize, location, industries, position)
+      BUT the parameters are mostly ignored because leadSearch() uses its own internal
+      keyword rotation and position selection logic, not the GPT-provided parameters.
+
+  VERDICT: This call costs money every cycle step (~6–8 calls per lead processed)
+  for zero decision-making value. The entire reason() function could be replaced
+  by a 30-line deterministic router with no loss of functionality. This is the
+  single largest optimization opportunity in the file.
+
+ESTIMATED CALLS PER LEAD: ~6–8 (settings load ×2, search ×1, research ×1,
+  pre-qualify ×1, qualify ×1, email-unlock ×1, build-email ×1)
+COST: ~4,000–6,000 tokens per lead at gpt-4o-mini pricing.
+
+════════════════════════════════════════════════════════════════════════
+LLM CALL #2: generatePlanDescription()
+Lines: 447–493
+Function: generatePlanDescription(plan, originalInstructions)
+Model: gpt-4o-mini
+════════════════════════════════════════════════════════════════════════
+
+PURPOSE: Produce a 1-sentence UI label for the campaign plan ("Targeting X in Y for Z").
+
+PROMPT SIZE: ~100–150 tokens in, max_tokens=50 out.
+
+CONTEXT PASSED:
+  - Original campaign instructions
+  - searchStrategy.additionalKeywords, priorityIndustries
+  - qualificationCriteria.mustHave
+
+WHAT IT'S DECIDING: Word choice for a display label.
+
+COULD THIS BE HARDCODED? YES, trivially.
+  Fallback at line 490: "Targeting prospects matching: ${keywords}"
+  This fallback is equivalent and doesn't require an LLM call.
+
+GENUINELY BRANCHES? NO.
+REMOVING IT: Safe. Replace with the fallback at line 490. Zero functional impact.
+CALLED: Once per agent start when specialInstructions present. Tiny cost.
+
+════════════════════════════════════════════════════════════════════════
+LLM CALL #3: convertInstructionsToPlan()
+Lines: 499–622
+Function: convertInstructionsToPlan(specialInstructions, userSettings)
+Model: gpt-4o-mini
+════════════════════════════════════════════════════════════════════════
+
+PURPOSE: Parse freeform campaign instructions into structured JSON plan with:
+  searchStrategy (keywords, priorityIndustries, excludeKeywords)
+  qualificationCriteria (mustHave, niceToHave, disqualifiers)
+  researchFocus (keyQuestions, signalsToLookFor, verificationNeeds)
+  emailMessaging (primaryValue, keyPoints, callToAction, tone)
+
+PROMPT SIZE: ~600–800 tokens in. No explicit max_tokens limit set.
+
+CONTEXT PASSED:
+  - Full specialInstructions (user-written text, any length)
+  - userSettings: companyName, primaryService, coreOffering, keyAdvantages,
+    companyIndustries, targetPositions, companySizeMin/Max
+
+WHAT IT'S DECIDING: Structured parsing of unstructured text.
+
+COULD THIS BE HARDCODED? NO — this is genuine NLU work.
+  The user can write anything. "Target independent hotel owners with <50 rooms in
+  the Southeast who are still using paper reservation books." The LLM must extract
+  structured criteria. This is the only LLM call in the file that is genuinely
+  necessary for its stated purpose.
+
+GENUINELY BRANCHES? YES — complex branching within the JSON it returns.
+
+REMOVING IT: Would break campaign-specific targeting, pre-qualification, and
+  email personalization (the campaignPlan drives all three phases).
+
+NOTE: qualificationCriteria from this call can be overridden by the user's
+  manually saved qualificationCriteria in settings (lines 9077–9085), making
+  the LLM's extraction irrelevant for criteria if the user configures them
+  manually. The searchStrategy and emailMessaging are used even then.
+
+════════════════════════════════════════════════════════════════════════
+LLM CALL #4: validateSearchPair()
+Lines: 6368–6403
+Function: validateSearchPair(keyword, position)
+Model: gpt-3.5-turbo
+════════════════════════════════════════════════════════════════════════
+
+PURPOSE: Check whether a job title (e.g., "VP of Engineering") actually appears
+  on LinkedIn/Apollo for companies in the given industry (e.g., "hospitality").
+  Returns { valid: true/false, reason: "..." }.
+
+PROMPT SIZE: ~80–120 tokens in, max_tokens=80.
+
+CONTEXT PASSED:
+  - keyword (industry/niche)
+  - position (job title)
+  - company context (companyName, services, targetMarket from userSettings)
+
+WHAT IT'S DECIDING: Is this keyword+position pair worth an Apollo API call?
+
+COULD THIS BE HARDCODED? PARTIALLY.
+  A static lookup table of industry→valid titles would cover most cases.
+  But the long tail of AI-generated keywords/positions makes a table impractical.
+  For base user-configured positions, a simple validation on agent start would suffice.
+
+GENUINELY BRANCHES? YES — validates, then the result is cached in memory.validatedPairs
+  and permanently prevents wasted Apollo calls for that pair.
+
+REMOVING IT: Means wasted Apollo API credits on invalid pairs. Keep it but note:
+  it's called per unique pair (memoized), so cost is bounded by (keywords × positions).
+  At gpt-3.5-turbo prices this is negligible.
+
+NOTE: Uses gpt-3.5-turbo (cheapest available). Good choice for this task.
+
+════════════════════════════════════════════════════════════════════════
+LLM CALL #5: generateDynamicTargetPositions()
+Lines: 6554–6628
+Function: generateDynamicTargetPositions(industryKeyword, originalPositions, generalInstructions)
+Model: gpt-3.5-turbo
+════════════════════════════════════════════════════════════════════════
+
+PURPOSE: After 20 leads found, generate industry-specific job titles to expand
+  search beyond the user's original position list.
+  e.g., for "fintech" industry → ["CFO", "VP Finance", "Financial Controller", ...]
+
+PROMPT SIZE: ~300 tokens in, max_tokens=150.
+
+CONTEXT PASSED:
+  - industryKeyword (current search keyword)
+  - originalPositions (user's configured positions)
+  - generalInstructions (specialInstructions text)
+  - companyProfile.services, targetMarket
+
+WHAT IT'S DECIDING: Which job titles to target in this specific industry.
+
+COULD THIS BE HARDCODED? PARTIALLY.
+  A map of industry→common decision-maker titles is maintained by the prompt
+  itself. You could hardcode 10–15 industry→title mappings and cover 90% of cases.
+  The LLM is valuable for the long tail.
+
+GENUINELY BRANCHES? YES — distinct output per industry. Drives subsequent Apollo searches.
+
+REMOVING IT: Agent would only search user-configured positions forever after
+  the first 20 leads. Would reduce variety but not break anything critically.
+
+CALLED: Once per keyword change, after 20 total leads found. Low frequency.
+
+════════════════════════════════════════════════════════════════════════
+LLM CALL #6: generateRelatedIndustryKeywordsAndPositions()
+Lines: 6405–6488
+Function: generateRelatedIndustryKeywordsAndPositions(userIndustries, basePositions)
+Model: gpt-3.5-turbo
+════════════════════════════════════════════════════════════════════════
+
+PURPOSE: After cycling through all base + AI keyword pairs, generate 5 new
+  industry+position pairs of buyers for the user's product.
+  e.g., selling "HR Software" → [("manufacturing", "Chief People Officer"), ...]
+
+PROMPT SIZE: ~400 tokens in, max_tokens=300.
+
+CONTEXT PASSED:
+  - userIndustries (the user's configured industry list)
+  - basePositions
+  - companyProfile: companyName, services, targetMarket, coreOffering
+
+WHAT IT'S DECIDING: Which new markets to expand into for lead generation.
+
+COULD THIS BE HARDCODED? For most products, a static buyer persona map would suffice.
+  But this is genuinely valuable for the long tail of use cases.
+
+GENUINELY BRANCHES? YES — completely different output per user/product type.
+
+REMOVING IT: Agent would stop expanding after exhausting base keywords. Would
+  eventually loop or stop. Should be kept.
+
+CALLED: Once per full keyword cycle (infrequent, when all keywords exhausted).
+
+NOTE: There is also a deprecated generateRelatedIndustryKeywords() at lines 6491–6548
+  (old function, marked as DEPRECATED, not called anywhere active). It can be deleted.
+
+════════════════════════════════════════════════════════════════════════
+LLM CALL #7: serperResearch() — Webpage Insight Extraction (per webpage)
+Lines: 3243–3334
+Function: serperResearch(), inner loop
+Model: gpt-4o-mini
+════════════════════════════════════════════════════════════════════════
+
+PURPOSE: Extract relevant business facts about the prospect company from
+  a fetched webpage's content. Filters noise and returns bullet points.
+
+PROMPT SIZE: ~400–800 tokens depending on webpage content (content is passed in,
+  truncated by the webpage fetcher but still potentially large).
+  max_tokens=300.
+  Called up to 9 times per lead (3 searches × 3 URLs each).
+
+CONTEXT PASSED:
+  - companyName (for relevance check)
+  - webpage.title + webpage.content (the fetched HTML text)
+  - search.purpose ('company_overview', 'recent_developments', 'user_company_success', 'industry_statistics')
+  - For user_company_success: special [METRIC] extraction instructions
+
+WHAT IT'S DECIDING: Which facts from this webpage are worth keeping.
+
+COULD THIS BE HARDCODED? NO — full NLU task on arbitrary web content.
+
+GENUINELY BRANCHES? YES — output varies with every webpage. The extracted facts
+  directly feed into qualification and email personalization.
+
+REMOVING IT: Would eliminate research-based personalization entirely. Keep it.
+  But see REDUNDANCY NOTE below.
+
+════════════════════════════════════════════════════════════════════════
+LLM CALL #8: serperResearch() — LinkedIn Snippet Extraction
+Lines: 3144–3203
+Function: serperResearch(), LinkedIn branch
+Model: gpt-4o-mini
+════════════════════════════════════════════════════════════════════════
+
+PURPOSE: Extract authored LinkedIn posts by the prospect from Serper search
+  snippets (since LinkedIn blocks direct scraping).
+
+PROMPT SIZE: ~300–500 tokens in, max_tokens=200.
+
+CONTEXT PASSED:
+  - personName, title, companyName
+  - snippets from Serper LinkedIn search results (up to 5 snippets)
+
+WHAT IT'S DECIDING: Which snippets show authored content (not mere reactions/shares).
+
+COULD THIS BE HARDCODED? NO — requires understanding of social content attribution.
+
+GENUINELY BRANCHES? YES — sometimes returns "NO RELEVANT DATA", sometimes actual posts.
+
+REMOVING IT: Would lose LinkedIn-sourced personalization hooks. Can be disabled
+  for cost savings with minimal impact (LinkedIn data quality is low from snippets).
+
+════════════════════════════════════════════════════════════════════════
+LLM CALL #9: analyzeResearchFindings()
+Lines: 2143–2281
+Function: analyzeResearchFindings(companyName, findings)
+Model: gpt-4o-mini
+════════════════════════════════════════════════════════════════════════
+
+PURPOSE: Analyze a set of research findings to explain strategic importance:
+  BUSINESS TYPE, KEY INSIGHTS, LEAD VALUE, APPROACH.
+  Output is emitted to the SSE progress stream as a "Research Analysis" event.
+
+PROMPT SIZE: ~500–1000 tokens in (research content is passed in full), max_tokens=500.
+
+CONTEXT PASSED:
+  - companyName
+  - contentFindings (answer box, knowledge graph, top 3 organic snippets)
+  - userSettings context (product, company, value props, target industries)
+
+WHAT IT'S DECIDING: How to describe the strategic value of this lead for the UI.
+
+COULD THIS BE HARDCODED? YES — this call only affects the SSE progress display.
+  It does NOT feed into qualification, email generation, or any downstream decision.
+  The output is: a summary string shown in the activity log. Nothing else reads it.
+
+GENUINELY BRANCHES? NO — for functional purposes. The analysis is purely for display.
+
+REMOVING IT: SAFE. This is the most obviously removable LLM call in the file.
+  It runs inside the fallback/single-search path (lines 3520–3535), which means it
+  only fires when there is NO campaignPlan (i.e., the research runs a single generic
+  search). In practice with a campaign plan, this call never fires. Without a campaign
+  plan, research is minimal and this call costs ~500 tokens to generate a UI string.
+
+════════════════════════════════════════════════════════════════════════
+LLM CALL #10: preQualifyLead()
+Lines: 2385–2589
+Function: preQualifyLead(parameters)
+Model: gpt-4o-mini
+════════════════════════════════════════════════════════════════════════
+
+PURPOSE: Quick pre-screening gate. Reads research organic snippets and checks
+  against campaign mustHave/disqualifiers. Returns score 0–100 and SKIP/RESEARCH.
+
+PROMPT SIZE: ~400–600 tokens in. max_tokens=300.
+
+CONTEXT PASSED:
+  - leadData (name, title, company, industry)
+  - researchSummary (top 5 organic snippets from Serper, ≤180 chars each)
+  - criteria.mustHave list
+  - criteria.disqualifiers list
+
+WHAT IT'S DECIDING: Whether to skip this lead (score < 20) or proceed to
+  detailed qualification.
+
+COULD THIS BE HARDCODED? PARTIALLY.
+  The disqualifier check (e.g., "educational institution") could be done with a
+  keyword/regex filter before the LLM. That alone would save many LLM calls.
+  The nuanced scoring (50–79 range) genuinely requires LLM judgment.
+
+GENUINELY BRANCHES? YES — SKIP vs RESEARCH is a real functional branch.
+  SKIP: drops the lead, gets next from queue, saves a Serper+qualify+build pipeline.
+  RESEARCH: proceeds to qualify (another LLM call).
+
+REMOVING IT: Would miss early disqualification, resulting in wasted research and
+  qualification calls for junk leads. Keep it, but could add a regex pre-filter
+  to avoid this call for obvious disqualifiers.
+
+NOTE: Only runs if campaignPlan.qualificationCriteria exists. Without a campaign
+  plan, this phase is skipped entirely (line 3650).
+
+════════════════════════════════════════════════════════════════════════
+LLM CALL #11: qualifyLead()
+Lines: 2595–3006
+Function: qualifyLead(parameters)
+Model: gpt-4o-mini
+════════════════════════════════════════════════════════════════════════
+
+PURPOSE: Full tiered qualification. Assigns tier (HIGHLY_QUALIFIED/QUALIFIED/SHOTGUN/REJECT),
+  score 0–100, confidence, reasoning, buyer motivation, emailHooks, citedEvidence.
+  This is the most important LLM call in the pipeline — its output drives:
+    1. Whether to send an email at all (REJECT → skip)
+    2. Email personalization depth (tier)
+    3. buyerMotivation fed directly to the sales strategist
+    4. emailHooks used in email construction
+    5. citedEvidence used in email construction
+    6. requiresReview flag on the queued email
+
+PROMPT SIZE: ~2,000–4,000 tokens in (varies with research depth). max_tokens=1500.
+  The prompt includes the full qualification logic with extensive examples,
+  tier descriptions, buyer motivation framework, etc.
+
+CONTEXT PASSED:
+  - leadData (name, title, company, industry, employees)
+  - researchSummary (all citedFacts from webpage extraction, with source URLs)
+  - primaryService, coreOffering (from email settings)
+  - qualificationCriteria (mustHave, niceToHave, disqualifiers from campaign plan)
+
+WHAT IT'S DECIDING:
+  - Tier assignment (functional branch: REJECT exits early)
+  - buyerMotivation (feeds into email generation)
+  - emailHooks (feeds into email generation)
+  - emailStrategy advice (used in buildPersonalizedEmail)
+  - confidence level (determines requiresReview flag)
+
+COULD THIS BE HARDCODED? NO. This is genuine assessment that requires understanding
+  of the research content and business context.
+
+GENUINELY BRANCHES? YES — REJECT stops the pipeline, all other tiers continue.
+  SHOTGUN tier sets requiresReview=true, which surfaces in the email queue UI.
+
+REMOVING IT: Would break the qualification gate entirely. Keep it.
+
+NOTE: If no campaignPlan exists, this function returns early with hardcoded SHOTGUN
+  tier at lines 2616–2633, so the LLM is never called without a campaign plan.
+
+════════════════════════════════════════════════════════════════════════
+LLM CALL #12 & #13: runSupportingResearch() — Industry Stats & Company Wins
+Lines: 3714–3745 (industry stats), 3789–3797 (company wins)
+Function: runSupportingResearch()
+Model: gpt-4o-mini
+════════════════════════════════════════════════════════════════════════
+
+PURPOSE:
+  #12: Extract numeric industry statistics from fetched webpages.
+       e.g., "Global IT spending to reach $5.1T in 2024, up 8% YoY"
+  #13: Extract company achievements from the user's own company website.
+       e.g., "50,000+ investors on platform, $500M deployed"
+
+PROMPT SIZE: ~400–700 tokens each, max_tokens=300.
+  Can fire up to 3 times each (3 URLs per Serper search).
+
+CONTEXT PASSED:
+  - webpage.title + webpage.content
+  - Industry keyword or userCompanyName
+
+WHAT IT'S DECIDING: Which facts to extract as proof points for email credibility.
+
+COULD THIS BE HARDCODED? NO — arbitrary web content requires NLU.
+
+GENUINELY BRANCHES? YES — output either has facts or "NO RELEVANT DATA."
+  Facts feed directly into the email prompt as INDUSTRY STATS and company proof points.
+
+REMOVING IT: Would eliminate industry-stats-based credibility in emails.
+  Company wins section is often empty (no-op when user company isn't mentioned online).
+  Industry stats are cached in Zilliz RAG after first extraction — so cost amortizes
+  across many leads in the same industry.
+
+CACHING: Industry stats cache at memory.industryStatsCache (3-day TTL) + Zilliz RAG.
+  Company wins cache at memory.companyWinsCache (3-day TTL).
+  Good — these calls are deduped by industry.
+
+════════════════════════════════════════════════════════════════════════
+LLM CALL #14: Template mode subject generation
+Lines: 4497–4509
+Function: buildPersonalizedEmail(), template branch
+Model: gpt-4o-mini
+════════════════════════════════════════════════════════════════════════
+
+PURPOSE: If no subject is in the template, generate one from the filled template body.
+
+PROMPT SIZE: ~150 tokens in, max_tokens=20.
+
+CONTEXT: Filled template body.
+
+COULD THIS BE HARDCODED? YES — "Quick question for {firstName}" is the fallback
+  at line 4506. Acceptable default. Could hardcode subject variants.
+
+GENUINELY BRANCHES? Minimal — only fires when template has no subject field.
+REMOVING IT: Safe with fallback in place.
+
+════════════════════════════════════════════════════════════════════════
+LLM CALL #15: Sales Strategist (Pre-write Reasoning Chain)
+Lines: 4540–4648
+Function: buildPersonalizedEmail(), salesStrategist block
+Model: gpt-4o (FULL MODEL — most expensive per token)
+════════════════════════════════════════════════════════════════════════
+
+PURPOSE: Before writing the email, answer 6 questions:
+  1. CAREER FEAR — personal risk for this person in this role
+  2. DEFERRED DECISION — what they keep avoiding
+  3. WINNING MOVE — what they get credit for if they buy
+  4. TOP OBJECTION — most likely reason for no reply + preemption strategy
+  5. SHARPEST INTERSECTION — specific tension connecting their world to the product
+  6. ONE-LINE ANGLE — the email's entire argument in one sentence
+
+  Also outputs: SUBJECT_TYPE and SUBJECT (suggested subject line).
+
+PROMPT SIZE: ~1,000–1,500 tokens in. max_tokens=900.
+
+CONTEXT PASSED:
+  - leadData (name, title, company, industry, employees)
+  - emailSettings (primaryService, keyAdvantages, companyName)
+  - topEmailFacts (top 4 cited facts from aiReport)
+  - ragFacts (up to 2 Zilliz industry stats)
+  - resolvedMotivation (buyerMotivation from qualification)
+  - Enterprise tone rules if employeeCount >= 500
+
+WHAT IT'S DECIDING: The persuasion strategy and angle for this specific email.
+
+COULD THIS BE HARDCODED? NO — requires genuine reasoning about the intersection of
+  the lead's situation and the product's value.
+
+GENUINELY BRANCHES? YES — the ONE-LINE ANGLE and SUBJECT are used directly in the
+  email prompt. The careerFear/winningMove fields inform the email copywriter.
+
+REMOVING IT: Would reduce email quality. The sales strategist was added to give
+  the email copywriter (Mistral) a focused angle rather than generic benefits.
+  The email would still be generated, just less strategically.
+
+NOTE: Uses gpt-4o (NOT mini). This is the most expensive individual call per lead.
+  Estimated ~2,000–2,500 tokens at gpt-4o pricing. Consider downgrading to gpt-4o-mini.
+  The 6-question format doesn't require full gpt-4o capability.
+
+════════════════════════════════════════════════════════════════════════
+LLM CALL #16: Email Generation (The Copywriter)
+Lines: 4890–4912
+Function: buildPersonalizedEmail(), email body generation
+Model: mistral-medium-latest (via OpenAI-compatible Mistral API)
+════════════════════════════════════════════════════════════════════════
+
+PURPOSE: Write the actual cold email body. The email copywriter executes on the
+  angle set by the Sales Strategist.
+
+PROMPT SIZE: ~800–1,400 tokens in (system + user combined). max_tokens=300.
+
+SYSTEM PROMPT INCLUDES:
+  - Hard rules (no em dashes, no narrating observations)
+  - Personality type (HUNTER/RELATIONSHIP/ANALYST/CONSULTANT/NETWORKER)
+  - Disposition description (style guidance)
+  - Opener pattern examples
+  - 3 randomly sampled "style nudges" from a personality-specific pool
+  - Format rules (short/medium/long), banned words list
+
+USER PROMPT INCLUDES:
+  - Year
+  - Optional customPrompt from email settings
+  - Prospect details (company, name, title, industry, employees)
+  - Buyer context (from salesAngle: angle, tension, objection, subject)
+  - Top facts (up to 4 cited facts from aiReport/research)
+  - Extra research (up to 3 compact research snippets)
+  - Industry stats (up to 2 RAG facts)
+  - Solution (product, benefits, company, proof points)
+  - Campaign messaging if applicable
+  - Subject guidance
+  - Signature
+
+WHAT IT'S DECIDING: The full email body text.
+
+COULD THIS BE HARDCODED? NO — this is the core creative output of the system.
+
+GENUINELY BRANCHES? YES — every email is different.
+
+REMOVING IT: Would eliminate the system's core value. Keep it.
+
+NOTE: Mistral is used (not OpenAI). This is a deliberate cost/quality choice.
+  mistral-medium-latest is cheaper than gpt-4o-mini at similar quality for creative writing.
+  Rate limiting is handled via a concurrency slot (emailGenerationConcurrency=1).
+
+════════════════════════════════════════════════════════════════════════
+LLM CALL #17: Fallback Subject Line Generation
+Lines: 4996–5058
+Function: buildPersonalizedEmail(), fallback subject generator
+Model: gpt-4o-mini
+════════════════════════════════════════════════════════════════════════
+
+PURPOSE: Generate a subject line from the email body, only when:
+  (a) the Sales Strategist didn't run (error), AND
+  (b) the email body doesn't contain a SUBJECT: header
+
+PROMPT SIZE: ~300–400 tokens in, max_tokens=30.
+
+CONTEXT: Email body, lead name/company/title/size, rules.
+
+GENUINELY BRANCHES? RARELY FIRES — the Sales Strategist almost always produces a subject.
+
+COULD THIS BE HARDCODED? YES — the fallback "Quick question" at line 4985 is fine.
+  But keeping a cheap subject generator as backup is reasonable.
+
+════════════════════════════════════════════════════════════════════════
+LLM CALL #18: Lead Confidence Analysis
+Lines: 5061–5133
+Function: buildPersonalizedEmail(), confidence report
+Model: gpt-4o-mini
+════════════════════════════════════════════════════════════════════════
+
+PURPOSE: Produce a 4-sentence confidence report on the lead for UI display:
+  research quality, fit assessment, response likelihood, overall confidence.
+
+PROMPT SIZE: ~300 tokens in, max_tokens=200.
+
+CONTEXT: leadData (name, title, company, industry), topEmailFacts, qualificationScore/strengths/weaknesses.
+
+WHAT IT'S DECIDING: Word choice for a UI label.
+
+COULD THIS BE HARDCODED? YES. The qualityLead() call already returns:
+  tier, score, confidence, reasoning, keyStrengths, weaknesses.
+  The confidenceReport is a re-description of information that already exists.
+  It is stored in the email queue record and shown in the queue UI.
+  The confidenceLevel is extracted by keyword scan (lines 5115–5133) which is
+  itself just keyword matching on the response text.
+
+GENUINELY BRANCHES? NO — for functional purposes. Only affects display.
+
+REMOVING IT: SAFE. Replace with a template string built from qualification data.
+  e.g., "Tier: QUALIFIED (72/100). Research: 4 cited facts. Fit: MEDIUM confidence.
+  Key strength: Recent funding round. Concern: No direct buyer signal."
+  This would be more structured and cheaper.
+
+════════════════════════════════════════════════════════════════════════
+DEPRECATED LLM CALL: generateRelatedIndustryKeywords() (NOT CALLED)
+Lines: 6491–6548
+Model: gpt-3.5-turbo
+════════════════════════════════════════════════════════════════════════
+
+This function is marked DEPRECATED and is not called anywhere. It can be deleted.
+The active version is generateRelatedIndustryKeywordsAndPositions() (LLM CALL #6).
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 3: REDUNDANT CALLS
+────────────────────────────────────────────────────────────────────────────────
+
+REDUNDANCY #1: Double DynamoDB read for user settings
+  getUserSettings() (lines 2284–2336) calls BOTH:
+    - getLeadAgentSettings(userId, agentId)  [the full agent settings object]
+    - getUserSettings(userId)                [general user settings for companyProfile]
+
+  getEmailSettings() (lines 2339–2377) calls:
+    - getLeadAgentSettings(userId, agentId)  [again — same item already fetched above]
+
+  So when the agent starts a cycle, it calls getLeadAgentSettings TWICE in succession.
+  The two calls are to the same DynamoDB table, same agentId. The second call is entirely
+  redundant. Fix: cache the result of getLeadAgentSettings in the first call and pass
+  it to getEmailSettings. Or merge getUserSettings + getEmailSettings into one call.
+
+  executeReasoningCycle() also calls getUserSettings() separately at lines 9060–9062
+  to get tempSettings for convertInstructionsToPlan, making a THIRD call to the same
+  DynamoDB item before the main loop even starts.
+
+REDUNDANCY #2: Apollo enrichment in leadSearch duplicated in unlockEmail
+  During leadSearch() (lines 5870–5938), EVERY lead with has_email=true is:
+    (a) Found via mixed_people/api_search
+    (b) Immediately enriched via people/enrich to get the actual email address
+
+  Then, if the enriched email is somehow null or missing, the agent later runs
+  unlockEmail() (phase='email'), which:
+    (a) Searches AGAIN via mixed_people/api_search for the same person
+    (b) Enriches AGAIN via people/enrich
+
+  This double-enrichment shouldn't happen in the happy path (leadSearch already
+  sets lead.email, so updateCycleState at line 1671 jumps to phase='build' not 'email').
+  But if leadSearch enrichment yields no email and the lead still passes dedup,
+  unlockEmail runs a second search+enrich cycle.
+
+  The leadSearch enrichment also always enriches every lead it finds, even ones that
+  will be disqualified and never emailed. This wastes Apollo credits on research-phase
+  leads that get REJECTed. Consider moving enrichment to after qualification.
+
+REDUNDANCY #3: Research called twice per lead in concurrent processLeadPipeline
+  processLeadPipeline() (lines 7845–8013) is the concurrent path (concurrencyLevel > 1).
+  It calls qualifyLead() directly (line 7884) without checking if pre-qualification
+  should run first. This means concurrent mode skips preQualifyLead entirely — it goes
+  straight to the expensive qualifyLead() call regardless of whether the lead should
+  be screened first. The sequential path does pre-qualify → qualify as two separate gates.
+
+REDUNDANCY #4: memory.lastResearch written twice in serperResearch
+  serperResearch() sets memory.lastResearch at:
+    line 3387: this.memory.lastResearch = allResearchData;  (during search loop)
+    line 3552: this.memory.lastResearch = researchResults;  (final return object)
+  The second assignment is to the same data wrapped with additional fields. This is not
+  a logic bug but is confusing and slightly wasteful.
+
+REDUNDANCY #5: analysisPrompt for research analysis only fires on fallback path
+  analyzeResearchFindings() at lines 3519–3535 is only called when there are
+  contentFindings (from the old data format — answerBox, knowledge graph, organic snippets).
+  In the multi-search path (when campaignPlan exists), contentFindings is usually empty
+  because the data is in allResearchData.searches[].webpageInsights[], not in the old
+  top-level structure. So LLM CALL #9 almost never fires in production.
+
+REDUNDANCY #6: DynamoDB user lookup in addToEmailQueue
+  addToEmailQueue() at lines 7725–7729 calls awsManager.getUserById() to check if
+  CRM is connected. This is a full DynamoDB read on every queued email.
+  The user data (crmConnected, crmAutoSync) is unlikely to change during a cycle.
+  This should be cached in memory.userSettings instead of re-fetched per email.
+
+REDUNDANCY #7: getAgentName called on every SSE broadcast
+  broadcastAgentActivity() at lines 776–779 calls getLeadAgentSettings() to fetch the
+  agent's display name. This fires on EVERY SSE broadcast (multiple times per lead).
+  The agent name never changes during a cycle. Cache it in this.agentName at startup.
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 4: LLM MODEL USAGE SUMMARY AND COST ANALYSIS
+────────────────────────────────────────────────────────────────────────────────
+
+Models used:
+  gpt-4o-mini    — majority of calls (qualification, insight extraction, etc.)
+  gpt-4o         — Sales Strategist ONLY (one call per email)
+  gpt-3.5-turbo  — validateSearchPair, generateDynamicTargetPositions, generateRelatedKeywords
+  mistral-medium-latest — email body generation (one call per email)
+  anthropic SDK  — imported and client created but NEVER USED in this file
+                   (line 15: import Anthropic; line 59–61: this.anthropic = new Anthropic())
+                   Dead code. Remove it.
+
+Estimated LLM calls per lead processed (sequential mode, with campaign plan):
+  reason()           — 6–8 calls × ~600 tokens each = 3,600–4,800 tokens (gpt-4o-mini)
+  LinkedIn extract   — 1 call × ~350 tokens = 350 tokens (gpt-4o-mini)
+  webpage insights   — 3–9 calls × ~500 tokens each = 1,500–4,500 tokens (gpt-4o-mini)
+  pre-qualify        — 1 call × ~500 tokens = 500 tokens (gpt-4o-mini)
+  qualify            — 1 call × ~3,000 tokens = 3,000 tokens (gpt-4o-mini)
+  sales strategist   — 1 call × ~2,000 tokens = 2,000 tokens (gpt-4o — expensive)
+  email generation   — 1 call × ~1,000 tokens = 1,000 tokens (mistral-medium)
+  confidence report  — 1 call × ~300 tokens = 300 tokens (gpt-4o-mini)
+
+  Total per lead: ~8,250–15,450 LLM tokens (gpt-4o-mini equivalent) + 1 gpt-4o call + 1 Mistral call
+  Plus: 2 Serper searches, 1–2 Apollo searches, 3–6 webpage fetches, ZeroBounce validation
+
+OPTIMIZATION PRIORITIES (by impact):
+  1. Replace reason() with deterministic router — saves 3,600–4,800 gpt-4o-mini tokens per lead
+  2. Remove confidenceReport LLM call — saves 300 tokens, replace with template string
+  3. Remove analyzeResearchFindings() — rarely fires, saves ~500 tokens when it does
+  4. Downgrade Sales Strategist from gpt-4o to gpt-4o-mini — large cost reduction
+  5. Remove dead Anthropic import/client
+  6. Merge getUserSettings + getEmailSettings DynamoDB calls into one
+  7. Cache agent name in constructor instead of re-fetching on every SSE broadcast
+  8. Cache user CRM settings in memory.userSettings instead of per-email getUserById()
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 5: DECISION POINT DETAILS — BRANCHING ANALYSIS
+────────────────────────────────────────────────────────────────────────────────
+
+Does each LLM call genuinely affect downstream behavior?
+
+┌──────────────────────────────────┬────────────┬──────────────────────────────────────────┐
+│ LLM Call                         │ Branches?  │ What changes if removed/hardcoded        │
+├──────────────────────────────────┼────────────┼──────────────────────────────────────────┤
+│ reason() — orchestration         │ NO         │ Nothing — determineFunctionCall() is same│
+│ generatePlanDescription()        │ NO         │ UI label only, fallback works             │
+│ convertInstructionsToPlan()      │ YES        │ Campaign targeting, qual criteria, email  │
+│ validateSearchPair()             │ YES        │ Prevents wasted Apollo calls             │
+│ generateDynamicTargetPositions() │ YES        │ Which job titles searched in Apollo      │
+│ generateRelatedKeywordPairs()    │ YES        │ Which new industries searched after cycle│
+│ webpage insight extraction ×N    │ YES        │ Facts used in qual + email               │
+│ LinkedIn snippet extraction      │ YES        │ LinkedIn hooks for email personalization  │
+│ analyzeResearchFindings()        │ NO         │ UI display only, almost never fires      │
+│ preQualifyLead()                 │ YES        │ SKIP vs proceed — real gate              │
+│ qualifyLead()                    │ YES        │ REJECT, tier, buyerMotivation, hooks     │
+│ industry stats extraction        │ YES        │ Industry stats in email                  │
+│ company wins extraction          │ YES/WEAK   │ Often finds nothing; proof points in email│
+│ template subject generation      │ WEAK       │ Subject line only when template missing  │
+│ Sales Strategist                 │ YES        │ Email angle, subject, persuasion strategy│
+│ email body generation (Mistral)  │ YES        │ The email itself                         │
+│ fallback subject generation      │ RARE       │ Subject when strategist fails            │
+│ confidenceReport analysis        │ NO         │ UI display only                          │
+└──────────────────────────────────┴────────────┴──────────────────────────────────────────┘
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 6: OTHER NOTABLE FINDINGS
+────────────────────────────────────────────────────────────────────────────────
+
+FINDING 1: Dead Anthropic SDK
+  Lines 15, 59–61: Anthropic SDK is imported and instantiated but never used.
+  this.anthropic is initialized but no call to this.anthropic.* exists anywhere in the file.
+  Remove the import and constructor assignment.
+
+FINDING 2: findLeads() is an alternate agent loop that's likely unused
+  Lines 6631–6892: findLeads() is a completely separate execution loop that predates the
+  current executeReasoningCycle() pattern. It has its own while loop, duplicate research
+  and qualification calls, etc. It is likely not called by any route handler.
+  Verify and potentially remove this dead code path.
+
+FINDING 3: extractBusinessType(), extractKeyServices(), extractCompanyDetailsFromResearch(),
+  extractSpecificInsights(), calculateSimilarity(), extractCompetitivePosition(),
+  extractTechnologyStack(), assessResearchQuality() at lines 2067–7449
+  These are all pure-JS regex/pattern-matching functions used in addToEmailQueue() to
+  build the researchData object stored with each queued email. None of them affect
+  email generation directly. They add metadata to the queue record for the UI.
+  The output of extractSpecificInsights() in particular is large and complex. Verify
+  it's actually used by the frontend (it might just be stored and never displayed).
+
+FINDING 4: Stop signal race condition
+  The check `if (!this.isRunning) break;` appears in 3 places in the while loop
+  (lines 9142, 9210, 9238), but between them are async LLM calls that take 1–5 seconds.
+  A stop() call during an LLM call won't take effect until the next check. This is
+  acceptable for a JS async system but means the agent may complete one more step after stop().
+
+FINDING 5: templateMode bypasses all research, qualification, and strategist
+  If useTemplates=true (lines 4458–4533), the flow is:
+    → Fill merge tags in template body
+    → Optionally generate subject
+    → Return immediately
+  No research, no qualification, no strategist call. The buyerMotivation GATE at
+  lines 4406–4443 is also bypassed (template mode exits before the gate check).
+  So template mode sends emails to any lead regardless of qualification. This may
+  be intentional but is a significant behavioral difference from AI mode.
+
+FINDING 6: Concurrent mode (concurrencyLevel > 1) skips pre-qualification
+  processLeadPipeline() calls serperResearch → qualifyLead directly.
+  The pre-qualification phase (preQualifyLead) is absent. Sequential mode runs:
+  research → pre-qualify → qualify. Concurrent mode runs: research → qualify.
+  This inconsistency means concurrent mode does an extra qualifyLead() call that
+  preQualifyLead() would have prevented for low-scoring leads.
+
+FINDING 7: Apollo enrichment happens during search, wasting credits on rejected leads
+  leadSearch() enriches every lead immediately (people/enrich) to get emails.
+  If 10 leads are returned but 7 are later rejected by qualifyLead(), those 7 enrichment
+  credits were wasted. Moving enrichment to after qualification would save Apollo credits.
+  The current structure is: search → enrich all → dedup → qualify → (if qualified) use email.
+  Better: search → dedup → qualify → (if qualified) enrich for email.
+  Note: The `has_email` flag on Apollo search results indicates availability without
+  revealing the email, so enrichment can be deferred.
+
+FINDING 8: Bandit (Thompson Sampling) is functional but single-source in practice
+  The LeadSourceBandit is fully implemented and the code paths for multi-source switching
+  are all live. However, getAvailableSources() from leadSourceRegistry.js almost certainly
+  returns only Apollo in a standard deployment. The bandit logic adds overhead per search
+  (bandit.select, bandit.reward, bandit.flushToDB) that is effectively a no-op until a
+  second source is registered. This is future-proofing, not current waste.
+
+FINDING 9: Memory/Zilliz integration is non-blocking
+  leadMemory.storeKeywordPerformance() at line 6083 and industryFacts.upsertFacts() at
+  line 3869 are awaited inside the main loop, which means a Zilliz write failure causes
+  error logging but is caught and ignored. Good. But they DO add latency (network call)
+  to each search and supporting research cycle.
+
+FINDING 10: The safety limit maxSteps=5000 (line 9122) could loop for hours
+  Each step includes an LLM call (reason()) + at least one async action.
+  At 2–5 seconds per step, 5000 steps = 2.7–13.8 hours of continuous operation.
+  This is probably intentional for high-volume campaigns but should be verified.
+  The actual exit conditions (cycleComplete, empty searches >= 8) fire much sooner.
+
+
+────────────────────────────────────────────────────────────────────────────────
+SECTION 7: QUICK WINS SUMMARY
+────────────────────────────────────────────────────────────────────────────────
+
+IMMEDIATE (no behavior change, low risk):
+  A. Remove dead Anthropic SDK import + client initialization (lines 15, 59–61)
+  B. Remove deprecated generateRelatedIndustryKeywords() function (lines 6491–6548)
+  C. Cache agent name at startup (remove DynamoDB fetch in every broadcastAgentActivity call)
+  D. Cache user CRM settings in memory instead of getUserById() per email in addToEmailQueue
+  E. Remove analyzeResearchFindings() call (only fires on fallback path, output is UI-only)
+  F. Replace confidenceReport LLM call with a template string built from qualification data
+
+MEDIUM (behavior change in edge cases, medium risk):
+  G. Replace reason() LLM call with a direct call to the determineFunctionCall() logic.
+     The reason() function adds: (1) human-readable logging text, (2) GPT-chosen parameters
+     for lead_search. The parameters are mostly ignored (leadSearch has its own rotation).
+     Mitigation: keep the friendly logging (translateThinkingToFriendly already handles this).
+     Impact: Saves ~4,000–5,000 gpt-4o-mini tokens per lead (6–8 calls × 600 tokens).
+  H. Merge getUserSettings + getEmailSettings into a single DynamoDB read
+  I. Move Apollo enrichment to after qualification (save enrichment credits on rejected leads)
+  J. Add pre-qualification to concurrent processLeadPipeline() path for consistency
+
+COST OPTIMIZATION (quality tradeoff, evaluate carefully):
+  K. Downgrade Sales Strategist from gpt-4o to gpt-4o-mini
+     Risk: Slightly less nuanced angle selection. gpt-4o-mini is still very capable for this.
+     Savings: Large — gpt-4o is 5x more expensive than gpt-4o-mini per token.
+  L. Reduce insight extraction calls by limiting to 2 URLs per search (currently 3)
+     and/or 1 search (company overview only, skipping recent news for SHOTGUN tier)
+  M. Add a hard disqualifier regex check BEFORE preQualifyLead() to catch obvious cases
+     (educational institutions, nonprofits, government) without burning an LLM call
+
+================================================================================
+END OF AUDIT
+================================================================================

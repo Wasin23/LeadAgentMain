@@ -1091,280 +1091,43 @@ IMPORTANT RULES:
     }
   }
 
-  // Core reasoning function - the agent's "brain"
-  // 🎯 OPTIMIZED: Trimmed prompt for 61% cost savings (700 → 150 tokens)
+  // Core routing function - deterministic, no LLM call
   async reason(context) {
-    // Build lead info string with domain when available
-    let leadInfo = 'none';
-    if (context.currentLead) {
-      const domain = context.currentLead.organization?.primary_domain || context.currentLead.domain;
-      leadInfo = domain 
-        ? `${context.currentLead.name} (${context.currentLead.company}, domain: ${domain})`
-        : `${context.currentLead.name} (${context.currentLead.company})`;
+    const functionCall = this.determineFunctionCall(context);
+
+    let action, parameters;
+
+    if (!functionCall || functionCall === 'auto' || functionCall === 'none') {
+      action = 'think';
+      parameters = {};
+    } else {
+      action = functionCall.name;
+      parameters = this._buildParametersForAction(action, context);
     }
-    
-    const prompt = `Lead agent cycle decision:
 
-STATUS:
-Settings: ${context.hasUserSettings ? '✓' : '✗'} | Email templates: ${context.hasEmailSettings ? '✓' : '✗'}
-Progress: ${context.leadsProcessed}/${context.targetLeads} | Phase: ${context.processingPhase}
-Lead: ${leadInfo}
-Complete: ${context.cycleComplete}
+    console.log('[DECISION] Agent decided to use tool:', action);
 
-Call the appropriate function to continue the workflow.`;
+    return { reasoning: `Proceeding to ${action}`, action, parameters };
+  }
 
-    try {
-      const functionCall = this.determineFunctionCall(context);
-      
-      // Single OpenAI call with reasoning and function calling
-      const response = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [{ 
-          role: 'user', 
-          content: prompt + '\n\nYou MUST call a function. Briefly explain your reasoning, then immediately call the appropriate function to execute the action.'
-        }],
-        functions: this.tools,
-        function_call: functionCall,
-        temperature: 0.7
-      });
-      
-      // Log OpenAI API usage
-      if (response.usage) {
-        // Check rate limit before logging (for tracking purposes)
-        const rateCheck = await this.awsManager.checkApiRateLimit(
-          this.userId, 
-          'openai', 
-          response.usage.total_tokens
-        ).catch(err => {
-          console.error('⚠️ Rate limit check failed, allowing request:', err);
-          return { allowed: true };
-        });
-
-        await this.awsManager.logApiUsage({
-          userId: this.userId,
-          agentId: this.agentId,
-          service: 'openai',
-          operation: 'chat_completion',
-          usage: response.usage.total_tokens,
-          metadata: {
-            model: 'gpt-4o',
-            prompt_tokens: response.usage.prompt_tokens,
-            completion_tokens: response.usage.completion_tokens,
-            rateLimitStatus: rateCheck.allowed ? 'within_limits' : 'exceeded'
-          }
-        }).catch(err => console.error('Failed to log OpenAI usage:', err));
-
-        // Warn if approaching or exceeding limits
-        if (!rateCheck.allowed) {
-          console.warn(`[WARN] OpenAI ${rateCheck.reason} rate limit exceeded: ${rateCheck.current}/${rateCheck.limit} tokens`);
-        } else if (rateCheck.remaining) {
-          const checkRemaining = (limit, type) => {
-            if (limit !== null && limit < 1000) {
-              console.warn(`[WARN] OpenAI ${type} limit approaching: ${limit} tokens remaining`);
-            }
-          };
-          checkRemaining(rateCheck.remaining.hourly, 'hourly');
-          checkRemaining(rateCheck.remaining.daily, 'daily');
-          checkRemaining(rateCheck.remaining.monthly, 'monthly');
-        }
-      }
-      
-      const message = response.choices[0].message;
-      
-      if (message.function_call) {
-        // Extract reasoning from the content (even with function calls, GPT can provide reasoning)
-        const reasoning = message.content || `Decided to call ${message.function_call.name}`;
-        
-        console.log('[DECISION] Agent decided to use tool:', message.function_call.name);
-        console.log('[THINKING] Agent reasoning:', reasoning);
-        
-        // Safely parse function call arguments with error handling
-        let parameters = {};
-        try {
-          if (message.function_call.arguments) {
-            parameters = JSON.parse(message.function_call.arguments);
-          }
-        } catch (parseError) {
-          console.error('❌ [JSON PARSE] Invalid function arguments:', message.function_call.arguments);
-          console.error('❌ [JSON PARSE] Parse error:', parseError.message);
-          
-          // For build_personalized_email, we don't need parameters anyway
-          if (message.function_call.name === 'build_personalized_email') {
-            parameters = {};
-          } else {
-            // For other functions, return an error
-            return {
-              reasoning: `JSON parse error in function arguments: ${parseError.message}`,
-              action: 'pause',
-              parameters: { error: `Invalid JSON in ${message.function_call.name}: ${parseError.message}` }
-            };
-          }
-        }
-        
-        // Don't log the technical reasoning, just the action
-        
+  // Build parameters for each action from context — no LLM needed
+  _buildParametersForAction(action, context) {
+    const lead = context.currentLead;
+    switch (action) {
+      case 'unlock_email':
         return {
-          reasoning: reasoning,
-          action: message.function_call.name,
-          parameters: parameters
+          firstName: lead?.first_name,
+          lastName: lead?.last_name,
+          companyName: lead?.company || lead?.organization?.name,
+          domain: lead?.organization?.primary_domain || lead?.domain
         };
-      }
-
-      const reasoning = message.content || 'Agent is thinking...';
-      console.log('🤔 [THINKING] Agent reasoning:', reasoning);
-      
-      // Don't log pure thinking states to keep logs clean
-
-      return {
-        reasoning: reasoning,
-        action: 'think',
-        parameters: {}
-      };
-
-    } catch (error) {
-      console.error('❌ [REASONING] Error:', error);
-      
-      // Log OpenAI API errors as issues
-      if (error.status || error.code) {
-        const errorMsg = error.status === 401 ? 'OpenAI API authentication failed - check API key' :
-                        error.status === 429 ? 'OpenAI API rate limit exceeded' :
-                        error.status === 500 ? 'OpenAI API server error' :
-                        error.code === 'ENOTFOUND' ? 'OpenAI API connection failed - check internet connection' :
-                        `OpenAI API error: ${error.message}`;
-        this.logIssue('error', errorMsg, {
-          status: error.status,
-          code: error.code,
-          message: error.message,
-          timestamp: new Date().toISOString()
-        });
-      }
-      
-      // Handle specific OpenAI rate limit errors
-      if (error.status === 429) {
-        console.log('🚨 [EMERGENCY] OpenAI quota exceeded - initiating emergency stop');
-        
-        // Check if it's an insufficient_quota error (account has no credits)
-        if (error.code === 'insufficient_quota') {
-          console.error('❌ [CRITICAL] OpenAI account has no credits remaining!');
-          console.error('❌ [CRITICAL] Emergency stopping agent to prevent infinite retry loop');
-          
-          // Log the critical issue to monitoring
-          this.logIssue('critical', 'OpenAI quota exceeded - agent emergency stopped', {
-            error: error.message,
-            code: error.code,
-            status: error.status,
-            timestamp: new Date().toISOString(),
-            action: 'Add credits at https://platform.openai.com/account/billing'
-          });
-          
-          // Emit alert event for immediate notification
-          this.emitProgress('alert', {
-            type: 'critical',
-            title: '🚨 Emergency Stop: OpenAI Quota Exceeded',
-            message: 'Agent stopped due to insufficient OpenAI credits. Please add credits to your account.',
-            action: 'https://platform.openai.com/account/billing',
-            timestamp: new Date().toISOString()
-          });
-          
-          // Add emergency log
-          this.addLog('🚨 Emergency Stop: OpenAI quota exceeded. Please add credits to your OpenAI account.');
-          
-          // Stop the agent immediately
-          await this.stop();
-          
-          throw new Error('EMERGENCY STOP: OpenAI quota exceeded. Please add credits to your OpenAI account at https://platform.openai.com/account/billing');
-        }
-        
-        console.log('⚠️ [REASONING] OpenAI rate limit hit, using deterministic fallback logic');
-        
-        // Use deterministic logic when OpenAI is unavailable
-        if (!context.hasUserSettings) {
-          return {
-            reasoning: 'OpenAI unavailable, using fallback: need user settings',
-            action: 'get_user_settings',
-            parameters: {}
-          };
-        }
-        
-        if (!context.hasEmailSettings) {
-          return {
-            reasoning: 'OpenAI unavailable, using fallback: need email settings', 
-            action: 'get_email_settings',
-            parameters: {}
-          };
-        }
-        
-        if (context.cycleComplete) {
-          return {
-            reasoning: 'OpenAI unavailable, cycle complete',
-            action: 'complete',
-            parameters: {}
-          };
-        }
-        
-        // Deterministic phase-based logic
-        switch (context.processingPhase) {
-          case 'search':
-            if (!context.currentLead && (context.leadQueue?.length || 0) === 0) {
-              return {
-                reasoning: 'OpenAI unavailable, using fallback: need to search for leads',
-                action: 'lead_search',
-                parameters: {
-                  query: 'CEO',
-                  companySize: '300-5000',
-                  location: 'United States',
-                  industries: ['SaaS'],
-                  position: 'CEO'
-                }
-              };
-            }
-            break;
-            
-          case 'research':
-            if (context.currentLead) {
-              return {
-                reasoning: 'OpenAI unavailable, using fallback: research current lead',
-                action: 'serper_research',
-                parameters: {
-                  companyName: context.currentLead.company || context.currentLead.organization?.name,
-                  personName: context.currentLead.name
-                }
-              };
-            }
-            break;
-            
-          case 'email':
-            if (context.currentLead) {
-              return {
-                reasoning: 'OpenAI unavailable, using fallback: unlock email',
-                action: 'unlock_email',
-                parameters: {
-                  firstName: context.currentLead.first_name,
-                  lastName: context.currentLead.last_name,
-                  companyName: context.currentLead.company || context.currentLead.organization?.name,
-                  domain: context.currentLead.organization?.primary_domain || context.currentLead.domain
-                }
-              };
-            }
-            break;
-            
-          case 'build':
-            if (context.currentLead) {
-              return {
-                reasoning: 'OpenAI unavailable, using fallback: build email',
-                action: 'build_personalized_email',
-                parameters: {}
-              };
-            }
-            break;
-        }
-      }
-      
-      return {
-        reasoning: 'Error in reasoning process - pausing cycle',
-        action: 'pause',
-        parameters: { error: error.message }
-      };
+      case 'serper_research':
+        return {
+          companyName: lead?.company || lead?.organization?.name,
+          personName: lead?.name
+        };
+      default:
+        return {};
     }
   }
 
