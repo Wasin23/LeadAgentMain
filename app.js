@@ -557,6 +557,7 @@ const publicEmailEndpoints = [
   '/api/auth/register', // Registration endpoint
   '/api/auth/waitlist', // Contact form — no auth required
   '/api/auth/forgot-password', // Password reset request
+  '/api/auth/verify-reset-token', // Password reset token check
   '/api/auth/reset-password', // Password reset
   '/api/auth/test', // Auth test endpoint
   '/api/auth/google/authorize', // Google OAuth authorize

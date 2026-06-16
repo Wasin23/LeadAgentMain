@@ -265,7 +265,7 @@ async function notifyBatchSent(awsManager, userId, user, agentId, settings, sent
     const toEmail = user.email || userSettings?.email;
     console.log(`[SCHEDULE PROCESSOR] 📧 Sending batch email notif to: ${toEmail || '(none found)'}`);
     if (toEmail) {
-      const appUrl = process.env.FRONTEND_URL || 'https://app.meridianai.co';
+      const appUrl = process.env.FRONTEND_URL || 'https://www.meridianprospects.com';
       const recipients = sentEmails.map(e => ({
         name:    e.leadDetails?.personInfo?.fullName || e.leadData?.name || '',
         to:      e.emailData?.finalRecipient || e.to || '',
@@ -295,7 +295,7 @@ async function notifyBatchSent(awsManager, userId, user, agentId, settings, sent
 
   // 4 — SMS (opt-in: only fires when phone is set and smsEnabled is true)
   if (notifPrefs.smsEnabled && notifPrefs.phone) {
-    const appUrl = process.env.FRONTEND_URL || 'https://app.meridianai.co';
+    const appUrl = process.env.FRONTEND_URL || 'https://www.meridianprospects.com';
     await sendSMS(
       notifPrefs.phone,
       `Meridian: \u201C${agentName}\u201D auto-sent ${successCount} email${successCount !== 1 ? 's' : ''} at ${sendTimeStr} (${tz}). ${appUrl}/email-queue`

@@ -731,7 +731,7 @@ If you didn't request this password reset, you can safely ignore this email.`;
   <tr><td style="padding-bottom:28px;">
     <table cellpadding="0" cellspacing="0"><tr>
       <td style="vertical-align:middle;padding-right:9px;">
-        <img src="https://app.meridianai.co/MeridianM.png" width="28" height="28" alt="M" style="display:block;" />
+        <img src="https://www.meridianprospects.com/MeridianM.png" width="28" height="28" alt="M" style="display:block;" />
       </td>
       <td style="vertical-align:middle;">
         <span style="color:#6b6455;font-size:13px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;">Meridian</span>
@@ -754,7 +754,7 @@ If you didn't request this password reset, you can safely ignore this email.`;
   </td></tr>
 
   <tr><td style="padding:20px 4px 0;">
-    <p style="margin:0;color:#9e8252;font-size:12px;">Meridian &middot; meridianai.co</p>
+    <p style="margin:0;color:#9e8252;font-size:12px;">Meridian &middot; meridianprospects.com</p>
   </td></tr>
 
 </table>

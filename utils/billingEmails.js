@@ -1,6 +1,6 @@
 import { sendSystemEmail } from '../tools/emailMailgun.js';
 
-const APP_URL = process.env.FRONTEND_URL || 'https://app.meridianai.co';
+const APP_URL = process.env.FRONTEND_URL || 'https://www.meridianprospects.com';
 
 function emailShell({ title, body, ctaHref, ctaLabel, footerNote }) {
   return `<!DOCTYPE html>

@@ -802,21 +802,10 @@ router.post('/forgot-password', async (req, res) => {
     // Try to send email
     const emailSent = await sendPasswordResetEmail(email, resetResult.token, resetResult.username);
     
-    if (emailSent) {
-      res.json({ 
-        success: true, 
-        message: 'Password reset instructions sent to your email'
-      });
-    } else {
-      // Email failed, but still provide token for development
-      res.json({ 
-        success: true, 
-        message: 'Password reset instructions sent! (Email service unavailable - check console for token)',
-        // REMOVE THIS IN PRODUCTION - only for development
-        resetToken: resetResult.token,
-        resetUrl: `/auth.html?tab=forgot&token=${resetResult.token}`
-      });
-    }
+    res.json({
+      success: true,
+      message: 'Password reset instructions sent to your email'
+    });
   } catch (error) {
     console.error('[AUTH] Forgot password error:', error.message);
     res.status(400).json({ error: error.message });
@@ -1471,7 +1460,7 @@ router.post('/waitlist', async (req, res) => {
     <p style="margin:20px 0 8px;color:#9e8252;font-size:12px;text-transform:uppercase;letter-spacing:0.08em;">Message</p>
     <p style="margin:0;color:#1a1a18;font-size:14px;line-height:1.7;">${(message || '—').replace(/\n/g, '<br>')}</p>
   </td></tr>
-  <tr><td style="padding:16px 4px 0;"><p style="margin:0;color:#9e8252;font-size:12px;">Meridian · meridianai.co</p></td></tr>
+  <tr><td style="padding:16px 4px 0;"><p style="margin:0;color:#9e8252;font-size:12px;">Meridian · meridianprospects.com</p></td></tr>
 </table></td></tr></table>
 </body></html>`;
     await sendSystemEmail('colton.fidd@gmail.com', `Contact: ${name || email}`, htmlBody);

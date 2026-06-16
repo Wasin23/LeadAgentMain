@@ -379,7 +379,7 @@ class EmailScheduler {
     const user = await this.awsManager.getUserById(userId).catch(() => null);
     const toEmail = user?.email || userSettings?.email || null;
     const notifPrefs = userSettings?.preferences?.notifPrefs || {};
-    const appUrl = process.env.FRONTEND_URL || 'https://app.meridianai.co';
+    const appUrl = process.env.FRONTEND_URL || 'https://www.meridianprospects.com';
 
     // In-app notification (one entry)
     await this.awsManager.addIssue(
