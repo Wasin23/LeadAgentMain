@@ -1449,17 +1449,34 @@ router.post('/waitlist', async (req, res) => {
     return res.status(400).json({ error: 'Valid email required' });
   }
   try {
-    const AWSManager = (await import('../utils/awsManager.js')).default;
-    const aws = new AWSManager();
-    await aws.sendEmail({
-      to: 'colton.fidd@gmail.com',
-      from: process.env.AWS_SES_FROM_EMAIL || 'noreply@examarkchat.com',
-      subject: `Meridian contact: ${name || email}`,
-      textBody: `Name: ${name || '—'}\nEmail: ${email}\nMessage:\n${message || '—'}`,
-      htmlBody: `<p><strong>Name:</strong> ${name || '—'}</p><p><strong>Email:</strong> ${email}</p><p><strong>Message:</strong></p><p>${(message || '—').replace(/\n/g, '<br>')}</p>`,
-    });
+    const { sendSystemEmail } = await import('../tools/emailMailgun.js');
+    const htmlBody = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#ede8de;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:48px 20px;">
+<table width="520" cellpadding="0" cellspacing="0">
+  <tr><td style="background:#1a3d28;height:2px;border-radius:2px 2px 0 0;font-size:0;">&nbsp;</td></tr>
+  <tr><td style="background:#f4efe6;border-radius:0 0 12px 12px;border:1px solid rgba(26,26,24,0.12);border-top:none;padding:36px 40px;">
+    <h2 style="margin:0 0 20px;font-size:20px;font-weight:400;color:#1a1a18;font-family:Georgia,serif;">New contact form submission</h2>
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="padding:10px 0;color:#9e8252;font-size:13px;border-bottom:1px solid rgba(26,26,24,0.1);">Name</td>
+        <td style="padding:10px 0;color:#1a1a18;font-size:13px;text-align:right;border-bottom:1px solid rgba(26,26,24,0.1);">${name || '—'}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 0;color:#9e8252;font-size:13px;border-bottom:1px solid rgba(26,26,24,0.1);">Email</td>
+        <td style="padding:10px 0;font-size:13px;text-align:right;border-bottom:1px solid rgba(26,26,24,0.1);"><a href="mailto:${email}" style="color:#1a3d28;text-decoration:none;">${email}</a></td>
+      </tr>
+    </table>
+    <p style="margin:20px 0 8px;color:#9e8252;font-size:12px;text-transform:uppercase;letter-spacing:0.08em;">Message</p>
+    <p style="margin:0;color:#1a1a18;font-size:14px;line-height:1.7;">${(message || '—').replace(/\n/g, '<br>')}</p>
+  </td></tr>
+  <tr><td style="padding:16px 4px 0;"><p style="margin:0;color:#9e8252;font-size:12px;">Meridian · meridianai.co</p></td></tr>
+</table></td></tr></table>
+</body></html>`;
+    await sendSystemEmail('colton.fidd@gmail.com', `Contact: ${name || email}`, htmlBody);
   } catch (err) {
-    console.error('[CONTACT] SES error:', err.message);
+    console.error('[CONTACT] Mailgun error:', err.message);
   }
   res.json({ success: true });
 });
