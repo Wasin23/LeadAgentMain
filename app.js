@@ -555,6 +555,7 @@ const publicEmailEndpoints = [
   '/api/session',  // Session info
   '/api/auth/login', // Login endpoint
   '/api/auth/register', // Registration endpoint
+  '/api/auth/waitlist', // Contact form — no auth required
   '/api/auth/forgot-password', // Password reset request
   '/api/auth/reset-password', // Password reset
   '/api/auth/test', // Auth test endpoint
