@@ -1444,7 +1444,7 @@ router.put('/agents/:agentId/settings', authenticateToken, async (req, res) => {
 
 // Waitlist / Request Access — no auth required
 router.post('/waitlist', async (req, res) => {
-  const { name, email } = req.body;
+  const { name, email, message } = req.body;
   if (!email || !email.includes('@')) {
     return res.status(400).json({ error: 'Valid email required' });
   }
@@ -1456,6 +1456,7 @@ router.post('/waitlist', async (req, res) => {
       Item: {
         email: { S: email.toLowerCase().trim() },
         name: { S: (name || '').trim() },
+        message: { S: (message || '').trim() },
         createdAt: { S: new Date().toISOString() },
       },
       ConditionExpression: 'attribute_not_exists(email)',
