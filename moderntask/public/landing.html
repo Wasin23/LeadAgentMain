@@ -3242,7 +3242,7 @@ async function submitContactForm(e) {
   btn.disabled = true;
   btn.textContent = 'Sending…';
   try {
-    var res = await fetch('/api/auth/waitlist', {
+    var res = await fetch('/api/contact', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
