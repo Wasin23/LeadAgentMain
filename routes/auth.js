@@ -1449,24 +1449,17 @@ router.post('/waitlist', async (req, res) => {
     return res.status(400).json({ error: 'Valid email required' });
   }
   try {
-    const { DynamoDBClient, PutItemCommand } = await import('@aws-sdk/client-dynamodb');
-    const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
-    await client.send(new PutItemCommand({
-      TableName: 'meridian-waitlist',
-      Item: {
-        email: { S: email.toLowerCase().trim() },
-        name: { S: (name || '').trim() },
-        message: { S: (message || '').trim() },
-        createdAt: { S: new Date().toISOString() },
-      },
-      ConditionExpression: 'attribute_not_exists(email)',
-    }));
+    const AWSManager = (await import('../utils/awsManager.js')).default;
+    const aws = new AWSManager();
+    await aws.sendEmail({
+      to: 'colton.fidd@gmail.com',
+      from: process.env.AWS_SES_FROM_EMAIL || 'noreply@examarkchat.com',
+      subject: `Meridian contact: ${name || email}`,
+      textBody: `Name: ${name || '—'}\nEmail: ${email}\nMessage:\n${message || '—'}`,
+      htmlBody: `<p><strong>Name:</strong> ${name || '—'}</p><p><strong>Email:</strong> ${email}</p><p><strong>Message:</strong></p><p>${(message || '—').replace(/\n/g, '<br>')}</p>`,
+    });
   } catch (err) {
-    // ConditionalCheckFailedException = duplicate, treat as success
-    if (err.name !== 'ConditionalCheckFailedException') {
-      console.error('[WAITLIST] DynamoDB error:', err.message);
-      // don't block the user — just log it
-    }
+    console.error('[CONTACT] SES error:', err.message);
   }
   res.json({ success: true });
 });
