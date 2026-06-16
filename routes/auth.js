@@ -1442,4 +1442,32 @@ router.put('/agents/:agentId/settings', authenticateToken, async (req, res) => {
   }
 });
 
+// Waitlist / Request Access — no auth required
+router.post('/waitlist', async (req, res) => {
+  const { name, email } = req.body;
+  if (!email || !email.includes('@')) {
+    return res.status(400).json({ error: 'Valid email required' });
+  }
+  try {
+    const { DynamoDBClient, PutItemCommand } = await import('@aws-sdk/client-dynamodb');
+    const client = new DynamoDBClient({ region: process.env.AWS_REGION || 'us-east-1' });
+    await client.send(new PutItemCommand({
+      TableName: 'meridian-waitlist',
+      Item: {
+        email: { S: email.toLowerCase().trim() },
+        name: { S: (name || '').trim() },
+        createdAt: { S: new Date().toISOString() },
+      },
+      ConditionExpression: 'attribute_not_exists(email)',
+    }));
+  } catch (err) {
+    // ConditionalCheckFailedException = duplicate, treat as success
+    if (err.name !== 'ConditionalCheckFailedException') {
+      console.error('[WAITLIST] DynamoDB error:', err.message);
+      // don't block the user — just log it
+    }
+  }
+  res.json({ success: true });
+});
+
 export default router;

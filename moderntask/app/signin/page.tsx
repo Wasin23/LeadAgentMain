@@ -14,7 +14,6 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { BlobField } from '@/components/landing/blob-field'
 import {
   Dialog,
   DialogContent,
@@ -271,8 +270,7 @@ export default function SignInPage() {
         }
       `}</style>
 
-    <div className="min-h-screen relative flex items-center justify-center overflow-hidden p-4">
-      <BlobField />
+    <div className="min-h-screen relative flex items-center justify-center overflow-hidden p-4" style={{ background: '#f4efe6' }}>
 
       {/* Back to landing — top left */}
       <Button

@@ -1,0 +1,238 @@
+MERIDIAN — COMPLETE PRODUCT AUDIT
+1. CORE AI AGENT ENGINE
+Reasoning Lead Agent (agent/reasoningLeadAgent.js)
+
+A fully autonomous, multi-cycle AI agent that runs without user input once configured. Each cycle executes: Apollo search → 4-phase company research → AI qualification → personalized email generation → queue management → follow-up scheduling. The agent uses GPT-4o-mini for qualification decisions, GPT-4o for sales strategy, and Mistral for email generation.
+
+Technically: runs as a persistent Node.js process per user, emits real-time events via Server-Sent Events (SSE) to the frontend, maintains state across restarts via DynamoDB, and learns via Zilliz vector database. Supports configurable concurrency (multiple agents per account running simultaneously).
+
+Agent Modes:
+
+Standard mode — autonomous Apollo search → research → qualify → email
+CRM mode — processes a user-supplied contact list instead of Apollo search
+Manual cycle — user triggers single cycle for testing
+Campaign mode — accepts natural language instructions (e.g. "find SaaS CTOs in fintech") which are converted to a structured search/qualification plan via GPT-4o-mini
+UI: Agent cards on /agents page showing name, status, personality type, email counts (queued/sent/replied). Clicking an agent opens a detail dashboard with live cycle metrics, activity feed, and start/stop/run-cycle controls. Progress during a running cycle is streamed live via SSE — users see "Searching for leads in real estate…", "Researching SmartBlocks Inc…", "Generating email for John Smith…" in real time.
+
+2. THOMPSON SAMPLING BANDIT
+What it does: Intelligently selects which industry keyword + position combination to search next based on historical success rates. Learns from every cycle — if "fintech + CFO" consistently produces qualified leads, it allocates more searches there. If "retail + CEO" produces mostly duplicates, it deprioritizes it.
+
+Technically: Implements a Thompson Sampling bandit algorithm in utils/leadSourceBandit.js. Maintains beta distribution parameters (alpha/beta) per keyword-position pair, updated after every search batch. Source exhaustion tracked in Zilliz memory: stores duplicate rate per source per keyword pair, queried before each search to avoid wasted API calls.
+
+UI: No direct user-facing control — runs automatically. Impact visible in activity log ("Rotating to new industry: healthcare") and memory stats endpoint.
+
+3. ZILLIZ VECTOR MEMORY (3 databases)
+Lead Memory (utils/zillizLeadMemory.js) — Tracks search performance: keyword performance, duplicate rates, lead patterns. Stored as vectors with metadata per user/agent. Agent queries this before every search to avoid re-searching exhausted sources. Updates after every cycle with new data.
+
+Company Memory (utils/zillizCompanyMemory.js) — RAG knowledge base for the lead-facing chat feature. Users upload case studies, pricing docs, objection handlers, FAQs, battle cards. These are chunked (400 words, 60-word overlap), embedded via text-embedding-3-small (1536 dimensions), and stored in Zilliz with COSINE similarity search.
+
+Industry Facts (utils/zillizIndustryFacts.js) — Cached industry statistics with 2-week TTL. Before running internet searches for industry context, the agent checks this cache. Results are stored with deduplication by cosine similarity (0.92 threshold). Prevents redundant Serper API calls for the same industry data.
+
+UI: Memory stats available at /api/lead-agent/memory/stats. Industry facts manageable in a Training tab (list, add, delete per industry). No direct UI for lead/company memory — operates transparently.
+
+4. LEAD RESEARCH SYSTEM
+4.1 Apollo Lead Search (tools/leadResearch.js)
+Calls Apollo's mixed_people_search API with filters built from user settings: target industries (e.g. "real estate"), target positions (e.g. "CEO"), company size range, geographic locations. Returns up to 10 people per call. The agent runs keyword/position validation (pair validation via GPT-4o-mini before searching to avoid nonsensical combinations like "real estate + DevOps Engineer"). After search, the agent enriches each lead's email via Apollo enrichment API (1 credit per reveal).
+
+4.2 Internet Research — 4-Phase via Serper (tools/internetSearch.js)
+Phase 1: Company web presence verification (searches site:{domain}, official LinkedIn)
+Phase 2: LinkedIn activity scraping (recent posts, job changes, company updates)
+Phase 3: Industry/market research (trends, competitors, market size)
+Phase 4: Trending signals (news, funding announcements, product launches, partnerships)
+
+Each phase runs 1–3 Serper searches. Results scored by relevance. Key facts extracted with source attribution. These facts become hooks in the email body ("I saw SmartBlocks just raised a Series A…").
+
+4.3 Pre-Qualification (preQualifyLead())
+Runs before deep research to avoid wasting resources on obviously bad leads. Uses GPT-4o-mini to assess: is this person a decision-maker? Is the company in the right industry? Is the company the right size? If fails, lead is skipped.
+
+4.4 Full Qualification (qualifyLead())
+After research, runs a detailed scoring pass using GPT-4o. Evaluates against user's must-have criteria, nice-to-have criteria, and disqualifiers. Produces a tier score:
+
+HIGHLY_QUALIFIED (Tier 1 — priority, send immediately)
+QUALIFIED (Tier 2 — good fit)
+SHOTGUN (Tier 3 — weak fit, lower-quality email)
+REJECTED (Tier 4 — disqualified, skipped)
+Returns structured JSON with reasoning, strengths, weaknesses, and cited research facts.
+
+4.5 ZeroBounce Email Validation
+Before sending, each revealed email is validated against ZeroBounce API. Rejects: spamtrap, do_not_mail status. Accepts: valid, catch-all, unknown. Prevents sending to known bad addresses.
+
+UI: AI Report card visible on each email in the queue — shows tier badge (color-coded), score, strengths/weaknesses, cited research facts with source links. Pre-qualification status shown in activity log.
+
+5. EMAIL GENERATION
+5.1 Sales Strategist (salesStrategist() — GPT-4o)
+Before writing the email, GPT-4o determines: what angle to use (pain point vs. opportunity vs. social proof), what subject line type (question, insight, direct), what CTA style (meeting request, resource offer, casual check-in). Takes research facts, company context, agent personality, and qualification tier as inputs. Outputs a salesAngle object guiding the email writer.
+
+5.2 Email Writer (Mistral)
+Takes the sales angle + research facts + company profile + lead details + user's company branding → generates full HTML email. Hyper-personalized: references specific company news, LinkedIn activity, or industry trends found during research. Matches configured tone (formal, conversational, direct, etc.). Includes: subject line, email body, call-to-action, unsubscribe link.
+
+5.3 SmartBlocks Research
+Just before email generation, runs one additional Serper search specifically for the user's company recent wins/success stories to use as social proof in the email body.
+
+UI: Generated emails appear in the email queue under "Pending Approval" with full preview (to, subject, body), lead info card, and AI report card. User can edit subject/body inline before approving.
+
+6. EMAIL QUEUE & APPROVAL SYSTEM
+Queue structure: Emails have lifecycle: QUEUED → APPROVED/REJECTED → SENT → REPLIED/BOUNCED
+
+Actions available:
+
+Approve single email
+Reject with reason
+Bulk approve all queued
+Bulk reject all queued
+Schedule email for specific date/time (with timezone selector)
+Edit subject/body before approving
+Enable/disable smart follow-up per email
+UI: /email-queue page with tabs: Pending, Approved (scheduled), Sent, Rejected. Each email shown as a card with: recipient name + company + title, subject preview, AI qualification tier badge, approve/reject/schedule buttons. Clicking expands full preview with research context.
+
+Counts displayed in header badge, updated in real-time. Bulk actions available for managing large queues.
+
+7. EMAIL SENDING & TRACKING
+Sending via Mailgun API. Each email gets a unique tracking ID (tracking-{userId}_{agentId}_{timestamp}_{random}). HTML body wrapped with a 1×1 tracking pixel pointing to /api/analytics/track/open/{trackingId}.
+
+Open Detection: When tracking pixel is fetched, server timestamps the open. Bot/proxy filtering implemented — checks if open happened within milliseconds of send (image proxy hit), examines User-Agent for known crawlers (Gmail image proxy, Mimecast, Barracuda, Proofpoint). Only counts genuine human opens.
+
+Click Tracking: Links in emails wrapped with redirect through tracking endpoint, logging click events with timestamp.
+
+Threading: Follow-up emails use In-Reply-To and References headers + Gmail threadId to appear as replies in the recipient's inbox — not new emails.
+
+Reply Detection (two methods):
+
+Gmail Pub/Sub: push webhook from Google instantly notifies when recipient replies
+Fallback polling: periodic scan of Gmail inbox matching threads to sent emails
+Outlook equivalent via Microsoft Graph subscription webhooks
+UI: Sent email cards show: open badge (with timestamp), click badge, replied badge. Dashboard shows open rate, click rate, reply rate. Tracking events shown in notification feed in real-time.
+
+8. SMART FOLLOW-UP SYSTEM (REBUMP)
+Auto-scheduling: When an email is sent with smart rebump enabled, a follow-up is immediately scheduled N days later (configurable: 1–21 days). Up to 3 follow-up levels configured.
+
+Follow-up generation (generateSmartFollowUp() — Mistral):
+
+Fetches fresh context at send time: latest company news, recent LinkedIn posts
+Strips HTML/tracking from original email (gives Mistral clean text)
+Generates 3 tier-specific strategies:
+Step 1: Reference original, ask genuine question about their situation
+Step 2: New specific insight + simple CTA
+Step 3: Close loop warmly, no pitch
+Rebump Checker (utils/rebumpChecker.js): Runs every 6 hours, scans all users, finds emails where followUpDate <= now, generates or retrieves follow-up content, sends directly via Mailgun, updates original email with rebump metadata, schedules next follow-up if max not reached. Handles DynamoDB throttling with exponential backoff (5 attempts).
+
+Template fallback: If smart generation fails or is disabled, rotates through 3 pre-written template strategies (Value Add, Insight Share, Direct Ask). Templates regenerated weekly.
+
+UI: "Enable Smart Rebump" toggle on agent email builder settings and per-email toggle in queue. Interval days slider. Max rebumps selector. Preview of pre-generated follow-ups visible in email card before original sends. Dashboard shows "Upcoming Follow-ups" panel with countdown timers.
+
+9. CRM INTEGRATION
+Merge API provides a single integration layer supporting: HubSpot, Salesforce, Pipedrive, and others via OAuth.
+
+Auto-sync: When agent finds and qualifies a lead, optionally pushes contact record to user's CRM automatically (name, company, title, email, qualification tier, notes).
+
+CRM Mode / Auditor Mode: Instead of Apollo search, agent processes a user's existing CRM contacts. User imports CSV or selects from CRM. Agent researches each contact, generates personalized email, sends or queues. Results sync back to CRM with send status.
+
+UI: CRM tab on agents page. "Connect CRM" button opens Merge OAuth modal (user selects their CRM). Auto-sync toggle. Manual "Sync to CRM" on email cards. CRM mode shows live progress: contacts processed / emails queued / failed.
+
+10. CALENDAR INTEGRATION
+OAuth integration with Google Calendar and Office 365 Calendar. Checks agent's calendar availability for meetings. When a prospect agrees to a call, auto-books meeting. Agent can include availability links in email CTAs.
+
+UI: Calendar sync status in settings. Availability picker embedded in email CTA options. Meeting confirmation in notifications.
+
+11. CHAT LAB (AI TRAINING INTERFACE)
+Interactive chat for testing and refining the agent's knowledge and email approach.
+
+Document types users can upload: Case Studies, Pricing Docs, Objection Handlers, Battle Cards, FAQs, Process Docs. Documents chunked and stored in Zilliz vector DB, retrieved via semantic similarity during email generation.
+
+Features:
+
+Real-time chat with agent
+Prompt versioning/history
+Research snapshot display (buyer motivation, hooks, insights)
+Preview token generation — creates shareable link for demos to prospects or colleagues
+UI: Left sidebar (uploaded documents with type badges), center (chat interface with typing indicators), right (research snapshot panel). Document editor modal. Share button generates shareable preview link.
+
+12. REAL-TIME DASHBOARD
+Main Dashboard (/dashboard):
+
+Stats cards: Emails sent today, queued, replied, active agents
+Email activity area chart (7-day trend)
+Agent activity panel (running agents, current action, personality badge)
+Agent progress rings (sent this week vs. daily limit %)
+Upcoming follow-ups with countdown timers
+Recent notifications (replies, opens, billing alerts)
+Credit consumption chart (monthly API spend by service)
+Delivery health card (bounce rate, open rate)
+All sections customizable: drag-to-reorder, show/hide per section, edit mode with grab handles. Data loaded in parallel via Promise.allSettled(), polling every 30–60 seconds, SSE real-time updates when available.
+
+Analytics (/analytics):
+
+Email activity area chart (7-day)
+Domain performance bar chart (sent/bounced/opened per domain)
+Agent activity multi-line chart (24h/7d/30d toggle)
+Monthly volume bar chart
+Download CSV button
+Operations (/operations):
+
+System uptime, memory usage (RSS, heap)
+Running process list
+Recent error log (last 50, severity-colored)
+Integration status table (Apollo, Mailgun, Serper, ZeroBounce)
+API quota usage per service
+13. BILLING & CREDITS
+Credit system: Every API call deducts credits from user's balance in real-time. Credits purchased via Stripe or included in subscription plans. Auto-topup: when balance drops below threshold, automatically charges card and adds credits.
+
+Tracked services:
+
+Apollo (search + enrichment)
+OpenAI GPT-4o (sales strategist, qualification)
+OpenAI GPT-4o-mini (pre-qualification, research analysis, campaign plan conversion)
+Mistral (email generation, smart follow-ups)
+Serper (all internet searches)
+Mailgun (email sends)
+ZeroBounce (email validation)
+text-embedding-3-small (Zilliz ingestion)
+Billing cron runs monthly (1st of month, 2AM EST): charges subscriptions, resets trial credits, generates invoices, handles payment failures, suspends accounts after grace period.
+
+UI: Billing tab in settings. Credit balance shown in header. Credit purchase modal with Stripe (supports Apple Pay/Google Pay). Transaction history. Monthly API usage breakdown chart by service. Trial credit countdown.
+
+14. NOTIFICATIONS & ACTIVITY FEED
+Unified notification center (/notifications):
+
+Filters: All, Unread, Replies, Opens, Meetings, Batch Sends, Failed
+Types: Email reply (blue), Email opened (green), Send failed (red), Meeting booked (purple), System issue (yellow)
+Unread count badge in header
+Severity levels: critical/high/medium/low
+Mark single or all as read
+Linked to email records for quick navigation
+15. USER SETTINGS & ONBOARDING
+Settings page (tabbed):
+
+Account Info (email, name, company)
+Email Integrations (Gmail, Outlook, LinkedIn — auth status, connect/disconnect)
+Notification Preferences (toggle by type)
+Agent Defaults (personality, email length, CTA style)
+Billing (balance, payment method, history, plan upgrade)
+Data & Privacy (GDPR consent, export, delete)
+Onboarding wizard: Multi-step flow for new users: company profile → email integration → target industries → agent personality → email customization → billing. Includes company profile autofill — user enters website URL, AI suggests target industries and positions based on the company's offering.
+
+16. SECURITY & COMPLIANCE
+JWT authentication on all protected routes (7-day expiry)
+OAuth2 for Gmail, Outlook, LinkedIn, CRM connections
+Refresh tokens encrypted in DynamoDB
+Unsubscribe list enforced before every send (CAN-SPAM compliant)
+ZeroBounce validation prevents sending to spam traps
+Rate limiting on all endpoints (express-rate-limit)
+Helmet.js HTTP security headers
+CORS with origin validation
+User-scoped data isolation (DynamoDB PK = userId)
+Graceful shutdown with 30-second drain
+Global error handler with uncaught exception recovery
+STACK SUMMARY
+Backend: Node.js, Express.js, AWS DynamoDB, Zilliz/Milvus (vectors), Mailgun, Apollo.io, Serper.dev, OpenAI, Anthropic Claude, Mistral, Stripe, Merge API, Google APIs, Microsoft Graph
+
+Frontend: Next.js 13+ (App Router), React + TypeScript, Tailwind CSS, Shadcn/ui, Recharts, dnd-kit (drag-drop), Lucide icons
+
+Infrastructure: Render.com deployment, AWS DynamoDB, Zilliz Cloud, Google PubSub (Gmail webhooks), Mailgun webhooks
+
+Plan	Price	Credits	~Emails	Your API Cost	Margin	Margin %	Agents	Speed
+Free Trial	$0	50	~91	~3.37	-$3.37	—	1	1x
+Tier 2	$100	1,100	~2,025	~$74	~$26	26%	2	4x
+Tier 3	$250	2,800	~5,065	~$187	~$63	24%	6	8x
+Tier 4	$500	5,500	~10,135	~$375	~$125	26%	15	12x
+Enterprise	variable	variable	variable	variable	variable	variable	30 max	30 max

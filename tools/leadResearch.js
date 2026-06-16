@@ -1189,7 +1189,7 @@ async function searchApollo(query, limit = 5, userId = null, leadContactSettings
         agentId,
         service: 'apollo',
         operation: 'search',
-        usage: data.people?.length || 0, // Number of results returned
+        usage: 0, // Apollo searches are free — only enrichments cost credits
         metadata: { query: apolloQuery, limit }
       }).catch(err => console.error('Failed to log Apollo usage:', err));
     }

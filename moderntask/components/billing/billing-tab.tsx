@@ -305,12 +305,12 @@ function BillingTabInner() {
   const [downgradeTarget, setDowngradeTarget] = useState('')
   const [downgradeLoading, setDowngradeLoading] = useState(false)
 
-  const PLAN_ORDER = ['free-trial', 'basic', 'starter', 'professional', 'enterprise']
+  const PLAN_ORDER = ['free-trial', 'solo', 'team', 'agency', 'enterprise']
   const PLAN_LABELS: Record<string, string> = {
-    basic: 'Basic — $100/mo',
-    starter: 'Starter — $500/mo',
-    professional: 'Professional — $1,000/mo',
-    enterprise: 'Enterprise — $2,500/mo',
+    solo: 'Solo — $100/mo',
+    team: 'Team — $250/mo',
+    agency: 'Agency — $500/mo',
+    enterprise: 'Enterprise — Custom',
   }
 
   const avgCreditsPerEmail = 0.7

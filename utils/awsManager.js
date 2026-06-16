@@ -47,7 +47,7 @@ class AWSManager {
     
     // API Cost rates (with 1.5x multiplier for platform margin) — updated
     this.apiCosts = {
-      apollo: 0.005, // $0.005 per lead search (half a cent)
+      apollo: 0.025 * 1.5, // $0.025 per email enrichment (Apollo $150/6000 plan) with platform margin
       openai: (0.005 / 1000) * 1.5,     // GPT-4o with platform margin
       openaiMini: (0.0002 / 1000) * 1.5, // GPT-4o-mini with platform margin
       anthropic: (0.005 / 1000) * 1.5, // fallback blended rate
@@ -1637,7 +1637,7 @@ class AWSManager {
       try {
         const user = await this.getUserById(userId);
         if (user && cost > 0) {
-          const creditsToDeduct = cost / 0.05; // 1 credit = $0.05
+          const creditsToDeduct = cost / 0.10; // 1 credit = $0.10
           
           // Use creditBalance if available (new system), otherwise use trialCredits (legacy)
           if (user.creditBalance !== undefined) {

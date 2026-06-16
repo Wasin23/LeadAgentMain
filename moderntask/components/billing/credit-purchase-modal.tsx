@@ -37,7 +37,7 @@ export function CreditPurchaseModal({
   mode = "upgrade",
   currentPlan,
 }: CreditPurchaseModalProps) {
-  const [selectedTier, setSelectedTier] = useState<string>(mode === "upgrade" ? "professional" : "small")
+  const [selectedTier, setSelectedTier] = useState<string>(mode === "upgrade" ? "team" : "small")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [userPlanInfo, setUserPlanInfo] = useState<any>(null)
@@ -45,37 +45,37 @@ export function CreditPurchaseModal({
 
   const pricingTiers: PricingTier[] = [
     {
-      id: "basic",
-      name: "Basic",
+      id: "solo",
+      name: "Solo",
       price: 100,
-      credits: 1200,
-      emails: 1200,
-      features: ["1,200 credits included", "~1,700 emails (at 0.7 credits/email)", "Up to 3 agents", "Up to 5x speed"],
+      credits: 1100,
+      emails: 2025,
+      features: ["1,100 credits included", "~2,025 emails", "2 agents", "4x speed"],
     },
     {
-      id: "starter",
-      name: "Starter",
-      price: 500,
-      credits: 13000,
-      emails: 13000,
-      features: ["13,000 credits included", "~18,500 emails (at 0.7 credits/email)", "Up to 5 agents", "Up to 10x speed"],
-    },
-    {
-      id: "professional",
-      name: "Professional",
-      price: 1000,
-      credits: 30000,
-      emails: 30000,
+      id: "team",
+      name: "Team",
+      price: 250,
+      credits: 2800,
+      emails: 5065,
       popular: true,
-      features: ["30,000 credits included", "~42,800 emails (at 0.7 credits/email)", "Up to 10 agents", "Up to 20x speed"],
+      features: ["2,800 credits included", "~5,065 emails", "6 agents", "8x speed"],
+    },
+    {
+      id: "agency",
+      name: "Agency",
+      price: 500,
+      credits: 5500,
+      emails: 10135,
+      features: ["5,500 credits included", "~10,135 emails", "15 agents", "12x speed"],
     },
     {
       id: "enterprise",
       name: "Enterprise",
-      price: 2500,
-      credits: 70000,
-      emails: 70000,
-      features: ["70,000 credits included", "~100,000 emails (at 0.7 credits/email)", "Up to 30 agents", "Up to 30x speed"],
+      price: 0,
+      credits: 0,
+      emails: 0,
+      features: ["Custom credit volume", "Custom email volume", "Up to 30 agents", "Up to 30x speed"],
     },
   ]
 
@@ -174,13 +174,15 @@ export function CreditPurchaseModal({
                   return (
                     <div
                       key={tier.id}
-                      onClick={() => setSelectedTier(tier.id)}
-                      className={`relative cursor-pointer rounded-xl p-6 border-2 transition-all ${
-                        isSelected
-                          ? "border-primary bg-primary/5"
+                      onClick={() => tier.id !== "enterprise" && setSelectedTier(tier.id)}
+                      className={`relative rounded-xl p-6 border-2 transition-all ${
+                        tier.id === "enterprise"
+                          ? "border-border bg-muted/20 cursor-default opacity-80"
+                          : isSelected
+                          ? "border-primary bg-primary/5 cursor-pointer"
                           : isCurrent
-                          ? "border-green-500 bg-green-50 dark:bg-green-950/20"
-                          : "border-border bg-muted/30 hover:border-muted-foreground/40"
+                          ? "border-green-500 bg-green-50 dark:bg-green-950/20 cursor-pointer"
+                          : "border-border bg-muted/30 hover:border-muted-foreground/40 cursor-pointer"
                       }`}
                     >
                       {isCurrent && (
@@ -200,12 +202,27 @@ export function CreditPurchaseModal({
                       <div className="text-center">
                         <h3 className="text-xl font-bold mb-2">{tier.name}</h3>
                         <div className="mb-4">
-                          <span className="text-4xl font-bold">${tier.price}</span>
-                          <span className="text-sm text-muted-foreground ml-1">plan</span>
+                          {tier.id === "enterprise" ? (
+                            <span className="text-4xl font-bold">Custom</span>
+                          ) : (
+                            <>
+                              <span className="text-4xl font-bold">${tier.price}</span>
+                              <span className="text-sm text-muted-foreground ml-1">/mo</span>
+                            </>
+                          )}
                         </div>
                         <div className="mb-5">
-                          <div className="text-3xl font-bold">{tier.credits.toLocaleString()}</div>
-                          <div className="text-sm text-muted-foreground">credits</div>
+                          {tier.id === "enterprise" ? (
+                            <>
+                              <div className="text-2xl font-bold">—</div>
+                              <div className="text-sm text-muted-foreground">credits</div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="text-3xl font-bold">{tier.credits.toLocaleString()}</div>
+                              <div className="text-sm text-muted-foreground">credits · ~{tier.emails.toLocaleString()} emails</div>
+                            </>
+                          )}
                         </div>
                         <ul className="space-y-2.5 text-left">
                           {tier.features.map((f, idx) => (
@@ -215,6 +232,15 @@ export function CreditPurchaseModal({
                             </li>
                           ))}
                         </ul>
+                        {tier.id === "enterprise" && (
+                          <a
+                            href="mailto:colton.fidd@gmail.com?subject=Meridian%20Enterprise"
+                            onClick={e => e.stopPropagation()}
+                            className="mt-4 inline-block w-full py-2 text-xs font-semibold border border-border rounded-lg text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+                          >
+                            Contact us
+                          </a>
+                        )}
                       </div>
                     </div>
                   )
@@ -288,11 +314,10 @@ export function CreditPurchaseModal({
               {mode === "upgrade" ? "How Credits Work" : "About Additional Credits"}
             </h4>
             <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• <strong>1 credit = $0.05</strong> in tracked API costs (transparent pricing)</li>
-              <li>• <strong>~0.7 credits per email</strong> (full deep AI research, enrichment, validation, sending)</li>
+              <li>• <strong>~0.54 credits per email</strong> (research, enrichment, validation, and send)</li>
               <li>• Credits never expire and roll over month-to-month</li>
               {mode === "topup" && <li>• <strong>Top-ups are added instantly</strong> to your current balance</li>}
-              {mode === "upgrade" && <li>• Plan upgrades change your included credit ceiling immediately</li>}
+              {mode === "upgrade" && <li>• Plan upgrades take effect immediately</li>}
               <li>• Track exact usage in real-time on your dashboard</li>
             </ul>
           </div>
@@ -313,7 +338,7 @@ export function CreditPurchaseModal({
 
           <button
             onClick={handlePurchase}
-            disabled={loading || hasPaymentMethod === false}
+            disabled={loading || hasPaymentMethod === false || selectedTier === "enterprise"}
             className="w-full py-4 bg-primary text-primary-foreground font-bold text-lg rounded-xl hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
@@ -323,11 +348,12 @@ export function CreditPurchaseModal({
               </span>
             ) : (
               (() => {
-                const options = mode === "upgrade" ? pricingTiers : topupOptions
+                const options = mode === "upgrade" ? pricingTiers.filter(t => t.id !== "enterprise") : topupOptions
                 const sel = options.find((t) => t.id === selectedTier)
+                if (!sel) return "Select a plan above"
                 return mode === "upgrade"
-                  ? `Upgrade to ${sel?.name} — ${sel?.credits.toLocaleString()} Credits Included`
-                  : `Add ${sel?.credits.toLocaleString()} Credits for $${sel?.price}`
+                  ? `Upgrade to ${sel.name} — ${sel.credits.toLocaleString()} Credits Included`
+                  : `Add ${sel.credits.toLocaleString()} Credits for $${sel.price}`
               })()
             )}
           </button>

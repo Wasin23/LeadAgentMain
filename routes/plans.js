@@ -188,8 +188,8 @@ router.post('/purchase-credits', authenticateToken, async (req, res) => {
       });
     }
 
-    // $0.05 per credit = 5 cents per credit
-    const amountCents = Math.round(creditAmount * 5);
+    // $0.10 per credit = 10 cents per credit
+    const amountCents = Math.round(creditAmount * 10);
 
     // Charge via Stripe before touching the DB
     let paymentIntent;
