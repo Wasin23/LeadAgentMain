@@ -722,47 +722,44 @@ This code will expire in 1 hour for security reasons.
 
 If you didn't request this password reset, you can safely ignore this email.`;
 
-    // HTML version (matching the original format)
-    const htmlBody = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #5a67d8; margin: 0;">Meridian</h1>
-          <p style="color: #64748b; margin: 5px 0;">AI-Powered Lead Research & Automation</p>
-        </div>
-        
-        <h2 style="color: #374151;">Password Reset Code</h2>
-        
-        <p style="color: #4b5563; line-height: 1.6;">
-          Hello <strong>${username || 'there'}</strong>,
-        </p>
-        
-        <p style="color: #4b5563; line-height: 1.6;">
-          We received a request to reset your password for your Meridian account.
-        </p>
-        
-        <p style="color: #4b5563; line-height: 1.6;">
-          Enter this code in the app to reset your password:
-        </p>
-        
-        <div style="text-align: center; margin: 30px 0; padding: 20px; background: #f8fafc; border-radius: 8px; border: 2px dashed #5a67d8;">
-          <div style="font-size: 24px; font-weight: bold; color: #5a67d8; letter-spacing: 3px; font-family: monospace; word-break: break-all; max-width: 100%; overflow-wrap: break-word;">
-            ${resetToken}
-          </div>
-          <p style="color: #6b7280; font-size: 14px; margin: 10px 0 0 0;">
-            Reset Code
-          </p>
-        </div>
-        
-        <p style="color: #6b7280; font-size: 14px; line-height: 1.6;">
-          This code will expire in 1 hour for security reasons.
-        </p>
-        
-        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
-        
-        <p style="color: #9ca3af; font-size: 12px;">
-          If you didn't request this password reset, you can safely ignore this email.
-        </p>
-      </div>`;
+    const htmlBody = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#ede8de;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:48px 20px;">
+<table width="520" cellpadding="0" cellspacing="0">
+
+  <tr><td style="padding-bottom:28px;">
+    <table cellpadding="0" cellspacing="0"><tr>
+      <td style="vertical-align:middle;padding-right:9px;">
+        <img src="https://app.meridianai.co/MeridianM.png" width="28" height="28" alt="M" style="display:block;" />
+      </td>
+      <td style="vertical-align:middle;">
+        <span style="color:#6b6455;font-size:13px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;">Meridian</span>
+      </td>
+    </tr></table>
+  </td></tr>
+
+  <tr><td style="background:#1a3d28;height:2px;border-radius:2px 2px 0 0;font-size:0;">&nbsp;</td></tr>
+
+  <tr><td style="background:#f4efe6;border-radius:0 0 12px 12px;border:1px solid rgba(26,26,24,0.12);border-top:none;padding:36px 40px;">
+    <h2 style="margin:0 0 16px;font-size:22px;font-weight:400;color:#1a1a18;font-family:Georgia,serif;">Password reset</h2>
+    <p style="margin:0 0 14px;color:#6b6455;font-size:14px;line-height:1.7;">Hello <strong style="color:#1a1a18;">${username || 'there'}</strong>, use the code below to reset your Meridian password.</p>
+
+    <div style="margin:28px 0;padding:24px;background:#ede8de;border-radius:8px;border:1px solid rgba(158,130,82,0.3);text-align:center;">
+      <div style="font-size:28px;font-weight:700;color:#1a3d28;letter-spacing:6px;font-family:monospace;word-break:break-all;">${resetToken}</div>
+      <p style="color:#9e8252;font-size:12px;margin:10px 0 0;text-transform:uppercase;letter-spacing:0.08em;">Reset Code · expires in 1 hour</p>
+    </div>
+
+    <p style="margin:0;color:#9e8252;font-size:13px;line-height:1.6;">If you didn't request this, you can safely ignore this email.</p>
+  </td></tr>
+
+  <tr><td style="padding:20px 4px 0;">
+    <p style="margin:0;color:#9e8252;font-size:12px;">Meridian &middot; meridianai.co</p>
+  </td></tr>
+
+</table>
+</td></tr></table>
+</body></html>`;
 
     // Use the sendEmailMailgun function but with custom HTML - skip logging for password reset
     const result = await sendEmailMailgunWithCustomHTML(email, subject, textBody, htmlBody, false, null, true);

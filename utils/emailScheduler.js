@@ -27,15 +27,15 @@ function buildScheduledSendEmailHTML({ agentName, recipient, subject, scheduledA
 
   const recipientSection = `
   <tr><td style="padding:0 40px 28px;">
-    <p style="margin:0 0 10px;color:#71717a;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;">Recipient</p>
-    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #27272a;border-radius:10px;border-collapse:collapse;overflow:hidden;">
+    <p style="margin:0 0 10px;color:#9e8252;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;">Recipient</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid rgba(26,26,24,0.12);border-radius:8px;border-collapse:collapse;overflow:hidden;">
       <tr>
-        <td style="padding:10px 16px;border-bottom:1px solid #1a3d28;">
-          <span style="color:#e4e4e7;font-size:13px;font-weight:500;">${recipientName}</span>
-          ${recipientCompany ? `<span style="color:#71717a;font-size:12px;"> &middot; ${recipientCompany}</span>` : ''}
+        <td style="padding:10px 16px;border-bottom:1px solid rgba(26,26,24,0.08);">
+          <span style="color:#1a1a18;font-size:13px;font-weight:500;">${recipientName}</span>
+          ${recipientCompany ? `<span style="color:#9e8252;font-size:12px;"> &middot; ${recipientCompany}</span>` : ''}
         </td>
-        <td style="padding:10px 16px;border-bottom:1px solid #1a3d28;text-align:right;">
-          <span style="color:#71717a;font-size:12px;">${recipientEmail}</span>
+        <td style="padding:10px 16px;border-bottom:1px solid rgba(26,26,24,0.08);text-align:right;">
+          <span style="color:#6b6455;font-size:12px;">${recipientEmail}</span>
         </td>
       </tr>
     </table>
@@ -43,43 +43,43 @@ function buildScheduledSendEmailHTML({ agentName, recipient, subject, scheduledA
 
   return `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#050f09;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<body style="margin:0;padding:0;background:#ede8de;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 20px;">
-<table width="600" cellpadding="0" cellspacing="0" style="background:#0d1f14;border-radius:16px;overflow:hidden;border:1px solid #1a3d28;">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#f4efe6;border-radius:12px;overflow:hidden;border:1px solid rgba(26,26,24,0.12);">
 
-  <tr><td style="background:linear-gradient(90deg,#0d2b1e,#166534,#15803d);height:3px;font-size:0;">&nbsp;</td></tr>
+  <tr><td style="background:#1a3d28;height:3px;font-size:0;">&nbsp;</td></tr>
 
   <tr><td style="padding:32px 40px 20px;">
     <table width="100%" cellpadding="0" cellspacing="0"><tr>
       <td><table cellpadding="0" cellspacing="0"><tr>
         <td style="vertical-align:middle;">
-          <img src="${appUrl}/MeridianM-square.png" width="32" height="32" alt="M" style="display:block;border-radius:6px;" />
+          <img src="${appUrl}/MeridianM.png" width="30" height="30" alt="M" style="display:block;" />
         </td>
         <td style="padding-left:10px;vertical-align:middle;">
-          <span style="color:#a1a1aa;font-size:13px;font-weight:600;letter-spacing:0.06em;">MERIDIAN</span>
+          <span style="color:#6b6455;font-size:13px;font-weight:600;letter-spacing:0.08em;">MERIDIAN</span>
         </td>
       </tr></table></td>
       <td align="right">
-        <span style="background:#16a34a22;color:#4ade80;font-size:11px;font-weight:700;padding:5px 12px;border-radius:999px;border:1px solid #4ade8044;">&#x2713; SCHEDULED SENT</span>
+        <span style="background:rgba(158,130,82,0.12);color:#9e8252;font-size:11px;font-weight:700;padding:5px 12px;border-radius:999px;border:1px solid rgba(158,130,82,0.3);">&#x2713; SCHEDULED SENT</span>
       </td>
     </tr></table>
   </td></tr>
 
   <tr><td style="padding:0 40px 24px;">
-    <h1 style="margin:0 0 8px;font-size:30px;font-weight:700;color:#fafafa;line-height:1.2;">&#x1F4C5; 1 email sent</h1>
-    <p style="margin:0;color:#71717a;font-size:15px;">Your agent <strong style="color:#a1a1aa;">${agentName}</strong> sent a scheduled email.</p>
+    <h1 style="margin:0 0 8px;font-size:28px;font-weight:400;color:#1a1a18;line-height:1.2;font-family:Georgia,serif;">1 email sent</h1>
+    <p style="margin:0;color:#6b6455;font-size:14px;">Your agent <strong style="color:#1a1a18;">${agentName}</strong> sent a scheduled email.</p>
   </td></tr>
 
   <tr><td style="padding:0 40px 28px;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #1a3d28;border-radius:12px;border-collapse:collapse;overflow:hidden;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid rgba(26,26,24,0.12);border-radius:8px;border-collapse:collapse;overflow:hidden;">
       <tr>
-        <td width="50%" style="padding:20px;border-right:1px solid #1a3d28;text-align:center;">
-          <div style="font-size:16px;font-weight:700;color:#4ade80;">${whenSent}</div>
-          <div style="color:#71717a;font-size:11px;margin-top:3px;text-transform:uppercase;letter-spacing:0.06em;">Scheduled Time</div>
+        <td width="50%" style="padding:20px;border-right:1px solid rgba(26,26,24,0.12);text-align:center;background:#ede8de;">
+          <div style="font-size:15px;font-weight:600;color:#1a3d28;">${whenSent}</div>
+          <div style="color:#9e8252;font-size:10px;margin-top:4px;text-transform:uppercase;letter-spacing:0.08em;">Scheduled Time</div>
         </td>
-        <td width="50%" style="padding:20px;text-align:center;">
-          <div style="font-size:16px;font-weight:700;color:#4ade80;">${subject}</div>
-          <div style="color:#71717a;font-size:11px;margin-top:3px;text-transform:uppercase;letter-spacing:0.06em;">Subject</div>
+        <td width="50%" style="padding:20px;text-align:center;background:#ede8de;">
+          <div style="font-size:15px;font-weight:600;color:#1a1a18;">${subject}</div>
+          <div style="color:#9e8252;font-size:10px;margin-top:4px;text-transform:uppercase;letter-spacing:0.08em;">Subject</div>
         </td>
       </tr>
     </table>
@@ -88,13 +88,13 @@ function buildScheduledSendEmailHTML({ agentName, recipient, subject, scheduledA
   ${recipientSection}
 
   <tr><td style="padding:4px 40px 32px;">
-    <a href="${appUrl}/email-queue" style="display:inline-block;background:#166534;color:#fff;text-decoration:none;font-size:14px;font-weight:600;padding:13px 28px;border-radius:10px;">View Email Queue &rarr;</a>
+    <a href="${appUrl}/email-queue" style="display:inline-block;background:#1a3d28;color:#f4efe6;text-decoration:none;font-size:13px;font-weight:500;padding:11px 24px;border-radius:4px;letter-spacing:0.04em;">View Email Queue &rarr;</a>
   </td></tr>
 
-  <tr><td style="padding:20px 40px;border-top:1px solid #27272a;">
-    <p style="margin:0;color:#52525b;font-size:12px;line-height:1.7;">
+  <tr><td style="padding:20px 40px;border-top:1px solid rgba(26,26,24,0.1);">
+    <p style="margin:0;color:#9e8252;font-size:12px;line-height:1.7;">
       You received this because email batch notifications are enabled on your account.
-      <a href="${appUrl}/notifications" style="color:#4ade80;text-decoration:none;">Manage preferences</a>
+      <a href="${appUrl}/notifications" style="color:#1a3d28;text-decoration:none;">Manage preferences</a>
     </p>
   </td></tr>
 
@@ -108,40 +108,40 @@ function buildBatchScheduledHTML({ agentName, sentResults, appUrl }) {
     const name = r.approvedEmail?.leadDetails?.personInfo?.fullName || r.approvedEmail?.leadData?.name || '';
     const company = r.approvedEmail?.leadDetails?.companyName || r.approvedEmail?.leadData?.company || '';
     return `<tr>
-      <td style="padding:10px 16px;border-bottom:1px solid #1a3d28;">
-        <span style="color:#e4e4e7;font-size:13px;font-weight:500;">${name}</span>
-        ${company ? `<span style="color:#71717a;font-size:12px;"> &middot; ${company}</span>` : ''}
+      <td style="padding:10px 16px;border-bottom:1px solid rgba(26,26,24,0.08);">
+        <span style="color:#1a1a18;font-size:13px;font-weight:500;">${name}</span>
+        ${company ? `<span style="color:#9e8252;font-size:12px;"> &middot; ${company}</span>` : ''}
       </td>
-      <td style="padding:10px 16px;border-bottom:1px solid #1a3d28;text-align:right;">
-        <span style="color:#71717a;font-size:12px;">${r.to}</span>
+      <td style="padding:10px 16px;border-bottom:1px solid rgba(26,26,24,0.08);text-align:right;">
+        <span style="color:#6b6455;font-size:12px;">${r.to}</span>
       </td>
     </tr>`;
   }).join('');
   const overflow = sentResults.length > 5
-    ? `<tr><td colspan="2" style="padding:10px 16px;color:#71717a;font-size:12px;text-align:center;">+ ${sentResults.length - 5} more</td></tr>`
+    ? `<tr><td colspan="2" style="padding:10px 16px;color:#9e8252;font-size:12px;text-align:center;">+ ${sentResults.length - 5} more</td></tr>`
     : '';
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
-<body style="margin:0;padding:0;background:#050f09;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<body style="margin:0;padding:0;background:#ede8de;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:40px 20px;">
-<table width="600" cellpadding="0" cellspacing="0" style="background:#0d1f14;border-radius:16px;overflow:hidden;border:1px solid #1a3d28;">
-  <tr><td style="background:linear-gradient(90deg,#0d2b1e,#166534,#15803d);height:3px;font-size:0;">&nbsp;</td></tr>
+<table width="600" cellpadding="0" cellspacing="0" style="background:#f4efe6;border-radius:12px;overflow:hidden;border:1px solid rgba(26,26,24,0.12);">
+  <tr><td style="background:#1a3d28;height:3px;font-size:0;">&nbsp;</td></tr>
   <tr><td style="padding:32px 40px 20px;">
     <table width="100%" cellpadding="0" cellspacing="0"><tr>
-      <td><span style="color:#71717a;font-size:13px;font-weight:600;letter-spacing:0.06em;">MERIDIAN</span></td>
-      <td align="right"><span style="background:#16a34a22;color:#4ade80;font-size:11px;font-weight:700;padding:5px 12px;border-radius:999px;border:1px solid #4ade8044;">&#x2713; SCHEDULED SENT</span></td>
+      <td><span style="color:#6b6455;font-size:13px;font-weight:600;letter-spacing:0.08em;">MERIDIAN</span></td>
+      <td align="right"><span style="background:rgba(158,130,82,0.12);color:#9e8252;font-size:11px;font-weight:700;padding:5px 12px;border-radius:999px;border:1px solid rgba(158,130,82,0.3);">&#x2713; SCHEDULED SENT</span></td>
     </tr></table>
   </td></tr>
   <tr><td style="padding:0 40px 24px;">
-    <h1 style="margin:0 0 8px;font-size:30px;font-weight:700;color:#fafafa;">&#x1F4C5; ${count} emails sent</h1>
-    <p style="margin:0;color:#71717a;font-size:15px;">Your agent <strong style="color:#a1a1aa;">${agentName}</strong> sent ${count} scheduled emails.</p>
+    <h1 style="margin:0 0 8px;font-size:28px;font-weight:400;color:#1a1a18;font-family:Georgia,serif;">${count} emails sent</h1>
+    <p style="margin:0;color:#6b6455;font-size:14px;">Your agent <strong style="color:#1a1a18;">${agentName}</strong> sent ${count} scheduled emails.</p>
   </td></tr>
   <tr><td style="padding:0 40px 28px;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #27272a;border-radius:10px;border-collapse:collapse;overflow:hidden;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid rgba(26,26,24,0.12);border-radius:8px;border-collapse:collapse;overflow:hidden;">
       ${rows}${overflow}
     </table>
   </td></tr>
   <tr><td style="padding:4px 40px 32px;">
-    <a href="${appUrl}/email-queue" style="display:inline-block;background:#166534;color:#fff;text-decoration:none;font-size:14px;font-weight:600;padding:13px 28px;border-radius:10px;">View Email Queue &rarr;</a>
+    <a href="${appUrl}/email-queue" style="display:inline-block;background:#1a3d28;color:#f4efe6;text-decoration:none;font-size:13px;font-weight:500;padding:11px 24px;border-radius:4px;letter-spacing:0.04em;">View Email Queue &rarr;</a>
   </td></tr>
 </table></td></tr></table></body></html>`;
 }
