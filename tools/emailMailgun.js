@@ -747,7 +747,7 @@ If you didn't request this password reset, you can safely ignore this email.`;
 
     <div style="margin:28px 0;padding:24px;background:#ede8de;border-radius:8px;border:1px solid rgba(158,130,82,0.3);text-align:center;">
       <div style="font-size:28px;font-weight:700;color:#1a3d28;letter-spacing:6px;font-family:monospace;word-break:break-all;">${resetToken}</div>
-      <p style="color:#9e8252;font-size:12px;margin:10px 0 0;text-transform:uppercase;letter-spacing:0.08em;">Reset Code · expires in 1 hour</p>
+      <p style="color:#9e8252;font-size:12px;margin:10px 0 0;text-transform:uppercase;letter-spacing:0.08em;">Reset Code · expires in 15 minutes</p>
     </div>
 
     <p style="margin:0;color:#9e8252;font-size:13px;line-height:1.6;">If you didn't request this, you can safely ignore this email.</p>

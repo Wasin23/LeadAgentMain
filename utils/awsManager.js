@@ -559,24 +559,24 @@ class AWSManager {
   async getUserByResetToken(resetToken) {
     try {
       console.log('👤 [AWS] Getting user by reset token:', resetToken);
-      
-      const command = new ScanCommand({
-        TableName: this.tables.users,
-        FilterExpression: 'resetToken = :resetToken',
-        ExpressionAttributeValues: {
-          ':resetToken': resetToken
+      let lastEvaluatedKey = undefined;
+      do {
+        const command = new ScanCommand({
+          TableName: this.tables.users,
+          FilterExpression: '#rt = :resetToken',
+          ExpressionAttributeNames: { '#rt': 'resetToken' },
+          ExpressionAttributeValues: { ':resetToken': resetToken },
+          ...(lastEvaluatedKey && { ExclusiveStartKey: lastEvaluatedKey }),
+        });
+        const result = await this.dynamodb.send(command);
+        if (result.Items && result.Items.length > 0) {
+          console.log('✅ [AWS] User retrieved by reset token successfully');
+          return result.Items[0];
         }
-      });
-      
-      const result = await this.dynamodb.send(command);
-      
-      if (!result.Items || result.Items.length === 0) {
-        console.log('❌ [AWS] No user found with reset token');
-        return null;
-      }
-      
-      console.log('✅ [AWS] User retrieved by reset token successfully');
-      return result.Items[0];
+        lastEvaluatedKey = result.LastEvaluatedKey;
+      } while (lastEvaluatedKey);
+      console.log('❌ [AWS] No user found with reset token');
+      return null;
     } catch (error) {
       console.error('❌ [AWS] Error getting user by reset token:', error);
       throw error;
