@@ -5,6 +5,7 @@ import { Sidebar } from '@/components/dashboard/sidebar'
 import { Header } from '@/components/dashboard/header'
 import { EmailQueueContent } from '@/components/email-queue/email-queue-content'
 import { ContactedContent } from '@/components/outreach/contacted-content'
+import { CalendarMini } from '@/components/calendar/calendar-mini'
 import { cn } from '@/lib/utils'
 import { useRouter, useSearchParams } from 'next/navigation'
 import api from '@/lib/api'
@@ -67,10 +68,13 @@ function OutreachPageInner() {
           </button>
         </div>
 
-        <div className="mt-5">
-          {section === 'awaiting'
-            ? <EmailQueueContent />
-            : <ContactedContent />}
+        <div className="mt-5 grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4 items-start">
+          <div className="min-w-0">
+            {section === 'awaiting'
+              ? <EmailQueueContent />
+              : <ContactedContent />}
+          </div>
+          <CalendarMini />
         </div>
       </main>
     </div>

@@ -34,9 +34,9 @@ const staticItems: NavItem[] = [
     label: "Prospecting",
     href: "/prospecting",
     children: [
-      { icon: Circle, label: "Agents",     href: "/prospecting?tab=agents" },
-      { icon: Circle, label: "Operations", href: "/prospecting?tab=operations" },
-      { icon: Circle, label: "Presets",    href: "/prospecting?tab=presets" },
+      { icon: Circle, label: "Monitor Agents", href: "/prospecting?section=monitor" },
+      { icon: Circle, label: "Agent Setup",    href: "/prospecting?section=setup&tab=agents" },
+      { icon: Circle, label: "Presets",        href: "/prospecting?section=setup&tab=presets" },
     ],
   },
   {
@@ -55,7 +55,7 @@ const staticItems: NavItem[] = [
     children: [
       { icon: Circle, label: "Awaiting Review",      href: "/outreach?section=awaiting" },
       { icon: Circle, label: "Sent",                 href: "/outreach?section=sent" },
-      { icon: Circle, label: "Chat Qualified Leads", href: "/outreach?section=chat-qualified-leads" },
+      { icon: Circle, label: "Chat Qualified Leads", href: "/outreach?section=sent&tab=chat-sessions" },
     ],
   },
 ]

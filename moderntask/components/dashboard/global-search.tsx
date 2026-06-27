@@ -70,13 +70,13 @@ export interface GlobalSearchProps {
 
 const NAV_ITEMS = [
   { label: "Home",           href: "/home",        icon: <LayoutDashboard className="w-4 h-4" />, shortcut: "H" },
-  { label: "Operations",     href: "/operations",  icon: <CheckSquare className="w-4 h-4" />,     shortcut: "O" },
-  { label: "Analytics",      href: "/analytics",   icon: <BarChart3 className="w-4 h-4" />,       shortcut: "A" },
-  { label: "Outreach",       href: "/outreach",    icon: <Users className="w-4 h-4" />,           shortcut: null },
-  { label: "Email Queue",    href: "/email-queue", icon: <Mail className="w-4 h-4" />,            shortcut: "E" },
-  { label: "Agents",         href: "/agents",      icon: <Bot className="w-4 h-4" />,             shortcut: null },
-  { label: "Calendar",       href: "/calendar",    icon: <Calendar className="w-4 h-4" />,        shortcut: null },
-  { label: "CRM",            href: "/crm",         icon: <Building2 className="w-4 h-4" />,       shortcut: null },
+  { label: "Prospecting",    href: "/prospecting", icon: <CheckSquare className="w-4 h-4" />,     shortcut: "P" },
+  { label: "Leads",          href: "/leads",       icon: <Building2 className="w-4 h-4" />,       shortcut: "L" },
+  { label: "Outreach (Sent)",     href: "/outreach?section=sent",     icon: <Users className="w-4 h-4" />, shortcut: null },
+  { label: "Outreach (Awaiting)", href: "/outreach?section=awaiting", icon: <Mail className="w-4 h-4" />,  shortcut: "E" },
+  { label: "Agent Setup",    href: "/prospecting?tab=agents", icon: <Bot className="w-4 h-4" />,  shortcut: null },
+  { label: "Calendar",       href: "/outreach?section=awaiting", icon: <Calendar className="w-4 h-4" />, shortcut: null },
+  { label: "CRM",            href: "/leads?tab=crm", icon: <Building2 className="w-4 h-4" />,     shortcut: null },
   { label: "Notifications",  href: "/notifications",icon: <Bell className="w-4 h-4" />,           shortcut: null },
   { label: "Settings",       href: "/settings",    icon: <Settings className="w-4 h-4" />,        shortcut: null },
   { label: "Billing",        href: "/settings?tab=billing", icon: <CreditCard className="w-4 h-4" />, shortcut: null },
@@ -84,12 +84,12 @@ const NAV_ITEMS = [
 ]
 
 const QUICK_ACTIONS = [
-  { label: "Create Agent",             href: "/agents?create=true", icon: <Plus className="w-4 h-4" /> },
-  { label: "Go to Operations",         href: "/operations",          icon: <Play className="w-4 h-4" /> },
-  { label: "View Email Queue",         href: "/email-queue",         icon: <Mail className="w-4 h-4" /> },
-  { label: "View Upcoming Follow-ups", href: "/outreach",            icon: <CalendarClock className="w-4 h-4" /> },
-  { label: "CRM Auditor Mode",         href: "/crm",                 icon: <Building2 className="w-4 h-4" /> },
-  { label: "Check Credits",            href: "/settings?tab=billing",icon: <Zap className="w-4 h-4" /> },
+  { label: "Create Agent",             href: "/prospecting?tab=agents&create=true", icon: <Plus className="w-4 h-4" /> },
+  { label: "Go to Prospecting",        href: "/prospecting",                 icon: <Play className="w-4 h-4" /> },
+  { label: "View Awaiting Review",     href: "/outreach?section=awaiting",   icon: <Mail className="w-4 h-4" /> },
+  { label: "View Upcoming Follow-ups", href: "/outreach?section=sent",       icon: <CalendarClock className="w-4 h-4" /> },
+  { label: "CRM Auditor Mode",         href: "/leads?tab=crm",               icon: <Building2 className="w-4 h-4" /> },
+  { label: "Check Credits",            href: "/settings?tab=billing",        icon: <Zap className="w-4 h-4" /> },
 ]
 
 // ── Component ──────────────────────────────────────────────────────────────────
@@ -307,7 +307,7 @@ export function GlobalSearch({
                       <CommandItem
                         key={a.agentId}
                         value={`agent-${a.agentId}-${a.name}`}
-                        onSelect={() => go(`/agents`)}
+                        onSelect={() => go(`/prospecting?tab=agents&agent=${a.agentId}`)}
                         className="gap-3"
                       >
                         <Bot className="w-4 h-4 text-primary" />
@@ -334,7 +334,7 @@ export function GlobalSearch({
                       <CommandItem
                         key={e.id}
                         value={`email-${e.id}-${e.subject}-${e.to}`}
-                        onSelect={() => go(`/email-queue`)}
+                        onSelect={() => go(`/outreach?section=awaiting`)}
                         className="gap-3"
                       >
                         <Mail className="w-4 h-4 text-muted-foreground" />
@@ -358,7 +358,7 @@ export function GlobalSearch({
                       <CommandItem
                         key={l.id}
                         value={`lead-${l.id}-${l.name}-${l.company ?? ""}-${l.email}`}
-                        onSelect={() => go(`/outreach`)}
+                        onSelect={() => go(`/leads`)}
                         className="gap-3"
                       >
                         <Users className="w-4 h-4 text-muted-foreground" />
