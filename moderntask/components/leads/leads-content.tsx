@@ -2,13 +2,11 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import api from '@/lib/api'
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   CheckCircle2, Search, Building2, ExternalLink, X,
   ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight,
-  Linkedin, Newspaper, Globe, FileText, Mail,
+  Linkedin, Newspaper, Globe, FileText, Mail, Info, XCircle, Users as UsersIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -66,6 +64,38 @@ function sourceCategory(url: string): { label: string; icon: typeof Globe } {
   if (/(techcrunch|businesswire|prnewswire|forbes|bloomberg|reuters|news\.|\/news\/)/.test(lower)) return { label: 'News', icon: Newspaper }
   if (lower.includes('/careers') || lower.includes('/jobs')) return { label: 'Career Page', icon: FileText }
   return { label: 'Website', icon: Globe }
+}
+
+function ScoreMeter({ value }: { value: number }) {
+  const filled = Math.round((value / 100) * 5)
+  return (
+    <div className="flex items-center gap-0.5">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <span key={i} className="h-1.5 w-4 rounded-full" style={{ background: i < filled ? 'oklch(0.52 0.14 158)' : 'oklch(0.9 0.012 95)' }} />
+      ))}
+    </div>
+  )
+}
+
+function confidenceDotCount(confidence?: string): number {
+  const c = (confidence || '').toLowerCase()
+  if (c === 'high') return 5
+  if (c === 'medium') return 3
+  if (c === 'low') return 2
+  return 0
+}
+
+function ConfidenceDots({ confidence }: { confidence?: string }) {
+  const filled = confidenceDotCount(confidence)
+  const c = (confidence || '').toLowerCase()
+  const color = c === 'high' ? 'oklch(0.52 0.14 158)' : c === 'medium' ? 'oklch(0.72 0.09 80)' : 'oklch(0.6 0.18 28)'
+  return (
+    <div className="flex items-center gap-1">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <span key={i} className="h-1.5 w-1.5 rounded-full" style={{ background: i < filled ? color : 'oklch(0.9 0.012 95)' }} />
+      ))}
+    </div>
+  )
 }
 
 export function LeadsContent() {
@@ -133,32 +163,52 @@ export function LeadsContent() {
 
   return (
     <div className="space-y-4">
-      <Card className="p-3 flex items-center gap-2 text-xs text-muted-foreground">
-        <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+      <div className="flex items-start gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
         Select a lead to view its research report, sources, and outreach draft.
-      </Card>
+      </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card className="p-3">
-          <p className="text-2xl font-bold">{counts.qualified}</p>
-          <p className="text-xs text-muted-foreground">Qualified</p>
-        </Card>
-        <Card className="p-3">
-          <p className="text-2xl font-bold">{counts.research}</p>
-          <p className="text-xs text-muted-foreground">Research</p>
-        </Card>
-        <Card className="p-3">
-          <p className="text-2xl font-bold">{counts.rejected}</p>
-          <p className="text-xs text-muted-foreground">Rejected</p>
-        </Card>
-        <Card className="p-3">
-          <p className="text-2xl font-bold">{counts.total}</p>
-          <p className="text-xs text-muted-foreground">Total Leads</p>
-        </Card>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3.5">
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full" style={{ background: 'oklch(0.52 0.14 158)' }}>
+            <CheckCircle2 className="h-5 w-5 text-white" strokeWidth={2.25} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Qualified</p>
+            <p className="font-display text-2xl leading-tight text-primary">{counts.qualified}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3.5">
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full" style={{ background: 'oklch(0.72 0.09 80)' }}>
+            <Search className="h-5 w-5 text-white" strokeWidth={2} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Research</p>
+            <p className="font-display text-2xl leading-tight text-primary">{counts.research}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3.5">
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full" style={{ background: 'oklch(0.6 0.015 145)' }}>
+            <XCircle className="h-5 w-5 text-white" strokeWidth={2.25} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Rejected</p>
+            <p className="font-display text-2xl leading-tight text-primary">{counts.rejected}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3.5">
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full" style={{ background: 'oklch(0.6 0.07 290)' }}>
+            <UsersIcon className="h-5 w-5 text-white" strokeWidth={2} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Total Leads</p>
+            <p className="font-display text-2xl leading-tight text-primary">{counts.total}</p>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 items-start">
-        <Card className="p-4">
+        <div className="rounded-2xl border border-border bg-card p-4">
           <div className="relative mb-3 max-w-xs">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
             <input
@@ -174,15 +224,15 @@ export function LeadsContent() {
           ) : pageItems.length === 0 ? (
             <div className="py-10 text-center text-sm text-muted-foreground">No leads yet</div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-xl border border-border">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-[11px] text-muted-foreground border-b border-border">
-                    <th className="py-2 pr-3 font-medium">Company</th>
-                    <th className="py-2 pr-3 font-medium">Fit Score</th>
-                    <th className="py-2 pr-3 font-medium">Confidence</th>
-                    <th className="py-2 pr-3 font-medium">Status</th>
-                    <th className="py-2 pr-3 font-medium">Assigned</th>
+                  <tr className="text-left text-[11px] uppercase tracking-wide text-muted-foreground border-b border-border bg-surface/40">
+                    <th className="py-2 px-3 font-medium">Company</th>
+                    <th className="py-2 px-3 font-medium">Fit Score</th>
+                    <th className="py-2 px-3 font-medium">Confidence</th>
+                    <th className="py-2 px-3 font-medium">Status</th>
+                    <th className="py-2 px-3 font-medium">Assigned</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -191,22 +241,32 @@ export function LeadsContent() {
                       key={l.id}
                       onClick={() => { setSelectedId(l.id); setDetailTab('research') }}
                       className={cn(
-                        'border-b border-border last:border-0 cursor-pointer hover:bg-muted/40',
-                        selectedId === l.id && 'bg-primary/5',
+                        'border-b border-border last:border-0 cursor-pointer hover:bg-accent/40 transition-colors',
+                        selectedId === l.id && 'bg-[oklch(0.97_0.02_150)] ring-1 ring-inset ring-[oklch(0.52_0.14_158)]',
                       )}
                     >
-                      <td className="py-2.5 pr-3">
+                      <td className="py-2.5 px-3">
                         <p className="font-medium truncate max-w-[180px]">{l.company || '—'}</p>
                         <p className="text-xs text-muted-foreground truncate max-w-[180px]">{l.contactName}</p>
                       </td>
-                      <td className="py-2.5 pr-3 tabular-nums">{l.aiReport?.score ?? '—'}%</td>
-                      <td className="py-2.5 pr-3">{l.aiReport?.confidence ?? '—'}</td>
-                      <td className="py-2.5 pr-3">
-                        <Badge variant="outline" className={cn('text-[10px]', tierColors[l.aiReport?.tier ?? ''] ?? '')}>
-                          {l.aiReport?.tier ?? '—'}
-                        </Badge>
+                      <td className="py-2.5 px-3">
+                        <div className="flex items-center gap-2">
+                          <span className="tabular-nums">{l.aiReport?.score ?? '—'}%</span>
+                          {l.aiReport?.score !== undefined && <ScoreMeter value={l.aiReport.score} />}
+                        </div>
                       </td>
-                      <td className="py-2.5 pr-3 text-xs">{l.agentName ?? '—'}</td>
+                      <td className="py-2.5 px-3">
+                        <div className="space-y-1">
+                          <p>{l.aiReport?.confidence ?? '—'}</p>
+                          <ConfidenceDots confidence={l.aiReport?.confidence} />
+                        </div>
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <span className={cn('inline-flex items-center rounded-md px-2 py-1 text-[11px] font-medium', tierColors[l.aiReport?.tier ?? ''] ?? 'bg-muted text-muted-foreground')}>
+                          {l.aiReport?.tier ?? '—'}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3 text-xs">{l.agentName ?? '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -226,13 +286,13 @@ export function LeadsContent() {
               </div>
             </div>
           )}
-        </Card>
+        </div>
 
         {selected ? (
-          <Card className="p-4">
+          <div className="rounded-2xl border border-border bg-card p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2 min-w-0">
-                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary shrink-0">
+                <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary shrink-0">
                   {selected.company?.[0]?.toUpperCase() ?? '?'}
                 </div>
                 <div className="min-w-0">
@@ -243,17 +303,18 @@ export function LeadsContent() {
               <button onClick={() => setSelectedId(null)}><X className="w-4 h-4 text-muted-foreground" /></button>
             </div>
 
-            <div className="flex items-center gap-1 border-b border-border mb-3">
+            <div className="flex items-center gap-5 border-b border-border mb-3">
               {(['research', 'sources', 'draft'] as const).map(t => (
                 <button
                   key={t}
                   onClick={() => setDetailTab(t)}
                   className={cn(
-                    'px-3 py-1.5 text-xs font-medium border-b-2 -mb-px capitalize',
-                    detailTab === t ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground',
+                    'relative pb-2.5 text-sm font-medium capitalize',
+                    detailTab === t ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
                   )}
                 >
                   {t === 'draft' ? 'Outreach Draft' : t}
+                  {detailTab === t && <span className="absolute inset-x-0 -bottom-px h-[2px] rounded-full bg-primary" />}
                 </button>
               ))}
             </div>
@@ -331,11 +392,11 @@ export function LeadsContent() {
                 )}
               </div>
             )}
-          </Card>
+          </div>
         ) : (
-          <Card className="p-8 flex items-center justify-center text-sm text-muted-foreground text-center">
+          <div className="rounded-2xl border border-border bg-card p-8 flex items-center justify-center text-sm text-muted-foreground text-center">
             Select a lead from the list to see details.
-          </Card>
+          </div>
         )}
       </div>
     </div>

@@ -180,15 +180,6 @@ export function OperationsContent() {
     }
   }
 
-  async function runCycleNow(agentId: string) {
-    try {
-      await api.post('/api/lead-agent/run-cycle', { agentId })
-      toast.success('Cycle triggered')
-    } catch {
-      toast.error('Failed to trigger cycle')
-    }
-  }
-
   // ── fetch agents + counts ────────────────────────────────────────────────
   const fetchAgents = useCallback(async () => {
     try {
@@ -431,43 +422,47 @@ export function OperationsContent() {
 
       {/* ── LEFT (merged): Agent panel ──────────────────────────────────── */}
       <div className="w-80 flex-shrink-0 flex flex-col">
-        <Card className="flex-1 overflow-hidden flex flex-col">
-          <CardHeader className="px-3 py-2.5 border-b flex-shrink-0">
+        <div className="flex-1 overflow-hidden flex flex-col rounded-2xl border border-border bg-card">
+          <div className="px-4 pt-4 pb-3 flex items-center justify-between flex-shrink-0">
             <div className="flex items-center gap-2">
-              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                 Agents
-              </CardTitle>
-              <Badge variant="secondary" className="text-[10px] h-4 px-1.5">{agents.length}</Badge>
-              <button onClick={fetchAgents} className="text-muted-foreground hover:text-foreground transition-colors">
-                <RefreshCw className="w-3 h-3" />
+              </span>
+              <span className="rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-semibold text-foreground/70">{agents.length}</span>
+              <button onClick={fetchAgents} className="ml-1 grid h-6 w-6 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground">
+                <RefreshCw className="w-3.5 h-3.5" />
               </button>
-              <Button
-                onClick={toggleAll}
-                disabled={agents.length === 0}
-                variant={allRunning ? 'destructive' : 'default'}
-                size="sm"
-                className="ml-auto h-7 text-xs px-3 gap-1"
-              >
-                {allRunning
-                  ? <><Square className="w-3 h-3" />Stop All</>
-                  : <><Play className="w-3 h-3" />Start All</>}
-              </Button>
             </div>
-          </CardHeader>
+            <Button
+              onClick={toggleAll}
+              disabled={agents.length === 0}
+              variant={allRunning ? 'destructive' : 'default'}
+              size="sm"
+              className="h-7 text-xs px-2.5 gap-1.5 rounded-lg"
+            >
+              {allRunning
+                ? <><Square className="w-3 h-3" />Stop All</>
+                : <><Play className="w-3 h-3 fill-current" />Start All</>}
+            </Button>
+          </div>
 
-          <div className="px-2 py-1.5 border-b flex-shrink-0">
+          <div className="px-3 pb-3 flex-shrink-0">
             <button
               onClick={() => { setSelectedAgent('all'); setShowAgentMenu(false); setConfirmingDelete(false) }}
               className={cn(
-                'w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-all',
+                'w-full flex items-center justify-between rounded-xl px-3.5 py-3 text-sm transition-all',
                 selectedAgent === 'all'
                   ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                  : 'border border-border bg-surface text-foreground/80 hover:bg-accent'
               )}
             >
-              <Bot className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="flex-1 text-left font-medium">All Agents</span>
-              <Badge variant="secondary" className="text-[9px] h-3.5 px-1">{runningAgents.length} on</Badge>
+              <span className="flex items-center gap-2 font-medium">
+                <Bot className="w-4 h-4 flex-shrink-0" />
+                All Agents
+              </span>
+              <span className={cn('rounded-md px-2 py-0.5 text-[11px] font-semibold', selectedAgent === 'all' ? 'bg-primary-foreground/15' : 'bg-muted text-foreground/70')}>
+                {runningAgents.length} on
+              </span>
             </button>
           </div>
 
@@ -505,12 +500,12 @@ export function OperationsContent() {
                   <div
                     key={agent.agentId}
                     className={cn(
-                      'rounded-lg border p-2.5 transition-all cursor-pointer',
+                      'rounded-xl border p-2.5 transition-all cursor-pointer',
                       selected
                         ? 'bg-primary/10 border-primary/30'
                         : isRunning
-                          ? 'bg-primary/5 border-primary/20 hover:border-primary/40'
-                          : 'bg-secondary/30 border-border/50 hover:bg-secondary hover:border-border'
+                          ? 'bg-surface/60 border-border hover:border-primary/40'
+                          : 'bg-surface/60 border-border hover:bg-accent'
                     )}
                     onClick={() => selectAgent(agent.agentId)}
                   >
@@ -690,16 +685,15 @@ export function OperationsContent() {
             </div>
           </ScrollArea>
 
-          <div className="p-2 border-t flex-shrink-0">
-            <Button
-              variant="secondary" size="sm"
-              className="w-full h-8 text-xs justify-center gap-1.5"
+          <div className="border-t border-border p-3 flex-shrink-0">
+            <button
               onClick={() => router.push('/prospecting?section=setup&tab=agents')}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-border bg-surface px-3 py-2.5 text-sm font-medium text-foreground/80 hover:bg-accent"
             >
-              <Bot className="w-3.5 h-3.5" />Manage Agents
-            </Button>
+              <Bot className="w-4 h-4" />Manage Agents
+            </button>
           </div>
-        </Card>
+        </div>
       </div>
       {/* ── RIGHT: Main content ──────────────────────────────────────────── */}
       <div className="flex-1 min-w-0 flex flex-col gap-4">
@@ -717,7 +711,6 @@ export function OperationsContent() {
           setConfirmingDelete={setConfirmingDelete}
           onDelete={() => deleteAgent(selectedAgent)}
           onReset={() => resetAgent(selectedAgent)}
-          onRunCycle={() => runCycleNow(selectedAgent)}
           onToggle={() => toggleAgent(agents.find(a => a.agentId === selectedAgent)!)}
           isToggling={!!toggling[selectedAgent]}
         />
@@ -922,7 +915,6 @@ function AgentDetailPanel({
   setConfirmingDelete: (v: boolean) => void
   onDelete: () => void
   onReset: () => void
-  onRunCycle: () => void
   onToggle: () => void
   isToggling: boolean
 }) {
@@ -948,7 +940,7 @@ function AgentDetailPanel({
 
   return (
     <div className="flex flex-col gap-3">
-      <Card className="p-4">
+      <div className="rounded-2xl border border-border bg-card p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
             <img
@@ -975,9 +967,6 @@ function AgentDetailPanel({
             <Button size="sm" variant={isRunning ? 'destructive' : 'default'} className="h-7 text-xs gap-1" disabled={isToggling} onClick={onToggle}>
               {isRunning ? <Square className="w-3 h-3" /> : <Play className="w-3 h-3" />}
               {isRunning ? 'Stop' : 'Start'}
-            </Button>
-            <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={onRunCycle}>
-              <Zap className="w-3 h-3" /> Run Cycle
             </Button>
             <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => router.push(`/agents/${agent.agentId}`)}>
               <ExternalLink className="w-3 h-3" /> Open Dashboard
@@ -1032,27 +1021,29 @@ function AgentDetailPanel({
             {positions.map(p => <Badge key={p} variant="outline" className="text-[10px]">{p}</Badge>)}
           </div>
         )}
-      </Card>
+      </div>
 
-      <div className="flex items-center gap-1 border-b border-border">
-        {(['overview', 'activity', 'queue', 'settings'] as const).map(t => (
-          <button
-            key={t}
-            onClick={() => t === 'settings' ? router.push(`/agents/${agent.agentId}/settings`) : setTab(t)}
-            className={cn(
-              'px-3 py-1.5 text-xs font-medium border-b-2 -mb-px capitalize',
-              tab === t && t !== 'settings' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground',
-            )}
-          >
-            {t}
-          </button>
-        ))}
+      <div className="border-b border-border">
+        <div className="flex items-center gap-6 text-sm">
+          {(['overview', 'activity', 'queue', 'settings'] as const).map(t => (
+            <button
+              key={t}
+              onClick={() => t === 'settings' ? router.push(`/agents/${agent.agentId}/settings`) : setTab(t)}
+              className={cn(
+                'relative -mb-px py-2.5 capitalize transition-colors',
+                tab === t && t !== 'settings' ? 'border-b-2 border-primary font-semibold text-foreground' : 'border-b-2 border-transparent text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
       </div>
 
       {tab === 'overview' && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Card className="p-3">
-            <h4 className="text-xs font-semibold mb-2 flex items-center gap-1.5"><Activity className="w-3.5 h-3.5 text-primary" /> Recent Activity</h4>
+          <div className="rounded-xl border border-border bg-surface/40 p-4">
+            <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2"><Activity className="w-4 h-4 text-muted-foreground" /> Recent Activity</h4>
             {logs.slice(0, 5).length === 0 ? (
               <p className="text-xs text-muted-foreground">No recent activity</p>
             ) : (
@@ -1062,17 +1053,17 @@ function AgentDetailPanel({
                 ))}
               </div>
             )}
-          </Card>
-          <Card className="p-3">
-            <h4 className="text-xs font-semibold mb-2 flex items-center gap-1.5"><Inbox className="w-3.5 h-3.5 text-primary" /> Queue Summary</h4>
+          </div>
+          <div className="rounded-xl border border-border bg-surface/40 p-4">
+            <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2"><Inbox className="w-4 h-4 text-muted-foreground" /> Queue Summary</h4>
             <div className="space-y-1.5 text-xs">
               <div className="flex items-center justify-between"><span className="text-muted-foreground">Leads found</span><span className="font-semibold">{queued + sent}</span></div>
               <div className="flex items-center justify-between"><span className="text-muted-foreground">Drafts ready</span><span className="font-semibold">{queued}</span></div>
             </div>
-          </Card>
-          <Card className="p-3">
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-xs font-semibold flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-primary" /> Live Status</h4>
+          </div>
+          <div className="rounded-xl border border-border bg-surface/40 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-semibold text-foreground flex items-center gap-2"><Zap className="w-4 h-4 text-muted-foreground" /> Live Status</h4>
               <Badge variant={isRunning ? 'default' : 'secondary'} className="text-[9px]">{isRunning ? 'Running' : 'Idle'}</Badge>
             </div>
             <p className="text-[11px] text-muted-foreground mb-2 truncate">{activity?.status || 'Not running'}</p>
@@ -1084,7 +1075,7 @@ function AgentDetailPanel({
                 <p className="text-[10px] text-muted-foreground">{cycleProgress}/{cycleTarget} leads found this cycle</p>
               </>
             )}
-          </Card>
+          </div>
         </div>
       )}
 

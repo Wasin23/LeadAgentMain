@@ -990,7 +990,7 @@ export function ContactedContent() {
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
           <UserCheck className="w-5 h-5 text-primary" />
-          <h1 className="text-lg font-semibold">Sent</h1>
+          <h1 className="font-display text-lg text-foreground">Sent</h1>
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-2">
           {tab !== 'templates' && (
@@ -1011,11 +1011,11 @@ export function ContactedContent() {
       </div>
 
       {/* tabs */}
-      <div className="flex items-center gap-1 border-b border-border">
+      <div className="flex flex-wrap items-center gap-1 rounded-xl border border-border bg-card p-1 w-fit">
         {TABS.map(t => (
           <button key={t.id} onClick={() => changeTab(t.id)}
-            className={cn('px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px',
-              tab === t.id ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground')}>
+            className={cn('inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+              tab === t.id ? 'bg-[oklch(0.42_0.11_158)] text-white' : 'text-foreground/70 hover:bg-accent')}>
             {t.label}{t.count !== undefined ? ` (${t.count})` : ''}
           </button>
         ))}
@@ -1023,7 +1023,7 @@ export function ContactedContent() {
 
       {/* ── SENT ─────────────────────────────────────────────────────────── */}
       {tab === 'sent' && (
-        <Card className="p-5">
+        <div className="rounded-2xl border border-border bg-card p-5">
           <div className="flex items-center gap-2 mb-4">
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
@@ -1071,10 +1071,10 @@ export function ContactedContent() {
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto rounded-lg border border-border">
+              <div className="overflow-x-auto rounded-xl border border-border">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="text-left text-[11px] text-muted-foreground border-b bg-muted/30">
+                    <tr className="text-left text-[11px] uppercase tracking-wider text-muted-foreground border-b bg-surface/40">
                       {selectionMode && <th className="py-2 pl-3 pr-1 w-8" />}
                       <th className="py-2 px-3 font-medium">Thread</th>
                       <th className="py-2 px-3 font-medium">Sent</th>
@@ -1106,7 +1106,7 @@ export function ContactedContent() {
               <Pagination page={sentPage} total={displayedSent.length} onChange={p => { setSentPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
             </>
           )}
-        </Card>
+        </div>
       )}
 
       {/* ── REPLIES ─────────────────────────────────────────────────────── */}

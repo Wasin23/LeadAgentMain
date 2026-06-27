@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RefreshCw, Play, Square, Search, Building2, CheckCircle2, Loader2, User, Trash2, ChevronLeft, ChevronRight, GitMerge } from "lucide-react"
@@ -414,7 +413,7 @@ export function CRMContent() {
       <div className="space-y-2.5">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-semibold">Saved Contacts</h3>
+            <h3 className="font-display text-lg text-foreground">Saved Contacts</h3>
             <p className="text-xs text-muted-foreground mt-0.5">Persisted from Auditor runs</p>
           </div>
           {savedContacts.length > 0 && (
@@ -433,10 +432,10 @@ export function CRMContent() {
           const researched = savedContacts.filter(c => c.status === "queued").length
           return (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <Card className="p-2.5"><p className="text-lg font-bold">{savedContacts.length}</p><p className="text-[10px] text-muted-foreground">Total Saved</p></Card>
-              <Card className="p-2.5"><p className="text-lg font-bold">{researched}</p><p className="text-[10px] text-muted-foreground">Queued</p></Card>
-              <Card className="p-2.5"><p className="text-lg font-bold">{assignedThisWeek}</p><p className="text-[10px] text-muted-foreground">Assigned this week</p></Card>
-              <Card className="p-2.5"><p className="text-lg font-bold">{assignedThisMonth}</p><p className="text-[10px] text-muted-foreground">Assigned this month</p></Card>
+              <div className="rounded-xl border border-border bg-card p-2.5"><p className="font-display text-lg text-foreground">{savedContacts.length}</p><p className="text-[10px] text-muted-foreground">Total Saved</p></div>
+              <div className="rounded-xl border border-border bg-card p-2.5"><p className="font-display text-lg text-foreground">{researched}</p><p className="text-[10px] text-muted-foreground">Queued</p></div>
+              <div className="rounded-xl border border-border bg-card p-2.5"><p className="font-display text-lg text-foreground">{assignedThisWeek}</p><p className="text-[10px] text-muted-foreground">Assigned this week</p></div>
+              <div className="rounded-xl border border-border bg-card p-2.5"><p className="font-display text-lg text-foreground">{assignedThisMonth}</p><p className="text-[10px] text-muted-foreground">Assigned this month</p></div>
             </div>
           )
         })()}
@@ -585,8 +584,8 @@ export function CRMContent() {
       )}
 
       {contacts.length === 0 && !loading && (
-        <Card>
-          <CardContent className="py-12 flex flex-col items-center gap-3 text-center">
+        <div className="rounded-2xl border border-border bg-card">
+          <div className="py-12 flex flex-col items-center gap-3 text-center">
             <div className="rounded-full bg-muted w-12 h-12 flex items-center justify-center">
               <Building2 className="w-5 h-5 text-muted-foreground" />
             </div>
@@ -606,8 +605,8 @@ export function CRMContent() {
                 </>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {contacts.length > 0 && (
@@ -668,10 +667,10 @@ export function CRMContent() {
               </button>
             </div>
           )}
-          <div className="overflow-x-auto rounded-lg border">
+          <div className="overflow-x-auto rounded-2xl border border-border bg-card">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-[11px] text-muted-foreground border-b bg-muted/30">
+                <tr className="text-left text-[11px] uppercase tracking-wide text-muted-foreground border-b border-border bg-surface/40">
                   {!launched && <th className="py-2 pl-3 pr-1 w-8"><Checkbox checked={filtered.length > 0 && selected.size === filtered.length} onCheckedChange={toggleAll} /></th>}
                   <th className="py-2 px-3 font-medium">Name</th>
                   <th className="py-2 px-3 font-medium">CRM Source</th>

@@ -1,8 +1,7 @@
 "use client"
 
-import { Card } from "@/components/ui/card"
 import { useRouter } from "next/navigation"
-import { Bot } from "lucide-react"
+import { Bot, Users, ChevronRight } from "lucide-react"
 
 export interface AgentActivityItem {
   agentId: string
@@ -14,14 +13,6 @@ export interface AgentActivityItem {
 
 interface TeamCollaborationProps {
   agents?: AgentActivityItem[]
-}
-
-const PERSONALITY_AVATAR: Record<string, string> = {
-  hunter: "Hunter",
-  analyst: "Analyst",
-  consultant: "consultant",
-  networker: "Networker",
-  "relationship-builder": "Relationship-Builder",
 }
 
 function statusBadge(status: string) {
@@ -37,83 +28,77 @@ function statusBadge(status: string) {
 
 function statusLabel(status: string) {
   switch (status) {
-    case "running": return "Running"
+    case "running": return "Active"
     case "idle":    return "Idle"
     default:        return "Stopped"
   }
 }
 
+const AVATAR_TONES = [
+  "bg-amber-100 text-amber-700",
+  "bg-emerald-100/70 text-emerald-700",
+  "bg-violet-100 text-violet-600",
+  "bg-sky-100 text-sky-700",
+]
+
 export function TeamCollaboration({ agents = [] }: TeamCollaborationProps) {
   const router = useRouter()
+  const runningCount = agents.filter(a => a.status === "running").length
 
   return (
-    <Card className="p-4">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold text-foreground">Agent Activity</h2>
-        <button onClick={() => router.push("/operations")} className="text-xs text-primary hover:underline">View operations →</button>
+    <div className="rounded-2xl border border-border bg-card p-5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Users className="h-4 w-4 text-foreground/70" strokeWidth={1.75} />
+          <h3 className="font-display text-base text-foreground">Agent Status</h3>
+        </div>
+        <button onClick={() => router.push("/prospecting")} className="flex items-center gap-1 text-[12px] font-medium text-foreground/80 hover:text-foreground">
+          View all
+          <ChevronRight className="h-3.5 w-3.5" />
+        </button>
       </div>
 
       {agents.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-5 gap-2 text-muted-foreground">
           <Bot className="w-6 h-6 text-muted-foreground/40" />
           <p className="text-xs">No agents configured</p>
-          <button onClick={() => router.push("/agents")} className="text-xs text-primary hover:underline">Set up an agent →</button>
+          <button onClick={() => router.push("/prospecting")} className="text-xs text-primary hover:underline">Set up an agent →</button>
         </div>
       ) : (
-        <div className="space-y-1">
+        <div className="mt-4 space-y-1">
           {agents.map((agent, index) => {
-            const avatarFile = PERSONALITY_AVATAR[agent.personalityType ?? "hunter"] ?? "Hunter"
             const initials = agent.name
               .split(" ")
               .map((w) => w[0])
               .join("")
               .slice(0, 2)
               .toUpperCase()
+            const tone = AVATAR_TONES[index % AVATAR_TONES.length]
 
             return (
               <button
                 key={agent.agentId}
-                onClick={() => router.push("/operations")}
-                className="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-secondary transition-colors cursor-pointer group text-left"
+                onClick={() => router.push("/prospecting")}
+                className="w-full grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-xl px-1.5 py-2 hover:bg-accent transition-colors cursor-pointer text-left"
               >
-                {/* Avatar */}
-                <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 bg-muted flex items-center justify-center">
-                  <img
-                    src={`/avatars/${avatarFile}.png`}
-                    alt={agent.name}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      const t = e.target as HTMLImageElement
-                      t.style.display = "none"
-                      t.parentElement!.innerHTML = `<span class="text-[10px] font-bold text-primary">${initials}</span>`
-                    }}
-                  />
+                <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-full font-display text-sm ${tone}`}>
+                  {initials}
                 </div>
-
-                {/* Name + activity */}
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-foreground text-xs truncate">{agent.name}</p>
-                  <p className="text-[11px] text-muted-foreground truncate">
-                    {agent.status === "running" && agent.currentActivity
-                      ? agent.currentActivity
-                      : agent.status === "running"
-                      ? "Working…"
-                      : "Not running"}
-                  </p>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{agent.name}</p>
+                  <span className={`mt-0.5 inline-flex items-center gap-1 rounded-full ${statusBadge(agent.status)} px-1.5 py-0.5 text-[10px] font-medium`}>
+                    <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
+                    {statusLabel(agent.status)}
+                  </span>
                 </div>
-
-                {/* Status pill */}
-                <span className={`${statusBadge(agent.status)} text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap flex-shrink-0`}>
-                  {agent.status === "running" && (
-                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1 animate-pulse align-middle" />
-                  )}
-                  {statusLabel(agent.status)}
-                </span>
+                <p className="truncate text-right text-[11px] text-muted-foreground max-w-[120px]">
+                  {agent.status === "running" && agent.currentActivity ? agent.currentActivity : agent.status === "running" ? "Working…" : "Not running"}
+                </p>
               </button>
             )
           })}
         </div>
       )}
-    </Card>
+    </div>
   )
 }

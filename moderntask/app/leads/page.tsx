@@ -5,7 +5,6 @@ import { Sidebar } from '@/components/dashboard/sidebar'
 import { Header } from '@/components/dashboard/header'
 import { LeadsContent } from '@/components/leads/leads-content'
 import { CRMContent } from '@/components/crm/crm-content'
-import { cn } from '@/lib/utils'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 type Tab = 'leads' | 'crm'
@@ -30,33 +29,35 @@ function LeadsPageInner() {
     <div className="flex min-h-screen bg-background">
       <Sidebar />
       <main className="flex-1 p-4 lg:p-6 lg:ml-64">
-        <Header
-          title="Leads"
-          description="Review, research, and route your leads."
-        />
+        <Header />
 
-        <div className="mt-5 flex items-center gap-1 border-b border-border">
+        <header className="mb-5">
+          <h1 className="font-display text-4xl text-primary">Leads</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Review, research, and route your leads.</p>
+        </header>
+
+        <div className="mb-5 flex items-center gap-6 border-b border-border">
           <button
             onClick={() => changeTab('leads')}
-            className={cn(
-              'px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px',
-              tab === 'leads' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground',
-            )}
+            className={`relative -mb-px px-2 pb-3 text-sm font-medium transition-colors ${
+              tab === 'leads' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+            }`}
           >
             All Leads
+            {tab === 'leads' && <span className="absolute inset-x-0 -bottom-px h-[2px] rounded-full bg-primary" />}
           </button>
           <button
             onClick={() => changeTab('crm')}
-            className={cn(
-              'px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px',
-              tab === 'crm' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground',
-            )}
+            className={`relative -mb-px px-2 pb-3 text-sm font-medium transition-colors ${
+              tab === 'crm' ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+            }`}
           >
             CRM
+            {tab === 'crm' && <span className="absolute inset-x-0 -bottom-px h-[2px] rounded-full bg-primary" />}
           </button>
         </div>
 
-        <div className="mt-5">
+        <div>
           {tab === 'leads' ? <LeadsContent /> : <CRMContent />}
         </div>
       </main>

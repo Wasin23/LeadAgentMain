@@ -150,8 +150,8 @@ function AgentCard({
   const dashUrl = `/agents/${agent.agentId}`
 
   return (
-    <Card className={cn(
-      'relative p-5 border transition-all duration-300 hover:shadow-lg hover:shadow-primary/5',
+    <div className={cn(
+      'relative rounded-2xl p-5 border bg-card transition-colors',
       gradientClass,
       isAuditor && 'opacity-60',
     )}>
@@ -380,7 +380,7 @@ function AgentCard({
           <Trash2 className="w-3.5 h-3.5" />
         </Button>
       </div>
-    </Card>
+    </div>
   )
 }
 
@@ -998,7 +998,7 @@ export function AgentsContent({ highlightAgentId, autoOpenCreate }: { highlightA
       {/* toolbar */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-semibold text-foreground">
+          <h2 className="font-display text-xl text-foreground">
             {loading ? 'Loading agents…' : `${totalAgents} Agent${totalAgents !== 1 ? 's' : ''}`}
           </h2>
           <div className="flex flex-wrap items-center gap-2 mt-1">

@@ -190,12 +190,12 @@ export function HomeSections({
 
   return (
     <div className="space-y-3">
-      {/* Hero row — fixed layout (matches reference: chart left, status cards stacked right) */}
-      <div className="flex flex-col lg:flex-row gap-3 md:gap-4">
-        <div className="lg:flex-[2] min-w-0">
+      {/* Hero row — matches reference: chart left, status cards stacked right */}
+      <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-[1.7fr_1fr]">
+        <div className="min-w-0">
           <EmailActivityCard emailTimeSeries={emailTimeSeries} />
         </div>
-        <div className="lg:flex-1 flex flex-col gap-3 md:gap-4 lg:min-w-[280px]">
+        <div className="flex flex-col gap-4 md:gap-5">
           <TeamCollaboration agents={agentActivity} />
           <CreditConsumptionCard monthlyCredits={monthlyCredits} creditBalance={creditBalance} creditsUsed={creditsUsed} creditsLimit={creditsLimit} />
           <DeliveryHealthCard sent={sent} bounced={bounced} opened={opened} />

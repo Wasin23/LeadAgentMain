@@ -1,7 +1,6 @@
 "use client"
 
-import { ArrowUpRight, TrendingUp, GripVertical, X, Settings2, RotateCcw } from "lucide-react"
-import { Card } from "@/components/ui/card"
+import { ChevronRight, GripVertical, X, Settings2, RotateCcw, Clock, Send, MessageSquare, BarChart3, Bot, RefreshCw, Repeat, CalendarClock, MailWarning, PieChart, Percent, Coins, type LucideIcon } from "lucide-react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import {
@@ -13,6 +12,21 @@ import {
   horizontalListSortingStrategy, arrayMove,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
+
+type Tone = "amber" | "sage" | "moss" | "lilac"
+
+const toneStyles: Record<Tone, string> = {
+  amber: "bg-amber-100 text-amber-700",
+  sage:  "bg-emerald-100/70 text-emerald-700",
+  moss:  "bg-emerald-100/70 text-emerald-700",
+  lilac: "bg-violet-100 text-violet-600",
+}
+const dotStyles: Record<Tone, string> = {
+  amber: "bg-amber-500",
+  sage:  "bg-emerald-500",
+  moss:  "bg-emerald-500",
+  lilac: "bg-violet-500",
+}
 
 type StatId = "sent" | "queued" | "agents" | "cycles" | "replies" | "reply-rate" | "total-agents" | "followups" | "scheduled" | "bounced" | "bounce-rate" | "open-rate" | "credits"
 
@@ -40,8 +54,8 @@ interface StatDef {
   value: string
   increase?: string
   subtitle?: string
-  bgColor: string
-  textColor: string
+  icon: LucideIcon
+  tone: Tone
   href: string
 }
 
@@ -98,44 +112,43 @@ function SortableCard({
           </button>
         </>
       )}
-      <Card
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        className={`${stat.bgColor} ${stat.textColor} p-4 transition-all duration-300 shadow-lg ${
-          editMode ? "pt-8 select-none" : "cursor-pointer p-0"
-        } ${hovered && !editMode ? "scale-105 shadow-2xl" : ""}`}
-      >
-        {editMode ? (
-          <CardInner stat={stat} hovered={hovered} editMode={editMode} />
-        ) : (
-          <Link href={stat.href} className="block p-4">
-            <CardInner stat={stat} hovered={hovered} editMode={editMode} />
-          </Link>
-        )}
-      </Card>
+      {editMode ? (
+        <div className="pt-8 select-none">
+          <CardInner stat={stat} />
+        </div>
+      ) : (
+        <Link
+          href={stat.href}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+          className="group block rounded-2xl border border-border bg-card p-5 transition-colors hover:border-foreground/15"
+        >
+          <CardInner stat={stat} hovered={hovered} />
+        </Link>
+      )}
     </div>
   )
 }
 
-function CardInner({ stat, hovered, editMode }: { stat: StatDef; hovered: boolean; editMode: boolean }) {
+function CardInner({ stat, hovered }: { stat: StatDef; hovered?: boolean }) {
+  const Icon = stat.icon
   return (
     <>
-      <div className="flex items-start justify-between mb-3">
-        <h3 className="text-xs font-medium opacity-90">{stat.title}</h3>
-        {!editMode && (
-          <div
-            className={`w-6 h-6 rounded-full ${
-              stat.bgColor === "bg-primary" ? "bg-primary-foreground/20" : "bg-primary"
-            } flex items-center justify-center transition-transform duration-300 ${hovered ? "rotate-45" : ""}`}
-          >
-            <ArrowUpRight className="w-3 h-3 text-primary-foreground" />
+      <div className="flex items-start gap-4">
+        <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-full ${toneStyles[stat.tone]}`}>
+          <Icon className="h-[18px] w-[18px]" strokeWidth={1.75} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-[12px] font-medium text-muted-foreground">{stat.title}</p>
+            <ChevronRight className={`h-4 w-4 text-muted-foreground/60 transition-transform ${hovered ? "translate-x-0.5" : ""}`} />
           </div>
-        )}
+          <p className="mt-1 font-display text-[28px] leading-none tracking-tight text-foreground">{stat.value}</p>
+        </div>
       </div>
-      <p className="text-3xl font-bold mb-2">{stat.value}</p>
-      <div className="flex items-center gap-1.5 text-xs opacity-80">
-        {stat.increase && <><TrendingUp className="w-3 h-3" /><span>{stat.increase}</span></>}
-        {stat.subtitle && <span>{stat.subtitle}</span>}
+      <div className="mt-4 flex items-center gap-2 text-[11px] text-muted-foreground">
+        <span className={`h-1.5 w-1.5 rounded-full ${dotStyles[stat.tone]}`} />
+        {stat.increase || stat.subtitle}
       </div>
     </>
   )
@@ -170,19 +183,19 @@ export function StatsCards({ sent = 0, queued = 0, runningAgents = 0, cyclesComp
   const openRate   = sent + bouncedCount > 0 ? ((openedCount  / (sent + bouncedCount)) * 100).toFixed(1) + "%" : "0%"
 
   const allStatsBase: Record<StatId, Omit<StatDef, "href">> = {
-    sent:            { title: "Total Emails Sent",   value: sent.toLocaleString(),           increase: "All time",          bgColor: "bg-primary", textColor: "text-primary-foreground" },
-    queued:          { title: "Total Emails Queued", value: queued.toLocaleString(),          increase: "Ready to send",     bgColor: "bg-card",    textColor: "text-foreground" },
-    agents:          { title: "Running Agents",      value: runningAgents.toLocaleString(),   increase: "Active right now",  bgColor: "bg-card",    textColor: "text-foreground" },
-    cycles:          { title: "Cycles Completed",    value: cyclesCompleted.toLocaleString(), subtitle: "Past 24 hours",     bgColor: "bg-card",    textColor: "text-foreground" },
-    replies:         { title: "Total Replies",       value: replies.toLocaleString(),         increase: "All time",          bgColor: "bg-card",    textColor: "text-foreground" },
-    "reply-rate":    { title: "Reply Rate",          value: replyRate,                        subtitle: "Replies / sent",    bgColor: "bg-card",    textColor: "text-foreground" },
-    "total-agents":  { title: "Total Agents",        value: totalAgents.toLocaleString(),     increase: "Created",           bgColor: "bg-card",    textColor: "text-foreground" },
-    followups:       { title: "Pending Follow-ups",  value: followUpCount.toLocaleString(),   increase: "Awaiting send",     bgColor: "bg-card",    textColor: "text-foreground" },
-    scheduled:       { title: "Scheduled Emails",    value: scheduledCount.toLocaleString(),  increase: "In queue",          bgColor: "bg-card",    textColor: "text-foreground" },
-    bounced:         { title: "Bounced Emails",      value: bouncedCount.toLocaleString(),    subtitle: "Delivery failures", bgColor: "bg-card",    textColor: "text-foreground" },
-    "bounce-rate":   { title: "Bounce Rate",         value: bounceRate,                       subtitle: "Bounced / total",   bgColor: "bg-card",    textColor: "text-foreground" },
-    "open-rate":     { title: "Open Rate",           value: openRate,                         subtitle: "Opens / total",     bgColor: "bg-card",    textColor: "text-foreground" },
-    credits:         { title: "Credit Balance",      value: creditBalance !== null ? creditBalance.toLocaleString() : "—", subtitle: "Remaining", bgColor: "bg-card",    textColor: "text-foreground" },
+    queued:          { title: "Emails Queued",       value: queued.toLocaleString(),          increase: "Ready to send",     icon: Clock,        tone: "amber" },
+    sent:            { title: "Emails Sent",         value: sent.toLocaleString(),            increase: "All time",          icon: Send,         tone: "sage"  },
+    replies:         { title: "Replies Received",    value: replies.toLocaleString(),         increase: "All time",          icon: MessageSquare, tone: "moss" },
+    "reply-rate":    { title: "Reply Rate",          value: replyRate,                        subtitle: "Replies vs. sent",  icon: BarChart3,    tone: "lilac" },
+    agents:          { title: "Running Agents",      value: runningAgents.toLocaleString(),   increase: "Active right now",  icon: Bot,          tone: "amber" },
+    cycles:          { title: "Cycles Completed",    value: cyclesCompleted.toLocaleString(), subtitle: "Past 24 hours",     icon: RefreshCw,    tone: "sage" },
+    "total-agents":  { title: "Total Agents",        value: totalAgents.toLocaleString(),     increase: "Created",           icon: Bot,          tone: "lilac" },
+    followups:       { title: "Pending Follow-ups",  value: followUpCount.toLocaleString(),   increase: "Awaiting send",     icon: Repeat,       tone: "amber" },
+    scheduled:       { title: "Scheduled Emails",    value: scheduledCount.toLocaleString(),  increase: "In queue",          icon: CalendarClock, tone: "sage" },
+    bounced:         { title: "Bounced Emails",      value: bouncedCount.toLocaleString(),    subtitle: "Delivery failures", icon: MailWarning,  tone: "lilac" },
+    "bounce-rate":   { title: "Bounce Rate",         value: bounceRate,                       subtitle: "Bounced / total",   icon: PieChart,     tone: "amber" },
+    "open-rate":     { title: "Open Rate",           value: openRate,                         subtitle: "Opens / total",     icon: Percent,      tone: "sage" },
+    credits:         { title: "Credit Balance",      value: creditBalance !== null ? creditBalance.toLocaleString() : "—", subtitle: "Remaining", icon: Coins, tone: "lilac" },
   }
   const allStats: Record<StatId, StatDef> = Object.fromEntries(
     (Object.entries(allStatsBase) as [StatId, Omit<StatDef, "href">][]).map(

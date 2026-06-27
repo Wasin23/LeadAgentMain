@@ -3,17 +3,14 @@
 import { Suspense, useEffect, useState, useCallback } from 'react'
 import { Sidebar } from '@/components/dashboard/sidebar'
 import { Header } from '@/components/dashboard/header'
-import { GlobalSearch } from '@/components/dashboard/global-search'
 import { OperationsContent } from '@/components/operations/operations-content'
 import { AgentsContent } from '@/components/agents/agents-content'
 import { PresetsContent } from '@/components/agents/presets-content'
 import { ChatLabContent } from '@/components/chat-lab/chat-lab-content'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Send, Mail, Clock, CheckCircle2, Bot, MessageSquare } from 'lucide-react'
+import { Send, Mail, Clock, Bot, MessageSquare, Activity, SlidersHorizontal, Coins } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { cn } from '@/lib/utils'
 import api from '@/lib/api'
 
 type Section = 'monitor' | 'setup'
@@ -56,13 +53,13 @@ function GlobalStatRow() {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
       {items.map(({ label, value, sublabel, icon: Icon }) => (
-        <Card key={label} className="px-3 py-2 flex items-center gap-2">
+        <div key={label} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
           <Icon className="w-3.5 h-3.5 text-primary shrink-0" />
           <div className="min-w-0">
             <p className="text-sm font-semibold leading-tight tabular-nums">{value.toLocaleString()}</p>
             <p className="text-[10px] text-muted-foreground leading-tight">{sublabel ?? label}</p>
           </div>
-        </Card>
+        </div>
       ))}
     </div>
   )
@@ -93,7 +90,7 @@ function BulkChatLinkToggle() {
   }
 
   return (
-    <Card className="px-3 py-2 flex items-center gap-3 text-xs">
+    <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-2 text-xs">
       <MessageSquare className="w-3.5 h-3.5 text-primary shrink-0" />
       <span className="text-muted-foreground">Chat link in emails — apply to all agents:</span>
       <Button size="sm" variant="outline" className="h-6 text-[11px]" disabled={!!applying} onClick={() => applyToAll(true)}>
@@ -102,7 +99,7 @@ function BulkChatLinkToggle() {
       <Button size="sm" variant="outline" className="h-6 text-[11px]" disabled={!!applying} onClick={() => applyToAll(false)}>
         {applying === 'off' ? 'Applying…' : 'Turn off for all'}
       </Button>
-    </Card>
+    </div>
   )
 }
 
@@ -134,46 +131,52 @@ function ProspectingPageInner() {
     <div className="flex min-h-screen bg-background">
       <Sidebar />
       <main className="flex-1 p-4 lg:p-6 lg:ml-64">
-        <Header
-          title="Prospecting"
-          description="Monitor and manage your AI outreach agents."
-        />
+        <Header />
 
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <div className="flex-1 min-w-[240px]">
-            <GlobalSearch />
+        <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="font-display text-4xl text-foreground">Prospecting</h1>
+            <p className="mt-1.5 text-sm text-muted-foreground">Monitor and manage your AI outreach agents.</p>
           </div>
-          {creditBalance !== null && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-xs font-medium">
-              Credits {creditBalance.toLocaleString()}
-            </span>
-          )}
-          <Button size="sm" className="gap-1.5" onClick={() => router.push('/outreach?section=awaiting')}>
-            <Send className="w-3.5 h-3.5" /> Send Emails
-          </Button>
+          <div className="flex items-center gap-2">
+            {creditBalance !== null && (
+              <span className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-foreground/80">
+                <Coins className="h-3.5 w-3.5 text-brass" strokeWidth={2} />
+                <span className="text-muted-foreground">Credits</span>
+                <span className="tabular-nums font-semibold text-foreground">{creditBalance.toLocaleString()}</span>
+              </span>
+            )}
+            <Button size="sm" className="gap-1.5" onClick={() => router.push('/outreach?section=awaiting')}>
+              <Send className="w-3.5 h-3.5" /> Send Emails
+            </Button>
+          </div>
         </div>
 
-        <div className="mt-4">
+        <div className="mb-5">
           <GlobalStatRow />
         </div>
 
-        <div className="mt-5 flex items-center gap-1 border-b border-border">
+        <div className="mb-5 flex items-center gap-2">
           <button
             onClick={() => changeSection('monitor')}
-            className={cn(
-              'px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px',
-              section === 'monitor' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground',
-            )}
+            className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${
+              section === 'monitor'
+                ? 'border-border bg-card text-foreground shadow-[0_1px_0_oklch(0_0_0/0.02)]'
+                : 'border-transparent bg-transparent text-muted-foreground hover:text-foreground'
+            }`}
           >
+            <Activity className="h-4 w-4" strokeWidth={1.75} />
             Monitor Agents
           </button>
           <button
             onClick={() => changeSection('setup')}
-            className={cn(
-              'px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px',
-              section === 'setup' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground',
-            )}
+            className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${
+              section === 'setup'
+                ? 'border-border bg-card text-foreground shadow-[0_1px_0_oklch(0_0_0/0.02)]'
+                : 'border-transparent bg-transparent text-muted-foreground hover:text-foreground'
+            }`}
           >
+            <SlidersHorizontal className="h-4 w-4" strokeWidth={1.75} />
             Agent Setup & Presets
           </button>
         </div>

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Bell, Zap, CheckCircle2, Link2Off, Bot, Cpu, ArrowRight, Info } from "lucide-react"
+import { Bell, Coins, CheckCircle2, Link2Off, Bot, Cpu, ArrowRight, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -191,7 +191,7 @@ export function Header({
 
   return (
     <header className="space-y-3 md:space-y-4 animate-slide-in-up relative z-10">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-2.5">
         <div className="flex items-center gap-2 flex-1">
           <MobileNav />
 
@@ -211,15 +211,14 @@ export function Header({
           {crmName !== undefined && <CrmBadge name={crmName} />}
 
           {/* Credit balance */}
-          <Button
-            variant="ghost"
-            size="icon"
+          <button
             title="AI Credits remaining"
-            className="relative hover:bg-secondary transition-all duration-300 hover:scale-110 h-8 w-auto px-2 gap-1 text-xs font-semibold text-foreground"
+            className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-foreground/80 hover:bg-accent transition-colors"
           >
-            <Zap className="w-4 h-4 text-primary flex-shrink-0" />
-            <span>{credits.toLocaleString()}</span>
-          </Button>
+            <Coins className="w-3.5 h-3.5 text-brass" strokeWidth={2} />
+            <span className="text-muted-foreground">Credits</span>
+            <span className="tabular-nums font-semibold text-foreground">{credits.toLocaleString()}</span>
+          </button>
 
           {maxAgents > 0 && (
             <Popover>
@@ -323,10 +322,12 @@ export function Header({
         </div>
       </div>
 
-      <div>
-        <h1 className="text-xl md:text-2xl lg:text-3xl font-bold font-serif text-foreground mb-1">{title}</h1>
-        <p className="text-xs md:text-sm text-muted-foreground">{description}</p>
-      </div>
+      {title && (
+        <div>
+          <h1 className="text-xl md:text-2xl lg:text-3xl font-bold font-serif text-foreground mb-1">{title}</h1>
+          {description && <p className="text-xs md:text-sm text-muted-foreground">{description}</p>}
+        </div>
+      )}
     </header>
   )
 }

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   Plus, Trash2, Pencil, Building2, Users, MapPin, Mail,
-  Zap, AlertCircle, CheckCircle2, X, Send, MessageSquare,
+  Zap, AlertCircle, CheckCircle2, X, Send, MessageSquare, Wand2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -248,10 +248,10 @@ function PresetEditorPanel({
   }
 
   return (
-    <Card className="p-5 space-y-5">
+    <div className="rounded-2xl border border-border bg-card p-5 space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-sm font-semibold">{isNew ? 'New Preset' : `Edit: ${form.name || 'Preset'}`}</h2>
+          <h2 className="font-display text-xl text-foreground">{isNew ? 'New Preset' : `Edit: ${form.name || 'Preset'}`}</h2>
           <p className="text-xs text-muted-foreground mt-0.5">Configure reusable outreach messaging styles and behaviour.</p>
         </div>
         {!isNew && (
@@ -352,26 +352,30 @@ function PresetEditorPanel({
       </div>
 
       <div className="space-y-2">
-        <button onClick={generatePreview} disabled={previewing} className="text-xs text-primary hover:underline font-medium flex items-center gap-1.5 disabled:opacity-50">
-          <Send className="w-3 h-3" /> {previewing ? 'Generating…' : 'Generate Preview'}
-          <span className="text-muted-foreground font-normal">· save first for most accurate results</span>
+        <button onClick={generatePreview} disabled={previewing} className="inline-flex items-center gap-1.5 text-xs font-semibold text-[oklch(0.52_0.14_158)] disabled:opacity-50">
+          <Wand2 className="h-3.5 w-3.5" strokeWidth={1.75} /> {previewing ? 'Generating…' : 'Generate Preview'}
+          <span className="ml-1 text-[11px] font-normal text-muted-foreground">· save first for most accurate results</span>
         </button>
-        <Card className="p-4 bg-muted/30 min-h-24">
-          {previewError ? (
-            <p className="text-xs text-destructive">{previewError}</p>
-          ) : preview ? (
-            <div className="space-y-1.5">
-              <p className="text-xs font-semibold">{preview.subject}</p>
-              <p className="text-xs text-muted-foreground whitespace-pre-wrap line-clamp-6">{preview.body}</p>
+        {preview || previewError ? (
+          <div className="rounded-xl border border-border bg-surface/60 p-4 min-h-24">
+            {previewError ? (
+              <p className="text-xs text-destructive">{previewError}</p>
+            ) : (
+              <div className="space-y-1.5">
+                <p className="text-xs font-semibold">{preview!.subject}</p>
+                <p className="text-xs text-muted-foreground whitespace-pre-wrap line-clamp-6">{preview!.body}</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-border bg-surface/60 px-4 py-8 text-center">
+            <div className="mx-auto grid h-9 w-9 place-items-center rounded-full bg-muted">
+              <Send className="h-4 w-4 text-muted-foreground" strokeWidth={1.75} />
             </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-3 text-center gap-1.5">
-              <Send className="w-4 h-4 text-muted-foreground" />
-              <p className="text-xs text-muted-foreground">No preview yet</p>
-              <p className="text-[10px] text-muted-foreground">Click Generate Preview to see a sample email</p>
-            </div>
-          )}
-        </Card>
+            <div className="mt-2 text-sm font-semibold text-foreground">No preview yet</div>
+            <div className="text-[11px] text-muted-foreground">Click Generate Preview to see a sample email</div>
+          </div>
+        )}
       </div>
 
       <div className="flex justify-end gap-2 pt-2 border-t border-border">
@@ -380,7 +384,7 @@ function PresetEditorPanel({
           {saving ? 'Saving…' : 'Save Preset'}
         </Button>
       </div>
-    </Card>
+    </div>
   )
 }
 
@@ -413,7 +417,7 @@ function PresetCard({
   const [showApply, setShowApply] = useState(false)
 
   return (
-    <Card className={cn('p-5 space-y-3 hover:shadow-md transition-shadow cursor-pointer', selected && 'border-primary ring-1 ring-primary/30')} onClick={onSelect}>
+    <div className={cn('rounded-2xl border border-border bg-card p-5 space-y-3 transition-colors cursor-pointer hover:border-foreground/15', selected && 'border-primary ring-1 ring-primary/30')} onClick={onSelect}>
       <div className="flex items-start justify-between gap-2">
         <div>
           <h3 className="text-sm font-semibold text-foreground">{preset.name}</h3>
@@ -449,7 +453,7 @@ function PresetCard({
       {preset.specialInstructions && (
         <p className="text-[11px] text-muted-foreground italic border-l-2 border-border pl-2 line-clamp-2">{preset.specialInstructions}</p>
       )}
-    </Card>
+    </div>
   )
 }
 
@@ -579,7 +583,7 @@ export function PresetsContent() {
 
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-semibold text-foreground">{loading ? 'Loading…' : `${presets.length} Preset${presets.length !== 1 ? 's' : ''}`}</p>
+          <p className="font-display text-xl text-foreground">{loading ? 'Loading…' : `${presets.length} Preset${presets.length !== 1 ? 's' : ''}`}</p>
           <p className="text-xs text-muted-foreground">Reusable targeting &amp; email configs — apply to any agent</p>
         </div>
         <Button size="sm" className="h-8 text-xs gap-1.5" onClick={startNew}><Plus className="w-3.5 h-3.5" /> New Preset</Button>
@@ -589,16 +593,16 @@ export function PresetsContent() {
         <div>
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {Array.from({ length: 3 }).map((_, i) => <Card key={i} className="p-5 h-40 animate-pulse bg-muted/30" />)}
+              {Array.from({ length: 3 }).map((_, i) => <div key={i} className="rounded-2xl border border-border bg-card p-5 h-40 animate-pulse" />)}
             </div>
           ) : presets.length === 0 ? (
-            <Card className="p-16 flex flex-col items-center justify-center gap-4 text-center">
+            <div className="rounded-2xl border border-dashed border-border bg-card/60 p-16 flex flex-col items-center justify-center gap-4 text-center">
               <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center"><Zap className="w-6 h-6 text-muted-foreground" /></div>
               <div>
                 <h3 className="text-sm font-semibold mb-1">No presets yet</h3>
                 <p className="text-xs text-muted-foreground max-w-xs">Create a preset to save targeting and email settings for quick reuse across agents.</p>
               </div>
-            </Card>
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {presets.map(p => (

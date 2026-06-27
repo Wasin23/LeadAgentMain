@@ -1,12 +1,12 @@
 'use client'
 
 import { Suspense, useEffect, useState, useCallback } from 'react'
+import { Send } from 'lucide-react'
 import { Sidebar } from '@/components/dashboard/sidebar'
 import { Header } from '@/components/dashboard/header'
 import { EmailQueueContent } from '@/components/email-queue/email-queue-content'
 import { ContactedContent } from '@/components/outreach/contacted-content'
 import { CalendarMini } from '@/components/calendar/calendar-mini'
-import { cn } from '@/lib/utils'
 import { useRouter, useSearchParams } from 'next/navigation'
 import api from '@/lib/api'
 
@@ -42,33 +42,45 @@ function OutreachPageInner() {
     <div className="flex min-h-screen bg-background">
       <Sidebar />
       <main className="flex-1 p-4 lg:p-6 lg:ml-64">
-        <Header
-          title="Outreach"
-          description="Emails awaiting your approval, and everything already sent and tracked."
-        />
+        <Header />
 
-        <div className="mt-5 flex items-center gap-1 border-b border-border">
-          <button
-            onClick={() => changeSection('awaiting')}
-            className={cn(
-              'px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px',
-              section === 'awaiting' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground',
-            )}
-          >
-            Awaiting Review{awaitingCount > 0 ? ` (${awaitingCount})` : ''}
-          </button>
-          <button
-            onClick={() => changeSection('sent')}
-            className={cn(
-              'px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px',
-              section === 'sent' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground',
-            )}
-          >
-            Sent
-          </button>
+        <div className="mb-4 flex items-center gap-3">
+          <div className="grid h-10 w-10 place-items-center rounded-xl bg-surface text-brass">
+            <Send className="h-5 w-5" strokeWidth={1.75} />
+          </div>
+          <div>
+            <h1 className="font-display text-3xl text-foreground">Outreach</h1>
+            <p className="text-sm text-muted-foreground">Review, approve, and manage your outreach.</p>
+          </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4 items-start">
+        <div className="mb-5 border-b border-border">
+          <div className="flex items-center gap-6">
+            <button
+              onClick={() => changeSection('awaiting')}
+              className={`relative -mb-px flex items-center pb-3 pt-1 text-sm font-medium transition-colors ${
+                section === 'awaiting' ? 'text-foreground border-b-2 border-[oklch(0.52_0.14_158)]' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Awaiting Review
+              <span className={`ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] font-medium tabular-nums ${
+                section === 'awaiting' ? 'bg-[oklch(0.52_0.14_158)] text-white' : 'bg-muted text-muted-foreground'
+              }`}>
+                {awaitingCount}
+              </span>
+            </button>
+            <button
+              onClick={() => changeSection('sent')}
+              className={`relative -mb-px flex items-center pb-3 pt-1 text-sm font-medium transition-colors ${
+                section === 'sent' ? 'text-foreground border-b-2 border-[oklch(0.52_0.14_158)]' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Sent
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4 items-start">
           <div className="min-w-0">
             {section === 'awaiting'
               ? <EmailQueueContent />

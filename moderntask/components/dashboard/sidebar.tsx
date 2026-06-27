@@ -175,55 +175,57 @@ function SidebarInner() {
     .map(h => itemByHref[h])
 
   return (
-    <aside className="fixed top-0 left-0 w-64 bg-card border-r border-border p-4 h-screen overflow-y-auto lg:block">
-      <div className="flex items-center gap-2 mb-6 group cursor-pointer">
-        <Link href="/home" className="flex items-center gap-2">
-          <Image src="/MeridianM.png" alt="Meridian" width={56} height={37} className="shrink-0" />
-          <MeridianWordmark className="h-3 w-auto dark:text-white text-black" />
-        </Link>
-      </div>
-
-      <div className="space-y-4">
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Menu</p>
-            <button
-              onClick={() => setEditMode(e => !e)}
-              className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded transition-colors ${
-                editMode
-                  ? "text-primary bg-primary/10"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-              aria-label={editMode ? "Done editing" : "Reorder menu"}
-            >
-              {editMode ? <Check className="w-2.5 h-2.5" /> : <Pencil className="w-2.5 h-2.5" />}
-              {editMode ? "Done" : "Edit"}
-            </button>
-          </div>
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd} modifiers={[restrictToVerticalAxis, restrictToParentElement]}>
-            <SortableContext items={navOrder} strategy={verticalListSortingStrategy}>
-              <nav className="space-y-0.5">
-                {orderedMenuItems.map(item => (
-                  <SortableNavItem
-                    key={item.href}
-                    item={item}
-                    pathname={pathname}
-                    search={search}
-                    hovered={hoveredItem}
-                    setHovered={setHoveredItem}
-                    editMode={editMode}
-                  />
-                ))}
-              </nav>
-            </SortableContext>
-          </DndContext>
+    <aside className="fixed top-0 left-0 w-64 h-screen p-3 hidden lg:block">
+      <div className="h-full rounded-2xl border border-border bg-card p-4 overflow-y-auto shadow-[0_1px_0_oklch(0_0_0/0.02)]">
+        <div className="flex items-center gap-2 mb-6 group cursor-pointer">
+          <Link href="/home" className="flex items-center gap-2">
+            <Image src="/MeridianM.png" alt="Meridian" width={56} height={37} className="shrink-0" />
+            <MeridianWordmark className="h-3 w-auto dark:text-white text-black" />
+          </Link>
         </div>
 
-        <div>
-          <p className="text-[10px] font-medium text-muted-foreground mb-2 uppercase tracking-wider">General</p>
-          <nav className="space-y-0.5">
-            {generalItems.map(item => <NavEntry key={item.href} item={item} pathname={pathname} search={search} hovered={hoveredItem} setHovered={setHoveredItem} />)}
-          </nav>
+        <div className="space-y-4">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Menu</p>
+              <button
+                onClick={() => setEditMode(e => !e)}
+                className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-md transition-colors ${
+                  editMode
+                    ? "text-primary bg-primary/10"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                aria-label={editMode ? "Done editing" : "Reorder menu"}
+              >
+                {editMode ? <Check className="w-2.5 h-2.5" /> : <Pencil className="w-2.5 h-2.5" />}
+                {editMode ? "Done" : "Edit"}
+              </button>
+            </div>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd} modifiers={[restrictToVerticalAxis, restrictToParentElement]}>
+              <SortableContext items={navOrder} strategy={verticalListSortingStrategy}>
+                <nav className="space-y-0.5">
+                  {orderedMenuItems.map(item => (
+                    <SortableNavItem
+                      key={item.href}
+                      item={item}
+                      pathname={pathname}
+                      search={search}
+                      hovered={hoveredItem}
+                      setHovered={setHoveredItem}
+                      editMode={editMode}
+                    />
+                  ))}
+                </nav>
+              </SortableContext>
+            </DndContext>
+          </div>
+
+          <div>
+            <p className="text-[10px] font-medium text-muted-foreground mb-2 uppercase tracking-wider">General</p>
+            <nav className="space-y-0.5">
+              {generalItems.map(item => <NavEntry key={item.href} item={item} pathname={pathname} search={search} hovered={hoveredItem} setHovered={setHoveredItem} />)}
+            </nav>
+          </div>
         </div>
       </div>
     </aside>
@@ -233,7 +235,9 @@ function SidebarInner() {
 export function Sidebar() {
   return (
     <Suspense fallback={
-      <aside className="fixed top-0 left-0 w-64 bg-card border-r border-border p-4 h-screen lg:block" />
+      <aside className="fixed top-0 left-0 w-64 h-screen p-3 hidden lg:block">
+        <div className="h-full rounded-2xl border border-border bg-card" />
+      </aside>
     }>
       <SidebarInner />
     </Suspense>
@@ -265,7 +269,7 @@ function NavEntry({ item, pathname, search = "", hovered, setHovered, depth = 0 
         onMouseEnter={() => setHovered(item.href)}
         onMouseLeave={() => setHovered(null)}
         className={cn(
-          "w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm font-medium transition-all duration-300",
+          "w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-sm font-medium transition-all duration-300",
           depth > 0 && "text-xs py-1.5",
           isActive
             ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
