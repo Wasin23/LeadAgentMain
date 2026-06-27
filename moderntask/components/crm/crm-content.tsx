@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useEffect, useRef, useMemo } from "react"
+import { useState, useEffect, useRef, useMemo, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { RefreshCw, Play, Square, Search, Building2, CheckCircle2, Loader2, User, Trash2, ChevronLeft, ChevronRight, GitMerge } from "lucide-react"
+import { RefreshCw, Play, Square, Search, Building2, CheckCircle2, Loader2, User, Trash2, ChevronLeft, ChevronRight, GitMerge, Link2Off, ExternalLink } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import api from "@/lib/api"
 
@@ -49,6 +50,21 @@ interface AuditorResult {
 
 export function CRMContent() {
   const { toast } = useToast()
+  const router = useRouter()
+
+  // ── connection status ──
+  const [crmName, setCrmName]           = useState<string | null | undefined>(undefined) // undefined = loading
+  const [crmLastSynced, setCrmLastSynced] = useState<string | null>(null)
+
+  const fetchCrmStatus = useCallback(async () => {
+    try {
+      const r = await api.get("/api/crm/status")
+      setCrmName(r.data?.connected ? (r.data?.integration || "CRM") : null)
+      setCrmLastSynced(r.data?.lastSynced || null)
+    } catch { setCrmName(null) }
+  }, [])
+
+  useEffect(() => { fetchCrmStatus() }, [fetchCrmStatus])
 
   // ── session contacts (auditor run, not persisted in this state) ──
   const [contacts, setContacts]             = useState<CRMContact[]>([])
@@ -406,8 +422,66 @@ export function CRMContent() {
   const colors = ["bg-blue-500", "bg-violet-500", "bg-emerald-500", "bg-rose-500", "bg-amber-500", "bg-indigo-500"]
   const avatarColor = (i: number) => colors[i % colors.length]
 
+  const savedStats = useMemo(() => {
+    const now = Date.now()
+    const weekAgo = now - 7 * 86400000
+    const monthAgo = now - 30 * 86400000
+    return {
+      total: savedContacts.length,
+      queued: savedContacts.filter(c => c.status === "queued").length,
+      assignedThisWeek: savedContacts.filter(c => c.assignedAt && new Date(c.assignedAt).getTime() >= weekAgo).length,
+      assignedThisMonth: savedContacts.filter(c => c.assignedAt && new Date(c.assignedAt).getTime() >= monthAgo).length,
+    }
+  }, [savedContacts])
+
+  const duplicateIds = useMemo(() => {
+    const byEmail = new Map<string, CRMContact[]>()
+    for (const c of savedContacts) {
+      const key = (c.email || "").toLowerCase().trim()
+      if (!key) continue
+      byEmail.set(key, [...(byEmail.get(key) ?? []), c])
+    }
+    const ids = new Set<string>()
+    for (const group of byEmail.values()) {
+      if (group.length < 2) continue
+      const sorted = [...group].sort((a, b) => (a.savedAt || "").localeCompare(b.savedAt || ""))
+      for (const dupe of sorted.slice(1)) ids.add(dupe.crmId || dupe.email)
+    }
+    return ids
+  }, [savedContacts])
+
   return (
-    <div className="space-y-6">
+    <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4 items-start">
+    <div className="min-w-0 space-y-6">
+
+      {/* ── connection header ─────────────────────────── */}
+      {crmName !== undefined && (
+        <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-border bg-card p-4">
+          <div className="flex items-center gap-3">
+            <div className={`grid h-10 w-10 place-items-center rounded-full ${crmName ? "bg-[oklch(0.95_0.04_150)]" : "bg-muted"}`}>
+              {crmName
+                ? <CheckCircle2 className="h-5 w-5 text-[oklch(0.45_0.13_150)]" strokeWidth={2.5} />
+                : <Link2Off className="h-5 w-5 text-muted-foreground" strokeWidth={1.75} />}
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">{crmName ? "CRM Connected" : "No CRM connected"}</p>
+              <p className="text-sm font-semibold text-foreground">{crmName ?? "—"}</p>
+              {crmLastSynced && <p className="text-[11px] text-muted-foreground">Last synced {new Date(crmLastSynced).toLocaleString()}</p>}
+            </div>
+          </div>
+          {!crmName && (
+            <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => router.push("/settings?tab=crm")}>
+              Connect a CRM
+            </Button>
+          )}
+          <div className="ml-auto grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <CrmStat label="Saved" value={savedStats.total} />
+            <CrmStat label="Queued" value={savedStats.queued} />
+            <CrmStat label="Assigned (week)" value={savedStats.assignedThisWeek} />
+            <CrmStat label="Assigned (month)" value={savedStats.assignedThisMonth} />
+          </div>
+        </div>
+      )}
 
       {/* ── SAVED CONTACTS (DB) ──────────────────────── */}
       <div className="space-y-2.5">
@@ -423,51 +497,21 @@ export function CRMContent() {
           )}
         </div>
 
-        {savedContacts.length > 0 && (() => {
-          const now = Date.now()
-          const weekAgo = now - 7 * 86400000
-          const monthAgo = now - 30 * 86400000
-          const assignedThisWeek = savedContacts.filter(c => c.assignedAt && new Date(c.assignedAt).getTime() >= weekAgo).length
-          const assignedThisMonth = savedContacts.filter(c => c.assignedAt && new Date(c.assignedAt).getTime() >= monthAgo).length
-          const researched = savedContacts.filter(c => c.status === "queued").length
-          return (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <div className="rounded-xl border border-border bg-card p-2.5"><p className="font-display text-lg text-foreground">{savedContacts.length}</p><p className="text-[10px] text-muted-foreground">Total Saved</p></div>
-              <div className="rounded-xl border border-border bg-card p-2.5"><p className="font-display text-lg text-foreground">{researched}</p><p className="text-[10px] text-muted-foreground">Queued</p></div>
-              <div className="rounded-xl border border-border bg-card p-2.5"><p className="font-display text-lg text-foreground">{assignedThisWeek}</p><p className="text-[10px] text-muted-foreground">Assigned this week</p></div>
-              <div className="rounded-xl border border-border bg-card p-2.5"><p className="font-display text-lg text-foreground">{assignedThisMonth}</p><p className="text-[10px] text-muted-foreground">Assigned this month</p></div>
-            </div>
-          )
-        })()}
-
         {loadingSaved ? (
           <div className="flex items-center gap-2 py-4 text-xs text-muted-foreground"><Loader2 className="w-3.5 h-3.5 animate-spin" />Loading…</div>
         ) : savedContacts.length === 0 ? (
-          <div className="rounded-lg border border-dashed px-4 py-5 text-center">
+          <div className="rounded-xl border border-dashed border-border px-4 py-5 text-center">
             <User className="w-4 h-4 text-muted-foreground mx-auto mb-1.5" />
             <p className="text-xs text-muted-foreground">No contacts saved yet. Run Auditor Mode to populate this list.</p>
           </div>
         ) : (() => {
-          // Duplicate detection by normalized email — flag every contact after the first (earliest savedAt) in a group
-          const byEmail = new Map<string, CRMContact[]>()
-          for (const c of savedContacts) {
-            const key = (c.email || "").toLowerCase().trim()
-            if (!key) continue
-            byEmail.set(key, [...(byEmail.get(key) ?? []), c])
-          }
-          const duplicateIds = new Set<string>()
-          for (const group of byEmail.values()) {
-            if (group.length < 2) continue
-            const sorted = [...group].sort((a, b) => (a.savedAt || "").localeCompare(b.savedAt || ""))
-            for (const dupe of sorted.slice(1)) duplicateIds.add(dupe.crmId || dupe.email)
-          }
           return (
             <div className="space-y-1">
               {savedContacts.map((c, i) => {
                 const id = c.crmId || c.email
                 const isDupe = duplicateIds.has(id)
                 return (
-                  <div key={id} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border bg-card ${isDupe ? "border-amber-400/50" : ""}`}>
+                  <div key={id} className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border border-border bg-card ${isDupe ? "border-amber-400/50" : ""}`}>
                     <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0 ${avatarColor(i)}`}>{initials(c)}</div>
                     <div className="flex-1 min-w-0">
                       <span className="text-xs font-medium truncate block">{[c.firstName, c.lastName].filter(Boolean).join(" ") || c.email}</span>
@@ -772,5 +816,84 @@ export function CRMContent() {
       )}
       </div>
     </div>
+
+    <ImportSettingsPanel
+      crmName={crmName}
+      crmLastSynced={crmLastSynced}
+      savedStats={savedStats}
+    />
+    </div>
+  )
+}
+
+function CrmStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="min-w-0">
+      <p className="font-display text-lg leading-tight text-foreground">{value.toLocaleString()}</p>
+      <p className="text-[10px] text-muted-foreground">{label}</p>
+    </div>
+  )
+}
+
+function ImportSettingsPanel({
+  crmName, crmLastSynced, savedStats,
+}: {
+  crmName: string | null | undefined
+  crmLastSynced: string | null
+  savedStats: { total: number; queued: number; assignedThisWeek: number; assignedThisMonth: number }
+}) {
+  const router = useRouter()
+  return (
+    <aside className="space-y-4 rounded-2xl border border-border bg-card p-5">
+      <h2 className="font-display text-lg text-foreground">Import Settings</h2>
+
+      <section className="space-y-3">
+        <h3 className="text-sm font-semibold text-foreground">Connection Details</h3>
+        {crmName ? (
+          <>
+            <div className="flex items-center justify-between rounded-lg border border-border p-3">
+              <span className="text-sm font-medium">{crmName}</span>
+              <span className="rounded-md bg-[oklch(0.95_0.04_150)] px-2 py-0.5 text-[10px] font-medium text-[oklch(0.4_0.11_150)]">
+                Connected
+              </span>
+            </div>
+            {crmLastSynced && (
+              <div className="flex justify-between gap-2 text-xs">
+                <dt className="text-muted-foreground">Last synced</dt>
+                <dd className="text-foreground">{new Date(crmLastSynced).toLocaleString()}</dd>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="flex items-center gap-2 rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground">
+            <Link2Off className="h-3.5 w-3.5 shrink-0" />
+            No CRM connected
+          </div>
+        )}
+        <button
+          onClick={() => router.push("/settings?tab=crm")}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-medium text-foreground hover:bg-accent"
+        >
+          {crmName ? "Manage connection" : "Connect a CRM"} <ExternalLink className="h-3 w-3" />
+        </button>
+      </section>
+
+      <section className="space-y-3 border-t border-border pt-4">
+        <h3 className="text-sm font-semibold text-foreground">Saved / Assigned Contacts</h3>
+        <p className="text-xs text-muted-foreground">Contacts already created or assigned as leads.</p>
+        <ul className="space-y-2 text-xs">
+          {[
+            ["Assigned this week", savedStats.assignedThisWeek],
+            ["Assigned this month", savedStats.assignedThisMonth],
+            ["Total saved contacts", savedStats.total],
+          ].map(([k, v]) => (
+            <li key={k as string} className="flex items-center justify-between">
+              <span className="text-muted-foreground">{k}</span>
+              <span className="font-medium text-foreground">{(v as number).toLocaleString()}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </aside>
   )
 }
