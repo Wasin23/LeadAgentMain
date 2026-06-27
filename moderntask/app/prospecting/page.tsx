@@ -9,7 +9,7 @@ import { PresetsContent } from '@/components/agents/presets-content'
 import { ChatLabContent } from '@/components/chat-lab/chat-lab-content'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
-import { Send, Mail, Clock, Bot, MessageSquare, Activity, SlidersHorizontal, Coins } from 'lucide-react'
+import { Send, Mail, Clock, Bot, MessageSquare, Activity, SlidersHorizontal } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import api from '@/lib/api'
 
@@ -111,15 +111,6 @@ function ProspectingPageInner() {
   const setupTab = searchParams.get('tab') === 'presets' ? 'presets' : 'agents'
   const highlightAgent = searchParams.get('agent') ?? undefined
   const autoOpenCreate = searchParams.get('create') === 'true'
-  const [creditBalance, setCreditBalance] = useState<number | null>(null)
-
-  useEffect(() => {
-    api.get('/api/plans/status').then(r => {
-      const d = r.data
-      const bal = Number(d.credits?.remaining ?? d.plan?.remainingCredits ?? 0)
-      if (bal > 0) setCreditBalance(Math.round(bal))
-    }).catch(() => {})
-  }, [])
 
   const changeSection = (next: Section) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -139,13 +130,6 @@ function ProspectingPageInner() {
             <p className="mt-1.5 text-sm text-muted-foreground">Monitor and manage your AI outreach agents.</p>
           </div>
           <div className="flex items-center gap-2">
-            {creditBalance !== null && (
-              <span className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-foreground/80">
-                <Coins className="h-3.5 w-3.5 text-brass" strokeWidth={2} />
-                <span className="text-muted-foreground">Credits</span>
-                <span className="tabular-nums font-semibold text-foreground">{creditBalance.toLocaleString()}</span>
-              </span>
-            )}
             <Button size="sm" className="gap-1.5" onClick={() => router.push('/outreach?section=awaiting')}>
               <Send className="w-3.5 h-3.5" /> Send Emails
             </Button>
