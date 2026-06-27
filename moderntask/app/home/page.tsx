@@ -65,6 +65,8 @@ export default function DashboardPage() {
   const [bouncedCount, setBouncedCount] = useState(0)
   const [openedCount, setOpenedCount] = useState(0)
   const [creditBalance, setCreditBalance] = useState<number | null>(null)
+  const [creditsUsed, setCreditsUsed] = useState<number | null>(null)
+  const [creditsLimit, setCreditsLimit] = useState<number | null>(null)
 
   // chart – emails sent per day (last 7 days)
   const [chartData, setChartData] = useState<QueueChartDataPoint[]>([])
@@ -124,6 +126,8 @@ export default function DashboardPage() {
       const d = planRes.value.data
       const bal = Number(d.credits?.remaining ?? d.plan?.remainingCredits ?? 0)
       if (bal > 0) setCreditBalance(Math.round(bal))
+      if (d.credits?.used !== null && d.credits?.used !== undefined) setCreditsUsed(Number(d.credits.used))
+      if (d.credits?.limit !== null && d.credits?.limit !== undefined) setCreditsLimit(Number(d.credits.limit))
     }
 
     // ── email counts ────────────────────────────────────────────────────
@@ -284,9 +288,9 @@ export default function DashboardPage() {
       setBouncedCount(bounced)
       setOpenedCount(opened)
 
-      // email activity time series — last 30 days
-      const timeSeries: EmailTimePoint[] = Array.from({ length: 30 }, (_, rev) => {
-        const daysAgo = 29 - rev
+      // email activity time series — last 90 days
+      const timeSeries: EmailTimePoint[] = Array.from({ length: 90 }, (_, rev) => {
+        const daysAgo = 89 - rev
         const d = new Date()
         d.setDate(d.getDate() - daysAgo)
         const dayStr = d.toLocaleDateString("en-CA")
@@ -430,6 +434,8 @@ export default function DashboardPage() {
             monthlyCredits={monthlyCredits}
             scheduledBatches={scheduledBatches}
             creditBalance={creditBalance}
+            creditsUsed={creditsUsed}
+            creditsLimit={creditsLimit}
             agentActivity={agentActivity}
             agentProgress={agentProgress}
             sent={counts.sent}

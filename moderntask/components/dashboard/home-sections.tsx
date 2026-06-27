@@ -21,6 +21,7 @@ import { TeamCollaboration, type AgentActivityItem } from "@/components/dashboar
 import { ProjectProgress, type AgentProgressItem } from "@/components/dashboard/project-progress"
 import { UpcomingFollowUps, type FollowUpItem } from "@/components/dashboard/upcoming-followups"
 import { RecentNotifications, type NotificationItem } from "@/components/dashboard/recent-notifications"
+import { AnalyticsContent } from "@/components/analytics/analytics-content"
 
 export type HomeSectionId =
   | "email-activity"
@@ -31,6 +32,7 @@ export type HomeSectionId =
   | "agent-progress"
   | "follow-ups"
   | "notifications"
+  | "performance"
 
 const SECTION_META: Record<HomeSectionId, { label: string; span: 1 | 2 }> = {
   "email-activity":     { label: "Email Activity",       span: 1 },
@@ -41,6 +43,7 @@ const SECTION_META: Record<HomeSectionId, { label: string; span: 1 | 2 }> = {
   "agent-progress":     { label: "Agent Progress",       span: 1 },
   "follow-ups":         { label: "Upcoming Follow-ups",  span: 1 },
   "notifications":      { label: "Recent Notifications", span: 1 },
+  "performance":        { label: "Performance & Analytics", span: 2 },
 }
 
 const DEFAULT_ORDER: HomeSectionId[] = [
@@ -52,6 +55,7 @@ const DEFAULT_ORDER: HomeSectionId[] = [
   "agent-progress",
   "follow-ups",
   "notifications",
+  "performance",
 ]
 
 interface HomeSectionsProps {
@@ -59,6 +63,8 @@ interface HomeSectionsProps {
   monthlyCredits?:   MonthlyPoint[]
   scheduledBatches?: ScheduledBatch[]
   creditBalance?:    number | null
+  creditsUsed?:      number | null
+  creditsLimit?:     number | null
   agentActivity?:    AgentActivityItem[]
   agentProgress?:    AgentProgressItem[]
   sent?:             number
@@ -127,6 +133,8 @@ export function HomeSections({
   monthlyCredits = [],
   scheduledBatches = [],
   creditBalance = null,
+  creditsUsed = null,
+  creditsLimit = null,
   agentActivity = [],
   agentProgress = [],
   sent = 0,
@@ -184,12 +192,13 @@ export function HomeSections({
     switch (id) {
       case "email-activity":     return <EmailActivityCard emailTimeSeries={emailTimeSeries} />
       case "scheduled-sends":    return <Reminders batches={scheduledBatches} />
-      case "credit-consumption": return <CreditConsumptionCard monthlyCredits={monthlyCredits} creditBalance={creditBalance} />
+      case "credit-consumption": return <CreditConsumptionCard monthlyCredits={monthlyCredits} creditBalance={creditBalance} creditsUsed={creditsUsed} creditsLimit={creditsLimit} />
       case "agent-activity":     return <TeamCollaboration agents={agentActivity} />
       case "delivery-health":    return <DeliveryHealthCard sent={sent} bounced={bounced} opened={opened} />
       case "agent-progress":     return <ProjectProgress agents={agentProgress} />
       case "follow-ups":         return <UpcomingFollowUps followUps={followUps} />
       case "notifications":      return <RecentNotifications notifications={notifications} />
+      case "performance":        return <AnalyticsContent />
     }
   }
 

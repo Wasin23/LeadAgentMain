@@ -2,7 +2,9 @@
 
 import { Card } from "@/components/ui/card"
 import { useRouter } from "next/navigation"
+import { useState } from "react"
 import { AlertCircle, Bot, Mail, CreditCard, Info } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 export interface NotificationItem {
   issueId: string
@@ -48,18 +50,27 @@ function timeAgo(dateStr: string): string {
   return "just now"
 }
 
+type Filter = "all" | "agents" | "alerts"
+
 export function RecentNotifications({ notifications = [] }: RecentNotificationsProps) {
   const router = useRouter()
+  const [filter, setFilter] = useState<Filter>("all")
+
+  const filtered = notifications.filter(n => {
+    if (filter === "agents") return n.type === "agent"
+    if (filter === "alerts") return n.severity === "critical" || n.severity === "high"
+    return true
+  })
 
   return (
     <Card
       className="p-5 transition-all duration-500 hover:shadow-xl animate-slide-in-up"
       style={{ animationDelay: "800ms" }}
     >
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
         <div className="flex items-center gap-2">
           <AlertCircle className="w-4 h-4 text-primary" />
-          <h2 className="text-base font-semibold text-foreground">Recent Notifications</h2>
+          <h2 className="text-base font-semibold text-foreground">Recent Activity</h2>
         </div>
         <button
           onClick={() => router.push("/help")}
@@ -69,14 +80,29 @@ export function RecentNotifications({ notifications = [] }: RecentNotificationsP
         </button>
       </div>
 
-      {notifications.length === 0 ? (
+      <div className="flex items-center gap-1 mb-3">
+        {(["all", "agents", "alerts"] as Filter[]).map(f => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={cn(
+              "px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors capitalize",
+              filter === f ? "bg-primary text-primary-foreground border-primary" : "text-muted-foreground border-border hover:text-foreground",
+            )}
+          >
+            {f}
+          </button>
+        ))}
+      </div>
+
+      {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-8 gap-2 text-muted-foreground">
           <AlertCircle className="w-7 h-7 text-muted-foreground/30" />
           <p className="text-sm">No notifications</p>
         </div>
       ) : (
         <div className="space-y-2">
-          {notifications.slice(0, 6).map((n) => (
+          {filtered.slice(0, 6).map((n) => (
             <div
               key={n.issueId}
               className={`flex items-start gap-3 p-2.5 rounded-lg transition-all duration-200 cursor-pointer hover:bg-secondary group ${

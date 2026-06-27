@@ -958,7 +958,7 @@ export function ContactedContent() {
     { id: 'followups',     label: 'Follow-ups',     count: followUps.length },
     { id: 'unsubscribed',  label: 'Unsubscribed',   count: unsubscribeList.length },
     { id: 'templates',     label: 'Templates' },
-    { id: 'chat-sessions', label: 'MQL Chat',       count: chatSessions.length || undefined },
+    { id: 'chat-sessions', label: 'Chat Qualified Leads', count: chatSessions.length || undefined },
   ]
 
   return (
@@ -967,7 +967,7 @@ export function ContactedContent() {
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
           <UserCheck className="w-5 h-5 text-primary" />
-          <h1 className="text-lg font-semibold">Contacted</h1>
+          <h1 className="text-lg font-semibold">Sent</h1>
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-2">
           {tab !== 'templates' && (
@@ -1308,6 +1308,15 @@ export function ContactedContent() {
       {/* ── MQL CHAT SESSIONS ───────────────────────────────────────────── */}
       {tab === 'chat-sessions' && (
         <Card className="p-5">
+          <div className="mb-4 p-3 rounded-lg bg-muted/40 border border-border">
+            <p className="text-sm font-medium">What is Chat Qualified Leads?</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              When a lead clicks the link in their outreach email, they land on a branded chat page where they can ask
+              questions and get answers grounded in your knowledge base, instead of just reading a static email. Every
+              conversation here is a lead actively engaging back with you — ranked by an intent score so you can see who's
+              warming up. Configure what the chat knows (knowledge base, system prompt) under Prospecting → agent settings.
+            </p>
+          </div>
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm text-muted-foreground">Chat sessions started by leads who clicked their link.</p>
             <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => fetchChatSessions()}>
@@ -1324,7 +1333,7 @@ export function ContactedContent() {
               </div>
               <div>
                 <p className="text-sm font-medium">No chat sessions yet</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Sessions appear here once leads click their MQL Chat link.</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Sessions appear here once leads click their chat link.</p>
               </div>
             </div>
           ) : (

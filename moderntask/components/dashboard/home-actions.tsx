@@ -3,25 +3,25 @@
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Bot, CheckCircle, Circle, ChevronDown, ArrowRight, Play, Mail, Users, BarChart3, Settings } from "lucide-react"
+import { Bot, CheckCircle, Circle, ChevronDown, ArrowRight, Play, Mail, UserCheck, Users2, Settings } from "lucide-react"
 import type { GettingStartedChecklist } from "@/components/dashboard/getting-started"
 
 const QUICK_ACTIONS = [
-  { label: "Start All",  icon: Play,      href: "/operations",  accent: "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10" },
-  { label: "Email Queue", icon: Mail,     href: "/email-queue", accent: "text-primary hover:bg-primary/10" },
-  { label: "Outreach",   icon: Users,     href: "/outreach",    accent: "text-violet-600 dark:text-violet-400 hover:bg-violet-500/10" },
-  { label: "Analytics",  icon: BarChart3, href: "/analytics",   accent: "text-amber-600 dark:text-amber-400 hover:bg-amber-500/10" },
-  { label: "Settings",   icon: Settings,  href: "/settings",    accent: "text-muted-foreground hover:bg-muted" },
+  { label: "Start All",       icon: Play,      href: "/prospecting",            accent: "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10" },
+  { label: "Awaiting Review", icon: Mail,      href: "/outreach?section=awaiting", accent: "text-primary hover:bg-primary/10" },
+  { label: "Outreach",        icon: UserCheck, href: "/outreach?section=sent",   accent: "text-violet-600 dark:text-violet-400 hover:bg-violet-500/10" },
+  { label: "Leads",           icon: Users2,    href: "/leads",                  accent: "text-amber-600 dark:text-amber-400 hover:bg-amber-500/10" },
+  { label: "Settings",        icon: Settings,  href: "/settings",               accent: "text-muted-foreground hover:bg-muted" },
 ]
 
 const BASE_STEPS = [
-  { key: "hasAgent" as const,       title: "Create your first agent",   href: "/agents" },
-  { key: "emailConnected" as const,  title: "Connect your email",        href: "/agents" },
-  { key: "agentStarted" as const,    title: "Start your agent",          href: "/operations" },
+  { key: "hasAgent" as const,       title: "Create your first agent",   href: "/prospecting?tab=agents" },
+  { key: "emailConnected" as const,  title: "Connect your email",        href: "/prospecting?tab=agents" },
+  { key: "agentStarted" as const,    title: "Start your agent",          href: "/prospecting" },
 ]
 
-const FREE_PLAN_LAST_STEP = { key: "gotReply" as const, title: "Get your first reply", href: "/outreach" }
-const PAID_PLAN_LAST_STEP = { key: "hasSecondAgent" as const, title: "Create another agent", href: "/agents" }
+const FREE_PLAN_LAST_STEP = { key: "gotReply" as const, title: "Get your first reply", href: "/outreach?section=sent" }
+const PAID_PLAN_LAST_STEP = { key: "hasSecondAgent" as const, title: "Create another agent", href: "/prospecting?tab=agents" }
 
 interface Props {
   checklist?: GettingStartedChecklist
@@ -88,7 +88,7 @@ export function HomeActions({ checklist, isPaidPlan = false, mode }: Props) {
 
       {/* Create Agent */}
       <Button
-        onClick={() => router.push("/agents?create=true")}
+        onClick={() => router.push("/prospecting?tab=agents&create=true")}
         className="h-8 text-xs px-3 bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300 hover:shadow-lg hover:shadow-primary/30 hover:scale-105"
       >
         <Bot className="w-3.5 h-3.5 mr-1.5" />

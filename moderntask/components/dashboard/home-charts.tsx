@@ -2,6 +2,7 @@
 
 import { Card, CardTitle } from "@/components/ui/card"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -33,12 +34,15 @@ function ChartTooltip({ active, payload, label }: any) {
   )
 }
 
-type Range = "7d" | "14d" | "30d"
+type Range = "7d" | "14d" | "30d" | "90d"
+
+const RANGE_LABELS: Record<Range, string> = { "7d": "7D", "14d": "14D", "30d": "30D", "90d": "90D" }
+const RANGE_DAYS: Record<Range, number> = { "7d": 7, "14d": 14, "30d": 30, "90d": 90 }
 
 function RangeToggle({ value, onChange }: { value: Range; onChange: (v: Range) => void }) {
   return (
     <div className="flex gap-0.5 bg-muted rounded-md p-0.5">
-      {(["7d", "14d", "30d"] as Range[]).map(r => (
+      {(["7d", "14d", "30d", "90d"] as Range[]).map(r => (
         <button
           key={r}
           onClick={() => onChange(r)}
@@ -46,7 +50,7 @@ function RangeToggle({ value, onChange }: { value: Range; onChange: (v: Range) =
             value === r ? "bg-background shadow text-foreground" : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          {r === "7d" ? "7D" : r === "14d" ? "14D" : "30D"}
+          {RANGE_LABELS[r]}
         </button>
       ))}
     </div>
@@ -63,8 +67,7 @@ export function HomeCharts({
 }: HomeChartsProps) {
   const [range, setRange] = useState<Range>("7d")
 
-  const points = range === "7d" ? 7 : range === "14d" ? 14 : 30
-  const slicedSeries = emailTimeSeries.slice(-points)
+  const slicedSeries = emailTimeSeries.slice(-RANGE_DAYS[range])
 
   return (
     <div className="space-y-3 md:space-y-4">
@@ -147,8 +150,7 @@ export function HomeCharts({
 
 export function EmailActivityCard({ emailTimeSeries = [] }: { emailTimeSeries?: EmailTimePoint[] }) {
   const [range, setRange] = useState<Range>("7d")
-  const points = range === "7d" ? 7 : range === "14d" ? 14 : 30
-  const sliced = emailTimeSeries.slice(-points)
+  const sliced = emailTimeSeries.slice(-RANGE_DAYS[range])
   return (
     <Card className="p-5">
       <div className="flex items-center justify-between mb-4">
@@ -184,7 +186,18 @@ export function EmailActivityCard({ emailTimeSeries = [] }: { emailTimeSeries?: 
   )
 }
 
-export function CreditConsumptionCard({ monthlyCredits = [], creditBalance = null }: { monthlyCredits?: MonthlyPoint[]; creditBalance?: number | null }) {
+export function CreditConsumptionCard({
+  monthlyCredits = [], creditBalance = null, creditsUsed = null, creditsLimit = null,
+}: {
+  monthlyCredits?: MonthlyPoint[]
+  creditBalance?: number | null
+  creditsUsed?: number | null
+  creditsLimit?: number | null
+}) {
+  const router = useRouter()
+  const hasUsageData = creditsUsed !== null && creditsLimit !== null && creditsLimit > 0
+  const pct = hasUsageData ? Math.min(100, ((creditsUsed as number) / (creditsLimit as number)) * 100) : null
+
   return (
     <Card className="p-4">
       <div className="flex items-start justify-between mb-2">
@@ -193,6 +206,28 @@ export function CreditConsumptionCard({ monthlyCredits = [], creditBalance = nul
           <span className="text-xs text-muted-foreground"><span className="font-semibold text-foreground">{creditBalance.toLocaleString()}</span> left</span>
         )}
       </div>
+      {hasUsageData && (
+        <div className="mb-3">
+          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+            <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${pct}%` }} />
+          </div>
+          <div className="flex items-center justify-between mt-1.5">
+            <p className="text-[11px] text-muted-foreground">
+              {(creditsUsed as number).toLocaleString()} of {(creditsLimit as number).toLocaleString()} credits used
+            </p>
+            <button onClick={() => router.push("/settings?tab=billing")} className="text-[11px] text-primary hover:underline font-medium">
+              Manage credits
+            </button>
+          </div>
+        </div>
+      )}
+      {!hasUsageData && (
+        <div className="flex items-center justify-end mb-3">
+          <button onClick={() => router.push("/settings?tab=billing")} className="text-[11px] text-primary hover:underline font-medium">
+            Manage credits
+          </button>
+        </div>
+      )}
       {monthlyCredits.every(m => m.Credits === 0) ? (
         <p className="text-xs text-muted-foreground py-1">No usage data yet</p>
       ) : (
@@ -217,12 +252,29 @@ export function CreditConsumptionCard({ monthlyCredits = [], creditBalance = nul
 }
 
 export function DeliveryHealthCard({ sent = 0, bounced = 0, opened = 0 }: { sent?: number; bounced?: number; opened?: number }) {
-  const openRate   = sent > 0 ? ((opened  / sent) * 100).toFixed(1) : "—"
-  const bounceRate = sent > 0 ? ((bounced / sent) * 100).toFixed(1) : "—"
+  const openRate    = sent > 0 ? ((opened  / sent) * 100).toFixed(1) : "—"
+  const bounceRateN = sent > 0 ? (bounced / sent) * 100 : 0
+  const bounceRate  = sent > 0 ? bounceRateN.toFixed(1) : "—"
+  const isHealthy   = sent === 0 || bounceRateN <= 5
 
   return (
     <Card className="p-4">
-      <CardTitle className="text-sm font-semibold mb-3">Delivery Health</CardTitle>
+      <div className="flex items-center justify-between mb-3">
+        <CardTitle className="text-sm font-semibold">Delivery Health</CardTitle>
+        {sent > 0 && (
+          <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${isHealthy ? "text-green-600 dark:text-green-400" : "text-amber-600 dark:text-amber-400"}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${isHealthy ? "bg-green-500" : "bg-amber-500"}`} />
+            {isHealthy ? "Healthy" : "Needs attention"}
+          </span>
+        )}
+      </div>
+      {sent > 0 && (
+        <p className="text-[11px] text-muted-foreground mb-3">
+          {isHealthy
+            ? "No issues detected. Delivery and open rates look good."
+            : `Bounce rate is ${bounceRate}% — above the 5% threshold. Check sender domains.`}
+        </p>
+      )}
       {sent === 0 ? (
         <p className="text-xs text-muted-foreground py-1">No emails sent yet</p>
       ) : (

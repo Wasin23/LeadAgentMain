@@ -2,7 +2,7 @@
 
 import { Card } from "@/components/ui/card"
 import { useRouter } from "next/navigation"
-import { Play, Mail, Users, BarChart3, Settings } from "lucide-react"
+import { Play, Mail, Users2, UserCheck, Settings } from "lucide-react"
 
 interface QuickAction {
   label: string
@@ -17,28 +17,28 @@ const ACTIONS: QuickAction[] = [
     label: "Start All Agents",
     description: "Run every agent now",
     icon: <Play className="w-5 h-5" />,
-    href: "/operations",
+    href: "/prospecting",
     accent: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 border-emerald-500/20",
   },
   {
-    label: "Email Queue",
+    label: "Awaiting Review",
     description: "Review queued emails",
     icon: <Mail className="w-5 h-5" />,
-    href: "/email-queue",
+    href: "/outreach?section=awaiting",
     accent: "bg-primary/10 text-primary hover:bg-primary/20 border-primary/20",
   },
   {
     label: "Outreach",
-    description: "Manage campaigns",
-    icon: <Users className="w-5 h-5" />,
-    href: "/outreach",
+    description: "Sent emails & replies",
+    icon: <UserCheck className="w-5 h-5" />,
+    href: "/outreach?section=sent",
     accent: "bg-violet-500/10 text-violet-600 dark:text-violet-400 hover:bg-violet-500/20 border-violet-500/20",
   },
   {
-    label: "Analytics",
-    description: "View performance",
-    icon: <BarChart3 className="w-5 h-5" />,
-    href: "/analytics",
+    label: "Leads",
+    description: "Browse qualified leads",
+    icon: <Users2 className="w-5 h-5" />,
+    href: "/leads",
     accent: "bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 border-amber-500/20",
   },
   {

@@ -2,6 +2,7 @@
 
 import { ArrowUpRight, TrendingUp, GripVertical, X, Settings2, RotateCcw } from "lucide-react"
 import { Card } from "@/components/ui/card"
+import Link from "next/link"
 import { useState, useEffect } from "react"
 import {
   DndContext, closestCenter, PointerSensor, KeyboardSensor,
@@ -15,8 +16,24 @@ import { CSS } from "@dnd-kit/utilities"
 
 type StatId = "sent" | "queued" | "agents" | "cycles" | "replies" | "reply-rate" | "total-agents" | "followups" | "scheduled" | "bounced" | "bounce-rate" | "open-rate" | "credits"
 
-const DEFAULT_ORDER: StatId[] = ["sent", "queued", "agents", "cycles"]
+const DEFAULT_ORDER: StatId[] = ["queued", "sent", "replies", "reply-rate"]
 const ALL_STAT_IDS: StatId[] = ["sent", "queued", "agents", "cycles", "replies", "reply-rate", "total-agents", "followups", "scheduled", "bounced", "bounce-rate", "open-rate", "credits"]
+
+const STAT_HREFS: Record<StatId, string> = {
+  sent:           "/outreach?section=sent",
+  queued:         "/outreach?section=awaiting",
+  agents:         "/prospecting",
+  cycles:         "/prospecting",
+  replies:        "/outreach?section=sent",
+  "reply-rate":   "/outreach?section=sent",
+  "total-agents": "/prospecting",
+  followups:      "/outreach?section=sent",
+  scheduled:      "/outreach?section=awaiting",
+  bounced:        "/outreach?section=sent",
+  "bounce-rate":  "/outreach?section=sent",
+  "open-rate":    "/outreach?section=sent",
+  credits:        "/settings?tab=billing",
+}
 
 interface StatDef {
   title: string
@@ -25,6 +42,7 @@ interface StatDef {
   subtitle?: string
   bgColor: string
   textColor: string
+  href: string
 }
 
 interface StatsCardsProps {
@@ -84,28 +102,42 @@ function SortableCard({
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         className={`${stat.bgColor} ${stat.textColor} p-4 transition-all duration-300 shadow-lg ${
-          editMode ? "pt-8 select-none" : "cursor-pointer"
+          editMode ? "pt-8 select-none" : "cursor-pointer p-0"
         } ${hovered && !editMode ? "scale-105 shadow-2xl" : ""}`}
       >
-        <div className="flex items-start justify-between mb-3">
-          <h3 className="text-xs font-medium opacity-90">{stat.title}</h3>
-          {!editMode && (
-            <div
-              className={`w-6 h-6 rounded-full ${
-                stat.bgColor === "bg-primary" ? "bg-primary-foreground/20" : "bg-primary"
-              } flex items-center justify-center transition-transform duration-300 ${hovered ? "rotate-45" : ""}`}
-            >
-              <ArrowUpRight className="w-3 h-3 text-primary-foreground" />
-            </div>
-          )}
-        </div>
-        <p className="text-3xl font-bold mb-2">{stat.value}</p>
-        <div className="flex items-center gap-1.5 text-xs opacity-80">
-          {stat.increase && <><TrendingUp className="w-3 h-3" /><span>{stat.increase}</span></>}
-          {stat.subtitle && <span>{stat.subtitle}</span>}
-        </div>
+        {editMode ? (
+          <CardInner stat={stat} hovered={hovered} editMode={editMode} />
+        ) : (
+          <Link href={stat.href} className="block p-4">
+            <CardInner stat={stat} hovered={hovered} editMode={editMode} />
+          </Link>
+        )}
       </Card>
     </div>
+  )
+}
+
+function CardInner({ stat, hovered, editMode }: { stat: StatDef; hovered: boolean; editMode: boolean }) {
+  return (
+    <>
+      <div className="flex items-start justify-between mb-3">
+        <h3 className="text-xs font-medium opacity-90">{stat.title}</h3>
+        {!editMode && (
+          <div
+            className={`w-6 h-6 rounded-full ${
+              stat.bgColor === "bg-primary" ? "bg-primary-foreground/20" : "bg-primary"
+            } flex items-center justify-center transition-transform duration-300 ${hovered ? "rotate-45" : ""}`}
+          >
+            <ArrowUpRight className="w-3 h-3 text-primary-foreground" />
+          </div>
+        )}
+      </div>
+      <p className="text-3xl font-bold mb-2">{stat.value}</p>
+      <div className="flex items-center gap-1.5 text-xs opacity-80">
+        {stat.increase && <><TrendingUp className="w-3 h-3" /><span>{stat.increase}</span></>}
+        {stat.subtitle && <span>{stat.subtitle}</span>}
+      </div>
+    </>
   )
 }
 
@@ -137,7 +169,7 @@ export function StatsCards({ sent = 0, queued = 0, runningAgents = 0, cyclesComp
   const bounceRate = sent + bouncedCount > 0 ? ((bouncedCount / (sent + bouncedCount)) * 100).toFixed(1) + "%" : "0%"
   const openRate   = sent + bouncedCount > 0 ? ((openedCount  / (sent + bouncedCount)) * 100).toFixed(1) + "%" : "0%"
 
-  const allStats: Record<StatId, StatDef> = {
+  const allStatsBase: Record<StatId, Omit<StatDef, "href">> = {
     sent:            { title: "Total Emails Sent",   value: sent.toLocaleString(),           increase: "All time",          bgColor: "bg-primary", textColor: "text-primary-foreground" },
     queued:          { title: "Total Emails Queued", value: queued.toLocaleString(),          increase: "Ready to send",     bgColor: "bg-card",    textColor: "text-foreground" },
     agents:          { title: "Running Agents",      value: runningAgents.toLocaleString(),   increase: "Active right now",  bgColor: "bg-card",    textColor: "text-foreground" },
@@ -152,6 +184,11 @@ export function StatsCards({ sent = 0, queued = 0, runningAgents = 0, cyclesComp
     "open-rate":     { title: "Open Rate",           value: openRate,                         subtitle: "Opens / total",     bgColor: "bg-card",    textColor: "text-foreground" },
     credits:         { title: "Credit Balance",      value: creditBalance !== null ? creditBalance.toLocaleString() : "—", subtitle: "Remaining", bgColor: "bg-card",    textColor: "text-foreground" },
   }
+  const allStats: Record<StatId, StatDef> = Object.fromEntries(
+    (Object.entries(allStatsBase) as [StatId, Omit<StatDef, "href">][]).map(
+      ([id, def]) => [id, { ...def, href: STAT_HREFS[id] }]
+    )
+  ) as Record<StatId, StatDef>
 
   const visibleOrder = order.filter(id => !hidden.has(id))
 

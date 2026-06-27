@@ -17,21 +17,21 @@ const BASE_STEPS = [
     key: "hasAgent" as const,
     title: "Create your first agent",
     desc: "Set up an AI agent with a personality and targeting criteria.",
-    href: "/agents",
+    href: "/prospecting?tab=agents",
     cta: "Go to Agents",
   },
   {
     key: "emailConnected" as const,
     title: "Connect your email",
     desc: "Link Gmail or Outlook so your agent sends from your real inbox.",
-    href: "/agents",
+    href: "/prospecting?tab=agents",
     cta: "Connect Email",
   },
   {
     key: "agentStarted" as const,
     title: "Start your agent",
-    desc: "Open Operations and start your agent so it begins running cycles.",
-    href: "/operations",
+    desc: "Open Prospecting and start your agent so it begins running cycles.",
+    href: "/prospecting",
     cta: "Start Agent",
   },
 ]
@@ -40,7 +40,7 @@ const FREE_PLAN_LAST_STEP = {
   key: "gotReply" as const,
   title: "Get your first reply",
   desc: "When a lead responds, Meridian stops follow-ups and surfaces it for you.",
-  href: "/outreach",
+  href: "/outreach?section=sent",
   cta: "View Outreach",
 }
 
@@ -48,7 +48,7 @@ const PAID_PLAN_LAST_STEP = {
   key: "hasSecondAgent" as const,
   title: "Create another agent",
   desc: "Paid plans support multiple agents, so set up another one for a different market or workflow.",
-  href: "/agents",
+  href: "/prospecting?tab=agents",
   cta: "Create Agent",
 }
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { LayoutDashboard, CheckSquare, BarChart3, Settings, HelpCircle, LogOut, Mail, Bot, UserCheck, Circle, Building2, GripVertical, Pencil, Check, Users, FlaskConical } from "lucide-react"
+import { LayoutDashboard, Settings, HelpCircle, LogOut, Bot, UserCheck, Circle, Users2, GripVertical, Pencil, Check, Users } from "lucide-react"
 import { MeridianWordmark } from "@/components/ui/meridian-wordmark"
 import { cn } from "@/lib/utils"
 import { useState, useEffect, Suspense } from "react"
@@ -28,23 +28,36 @@ interface NavItem {
 }
 
 const staticItems: NavItem[] = [
-  { icon: LayoutDashboard, label: "Home",                 href: "/home" },
-  { icon: CheckSquare,     label: "Operations",           href: "/operations" },
-  { icon: Mail,            label: "Outreach Email Queue", href: "/email-queue" },
-  { icon: Bot,             label: "Agents",               href: "/agents" },
-  { icon: BarChart3,       label: "Analytics",            href: "/analytics" },
+  { icon: LayoutDashboard, label: "Home",        href: "/home" },
   {
-    icon: UserCheck,
-    label: "Contacted",
-    href: "/outreach",
+    icon: Bot,
+    label: "Prospecting",
+    href: "/prospecting",
     children: [
-      { icon: Circle, label: "Replies",    href: "/outreach?tab=replies" },
-      { icon: Circle, label: "Follow-ups", href: "/outreach?tab=followups" },
-      { icon: Circle, label: "Templates",  href: "/outreach?tab=templates" },
+      { icon: Circle, label: "Agents",     href: "/prospecting?tab=agents" },
+      { icon: Circle, label: "Operations", href: "/prospecting?tab=operations" },
+      { icon: Circle, label: "Presets",    href: "/prospecting?tab=presets" },
     ],
   },
-  { icon: Building2,       label: "CRM",                  href: "/crm" },
-  { icon: FlaskConical,    label: "MQL Chat",             href: "/chat-lab" },
+  {
+    icon: Users2,
+    label: "Leads",
+    href: "/leads",
+    children: [
+      { icon: Circle, label: "All Leads", href: "/leads?tab=leads" },
+      { icon: Circle, label: "CRM",       href: "/leads?tab=crm" },
+    ],
+  },
+  {
+    icon: UserCheck,
+    label: "Outreach",
+    href: "/outreach",
+    children: [
+      { icon: Circle, label: "Awaiting Review",      href: "/outreach?section=awaiting" },
+      { icon: Circle, label: "Sent",                 href: "/outreach?section=sent" },
+      { icon: Circle, label: "Chat Qualified Leads", href: "/outreach?section=chat-qualified-leads" },
+    ],
+  },
 ]
 
 const generalItems: NavItem[] = [
@@ -58,9 +71,7 @@ const generalItems: NavItem[] = [
       { icon: Circle, label: "Notifications",   href: "/settings?tab=notifications" },
       { icon: Circle, label: "Company Profile", href: "/settings?tab=company-profile" },
       { icon: Circle, label: "Email",           href: "/settings?tab=email" },
-      { icon: Circle, label: "CRM Connection",   href: "/settings?tab=crm" },
       { icon: Circle, label: "Memory",          href: "/settings?tab=memory" },
-      { icon: Circle, label: "Presets",         href: "/settings?tab=presets" },
       { icon: Circle, label: "Billing",         href: "/settings?tab=billing" },
     ],
   },
@@ -116,7 +127,7 @@ function SortableNavItem({
 
 function SidebarInner() {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
-  const [agentItems, setAgentItems]   = useState<NavItem[]>([])
+  const [awaitingCount, setAwaitingCount] = useState(0)
   const [navOrder, setNavOrder]       = useState<string[]>(STATIC_HREFS)
   const [editMode, setEditMode]       = useState(false)
   const pathname    = usePathname()
@@ -124,13 +135,8 @@ function SidebarInner() {
   const search      = searchParams.toString() ? `?${searchParams.toString()}` : ""
 
   useEffect(() => {
-    api.get("/api/auth/agents").then(r => {
-      const agents: Array<{ agentId: string; name: string }> = r.data?.agents ?? []
-      setAgentItems(agents.map(a => ({
-        icon: Circle,
-        label: a.name,
-        href: `/agents?agent=${a.agentId}`,
-      })))
+    api.get("/api/email-queue/counts", { params: { agentId: "all" } }).then(r => {
+      setAwaitingCount(r.data?.queued ?? 0)
     }).catch(() => {})
 
     try {
@@ -156,10 +162,12 @@ function SidebarInner() {
     localStorage.setItem("sidebar-nav-order", JSON.stringify(newOrder))
   }
 
-  // Build item map with dynamic agent children injected
+  // Build item map; inject the awaiting-review badge count onto Outreach
   const itemByHref: Record<string, NavItem> = {}
   for (const item of staticItems) {
-    itemByHref[item.href] = item.href === "/agents" ? { ...item, children: agentItems } : item
+    itemByHref[item.href] = item.href === "/outreach" && awaitingCount > 0
+      ? { ...item, badge: String(awaitingCount) }
+      : item
   }
 
   const orderedMenuItems = navOrder
