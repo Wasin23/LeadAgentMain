@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/contexts/AuthContext"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { RefreshCw, Play, Square, Search, Building2, CheckCircle2, Loader2, User, Trash2, ChevronLeft, ChevronRight, GitMerge, Link2Off, ExternalLink } from "lucide-react"
+import { RefreshCw, Play, Square, Search, Building2, CheckCircle2, Loader2, User, Trash2, ChevronLeft, ChevronRight, GitMerge, Link2Off, ExternalLink, X } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import api from "@/lib/api"
 
@@ -51,16 +52,17 @@ interface AuditorResult {
 export function CRMContent() {
   const { toast } = useToast()
   const router = useRouter()
+  const { user } = useAuth()
 
   // ── connection status ──
-  const [crmName, setCrmName]           = useState<string | null | undefined>(undefined) // undefined = loading
-  const [crmLastSynced, setCrmLastSynced] = useState<string | null>(null)
+  const [crmName, setCrmName]             = useState<string | null | undefined>(undefined) // undefined = loading
+  const [crmConnectedAt, setCrmConnectedAt] = useState<string | null>(null)
 
   const fetchCrmStatus = useCallback(async () => {
     try {
       const r = await api.get("/api/crm/status")
       setCrmName(r.data?.connected ? (r.data?.integration || "CRM") : null)
-      setCrmLastSynced(r.data?.lastSynced || null)
+      setCrmConnectedAt(r.data?.connectedAt || null)
     } catch { setCrmName(null) }
   }, [])
 
@@ -324,6 +326,11 @@ export function CRMContent() {
     }
   }
 
+  const removeContact = (id: string) => {
+    setContacts(prev => prev.filter(c => (c.crmId || c.email) !== id))
+    setSelected(prev => { const n = new Set(prev); n.delete(id); return n })
+  }
+
   const launchAgent = async () => {
     if (!selectedAgent) { toast({ title: "Select an agent first", variant: "destructive" }); return }
     if (selected.size === 0) { toast({ title: "Select at least one contact", variant: "destructive" }); return }
@@ -450,6 +457,32 @@ export function CRMContent() {
     return ids
   }, [savedContacts])
 
+  // Real per-row "issue or finding" for the audit table: duplicate (against already-saved
+  // contacts or within the session batch itself), missing email/phone, or none.
+  const savedEmailSet = useMemo(
+    () => new Set(savedContacts.map(c => (c.email || "").toLowerCase().trim()).filter(Boolean)),
+    [savedContacts],
+  )
+  const sessionEmailCounts = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const c of contacts) {
+      const key = (c.email || "").toLowerCase().trim()
+      if (!key) continue
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    }
+    return counts
+  }, [contacts])
+
+  function findingFor(c: CRMContact): { label: string; tone: "amber" | "rose" | "green" | "muted" } {
+    const key = (c.email || "").toLowerCase().trim()
+    if (!key) return { label: "Missing email", tone: "rose" }
+    if (savedEmailSet.has(key)) return { label: "Already saved", tone: "amber" }
+    if ((sessionEmailCounts.get(key) ?? 0) > 1) return { label: "Duplicate in this batch", tone: "amber" }
+    if (!c.phone) return { label: "Missing phone", tone: "muted" }
+    if (!c.company) return { label: "Missing company", tone: "muted" }
+    return { label: "Ready to assign", tone: "green" }
+  }
+
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4 items-start">
     <div className="min-w-0 space-y-6">
@@ -466,7 +499,7 @@ export function CRMContent() {
             <div>
               <p className="text-xs text-muted-foreground">{crmName ? "CRM Connected" : "No CRM connected"}</p>
               <p className="text-sm font-semibold text-foreground">{crmName ?? "—"}</p>
-              {crmLastSynced && <p className="text-[11px] text-muted-foreground">Last synced {new Date(crmLastSynced).toLocaleString()}</p>}
+              {crmConnectedAt && <p className="text-[11px] text-muted-foreground">Connected {new Date(crmConnectedAt).toLocaleDateString()}</p>}
             </div>
           </div>
           {!crmName && (
@@ -718,8 +751,11 @@ export function CRMContent() {
                   {!launched && <th className="py-2 pl-3 pr-1 w-8"><Checkbox checked={filtered.length > 0 && selected.size === filtered.length} onCheckedChange={toggleAll} /></th>}
                   <th className="py-2 px-3 font-medium">Name</th>
                   <th className="py-2 px-3 font-medium">CRM Source</th>
+                  <th className="py-2 px-3 font-medium">Issue or Finding</th>
                   <th className="py-2 px-3 font-medium">Status</th>
-                  <th className="py-2 px-3 font-medium">Assigned</th>
+                  <th className="py-2 px-3 font-medium">Assigned Agent</th>
+                  <th className="py-2 px-3 font-medium">Action</th>
+                  {!launched && <th className="py-2 px-3 w-8" />}
                 </tr>
               </thead>
               <tbody>
@@ -729,19 +765,28 @@ export function CRMContent() {
                   const isSelected = selected.has(id)
                   const isScanning = activeAuditorIds.has(id) || c.runStatus === "scanning"
                   const assignedAgentName = launched ? agents.find(a => a.agentId === selectedAgent)?.name : undefined
+                  const finding = findingFor(c)
+                  const findingCls: Record<typeof finding.tone, string> = {
+                    amber: "bg-[oklch(0.95_0.04_80)] text-[oklch(0.5_0.1_80)]",
+                    rose:  "bg-[oklch(0.95_0.04_28)] text-[oklch(0.55_0.15_28)]",
+                    green: "bg-[oklch(0.95_0.04_150)] text-[oklch(0.4_0.11_150)]",
+                    muted: "bg-muted text-muted-foreground",
+                  }
                   const statusBadge = c.runStatus === "failed"
-                    ? { label: "CRM update failed", cls: "border-rose-400/50 text-rose-600 dark:text-rose-400" }
+                    ? { label: "CRM update failed", cls: findingCls.rose }
                     : c.runStatus === "skipped"
-                      ? { label: c.runMessage || "Skipped", cls: "border-amber-400/50 text-amber-600 dark:text-amber-400" }
+                      ? { label: c.runMessage || "Skipped", cls: findingCls.amber }
                       : c.runStatus === "success"
-                        ? { label: c.runMessage || "Queued", cls: "border-emerald-400/50 text-emerald-600 dark:text-emerald-400" }
+                        ? { label: c.runMessage || "Queued", cls: findingCls.green }
                         : isScanning
-                          ? { label: "Researching…", cls: "border-blue-400/50 text-blue-600 dark:text-blue-400" }
-                          : { label: c.status === "queued" ? "Queued" : "Fresh", cls: "text-muted-foreground" }
+                          ? { label: "Researching…", cls: "bg-[oklch(0.93_0.04_245)] text-[oklch(0.5_0.13_245)]" }
+                          : c.status === "queued"
+                            ? { label: "Queued", cls: findingCls.green }
+                            : { label: "Fresh", cls: "bg-muted text-foreground/70" }
                   return (
                     <tr
                       key={id}
-                      className={`border-b last:border-0 cursor-pointer transition-colors ${isScanning ? "bg-blue-50/50 dark:bg-blue-900/20" : isSelected ? "bg-primary/5" : "hover:bg-muted/30"}`}
+                      className={`border-b last:border-0 cursor-pointer transition-colors ${isScanning ? "bg-blue-50/50 dark:bg-blue-900/20" : isSelected ? "bg-[oklch(0.97_0.02_150)]" : "hover:bg-accent/30"}`}
                       onClick={() => !launched && toggleContact(id)}
                     >
                       {!launched && (
@@ -763,10 +808,46 @@ export function CRMContent() {
                       <td className="py-2 px-3">
                         <Badge variant="outline" className="text-[10px]">{c.source?.replace(/_/g, " ") ?? "CRM"}</Badge>
                       </td>
+                      <td className="py-2 px-3 text-sm text-foreground">{finding.label}</td>
                       <td className="py-2 px-3">
-                        <Badge variant="outline" className={`text-[10px] ${statusBadge.cls}`}>{statusBadge.label}</Badge>
+                        <span className={`inline-flex rounded-md px-2 py-1 text-[11px] font-medium ${statusBadge.cls}`}>{statusBadge.label}</span>
                       </td>
-                      <td className="py-2 px-3 text-xs text-muted-foreground">{assignedAgentName ?? "—"}</td>
+                      <td className="py-2 px-3">
+                        {assignedAgentName ? (
+                          <div className="flex items-center gap-2">
+                            <div className="grid h-6 w-6 place-items-center rounded-full bg-[oklch(0.85_0.04_80)] text-[9px] font-semibold text-[oklch(0.35_0.05_80)]">
+                              {assignedAgentName.slice(0, 2).toUpperCase()}
+                            </div>
+                            <span className="text-xs text-foreground">{assignedAgentName}</span>
+                          </div>
+                        ) : <span className="text-xs text-muted-foreground">—</span>}
+                      </td>
+                      <td className="py-2 px-3" onClick={e => e.stopPropagation()}>
+                        {finding.tone === "amber" && savedEmailSet.has((c.email || "").toLowerCase().trim()) ? (
+                          <button
+                            onClick={() => mergeDuplicate(id)}
+                            className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent"
+                          >
+                            Merge
+                          </button>
+                        ) : launched ? (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        ) : (
+                          <button
+                            onClick={() => toggleContact(id)}
+                            className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent"
+                          >
+                            {isSelected ? "Selected" : "Select"}
+                          </button>
+                        )}
+                      </td>
+                      {!launched && (
+                        <td className="py-2 px-3" onClick={e => e.stopPropagation()}>
+                          <button onClick={() => removeContact(id)} title="Remove from this import batch" className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive">
+                            <X className="h-4 w-4" />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   )
                 })}
@@ -819,7 +900,8 @@ export function CRMContent() {
 
     <ImportSettingsPanel
       crmName={crmName}
-      crmLastSynced={crmLastSynced}
+      crmConnectedAt={crmConnectedAt}
+      connectedBy={user?.email}
       savedStats={savedStats}
     />
     </div>
@@ -836,10 +918,11 @@ function CrmStat({ label, value }: { label: string; value: number }) {
 }
 
 function ImportSettingsPanel({
-  crmName, crmLastSynced, savedStats,
+  crmName, crmConnectedAt, connectedBy, savedStats,
 }: {
   crmName: string | null | undefined
-  crmLastSynced: string | null
+  crmConnectedAt: string | null
+  connectedBy?: string
   savedStats: { total: number; queued: number; assignedThisWeek: number; assignedThisMonth: number }
 }) {
   const router = useRouter()
@@ -857,12 +940,20 @@ function ImportSettingsPanel({
                 Connected
               </span>
             </div>
-            {crmLastSynced && (
-              <div className="flex justify-between gap-2 text-xs">
-                <dt className="text-muted-foreground">Last synced</dt>
-                <dd className="text-foreground">{new Date(crmLastSynced).toLocaleString()}</dd>
-              </div>
-            )}
+            <dl className="space-y-1.5 text-xs">
+              {connectedBy && (
+                <div className="flex justify-between gap-2">
+                  <dt className="text-muted-foreground">Connected by</dt>
+                  <dd className="text-foreground truncate max-w-[160px]">{connectedBy}</dd>
+                </div>
+              )}
+              {crmConnectedAt && (
+                <div className="flex justify-between gap-2">
+                  <dt className="text-muted-foreground">Connected on</dt>
+                  <dd className="text-foreground">{new Date(crmConnectedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</dd>
+                </div>
+              )}
+            </dl>
           </>
         ) : (
           <div className="flex items-center gap-2 rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground">
