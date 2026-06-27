@@ -7,10 +7,11 @@ import { GlobalSearch } from '@/components/dashboard/global-search'
 import { OperationsContent } from '@/components/operations/operations-content'
 import { AgentsContent } from '@/components/agents/agents-content'
 import { PresetsContent } from '@/components/agents/presets-content'
+import { ChatLabContent } from '@/components/chat-lab/chat-lab-content'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Send, Mail, Clock, CheckCircle2, Bot } from 'lucide-react'
+import { Send, Mail, Clock, CheckCircle2, Bot, MessageSquare } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import api from '@/lib/api'
@@ -64,6 +65,44 @@ function GlobalStatRow() {
         </Card>
       ))}
     </div>
+  )
+}
+
+function BulkChatLinkToggle() {
+  const [applying, setApplying] = useState<'on' | 'off' | null>(null)
+
+  const applyToAll = async (enabled: boolean) => {
+    setApplying(enabled ? 'on' : 'off')
+    try {
+      const agentsRes = await api.get('/api/auth/agents')
+      const agents = (agentsRes.data?.agents ?? []).filter((a: { agentId: string }) => a.agentId !== 'orphan')
+      for (const a of agents) {
+        try {
+          const currentRes = await api.get(`/api/lead-agent/settings?agentId=${a.agentId}`)
+          const current = currentRes.data?.settings || {}
+          await api.post('/api/lead-agent/settings', {
+            ...current,
+            agentId: a.agentId,
+            emailBuilder: { ...(current.emailBuilder || {}), includeChatLink: enabled },
+          })
+        } catch { /* continue with remaining agents */ }
+      }
+    } finally {
+      setApplying(null)
+    }
+  }
+
+  return (
+    <Card className="px-3 py-2 flex items-center gap-3 text-xs">
+      <MessageSquare className="w-3.5 h-3.5 text-primary shrink-0" />
+      <span className="text-muted-foreground">Chat link in emails — apply to all agents:</span>
+      <Button size="sm" variant="outline" className="h-6 text-[11px]" disabled={!!applying} onClick={() => applyToAll(true)}>
+        {applying === 'on' ? 'Applying…' : 'Turn on for all'}
+      </Button>
+      <Button size="sm" variant="outline" className="h-6 text-[11px]" disabled={!!applying} onClick={() => applyToAll(false)}>
+        {applying === 'off' ? 'Applying…' : 'Turn off for all'}
+      </Button>
+    </Card>
   )
 }
 
@@ -144,15 +183,22 @@ function ProspectingPageInner() {
             <OperationsContent />
           ) : (
             <Tabs defaultValue={setupTab}>
+              <div className="mb-4">
+                <BulkChatLinkToggle />
+              </div>
               <TabsList className="mb-5">
                 <TabsTrigger value="agents">Agents</TabsTrigger>
                 <TabsTrigger value="presets">Presets</TabsTrigger>
+                <TabsTrigger value="chat-setup">Chat Setup</TabsTrigger>
               </TabsList>
               <TabsContent value="agents">
                 <AgentsContent highlightAgentId={highlightAgent} autoOpenCreate={autoOpenCreate} />
               </TabsContent>
               <TabsContent value="presets">
                 <PresetsContent />
+              </TabsContent>
+              <TabsContent value="chat-setup">
+                <ChatLabContent hideSessions />
               </TabsContent>
             </Tabs>
           )}

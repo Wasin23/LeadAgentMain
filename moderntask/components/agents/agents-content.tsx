@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Bot, Play, Square, Zap, Mail, MessageSquare, Clock, Cpu,
-  ExternalLink, Trash2, Send, TrendingUp,
+  ExternalLink, Trash2, Send, TrendingUp, MoreHorizontal,
   AlertCircle, CheckCircle2, PauseCircle, Plus, X, Settings
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -108,6 +108,8 @@ function AgentCard({
   onSettingsChange,
   busy,
   maxConcurrencyLimit,
+  allAgents,
+  onCopySettings,
 }: {
   agent: Agent
   onStart: (id: string) => void
@@ -117,7 +119,10 @@ function AgentCard({
   onSettingsChange: (id: string) => void
   busy: boolean
   maxConcurrencyLimit: number
+  allAgents: Agent[]
+  onCopySettings: (fromAgentId: string, toAgentId: string) => void
 }) {
+  const [showCopyMenu, setShowCopyMenu] = useState(false)
   const personalityType = agent.personality?.type ?? 'hunter'
   const avatar = agent.personality?.avatar ?? '🤖'
   const personalityName = agent.personality?.name ?? personalityType
@@ -336,6 +341,34 @@ function AgentCard({
             <Settings className="w-3.5 h-3.5" />
           </Button>
         </a>
+
+        <div className="relative">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+            onClick={() => setShowCopyMenu(v => !v)}
+            title="More actions"
+          >
+            <MoreHorizontal className="w-3.5 h-3.5" />
+          </Button>
+          {showCopyMenu && (
+            <div className="absolute right-0 top-8 z-20 w-52 rounded-md border border-border bg-popover shadow-lg py-1">
+              <p className="px-3 py-1.5 text-[10px] text-muted-foreground uppercase tracking-wide">Copy settings to…</p>
+              {allAgents.filter(a => a.agentId !== agent.agentId).length === 0 ? (
+                <p className="px-3 py-2 text-xs text-muted-foreground">No other agents</p>
+              ) : allAgents.filter(a => a.agentId !== agent.agentId).map(a => (
+                <button
+                  key={a.agentId}
+                  onClick={() => { onCopySettings(agent.agentId, a.agentId); setShowCopyMenu(false) }}
+                  className="w-full text-left px-3 py-1.5 text-xs hover:bg-muted"
+                >
+                  {a.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         <Button
           size="sm"
@@ -878,6 +911,17 @@ export function AgentsContent({ highlightAgentId, autoOpenCreate }: { highlightA
     finally { setBusyFor(agentId, false) }
   }
 
+  const handleCopySettings = async (fromAgentId: string, toAgentId: string) => {
+    try {
+      const currentRes = await api.get(`/api/lead-agent/settings?agentId=${fromAgentId}`)
+      const source = currentRes.data?.settings || {}
+      await api.post('/api/lead-agent/settings', { ...source, agentId: toAgentId })
+      showToast('Settings copied')
+    } catch {
+      showToast('Failed to copy settings', 'error')
+    }
+  }
+
   const handleDelete = async () => {
     if (!deleteTarget) return
     setBusyFor(deleteTarget.id, true)
@@ -1049,6 +1093,8 @@ export function AgentsContent({ highlightAgentId, autoOpenCreate }: { highlightA
                 onSettingsChange={loadAgents}
                 busy={!!busy[agent.agentId]}
                 maxConcurrencyLimit={maxConcurrency}
+                allAgents={agents}
+                onCopySettings={handleCopySettings}
               />
             </div>
           ))}

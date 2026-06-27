@@ -24,37 +24,25 @@ import { RecentNotifications, type NotificationItem } from "@/components/dashboa
 import { AnalyticsContent } from "@/components/analytics/analytics-content"
 
 export type HomeSectionId =
-  | "email-activity"
   | "scheduled-sends"
-  | "credit-consumption"
-  | "agent-activity"
-  | "delivery-health"
   | "agent-progress"
   | "follow-ups"
   | "notifications"
   | "performance"
 
 const SECTION_META: Record<HomeSectionId, { label: string; span: 1 | 2 }> = {
-  "email-activity":     { label: "Email Activity",       span: 1 },
+  "notifications":      { label: "Recent Notifications", span: 2 },
   "scheduled-sends":    { label: "Scheduled Sends",      span: 1 },
-  "credit-consumption": { label: "Credit Consumption",   span: 1 },
-  "agent-activity":     { label: "Agent Activity",       span: 1 },
-  "delivery-health":    { label: "Delivery Health",      span: 1 },
   "agent-progress":     { label: "Agent Progress",       span: 1 },
   "follow-ups":         { label: "Upcoming Follow-ups",  span: 1 },
-  "notifications":      { label: "Recent Notifications", span: 1 },
   "performance":        { label: "Performance & Analytics", span: 2 },
 }
 
 const DEFAULT_ORDER: HomeSectionId[] = [
-  "email-activity",
+  "notifications",
   "scheduled-sends",
-  "credit-consumption",
-  "agent-activity",
-  "delivery-health",
   "agent-progress",
   "follow-ups",
-  "notifications",
   "performance",
 ]
 
@@ -190,11 +178,7 @@ export function HomeSections({
 
   function renderContent(id: HomeSectionId) {
     switch (id) {
-      case "email-activity":     return <EmailActivityCard emailTimeSeries={emailTimeSeries} />
       case "scheduled-sends":    return <Reminders batches={scheduledBatches} />
-      case "credit-consumption": return <CreditConsumptionCard monthlyCredits={monthlyCredits} creditBalance={creditBalance} creditsUsed={creditsUsed} creditsLimit={creditsLimit} />
-      case "agent-activity":     return <TeamCollaboration agents={agentActivity} />
-      case "delivery-health":    return <DeliveryHealthCard sent={sent} bounced={bounced} opened={opened} />
       case "agent-progress":     return <ProjectProgress agents={agentProgress} />
       case "follow-ups":         return <UpcomingFollowUps followUps={followUps} />
       case "notifications":      return <RecentNotifications notifications={notifications} />
@@ -206,6 +190,18 @@ export function HomeSections({
 
   return (
     <div className="space-y-3">
+      {/* Hero row — fixed layout (matches reference: chart left, status cards stacked right) */}
+      <div className="flex flex-col lg:flex-row gap-3 md:gap-4">
+        <div className="lg:flex-[2] min-w-0">
+          <EmailActivityCard emailTimeSeries={emailTimeSeries} />
+        </div>
+        <div className="lg:flex-1 flex flex-col gap-3 md:gap-4 lg:min-w-[280px]">
+          <TeamCollaboration agents={agentActivity} />
+          <CreditConsumptionCard monthlyCredits={monthlyCredits} creditBalance={creditBalance} creditsUsed={creditsUsed} creditsLimit={creditsLimit} />
+          <DeliveryHealthCard sent={sent} bounced={bounced} opened={opened} />
+        </div>
+      </div>
+
       {/* Add pills — always shown when editing and sections are hidden */}
       {editMode && addable.length > 0 && (
         <div className="flex items-center gap-1.5 flex-wrap justify-end">

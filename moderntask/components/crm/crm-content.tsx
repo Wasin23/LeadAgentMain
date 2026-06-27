@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { RefreshCw, Play, Square, Search, Building2, Mail, Phone, CheckCircle2, Loader2, User, Trash2, ChevronLeft, ChevronRight, X } from "lucide-react"
+import { RefreshCw, Play, Square, Search, Building2, CheckCircle2, Loader2, User, Trash2, ChevronLeft, ChevronRight, GitMerge } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import api from "@/lib/api"
 
@@ -21,6 +21,11 @@ interface CRMContact {
   crmId: string
   source: string
   status?: "fresh" | "queued" | "skipped"
+  savedAt?: string
+  assignedAt?: string
+  // client-side only — live run status for the table (replaces the separate results feed)
+  runStatus?: "scanning" | "success" | "failed" | "skipped"
+  runMessage?: string
 }
 
 interface Agent {
@@ -65,7 +70,6 @@ export function CRMContent() {
   const [page, setPage]                     = useState(1)
   const [companyFilter, setCompanyFilter]   = useState("__all__")
   const [sourceFilter, setSourceFilter]     = useState("__all__")
-  const [dragOver, setDragOver]             = useState(false)
 
   // ── saved contacts (DB-persisted) ──
   const [savedContacts, setSavedContacts]   = useState<CRMContact[]>([])
@@ -160,6 +164,7 @@ export function CRMContent() {
                 : `Researching ${data.contactName || fallbackName} at ${fallbackCompany}…`)
               return next
             })
+            setContacts(prev => prev.map(c => (c.crmId || c.email) === data.contactId ? { ...c, runStatus: "scanning" } : c))
           }
         }
         if (data.type === "crm_contact_complete") {
@@ -185,42 +190,39 @@ export function CRMContent() {
             next.delete(id)
             return next
           })
-          setExitingIds(prev => new Set([...prev, id]))
-          setTimeout(() => {
-            setContacts(prev => {
-              const next = prev.filter(c => (c.crmId || c.email) !== id)
-              setCompletedCount(n => {
-                const newCount = n + 1
-                const total    = totalRef.current
-                const remainingActive = activeIdsRef.current.has(id)
-                  ? Math.max(0, activeIdsRef.current.size - 1)
-                  : Math.max(0, activeIdsRef.current.size)
-                const name     = result.contactName || (found ? [found.firstName, found.lastName].filter(Boolean).join(" ") || found.email : "contact")
-                const resultLabel = result.crmStatus === "failed"
-                  ? "CRM update failed"
-                  : result.crmAction === "report_added"
-                    ? `report added${result.crmIntegration ? ` to ${result.crmIntegration}` : ""}`
-                    : result.crmAction === "contact_synced"
-                      ? `synced${result.crmIntegration ? ` to ${result.crmIntegration}` : " to CRM"}`
-                      : "queued"
-                setStatusLine(remainingActive > 0
-                  ? `${name}: ${resultLabel} ✓  (${newCount}/${total}) · ${remainingActive} still in progress`
-                  : `${name}: ${resultLabel} ✓  (${newCount}/${total})`)
-                if (next.length === 0) {
-                  // Auto-stop the agent — job is done
-                  api.post("/api/lead-agent/stop", { agentId: selectedAgentRef.current }).catch(() => {})
-                  esRef.current?.close()
-                  esRef.current = null
-                  setActiveAuditorIds(new Set())
-                }
-                return newCount
-              })
-              return next
-            })
-            setExitingIds(prev => { const n = new Set(prev); n.delete(id); return n })
-            api.patch(`/api/crm/saved-contacts/${encodeURIComponent(id)}`, { status: "queued" }).catch(() => {})
-            setSavedContacts(prev => prev.map(c => (c.crmId || c.email) === id ? { ...c, status: "queued" } : c))
-          }, 400)
+          // Mark the row's live status in-place instead of removing it from the table —
+          // the table is the single source of truth now, no separate results feed.
+          setContacts(prev => prev.map(c => (c.crmId || c.email) === id
+            ? { ...c, runStatus: result.crmStatus, runMessage: result.crmMessage }
+            : c))
+          setCompletedCount(n => {
+            const newCount = n + 1
+            const total    = totalRef.current
+            const remainingActive = activeIdsRef.current.has(id)
+              ? Math.max(0, activeIdsRef.current.size - 1)
+              : Math.max(0, activeIdsRef.current.size)
+            const name     = result.contactName || (found ? [found.firstName, found.lastName].filter(Boolean).join(" ") || found.email : "contact")
+            const resultLabel = result.crmStatus === "failed"
+              ? "CRM update failed"
+              : result.crmAction === "report_added"
+                ? `report added${result.crmIntegration ? ` to ${result.crmIntegration}` : ""}`
+                : result.crmAction === "contact_synced"
+                  ? `synced${result.crmIntegration ? ` to ${result.crmIntegration}` : " to CRM"}`
+                  : "queued"
+            setStatusLine(remainingActive > 0
+              ? `${name}: ${resultLabel} ✓  (${newCount}/${total}) · ${remainingActive} still in progress`
+              : `${name}: ${resultLabel} ✓  (${newCount}/${total})`)
+            if (newCount >= total && remainingActive === 0) {
+              // Auto-stop the agent — job is done
+              api.post("/api/lead-agent/stop", { agentId: selectedAgentRef.current }).catch(() => {})
+              esRef.current?.close()
+              esRef.current = null
+              setActiveAuditorIds(new Set())
+            }
+            return newCount
+          })
+          api.patch(`/api/crm/saved-contacts/${encodeURIComponent(id)}`, { status: "queued" }).catch(() => {})
+          setSavedContacts(prev => prev.map(c => (c.crmId || c.email) === id ? { ...c, status: "queued", assignedAt: c.assignedAt || new Date().toISOString() } : c))
         }
       } catch { /* ignore */ }
     })
@@ -376,6 +378,16 @@ export function CRMContent() {
     esRef.current = null
   }
 
+  const mergeDuplicate = async (id: string) => {
+    try {
+      await api.delete(`/api/crm/saved-contacts/${encodeURIComponent(id)}`)
+      setSavedContacts(prev => prev.filter(c => (c.crmId || c.email) !== id))
+      toast({ title: "Duplicate merged", description: "Kept the earliest record." })
+    } catch {
+      toast({ title: "Failed to merge duplicate", variant: "destructive" })
+    }
+  }
+
   const clearSavedContacts = async () => {
     try {
       await api.delete("/api/crm/saved-contacts")
@@ -411,6 +423,24 @@ export function CRMContent() {
             </button>
           )}
         </div>
+
+        {savedContacts.length > 0 && (() => {
+          const now = Date.now()
+          const weekAgo = now - 7 * 86400000
+          const monthAgo = now - 30 * 86400000
+          const assignedThisWeek = savedContacts.filter(c => c.assignedAt && new Date(c.assignedAt).getTime() >= weekAgo).length
+          const assignedThisMonth = savedContacts.filter(c => c.assignedAt && new Date(c.assignedAt).getTime() >= monthAgo).length
+          const researched = savedContacts.filter(c => c.status === "queued").length
+          return (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <Card className="p-2.5"><p className="text-lg font-bold">{savedContacts.length}</p><p className="text-[10px] text-muted-foreground">Total Saved</p></Card>
+              <Card className="p-2.5"><p className="text-lg font-bold">{researched}</p><p className="text-[10px] text-muted-foreground">Queued</p></Card>
+              <Card className="p-2.5"><p className="text-lg font-bold">{assignedThisWeek}</p><p className="text-[10px] text-muted-foreground">Assigned this week</p></Card>
+              <Card className="p-2.5"><p className="text-lg font-bold">{assignedThisMonth}</p><p className="text-[10px] text-muted-foreground">Assigned this month</p></Card>
+            </div>
+          )
+        })()}
+
         {loadingSaved ? (
           <div className="flex items-center gap-2 py-4 text-xs text-muted-foreground"><Loader2 className="w-3.5 h-3.5 animate-spin" />Loading…</div>
         ) : savedContacts.length === 0 ? (
@@ -418,22 +448,50 @@ export function CRMContent() {
             <User className="w-4 h-4 text-muted-foreground mx-auto mb-1.5" />
             <p className="text-xs text-muted-foreground">No contacts saved yet. Run Auditor Mode to populate this list.</p>
           </div>
-        ) : (
-          <div className="space-y-1">
-            {savedContacts.map((c, i) => (
-              <div key={c.crmId || c.email} className="flex items-center gap-2.5 px-3 py-2 rounded-lg border bg-card">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0 ${avatarColor(i)}`}>{initials(c)}</div>
-                <div className="flex-1 min-w-0">
-                  <span className="text-xs font-medium truncate block">{[c.firstName, c.lastName].filter(Boolean).join(" ") || c.email}</span>
-                  <span className="text-[10px] text-muted-foreground truncate block">{c.title}{c.title && c.company ? " · " : ""}{c.company}</span>
-                </div>
-                <Badge variant="outline" className={`text-[9px] shrink-0 ${c.status === "queued" ? "border-emerald-400/50 text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
-                  {c.status === "queued" ? "✓ queued" : "fresh"}
-                </Badge>
-              </div>
-            ))}
-          </div>
-        )}
+        ) : (() => {
+          // Duplicate detection by normalized email — flag every contact after the first (earliest savedAt) in a group
+          const byEmail = new Map<string, CRMContact[]>()
+          for (const c of savedContacts) {
+            const key = (c.email || "").toLowerCase().trim()
+            if (!key) continue
+            byEmail.set(key, [...(byEmail.get(key) ?? []), c])
+          }
+          const duplicateIds = new Set<string>()
+          for (const group of byEmail.values()) {
+            if (group.length < 2) continue
+            const sorted = [...group].sort((a, b) => (a.savedAt || "").localeCompare(b.savedAt || ""))
+            for (const dupe of sorted.slice(1)) duplicateIds.add(dupe.crmId || dupe.email)
+          }
+          return (
+            <div className="space-y-1">
+              {savedContacts.map((c, i) => {
+                const id = c.crmId || c.email
+                const isDupe = duplicateIds.has(id)
+                return (
+                  <div key={id} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border bg-card ${isDupe ? "border-amber-400/50" : ""}`}>
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0 ${avatarColor(i)}`}>{initials(c)}</div>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs font-medium truncate block">{[c.firstName, c.lastName].filter(Boolean).join(" ") || c.email}</span>
+                      <span className="text-[10px] text-muted-foreground truncate block">{c.title}{c.title && c.company ? " · " : ""}{c.company}</span>
+                    </div>
+                    {isDupe && (
+                      <button
+                        onClick={() => mergeDuplicate(id)}
+                        title="Duplicate email — keep the earliest record, discard this one"
+                        className="flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400 hover:underline shrink-0"
+                      >
+                        <GitMerge className="w-3 h-3" />Merge
+                      </button>
+                    )}
+                    <Badge variant="outline" className={`text-[9px] shrink-0 ${c.status === "queued" ? "border-emerald-400/50 text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
+                      {c.status === "queued" ? "✓ queued" : "fresh"}
+                    </Badge>
+                  </div>
+                )
+              })}
+            </div>
+          )
+        })()}
       </div>
 
       <div className="border-t" />
@@ -441,106 +499,20 @@ export function CRMContent() {
       {/* ── AUDITOR / IMPORT SECTION ─────────────────── */}
       <div className="space-y-3">
 
-        {/* Agent assignment — cards left, drop slot right */}
-        <div className="flex gap-4 items-start">
-
-          {/* Left: agent roster */}
-          <div className="space-y-1.5 flex-1">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Agents</p>
-            <div className="flex flex-wrap gap-2">
-              {agents.map((a, i) => {
-                const isAssigned = selectedAgent === a.agentId
-                const agentAvatar = a.personality?.avatar
-                const hasImg = !!(agentAvatar && (agentAvatar.startsWith('/') || agentAvatar.startsWith('http')))
-                const agentInitials = a.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase()
-                const agentColors = ["bg-blue-500","bg-violet-500","bg-emerald-500","bg-rose-500","bg-amber-500","bg-indigo-500"]
-                const color = agentColors[i % agentColors.length]
-                return (
-                  <div
-                    key={a.agentId}
-                    draggable
-                    onDragStart={e => { e.dataTransfer.setData("agentId", a.agentId); e.dataTransfer.effectAllowed = "move" }}
-                    onClick={() => setSelectedAgent(isAssigned ? "" : a.agentId)}
-                    title={`Assign ${a.name}`}
-                    className={`flex flex-col items-center gap-1.5 p-2.5 w-[76px] rounded-xl border cursor-grab active:cursor-grabbing select-none transition-all ${
-                      isAssigned
-                        ? "border-primary bg-primary/10 shadow ring-1 ring-primary/20"
-                        : "border-border bg-card hover:border-primary/40 hover:shadow-sm"
-                    }`}
-                  >
-                    <div className={`relative w-11 h-11 rounded-full overflow-hidden shrink-0 ${
-                      isAssigned ? "ring-2 ring-primary ring-offset-1" : ""
-                    }`}>
-                      {hasImg
-                        ? <img src={agentAvatar!} alt={a.name} className="w-full h-full object-cover" />
-                        : <div className={`w-full h-full flex items-center justify-center text-white text-sm font-bold ${color}`}>{agentInitials}</div>
-                      }
-                      <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-background ${
-                        a.status === "running" ? "bg-emerald-500" : "bg-muted-foreground/40"
-                      }`} />
-                    </div>
-                    <span className={`text-[10px] font-medium w-full truncate text-center leading-tight ${
-                      isAssigned ? "text-primary" : "text-foreground/80"
-                    }`}>{a.name}</span>
-                  </div>
-                )
-              })}
-            </div>
+        {/* Selection-based assignment: pick contacts in the table below, choose an agent here, then Run */}
+        {!launched && contacts.length > 0 && (
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-medium text-muted-foreground shrink-0">Assign to:</span>
+            <Select value={selectedAgent} onValueChange={setSelectedAgent}>
+              <SelectTrigger className="h-8 text-xs w-[200px]">
+                <SelectValue placeholder="Select an agent…" />
+              </SelectTrigger>
+              <SelectContent>
+                {agents.map(a => <SelectItem key={a.agentId} value={a.agentId}>{a.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
-
-          {/* Right: assigned slot */}
-          <div className="space-y-1.5 w-44 shrink-0">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Assigned</p>
-            <div
-              onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOver(true) }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={e => {
-                e.preventDefault()
-                const id = e.dataTransfer.getData("agentId")
-                if (id) setSelectedAgent(id)
-                setDragOver(false)
-              }}
-              className={`flex items-center justify-center rounded-xl border-2 border-dashed h-[76px] transition-all ${
-                dragOver
-                  ? "border-primary bg-primary/10 scale-[1.01]"
-                  : selectedAgent
-                    ? "border-emerald-400/50 bg-emerald-50/40 dark:bg-emerald-950/20"
-                    : "border-border bg-muted/20 hover:border-primary/30"
-              }`}
-            >
-              {selectedAgent ? (() => {
-                const a = agents.find(ag => ag.agentId === selectedAgent)
-                const agentAvatar = a?.personality?.avatar
-                const hasImg = !!(agentAvatar && (agentAvatar.startsWith('/') || agentAvatar.startsWith('http')))
-                const agentInitials = a ? a.name.split(" ").map((w: string) => w[0]).join("").slice(0, 2).toUpperCase() : "?"
-                const agentColors = ["bg-blue-500","bg-violet-500","bg-emerald-500","bg-rose-500","bg-amber-500","bg-indigo-500"]
-                const color = a ? agentColors[agents.indexOf(a) % agentColors.length] : "bg-muted"
-                return (
-                  <div className="flex items-center gap-2.5 px-3 w-full">
-                    <div className="relative w-9 h-9 rounded-full overflow-hidden shrink-0">
-                      {hasImg
-                        ? <img src={agentAvatar!} alt={a?.name} className="w-full h-full object-cover" />
-                        : <div className={`w-full h-full flex items-center justify-center text-white text-xs font-bold ${color}`}>{agentInitials}</div>
-                      }
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold truncate">{a?.name ?? "Agent"}</p>
-                      <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">ready</p>
-                    </div>
-                    <button onClick={() => setSelectedAgent("")} className="text-muted-foreground hover:text-destructive transition-colors shrink-0">
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                )
-              })() : (
-                <p className="text-xs text-muted-foreground select-none text-center leading-relaxed">
-                  {dragOver ? "Drop here" : "Drag or click\nan agent"}
-                </p>
-              )}
-            </div>
-          </div>
-
-        </div>
+        )}
 
         {/* Toolbar: Load / Search / Run */}
       <div className="flex flex-wrap items-center gap-3">
@@ -610,53 +582,6 @@ export function CRMContent() {
       {/* one-line live status */}
       {launched && statusLine && (
         <p className="text-[11px] text-muted-foreground pl-0.5 truncate">{statusLine}</p>
-      )}
-
-      {auditorResults.length > 0 && (
-        <div className="rounded-xl border bg-card/70 p-3 space-y-2">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h4 className="text-xs font-semibold">Recent Auditor Results</h4>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Each completed contact stays visible here instead of disappearing without context.</p>
-            </div>
-            <Badge variant="outline" className="text-[10px] shrink-0">{auditorResults.length} shown</Badge>
-          </div>
-          <div className="space-y-1.5">
-            {auditorResults.map(result => {
-              const badgeClass = result.crmStatus === "failed"
-                ? "border-rose-400/50 text-rose-600 dark:text-rose-400"
-                : result.crmStatus === "skipped"
-                  ? "border-amber-400/50 text-amber-600 dark:text-amber-400"
-                  : "border-emerald-400/50 text-emerald-600 dark:text-emerald-400"
-              const badgeLabel = result.crmStatus === "failed"
-                ? "CRM failed"
-                : result.crmAction === "report_added"
-                  ? "note added"
-                  : result.crmAction === "contact_synced"
-                    ? "synced"
-                    : "queued only"
-
-              return (
-                <div key={`${result.contactId}-${result.completedAt}`} className="flex items-start gap-3 rounded-lg border px-3 py-2.5 bg-background/80">
-                  <div className={`mt-0.5 w-2 h-2 rounded-full shrink-0 ${result.crmStatus === "failed" ? "bg-rose-500" : result.crmStatus === "skipped" ? "bg-amber-500" : "bg-emerald-500"}`} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-medium truncate">{result.contactName}</span>
-                      {result.company && <span className="text-[11px] text-muted-foreground truncate">{result.company}</span>}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground mt-0.5 break-words">{result.crmMessage}</p>
-                    <div className="flex items-center gap-3 mt-1 flex-wrap text-[10px] text-muted-foreground">
-                      {result.email && <span>{result.email}</span>}
-                      {result.crmIntegration && <span>{result.crmIntegration}</span>}
-                      <span>{new Date(result.completedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
-                    </div>
-                  </div>
-                  <Badge variant="outline" className={`text-[9px] shrink-0 ${badgeClass}`}>{badgeLabel}</Badge>
-                </div>
-              )
-            })}
-          </div>
-        </div>
       )}
 
       {contacts.length === 0 && !loading && (
@@ -743,41 +668,68 @@ export function CRMContent() {
               </button>
             </div>
           )}
-          {paginated.map((c, i) => {
-            const id         = c.crmId || c.email
-            const globalIdx  = (page - 1) * PAGE_SIZE + i
-            const isSelected = selected.has(id)
-            const isScanning = activeAuditorIds.has(id)
-            const isExiting  = exitingIds.has(id)
-            return (
-              <div key={id} className={`transition-all duration-400 ${isExiting ? "opacity-0 -translate-x-4 scale-95" : "opacity-100 translate-x-0 scale-100"}`}>
-                <Card
-                  className={`cursor-pointer transition-colors ${isScanning ? "border-blue-400 bg-blue-50/50 dark:bg-blue-900/20 shadow-sm shadow-blue-200 dark:shadow-blue-900/30 ring-1 ring-blue-300/70" : isSelected ? "border-primary/50 bg-primary/5" : "hover:bg-muted/50"}`}
-                  onClick={() => !launched && toggleContact(id)}
-                >
-                  <CardContent className="px-3 py-2.5 flex items-center gap-3">
-                    {!launched && (<Checkbox checked={isSelected} onCheckedChange={() => toggleContact(id)} onClick={e => e.stopPropagation()} />)}
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0 ${avatarColor(globalIdx)} ${isScanning ? "animate-pulse ring-2 ring-blue-400 ring-offset-1" : ""}`}>
-                      {isScanning ? <Loader2 className="w-4 h-4 animate-spin" /> : initials(c)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium truncate">{[c.firstName, c.lastName].filter(Boolean).join(" ") || "Unknown"}</span>
-                        {c.title && (<span className="text-xs text-muted-foreground truncate hidden sm:block">{c.title}</span>)}
-                        {isScanning && (<span className="text-[10px] text-blue-500 font-medium animate-pulse shrink-0">building email...</span>)}
-                      </div>
-                      <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                        {c.email && (<span className="flex items-center gap-1 text-xs text-muted-foreground"><Mail className="w-3 h-3" />{c.email}</span>)}
-                        {c.company && (<span className="flex items-center gap-1 text-xs text-muted-foreground"><Building2 className="w-3 h-3" />{c.company}</span>)}
-                        {c.phone && (<span className="flex items-center gap-1 text-xs text-muted-foreground hidden md:flex"><Phone className="w-3 h-3" />{c.phone}</span>)}
-                      </div>
-                    </div>
-                    <Badge variant="outline" className="text-[10px] shrink-0 hidden sm:flex">{c.source?.replace(/_/g, " ") ?? "CRM"}</Badge>
-                  </CardContent>
-                </Card>
-              </div>
-            )
-          })}
+          <div className="overflow-x-auto rounded-lg border">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-[11px] text-muted-foreground border-b bg-muted/30">
+                  {!launched && <th className="py-2 pl-3 pr-1 w-8"><Checkbox checked={filtered.length > 0 && selected.size === filtered.length} onCheckedChange={toggleAll} /></th>}
+                  <th className="py-2 px-3 font-medium">Name</th>
+                  <th className="py-2 px-3 font-medium">CRM Source</th>
+                  <th className="py-2 px-3 font-medium">Status</th>
+                  <th className="py-2 px-3 font-medium">Assigned</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginated.map((c, i) => {
+                  const id         = c.crmId || c.email
+                  const globalIdx  = (page - 1) * PAGE_SIZE + i
+                  const isSelected = selected.has(id)
+                  const isScanning = activeAuditorIds.has(id) || c.runStatus === "scanning"
+                  const assignedAgentName = launched ? agents.find(a => a.agentId === selectedAgent)?.name : undefined
+                  const statusBadge = c.runStatus === "failed"
+                    ? { label: "CRM update failed", cls: "border-rose-400/50 text-rose-600 dark:text-rose-400" }
+                    : c.runStatus === "skipped"
+                      ? { label: c.runMessage || "Skipped", cls: "border-amber-400/50 text-amber-600 dark:text-amber-400" }
+                      : c.runStatus === "success"
+                        ? { label: c.runMessage || "Queued", cls: "border-emerald-400/50 text-emerald-600 dark:text-emerald-400" }
+                        : isScanning
+                          ? { label: "Researching…", cls: "border-blue-400/50 text-blue-600 dark:text-blue-400" }
+                          : { label: c.status === "queued" ? "Queued" : "Fresh", cls: "text-muted-foreground" }
+                  return (
+                    <tr
+                      key={id}
+                      className={`border-b last:border-0 cursor-pointer transition-colors ${isScanning ? "bg-blue-50/50 dark:bg-blue-900/20" : isSelected ? "bg-primary/5" : "hover:bg-muted/30"}`}
+                      onClick={() => !launched && toggleContact(id)}
+                    >
+                      {!launched && (
+                        <td className="py-2 pl-3 pr-1" onClick={e => e.stopPropagation()}>
+                          <Checkbox checked={isSelected} onCheckedChange={() => toggleContact(id)} />
+                        </td>
+                      )}
+                      <td className="py-2 px-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-semibold shrink-0 ${avatarColor(globalIdx)} ${isScanning ? "animate-pulse ring-2 ring-blue-400 ring-offset-1" : ""}`}>
+                            {isScanning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : initials(c)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium truncate max-w-[200px]">{[c.firstName, c.lastName].filter(Boolean).join(" ") || "Unknown"}</p>
+                            <p className="text-xs text-muted-foreground truncate max-w-[200px]">{c.email}{c.company ? ` · ${c.company}` : ""}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-2 px-3">
+                        <Badge variant="outline" className="text-[10px]">{c.source?.replace(/_/g, " ") ?? "CRM"}</Badge>
+                      </td>
+                      <td className="py-2 px-3">
+                        <Badge variant="outline" className={`text-[10px] ${statusBadge.cls}`}>{statusBadge.label}</Badge>
+                      </td>
+                      <td className="py-2 px-3 text-xs text-muted-foreground">{assignedAgentName ?? "—"}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
 
           {/* Pagination bar */}
           {!launched && totalPages > 1 && (

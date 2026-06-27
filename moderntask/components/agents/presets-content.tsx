@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   Plus, Trash2, Pencil, Building2, Users, MapPin, Mail,
-  Zap, AlertCircle, CheckCircle2, X, ChevronDown, ChevronUp
+  Zap, AlertCircle, CheckCircle2, X, Send, MessageSquare,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -32,10 +32,14 @@ interface Preset {
   signatureTitle?: string
   specialInstructions?: string
   writingRules?: string
+  includeChatLink?: boolean
+  chatLinkInstructions?: string
   templates?: Array<{ id: string; name: string; subject: string; body: string }>
   createdAt?: string
   updatedAt?: string
 }
+
+interface AgentLite { agentId: string; name: string }
 
 const EMPTY_FORM: Omit<Preset, 'id' | 'createdAt' | 'updatedAt'> = {
   name: '',
@@ -56,6 +60,8 @@ const EMPTY_FORM: Omit<Preset, 'id' | 'createdAt' | 'updatedAt'> = {
   signatureTitle: '',
   specialInstructions: '',
   writingRules: '',
+  includeChatLink: false,
+  chatLinkInstructions: '',
   templates: [],
 }
 
@@ -135,6 +141,29 @@ function NumInput({ value, onChange, placeholder }: {
   )
 }
 
+function PillSelect({ value, onChange, options }: {
+  value: string; onChange: (v: string) => void
+  options: { value: string; label: string }[]
+}) {
+  return (
+    <div className="flex gap-1 bg-muted rounded-md p-0.5">
+      {options.map(o => (
+        <button
+          key={o.value}
+          type="button"
+          onClick={() => onChange(o.value)}
+          className={cn(
+            'flex-1 px-2 py-1 rounded text-[11px] font-medium transition-all',
+            value === o.value ? 'bg-background shadow text-foreground' : 'text-muted-foreground hover:text-foreground',
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function Select({ value, onChange, options }: {
   value: string; onChange: (v: string) => void
   options: { value: string; label: string }[]
@@ -173,231 +202,252 @@ function Toggle({ value, onChange, label }: {
   )
 }
 
-// ── preset form modal ─────────────────────────────────────────────────────────
-function PresetFormModal({
-  initial, onSave, onClose, saving,
+// ── inline preset editor panel (was a modal — now always visible, per the new layout) ──
+function PresetEditorPanel({
+  form, setForm, onSave, onCancel, saving, isNew,
 }: {
-  initial: Omit<Preset, 'id' | 'createdAt' | 'updatedAt'>
-  onSave: (data: Omit<Preset, 'id' | 'createdAt' | 'updatedAt'>) => void
-  onClose: () => void
+  form: Omit<Preset, 'id' | 'createdAt' | 'updatedAt'>
+  setForm: (f: Omit<Preset, 'id' | 'createdAt' | 'updatedAt'>) => void
+  onSave: () => void
+  onCancel: () => void
   saving: boolean
+  isNew: boolean
 }) {
-  const [form, setForm] = useState(initial)
-  const [showAdvanced, setShowAdvanced] = useState(false)
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
-    setForm(prev => ({ ...prev, [k]: v }))
+    setForm({ ...form, [k]: v })
+  const [previewing, setPreviewing] = useState(false)
+  const [preview, setPreview] = useState<{ subject: string; body: string } | null>(null)
+  const [previewError, setPreviewError] = useState<string | null>(null)
+
+  const generatePreview = async () => {
+    setPreviewing(true)
+    setPreviewError(null)
+    try {
+      const res = await api.post('/api/lead-agent/test-email', {
+        emailSettings: {
+          emailLength: form.emailLength,
+          callToAction: form.callToAction,
+          personalizationLevel: form.personalizationLevel,
+          ccEmails: form.ccEmails,
+          bccEmails: form.bccEmails,
+          useCustomSignature: form.useCustomSignature,
+          signatureName: form.signatureName,
+          signatureTitle: form.signatureTitle,
+          customPrompt: form.writingRules,
+          includeChatLink: form.includeChatLink,
+          chatLinkInstructions: form.chatLinkInstructions,
+        },
+      })
+      if (res.data?.success) setPreview({ subject: res.data.subject, body: res.data.body })
+      else setPreviewError('Could not generate a preview.')
+    } catch {
+      setPreviewError('Save the preset first for the most accurate preview.')
+    } finally {
+      setPreviewing(false)
+    }
+  }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-background border border-border rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
-        {/* header */}
-        <div className="sticky top-0 bg-background border-b border-border px-6 py-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold">{form.name ? `Edit: ${form.name}` : 'New Preset'}</h2>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+    <Card className="p-5 space-y-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-sm font-semibold">{isNew ? 'New Preset' : `Edit: ${form.name || 'Preset'}`}</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">Configure reusable outreach messaging styles and behaviour.</p>
+        </div>
+        {!isNew && (
+          <button onClick={onCancel} className="text-muted-foreground hover:text-foreground">
             <X className="w-4 h-4" />
           </button>
-        </div>
+        )}
+      </div>
 
-        <div className="px-6 py-5 space-y-5">
-          {/* name */}
-          <Field label="Preset Name *">
-            <TextInput value={form.name} onChange={v => set('name', v)} placeholder="e.g. SaaS CTOs — Mid-Market" />
-          </Field>
+      <Field label="Preset Name *">
+        <TextInput value={form.name} onChange={v => set('name', v)} placeholder="e.g. SaaS CTOs — Mid-Market" />
+      </Field>
 
-          {/* targeting */}
-          <div className="space-y-3">
-            <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-primary" /> Targeting</p>
-            <TagInput
-              label="Target Positions"
-              values={form.targetPositions ?? []}
-              onChange={v => set('targetPositions', v)}
-            />
-            <TagInput
-              label="Target Industries"
-              values={form.targetIndustries ?? []}
-              onChange={v => set('targetIndustries', v)}
-            />
-            <div className="grid grid-cols-3 gap-3">
-              <Field label="Min Company Size">
-                <NumInput value={form.companySizeMin} onChange={v => set('companySizeMin', v)} placeholder="1" />
-              </Field>
-              <Field label="Max Company Size">
-                <NumInput value={form.companySizeMax} onChange={v => set('companySizeMax', v)} placeholder="10000" />
-              </Field>
-              <Field label="Leads per Cycle">
-                <NumInput value={form.leadLimit} onChange={v => set('leadLimit', v)} placeholder="50" />
-              </Field>
-            </div>
-          </div>
-
-          {/* email settings */}
-          <div className="space-y-3">
-            <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-primary" /> Email Settings</p>
-            <div className="grid grid-cols-3 gap-3">
-              <Field label="Email Length">
-                <Select value={form.emailLength ?? 'medium'} onChange={v => set('emailLength', v)} options={[
-                  { value: 'short', label: 'Short' },
-                  { value: 'medium', label: 'Medium' },
-                  { value: 'long', label: 'Long' },
-                ]} />
-              </Field>
-              <Field label="Call To Action">
-                <Select value={form.callToAction ?? 'schedule-meeting'} onChange={v => set('callToAction', v)} options={[
-                  { value: 'schedule-meeting', label: 'Schedule Meeting' },
-                  { value: 'demo', label: 'Request Demo' },
-                  { value: 'reply', label: 'Reply to Learn More' },
-                  { value: 'call', label: 'Schedule a Call' },
-                  { value: 'other', label: 'Other' },
-                ]} />
-              </Field>
-              <Field label="Personalization">
-                <Select value={form.personalizationLevel ?? 'high'} onChange={v => set('personalizationLevel', v)} options={[
-                  { value: 'low', label: 'Low' },
-                  { value: 'medium', label: 'Medium' },
-                  { value: 'high', label: 'High' },
-                ]} />
-              </Field>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="CC Emails">
-                <TextInput value={form.ccEmails ?? ''} onChange={v => set('ccEmails', v)} placeholder="cc@company.com" />
-              </Field>
-              <Field label="BCC Emails">
-                <TextInput value={form.bccEmails ?? ''} onChange={v => set('bccEmails', v)} placeholder="bcc@company.com" />
-              </Field>
-            </div>
-            <Field label="Follow-up Interval (days)">
-              <NumInput value={form.followupIntervalDays} onChange={v => set('followupIntervalDays', v ?? 7)} placeholder="7" />
-            </Field>
-          </div>
-
-          {/* special instructions */}
-          <Field label="Special Instructions">
-            <textarea
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring resize-none"
-              rows={3}
-              placeholder="Any extra guidance for the agent when using this preset…"
-              value={form.specialInstructions ?? ''}
-              onChange={e => set('specialInstructions', e.target.value)}
-            />
-          </Field>
-
-          {/* writing rules */}
-          <Field label="Writing Rules">
-            <textarea
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring resize-none font-mono"
-              rows={3}
-              placeholder="e.g. Keep emails under 100 words. Never use 'synergy'. End with a single low-friction ask."
-              value={form.writingRules ?? ''}
-              onChange={e => set('writingRules', e.target.value)}
-            />
-          </Field>
-
-          {/* email signature */}
-          <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <Toggle value={!!form.useCustomSignature} onChange={v => set('useCustomSignature', v)} label="Auto-sign emails" />
-                <p className="text-xs text-muted-foreground mt-1 ml-0.5">
-                  Recommended — adds your name and title to every email for a professional, personal touch.
-                </p>
-              </div>
-            </div>
-            {form.useCustomSignature && (
-              <div className="grid grid-cols-2 gap-3 pt-1">
-                <Field label="Signature Name">
-                  <TextInput value={form.signatureName ?? ''} onChange={v => set('signatureName', v)} placeholder="John Smith" />
-                </Field>
-                <Field label="Signature Title">
-                  <TextInput value={form.signatureTitle ?? ''} onChange={v => set('signatureTitle', v)} placeholder="VP of Sales" />
-                </Field>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* footer */}
-        <div className="sticky bottom-0 bg-background border-t border-border px-6 py-4 flex justify-end gap-2">
-          <Button variant="outline" size="sm" onClick={onClose} disabled={saving}>Cancel</Button>
-          <Button
-            size="sm"
-            disabled={saving || !form.name.trim()}
-            onClick={() => onSave(form)}
-          >
-            {saving ? 'Saving…' : 'Save Preset'}
-          </Button>
+      <div className="space-y-3">
+        <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-primary" /> Targeting</p>
+        <TagInput label="Target Positions" values={form.targetPositions ?? []} onChange={v => set('targetPositions', v)} />
+        <TagInput label="Target Industries" values={form.targetIndustries ?? []} onChange={v => set('targetIndustries', v)} />
+        <div className="grid grid-cols-3 gap-3">
+          <Field label="Min Company Size"><NumInput value={form.companySizeMin} onChange={v => set('companySizeMin', v)} placeholder="1" /></Field>
+          <Field label="Max Company Size"><NumInput value={form.companySizeMax} onChange={v => set('companySizeMax', v)} placeholder="10000" /></Field>
+          <Field label="Leads per Cycle"><NumInput value={form.leadLimit} onChange={v => set('leadLimit', v)} placeholder="50" /></Field>
         </div>
       </div>
+
+      <div className="space-y-3">
+        <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-primary" /> Email Settings</p>
+        <Field label="Email Length">
+          <PillSelect value={form.emailLength ?? 'medium'} onChange={v => set('emailLength', v)} options={[
+            { value: 'short', label: 'Short' }, { value: 'medium', label: 'Medium' }, { value: 'long', label: 'Long' },
+          ]} />
+        </Field>
+        <Field label="Call to Action">
+          <Select value={form.callToAction ?? 'schedule-meeting'} onChange={v => set('callToAction', v)} options={[
+            { value: 'schedule-meeting', label: 'Schedule Meeting' },
+            { value: 'demo', label: 'Request Demo' },
+            { value: 'reply', label: 'Reply to Learn More' },
+            { value: 'call', label: 'Schedule a Call' },
+            { value: 'other', label: 'Other' },
+          ]} />
+        </Field>
+        <Field label="Personalization">
+          <PillSelect value={form.personalizationLevel ?? 'high'} onChange={v => set('personalizationLevel', v)} options={[
+            { value: 'low', label: 'Low' }, { value: 'medium', label: 'Medium' }, { value: 'high', label: 'High' },
+          ]} />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="CC Emails"><TextInput value={form.ccEmails ?? ''} onChange={v => set('ccEmails', v)} placeholder="cc@company.com" /></Field>
+          <Field label="BCC Emails"><TextInput value={form.bccEmails ?? ''} onChange={v => set('bccEmails', v)} placeholder="bcc@company.com" /></Field>
+        </div>
+        <Field label="Follow-up Interval (days)">
+          <NumInput value={form.followupIntervalDays} onChange={v => set('followupIntervalDays', v ?? 7)} placeholder="7" />
+        </Field>
+      </div>
+
+      <Field label="Extra Instructions">
+        <textarea
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+          rows={3} maxLength={500}
+          placeholder="e.g. Always open with a specific observation about the company. Never use the word 'synergy'. End with a single low-friction ask."
+          value={form.specialInstructions ?? ''}
+          onChange={e => set('specialInstructions', e.target.value)}
+        />
+        <p className="text-[10px] text-muted-foreground text-right">{(form.specialInstructions ?? '').length}/500</p>
+      </Field>
+
+      <Field label="Writing Rules">
+        <textarea
+          className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring resize-none font-mono"
+          rows={3}
+          placeholder="e.g. Keep emails under 100 words. Never use 'synergy'. End with a single low-friction ask."
+          value={form.writingRules ?? ''}
+          onChange={e => set('writingRules', e.target.value)}
+        />
+      </Field>
+
+      <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-3">
+        <Toggle value={!!form.useCustomSignature} onChange={v => set('useCustomSignature', v)} label="Auto-sign emails" />
+        {form.useCustomSignature && (
+          <div className="grid grid-cols-2 gap-3 pt-1">
+            <Field label="Signature Name"><TextInput value={form.signatureName ?? ''} onChange={v => set('signatureName', v)} placeholder="John Smith" /></Field>
+            <Field label="Signature Title"><TextInput value={form.signatureTitle ?? ''} onChange={v => set('signatureTitle', v)} placeholder="VP of Sales" /></Field>
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+        <Toggle value={!!form.includeChatLink} onChange={v => set('includeChatLink', v)} label="Include Chat Link" />
+        <p className="text-[11px] text-muted-foreground">Inserts a personalized chat link into the email so leads can start a live conversation.</p>
+        {form.includeChatLink && (
+          <textarea
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+            rows={2} maxLength={200}
+            placeholder="Want to ask me anything directly? I'm available now:"
+            value={form.chatLinkInstructions ?? ''}
+            onChange={e => set('chatLinkInstructions', e.target.value)}
+          />
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <button onClick={generatePreview} disabled={previewing} className="text-xs text-primary hover:underline font-medium flex items-center gap-1.5 disabled:opacity-50">
+          <Send className="w-3 h-3" /> {previewing ? 'Generating…' : 'Generate Preview'}
+          <span className="text-muted-foreground font-normal">· save first for most accurate results</span>
+        </button>
+        <Card className="p-4 bg-muted/30 min-h-24">
+          {previewError ? (
+            <p className="text-xs text-destructive">{previewError}</p>
+          ) : preview ? (
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold">{preview.subject}</p>
+              <p className="text-xs text-muted-foreground whitespace-pre-wrap line-clamp-6">{preview.body}</p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-3 text-center gap-1.5">
+              <Send className="w-4 h-4 text-muted-foreground" />
+              <p className="text-xs text-muted-foreground">No preview yet</p>
+              <p className="text-[10px] text-muted-foreground">Click Generate Preview to see a sample email</p>
+            </div>
+          )}
+        </Card>
+      </div>
+
+      <div className="flex justify-end gap-2 pt-2 border-t border-border">
+        {!isNew && <Button variant="outline" size="sm" onClick={onCancel} disabled={saving}>Cancel</Button>}
+        <Button size="sm" disabled={saving || !form.name.trim()} onClick={onSave}>
+          {saving ? 'Saving…' : 'Save Preset'}
+        </Button>
+      </div>
+    </Card>
+  )
+}
+
+// ── apply-to-agent picker ────────────────────────────────────────────────────
+function ApplyPicker({ agents, onApply, onClose }: { agents: AgentLite[]; onApply: (agentId: string) => void; onClose: () => void }) {
+  return (
+    <div className="absolute right-0 top-8 z-20 w-56 rounded-md border border-border bg-popover shadow-lg py-1">
+      <p className="px-3 py-1.5 text-[10px] text-muted-foreground uppercase tracking-wide">Apply to agent</p>
+      {agents.length === 0 ? (
+        <p className="px-3 py-2 text-xs text-muted-foreground">No agents yet</p>
+      ) : agents.map(a => (
+        <button key={a.agentId} onClick={() => onApply(a.agentId)} className="w-full text-left px-3 py-1.5 text-xs hover:bg-muted">
+          {a.name}
+        </button>
+      ))}
+      <button onClick={onClose} className="w-full text-left px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted border-t border-border">
+        Cancel
+      </button>
     </div>
   )
 }
 
 // ── preset card ───────────────────────────────────────────────────────────────
 function PresetCard({
-  preset, onEdit, onDelete,
-}: { preset: Preset; onEdit: () => void; onDelete: () => void }) {
+  preset, selected, onSelect, onDelete, agents, onApply,
+}: { preset: Preset; selected: boolean; onSelect: () => void; onDelete: () => void; agents: AgentLite[]; onApply: (agentId: string) => void }) {
   const industries = preset.targetIndustries ?? []
   const positions  = preset.targetPositions  ?? []
   const tags       = [...industries.slice(0, 3), ...positions.slice(0, 3)]
+  const [showApply, setShowApply] = useState(false)
 
   return (
-    <Card className="p-5 space-y-3 hover:shadow-md transition-shadow">
-      {/* header */}
+    <Card className={cn('p-5 space-y-3 hover:shadow-md transition-shadow cursor-pointer', selected && 'border-primary ring-1 ring-primary/30')} onClick={onSelect}>
       <div className="flex items-start justify-between gap-2">
         <div>
           <h3 className="text-sm font-semibold text-foreground">{preset.name}</h3>
           {preset.createdAt && (
-            <p className="text-[10px] text-muted-foreground mt-0.5">
-              Created {new Date(preset.createdAt).toLocaleDateString()}
-            </p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Created {new Date(preset.createdAt).toLocaleDateString()}</p>
           )}
         </div>
-        <div className="flex items-center gap-1 shrink-0">
-          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={onEdit}>
-            <Pencil className="w-3.5 h-3.5" />
-          </Button>
-          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10" onClick={onDelete}>
-            <Trash2 className="w-3.5 h-3.5" />
-          </Button>
+        <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+          <div className="relative">
+            <Button size="sm" variant="outline" className="h-7 text-[11px] px-2" onClick={() => setShowApply(v => !v)}>Apply</Button>
+            {showApply && <ApplyPicker agents={agents} onApply={(id) => { onApply(id); setShowApply(false) }} onClose={() => setShowApply(false)} />}
+          </div>
+          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={onSelect}><Pencil className="w-3.5 h-3.5" /></Button>
+          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10" onClick={onDelete}><Trash2 className="w-3.5 h-3.5" /></Button>
         </div>
       </div>
 
-      {/* tags */}
       {tags.length > 0 && (
         <div className="flex flex-wrap gap-1">
-          {tags.map(t => (
-            <Badge key={t} variant="outline" className="text-[10px] px-1.5 py-0">{t}</Badge>
-          ))}
+          {tags.map(t => <Badge key={t} variant="outline" className="text-[10px] px-1.5 py-0">{t}</Badge>)}
         </div>
       )}
 
-      {/* meta pills */}
       <div className="grid grid-cols-3 gap-1.5 text-[10px]">
-        {preset.leadLimit && (
-          <div className="flex items-center gap-1 text-muted-foreground">
-            <Zap className="w-3 h-3 text-primary" />
-            {preset.leadLimit} leads
-          </div>
-        )}
+        {preset.leadLimit && <div className="flex items-center gap-1 text-muted-foreground"><Zap className="w-3 h-3 text-primary" />{preset.leadLimit} leads</div>}
         {(preset.companySizeMin || preset.companySizeMax) && (
-          <div className="flex items-center gap-1 text-muted-foreground">
-            <Building2 className="w-3 h-3" />
-            {preset.companySizeMin ?? '?'}–{preset.companySizeMax ?? '∞'}
-          </div>
+          <div className="flex items-center gap-1 text-muted-foreground"><Building2 className="w-3 h-3" />{preset.companySizeMin ?? '?'}–{preset.companySizeMax ?? '∞'}</div>
         )}
-        {preset.emailLength && (
-          <div className="flex items-center gap-1 text-muted-foreground">
-            <Mail className="w-3 h-3" />
-            {preset.emailLength} email
-          </div>
-        )}
+        {preset.emailLength && <div className="flex items-center gap-1 text-muted-foreground"><Mail className="w-3 h-3" />{preset.emailLength} email</div>}
+        {preset.includeChatLink && <div className="flex items-center gap-1 text-muted-foreground"><MessageSquare className="w-3 h-3" />chat link</div>}
       </div>
 
-      {/* instructions */}
-      {preset.specialInstructions && typeof preset.specialInstructions === 'string' && (
-        <p className="text-[11px] text-muted-foreground italic border-l-2 border-border pl-2 line-clamp-2">
-          {preset.specialInstructions}
-        </p>
+      {preset.specialInstructions && (
+        <p className="text-[11px] text-muted-foreground italic border-l-2 border-border pl-2 line-clamp-2">{preset.specialInstructions}</p>
       )}
     </Card>
   )
@@ -405,13 +455,14 @@ function PresetCard({
 
 // ── main export ───────────────────────────────────────────────────────────────
 export function PresetsContent() {
-  const [presets, setPresets]     = useState<Preset[]>([])
-  const [loading, setLoading]     = useState(true)
-  const [saving, setSaving]       = useState(false)
-  const [modalOpen, setModalOpen] = useState(false)
-  const [editing, setEditing]     = useState<Preset | null>(null)
+  const [presets, setPresets] = useState<Preset[]>([])
+  const [agents, setAgents] = useState<AgentLite[]>([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [form, setForm] = useState<Omit<Preset, 'id' | 'createdAt' | 'updatedAt'>>(EMPTY_FORM)
   const [deleteTarget, setDeleteTarget] = useState<Preset | null>(null)
-  const [toast, setToast]         = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
+  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type })
@@ -421,28 +472,33 @@ export function PresetsContent() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await api.get('/api/settings/presets')
-      setPresets(res.data.presets ?? [])
+      const [presetsRes, agentsRes] = await Promise.allSettled([
+        api.get('/api/settings/presets'),
+        api.get('/api/auth/agents'),
+      ])
+      if (presetsRes.status === 'fulfilled') setPresets(presetsRes.value.data.presets ?? [])
+      if (agentsRes.status === 'fulfilled') {
+        setAgents((agentsRes.value.data?.agents ?? []).filter((a: any) => a.agentId !== 'orphan').map((a: any) => ({ agentId: a.agentId, name: a.name })))
+      }
     } catch { showToast('Failed to load presets', 'error') }
     finally { setLoading(false) }
   }, [])
 
   useEffect(() => { load() }, [load])
 
-  const handleSave = async (form: Omit<Preset, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const handleSave = async () => {
     setSaving(true)
     try {
-      if (editing) {
-        const res = await api.put(`/api/settings/presets/${editing.id}`, form)
-        setPresets(prev => prev.map(p => p.id === editing.id ? res.data.preset : p))
+      if (editingId) {
+        const res = await api.put(`/api/settings/presets/${editingId}`, form)
+        setPresets(prev => prev.map(p => p.id === editingId ? res.data.preset : p))
         showToast('Preset updated')
       } else {
         const res = await api.post('/api/settings/presets', form)
         setPresets(prev => [...prev, res.data.preset])
+        setEditingId(res.data.preset.id)
         showToast('Preset created')
       }
-      setModalOpen(false)
-      setEditing(null)
     } catch { showToast('Failed to save preset', 'error') }
     finally { setSaving(false) }
   }
@@ -452,40 +508,67 @@ export function PresetsContent() {
     try {
       await api.delete(`/api/settings/presets/${deleteTarget.id}`)
       setPresets(prev => prev.filter(p => p.id !== deleteTarget.id))
+      if (editingId === deleteTarget.id) { setEditingId(null); setForm(EMPTY_FORM) }
       showToast('Preset deleted')
     } catch { showToast('Failed to delete preset', 'error') }
     finally { setDeleteTarget(null) }
   }
 
-  const openCreate = () => { setEditing(null); setModalOpen(true) }
-  const openEdit   = (p: Preset) => { setEditing(p); setModalOpen(true) }
-  const closeModal = () => { setModalOpen(false); setEditing(null) }
+  const selectPreset = (p: Preset) => { setEditingId(p.id); setForm({ ...EMPTY_FORM, ...p }) }
+  const startNew = () => { setEditingId(null); setForm(EMPTY_FORM) }
 
-  const formInitial = editing
-    ? { ...EMPTY_FORM, ...editing }
-    : EMPTY_FORM
+  const applyPresetToAgent = async (preset: Preset, agentId: string) => {
+    try {
+      const currentRes = await api.get(`/api/lead-agent/settings?agentId=${agentId}`)
+      const current = currentRes.data?.settings || {}
+      const payload = {
+        ...current,
+        agentId,
+        companyCriteria: { ...(current.companyCriteria || {}), companyIndustries: preset.targetIndustries ?? current.companyCriteria?.companyIndustries },
+        contactCriteria: { ...(current.contactCriteria || {}), targetPositions: preset.targetPositions ?? current.contactCriteria?.targetPositions },
+        geographicSettings: { ...(current.geographicSettings || {}), leadLimit: preset.leadLimit ?? current.geographicSettings?.leadLimit },
+        targeting: { ...(current.targeting || {}), leadLimit: preset.leadLimit ?? current.targeting?.leadLimit },
+        emailBuilder: {
+          ...(current.emailBuilder || {}),
+          emailLength: preset.emailLength,
+          callToAction: preset.callToAction,
+          personalizationLevel: preset.personalizationLevel,
+          ccEmails: preset.ccEmails,
+          bccEmails: preset.bccEmails,
+          useCustomSignature: preset.useCustomSignature,
+          signatureName: preset.signatureName,
+          signatureTitle: preset.signatureTitle,
+          customPrompt: preset.writingRules,
+          includeChatLink: preset.includeChatLink,
+          chatLinkInstructions: preset.chatLinkInstructions,
+        },
+        followUpSettings: { ...(current.followUpSettings || {}), intervalDays: preset.followupIntervalDays },
+        specialInstructions: preset.specialInstructions || current.specialInstructions,
+      }
+      await api.post('/api/lead-agent/settings', payload)
+      showToast(`Applied "${preset.name}" to agent`)
+    } catch {
+      showToast('Failed to apply preset', 'error')
+    }
+  }
 
   return (
     <div className="space-y-5">
-      {/* toast */}
       {toast && (
         <div className={cn(
           'fixed bottom-5 right-5 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium shadow-xl border',
-          toast.type === 'success'
-            ? 'bg-green-500/15 border-green-500/30 text-green-400'
-            : 'bg-destructive/15 border-destructive/30 text-destructive'
+          toast.type === 'success' ? 'bg-green-500/15 border-green-500/30 text-green-400' : 'bg-destructive/15 border-destructive/30 text-destructive'
         )}>
           {toast.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
           {toast.msg}
         </div>
       )}
 
-      {/* delete confirm */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <Card className="p-6 w-full max-w-sm space-y-4">
             <h3 className="text-sm font-semibold">Delete &ldquo;{deleteTarget.name}&rdquo;?</h3>
-            <p className="text-xs text-muted-foreground">This cannot be undone. Agents using this preset will keep their current settings.</p>
+            <p className="text-xs text-muted-foreground">This cannot be undone. Agents already using this preset keep their current settings.</p>
             <div className="flex justify-end gap-2">
               <Button size="sm" variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
               <Button size="sm" variant="destructive" onClick={handleDelete}>Delete</Button>
@@ -494,61 +577,54 @@ export function PresetsContent() {
         </div>
       )}
 
-      {/* modal */}
-      {modalOpen && (
-        <PresetFormModal
-          initial={formInitial}
-          onSave={handleSave}
-          onClose={closeModal}
-          saving={saving}
-        />
-      )}
-
-      {/* toolbar */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-semibold text-foreground">
-            {loading ? 'Loading…' : `${presets.length} Preset${presets.length !== 1 ? 's' : ''}`}
-          </p>
-          <p className="text-xs text-muted-foreground">Reusable targeting &amp; email configs you can apply when creating agents</p>
+          <p className="text-sm font-semibold text-foreground">{loading ? 'Loading…' : `${presets.length} Preset${presets.length !== 1 ? 's' : ''}`}</p>
+          <p className="text-xs text-muted-foreground">Reusable targeting &amp; email configs — apply to any agent</p>
         </div>
-        <Button size="sm" className="h-8 text-xs gap-1.5" onClick={openCreate}>
-          <Plus className="w-3.5 h-3.5" /> New Preset
-        </Button>
+        <Button size="sm" className="h-8 text-xs gap-1.5" onClick={startNew}><Plus className="w-3.5 h-3.5" /> New Preset</Button>
       </div>
 
-      {/* grid */}
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Card key={i} className="p-5 h-40 animate-pulse bg-muted/30" />
-          ))}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-4 items-start">
+        <div>
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Array.from({ length: 3 }).map((_, i) => <Card key={i} className="p-5 h-40 animate-pulse bg-muted/30" />)}
+            </div>
+          ) : presets.length === 0 ? (
+            <Card className="p-16 flex flex-col items-center justify-center gap-4 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center"><Zap className="w-6 h-6 text-muted-foreground" /></div>
+              <div>
+                <h3 className="text-sm font-semibold mb-1">No presets yet</h3>
+                <p className="text-xs text-muted-foreground max-w-xs">Create a preset to save targeting and email settings for quick reuse across agents.</p>
+              </div>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {presets.map(p => (
+                <PresetCard
+                  key={p.id}
+                  preset={p}
+                  selected={editingId === p.id}
+                  onSelect={() => selectPreset(p)}
+                  onDelete={() => setDeleteTarget(p)}
+                  agents={agents}
+                  onApply={(agentId) => applyPresetToAgent(p, agentId)}
+                />
+              ))}
+            </div>
+          )}
         </div>
-      ) : presets.length === 0 ? (
-        <Card className="p-16 flex flex-col items-center justify-center gap-4 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center">
-            <Zap className="w-6 h-6 text-muted-foreground" />
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold mb-1">No presets yet</h3>
-            <p className="text-xs text-muted-foreground max-w-xs">Create a preset to save your targeting criteria and email settings for quick reuse when spinning up agents.</p>
-          </div>
-          <Button size="sm" className="gap-1.5" onClick={openCreate}>
-            <Plus className="w-3.5 h-3.5" /> Create First Preset
-          </Button>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {presets.map(p => (
-            <PresetCard
-              key={p.id}
-              preset={p}
-              onEdit={() => openEdit(p)}
-              onDelete={() => setDeleteTarget(p)}
-            />
-          ))}
-        </div>
-      )}
+
+        <PresetEditorPanel
+          form={form}
+          setForm={setForm}
+          onSave={handleSave}
+          onCancel={startNew}
+          saving={saving}
+          isNew={!editingId}
+        />
+      </div>
     </div>
   )
 }

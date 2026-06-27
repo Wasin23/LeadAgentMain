@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 import api from '@/lib/api'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -144,7 +145,7 @@ function DocTypeBadge({ type }: { type: DocType }) {
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
-export function ChatLabContent() {
+export function ChatLabContent({ hideSessions = false }: { hideSessions?: boolean } = {}) {
   const [agents, setAgents]           = useState<Agent[]>([])
   const [agentId, setAgentId]         = useState<string>('')
 
@@ -524,10 +525,12 @@ export function ChatLabContent() {
 
       {/* ── Tabs ─────────────────────────────────────────────────────────── */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-        <TabsList className="shrink-0 w-full grid grid-cols-3 h-9">
+        <TabsList className={cn('shrink-0 w-full grid h-9', hideSessions ? 'grid-cols-2' : 'grid-cols-3')}>
           <TabsTrigger value="knowledge" className="text-xs gap-1.5"><FileText className="w-3 h-3" />Knowledge</TabsTrigger>
           <TabsTrigger value="prompt"    className="text-xs gap-1.5"><Sparkles className="w-3 h-3" />Prompt</TabsTrigger>
-          <TabsTrigger value="sessions"  className="text-xs gap-1.5"><History className="w-3 h-3" />Sessions</TabsTrigger>
+          {!hideSessions && (
+            <TabsTrigger value="sessions"  className="text-xs gap-1.5"><History className="w-3 h-3" />Sessions</TabsTrigger>
+          )}
         </TabsList>
 
         {/* ── Knowledge ── */}

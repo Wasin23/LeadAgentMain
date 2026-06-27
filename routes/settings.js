@@ -62,12 +62,15 @@ router.post('/presets', async (req, res) => {
       useCustomSignature,
       signatureName,
       signatureTitle,
-      specialInstructions
+      specialInstructions,
+      writingRules,
+      includeChatLink,
+      chatLinkInstructions
     } = req.body;
-    
+
     const awsManager = new AWSManager();
     const userSettings = await awsManager.getUserSettings(userId) || {};
-    
+
     const newPreset = {
       id: uuidv4(),
       name,
@@ -87,6 +90,9 @@ router.post('/presets', async (req, res) => {
       signatureName: signatureName || '',
       signatureTitle: signatureTitle || '',
       specialInstructions: specialInstructions || '',
+      writingRules: writingRules || '',
+      includeChatLink: includeChatLink || false,
+      chatLinkInstructions: chatLinkInstructions || '',
       createdAt: new Date().toISOString()
     };
     
@@ -162,7 +168,10 @@ router.put('/presets/:id', async (req, res) => {
       useCustomSignature,
       signatureName,
       signatureTitle,
-      specialInstructions
+      specialInstructions,
+      writingRules,
+      includeChatLink,
+      chatLinkInstructions
     } = req.body;
     
     const awsManager = new AWSManager();
@@ -196,6 +205,9 @@ router.put('/presets/:id', async (req, res) => {
       signatureName: signatureName || '',
       signatureTitle: signatureTitle || '',
       specialInstructions: specialInstructions || '',
+      writingRules: writingRules || '',
+      includeChatLink: includeChatLink || false,
+      chatLinkInstructions: chatLinkInstructions || '',
       updatedAt: new Date().toISOString()
     };
     

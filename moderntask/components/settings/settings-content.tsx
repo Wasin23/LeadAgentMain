@@ -98,10 +98,10 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "notifications",   label: "Notifications",   icon: Bell },
   { id: "company-profile", label: "Company Profile", icon: Building2 },
   { id: "email",           label: "Outreach",        icon: Mail },
-  { id: "crm",             label: "CRM Connection",  icon: Database },
   { id: "memory",          label: "Memory",          icon: Brain },
-  { id: "presets",         label: "Presets",         icon: LayoutGrid },
   { id: "billing",         label: "Billing",         icon: CreditCard },
+  // "crm" (CRM Connection) moved to Leads → CRM tab; "presets" moved to Prospecting → Agent Setup & Presets.
+  // Tab views below are kept (reachable via direct ?tab=crm/?tab=presets link) but no longer shown in the tab bar.
 ]
 
 // ── CRM configs ───────────────────────────────────────────────────────────────

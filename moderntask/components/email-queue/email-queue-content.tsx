@@ -692,8 +692,42 @@ function PaginationBar({ offset, limit, total, onChange }: {
   )
 }
 
+// ── compact list row (left pane of the 3-pane Awaiting Review layout) ────────
+function CompactEmailRow({ email, agentMap, active, selected, onActivate, onToggleSelect }: {
+  email: QueueEmail; agentMap: Record<string, Agent>
+  active: boolean; selected: boolean
+  onActivate: () => void; onToggleSelect: () => void
+}) {
+  const { to, subject, name, company } = ef(email)
+  const agent = email.agentId ? agentMap[email.agentId] : null
+  return (
+    <button
+      onClick={onActivate}
+      className={cn(
+        'w-full text-left px-3 py-2.5 border-l-2 transition-colors',
+        active ? 'border-l-primary bg-primary/5' : 'border-l-transparent hover:bg-muted/30',
+      )}
+    >
+      <div className="flex items-start gap-2">
+        <span onClick={e => { e.stopPropagation(); onToggleSelect() }} className="mt-0.5 text-muted-foreground hover:text-foreground shrink-0">
+          {selected ? <CheckSquare className="w-3.5 h-3.5 text-primary" /> : <Square className="w-3.5 h-3.5" />}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium truncate">{name || to}</p>
+          {company && <p className="text-[11px] text-muted-foreground truncate flex items-center gap-1"><Building2 className="w-2.5 h-2.5" />{company}</p>}
+          <p className="text-[11px] text-muted-foreground truncate mt-0.5">{subject}</p>
+          <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
+            <span className="flex items-center gap-0.5"><Clock className="w-2.5 h-2.5" />{timeAgo(email.sentAt || email.createdAt)}</span>
+            {agent && <span className="flex items-center gap-0.5"><Bot className="w-2.5 h-2.5" />{agent.name}</span>}
+          </div>
+        </div>
+      </div>
+    </button>
+  )
+}
+
 // ── email row ─────────────────────────────────────────────────────────────────
-function EmailRow({ email, agentMap, selected, onSelect, fontSize, actions, onEdit, onSchedule, onCancelSchedule, onCancelAutoSchedule, autoScheduleDate, onViewReport, onRebuild }: {
+function EmailRow({ email, agentMap, selected, onSelect, fontSize, actions, onEdit, onSchedule, onCancelSchedule, onCancelAutoSchedule, autoScheduleDate, onViewReport, onRebuild, forceExpanded, hideSelect }: {
   email: QueueEmail; agentMap: Record<string, Agent>
   selected: boolean; onSelect: (id: string) => void
   fontSize: number; actions?: React.ReactNode; onEdit?: () => void; onSchedule?: () => void
@@ -702,8 +736,11 @@ function EmailRow({ email, agentMap, selected, onSelect, fontSize, actions, onEd
   autoScheduleDate?: Date
   onViewReport?: () => void
   onRebuild?: () => void
+  forceExpanded?: boolean
+  hideSelect?: boolean
 }) {
-  const [expanded, setExpanded] = useState(false)
+  const [expandedState, setExpanded] = useState(false)
+  const expanded = forceExpanded || expandedState
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const { to, subject, body, name, company } = ef(email)
@@ -718,10 +755,12 @@ function EmailRow({ email, agentMap, selected, onSelect, fontSize, actions, onEd
     return () => document.removeEventListener('mousedown', handle)
   }, [menuOpen])
   return (
-    <div className={cn('flex gap-3 py-3 border-l-2 pl-3 transition-colors', selected ? 'border-l-primary bg-primary/5' : 'border-l-transparent hover:bg-muted/30')}>
-      <button onClick={() => onSelect(email.id)} className="shrink-0 mt-0.5 text-muted-foreground hover:text-foreground">
-        {selected ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4" />}
-      </button>
+    <div className={cn('flex gap-3 py-3', !hideSelect && 'border-l-2 pl-3 transition-colors', !hideSelect && (selected ? 'border-l-primary bg-primary/5' : 'border-l-transparent hover:bg-muted/30'))}>
+      {!hideSelect && (
+        <button onClick={() => onSelect(email.id)} className="shrink-0 mt-0.5 text-muted-foreground hover:text-foreground">
+          {selected ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4" />}
+        </button>
+      )}
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <button onClick={() => setExpanded(p => !p)} className="min-w-0 flex-1 text-left">
@@ -1211,6 +1250,65 @@ export function AIReportModal({ report, onClose }: { report: AIReport; onClose: 
   )
 }
 
+// ── context pane (right column of the 3-pane Awaiting Review layout) ────────
+function ContextPane({ email, agentMap }: { email: QueueEmail | null; agentMap: Record<string, Agent> }) {
+  if (!email) {
+    return <Card className="p-4 text-xs text-muted-foreground">Select an email to see why it was written.</Card>
+  }
+  const { company } = ef(email)
+  const report = email.aiReport
+  const agent = email.agentId ? agentMap[email.agentId] : null
+  return (
+    <Card className="p-4 space-y-4">
+      <div>
+        <p className="text-sm font-semibold truncate">{report?.companyName || company || 'Company'}</p>
+        {report && (
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+            <Badge variant="outline" className="text-[10px]">{report.score}/100</Badge>
+            <Badge variant="outline" className="text-[10px]">{report.confidence}</Badge>
+          </div>
+        )}
+      </div>
+
+      {report?.reasoning && (
+        <div>
+          <p className="text-xs font-medium text-muted-foreground mb-1">Why this email?</p>
+          {report.keyStrengths && report.keyStrengths.length > 0 ? (
+            <ul className="space-y-1">
+              {report.keyStrengths.slice(0, 4).map((s, i) => (
+                <li key={i} className="text-xs flex items-start gap-1.5">
+                  <CheckCircle2 className="w-3 h-3 text-green-600 mt-0.5 shrink-0" />{s}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs text-muted-foreground line-clamp-5">{report.reasoning}</p>
+          )}
+        </div>
+      )}
+
+      {report?.tier && (
+        <div>
+          <p className="text-xs font-medium text-muted-foreground mb-1">Key context</p>
+          <div className="flex flex-wrap gap-1">
+            <Badge variant="secondary" className="text-[10px]">{report.tier.replace(/_/g, ' ')}</Badge>
+            {report.researchQuality && <Badge variant="secondary" className="text-[10px]">{report.researchQuality}</Badge>}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <p className="text-xs font-medium text-muted-foreground mb-1">Assigned Agent</p>
+        <p className="text-xs flex items-center gap-1.5"><Bot className="w-3 h-3 text-primary" />{agent?.name || '—'}</p>
+      </div>
+
+      <Button size="sm" variant="outline" className="w-full text-xs" onClick={() => window.location.href = '/leads'}>
+        View Full Lead Report →
+      </Button>
+    </Card>
+  )
+}
+
 // ── queued list ───────────────────────────────────────────────────────────────
 function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule }: {
   agentId: string; agentMap: Record<string, Agent>; fontSize: number; onCountChange: (n: number) => void
@@ -1229,6 +1327,7 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
   const [rebuildTarget, setRebuildTarget] = useState<QueueEmail | null>(null)
   const [showMassReEdit, setShowMassReEdit] = useState(false)
   const [viewingAiReport, setViewingAiReport] = useState<AIReport | null>(null)
+  const [activeId, setActiveId] = useState<string | null>(null)
   const LIMIT = 20
 
   const load = useCallback(async (off = 0) => {
@@ -1484,48 +1583,69 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
       {/* pagination — top */}
       <PaginationBar offset={offset} limit={LIMIT} total={total} onChange={off => load(off)} />
 
-      {/* list */}
+      {/* 3-pane: list / email body / context */}
       {loading ? <Skel /> : filtered.length === 0 ? (
         search ? <Empty icon={Search} text="No results" sub={`No emails match "${search}"`} /> :
         <Empty icon={Inbox} text="No emails queued" sub="Your agents haven't drafted any emails yet." />
-      ) : (
-        <div className="divide-y divide-border">
-          {filtered.map(email => (
-            <EmailRow
-              key={email.id}
-              email={email}
-              agentMap={agentMap}
-              selected={selected.has(email.id)}
-              onSelect={toggleOne}
-              fontSize={fontSize}
-              onEdit={() => setEditTarget(email)}
-              onSchedule={() => setScheduleTarget(email)}
-              onRebuild={() => setRebuildTarget(email)}
-              onViewReport={email.aiReport ? () => setViewingAiReport(email.aiReport!) : undefined}
-              onCancelSchedule={email.scheduledAt ? () => scheduleEmail(email.id, null, email.agentId) : undefined}
-              onCancelAutoSchedule={autoSendDates.has(email.id) ? async () => {
-                setExcludedAuto(s => { const n = new Set(s); n.add(email.id); return n })
-                toast({ title: 'Removed from auto-schedule', description: ef(email).name || ef(email).to, duration: 2000 })
-                try {
-                  await api.put(`/api/email-queue/${email.id}`, { batchExcluded: true }, { params: { agentId: email.agentId } })
-                  setEmails(p => p.map(e => e.id === email.id ? { ...e, batchExcluded: true } : e))
-                } catch { /* best-effort */ }
-              } : undefined}
-              autoScheduleDate={autoSendDates.get(email.id)}
-              actions={
-                <>
-                  <Button size="sm" className="h-7 text-xs gap-1 bg-primary hover:bg-primary/90" onClick={() => approve(email)}>
-                    <CheckCircle2 className="w-3 h-3" /> Send
-                  </Button>
-                  <Button size="sm" variant="outline" className="h-7 w-7 p-0 border-destructive/40 text-destructive hover:bg-destructive/10" onClick={() => reject(email)}>
-                    <XCircle className="w-3 h-3" />
-                  </Button>
-                </>
-              }
-            />
-          ))}
-        </div>
-      )}
+      ) : (() => {
+        const active = filtered.find(e => e.id === activeId) ?? filtered[0]
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_280px] gap-3">
+            <div className="divide-y divide-border max-h-[600px] overflow-y-auto rounded-lg border border-border">
+              {filtered.map(email => (
+                <CompactEmailRow
+                  key={email.id}
+                  email={email}
+                  agentMap={agentMap}
+                  active={email.id === active.id}
+                  selected={selected.has(email.id)}
+                  onActivate={() => setActiveId(email.id)}
+                  onToggleSelect={() => toggleOne(email.id)}
+                />
+              ))}
+            </div>
+
+            <Card className="p-4">
+              <EmailRow
+                key={active.id}
+                email={active}
+                agentMap={agentMap}
+                selected={selected.has(active.id)}
+                onSelect={toggleOne}
+                fontSize={fontSize}
+                forceExpanded
+                hideSelect
+                onEdit={() => setEditTarget(active)}
+                onSchedule={() => setScheduleTarget(active)}
+                onRebuild={() => setRebuildTarget(active)}
+                onViewReport={active.aiReport ? () => setViewingAiReport(active.aiReport!) : undefined}
+                onCancelSchedule={active.scheduledAt ? () => scheduleEmail(active.id, null, active.agentId) : undefined}
+                onCancelAutoSchedule={autoSendDates.has(active.id) ? async () => {
+                  setExcludedAuto(s => { const n = new Set(s); n.add(active.id); return n })
+                  toast({ title: 'Removed from auto-schedule', description: ef(active).name || ef(active).to, duration: 2000 })
+                  try {
+                    await api.put(`/api/email-queue/${active.id}`, { batchExcluded: true }, { params: { agentId: active.agentId } })
+                    setEmails(p => p.map(e => e.id === active.id ? { ...e, batchExcluded: true } : e))
+                  } catch { /* best-effort */ }
+                } : undefined}
+                autoScheduleDate={autoSendDates.get(active.id)}
+                actions={
+                  <>
+                    <Button size="sm" className="h-7 text-xs gap-1 bg-primary hover:bg-primary/90" onClick={() => approve(active)}>
+                      <CheckCircle2 className="w-3 h-3" /> Send
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-7 w-7 p-0 border-destructive/40 text-destructive hover:bg-destructive/10" onClick={() => reject(active)}>
+                      <XCircle className="w-3 h-3" />
+                    </Button>
+                  </>
+                }
+              />
+            </Card>
+
+            <ContextPane email={active} agentMap={agentMap} />
+          </div>
+        )
+      })()}
 
       {editTarget      && <EditModal    email={editTarget}    onSave={saveEdit}    onClose={() => setEditTarget(null)} />}
       {scheduleTarget  && <ScheduleModal email={scheduleTarget} onSave={scheduleEmail} onClose={() => setScheduleTarget(null)} />}

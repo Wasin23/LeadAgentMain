@@ -743,9 +743,10 @@ IMPORTANT RULES:
     // Broadcast specific operations via SSE for Director dashboard cards
     const broadcastableOperations = [
       'Lead Search',
-      'Lead Processing', 
+      'Lead Processing',
       'Email Processing',
       'Lead Complete',
+      '✅ Lead Complete',
       'Lead Qualification',
       '💭 Agent Activity',
       '✅ Process Complete',
@@ -6570,12 +6571,14 @@ Target Positions:`;
                   // Save to database like normal lead agent
                   await this.addLeadToDatabase(completeLead);
                   
-                  this.logOperation('Lead Complete', `✅ [LEAD COMPLETE] Successfully processed and saved ${lead.name} at ${lead.organization?.name}`, 'success', { 
+                  this.logOperation('Lead Complete', `✅ [LEAD COMPLETE] Successfully processed and saved ${lead.name} at ${lead.organization?.name}`, 'success', {
                     leadName: lead.name,
                     company: lead.organization?.name,
                     email: emailUnlock.email,
                     totalFound: foundLeads.length,
-                    target: targetLeads
+                    target: targetLeads,
+                    leadsProcessed: foundLeads.length,
+                    targetLeads: targetLeads
                   });
                   
                   // Add to email queue for approval/sending
@@ -7757,7 +7760,11 @@ Target Positions:`;
         '✅ Lead Complete',
         `${leadName} at ${companyName} — email queued (${this.memory.currentCycle.leadsProcessed}/${this.memory.currentCycle.targetLeads})`,
         'success',
-        { leadName, company: companyName, email: emailAddress }
+        {
+          leadName, company: companyName, email: emailAddress,
+          leadsProcessed: this.memory.currentCycle.leadsProcessed,
+          targetLeads: this.memory.currentCycle.targetLeads,
+        }
       );
 
       await this._markAuditorContactComplete(lead, {

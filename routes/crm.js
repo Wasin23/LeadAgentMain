@@ -381,6 +381,17 @@ router.patch('/saved-contacts/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// Delete a single saved contact (used by the Merge-duplicates action)
+router.delete('/saved-contacts/:id', authenticateToken, async (req, res) => {
+  try {
+    await mergeManager.awsManager.deleteCRMContact(req.user.userId, req.params.id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('❌ [CRM] delete saved contact:', error);
+    res.status(500).json({ error: 'Failed to delete contact' });
+  }
+});
+
 // Clear all saved contacts
 router.delete('/saved-contacts', authenticateToken, async (req, res) => {
   try {

@@ -158,13 +158,16 @@ function replyBadgeClasses(kind: 'classification' | 'status' | 'sentiment', valu
 }
 
 // ── sent email row ─────────────────────────────────────────────────────────────
-function SentRow({ email, onEditFollowUp, onScheduleFollowUp, onSendNow, onCancelAllFollowUps, onViewReport }: {
+function SentRow({ email, onEditFollowUp, onScheduleFollowUp, onSendNow, onCancelAllFollowUps, onViewReport, selectionMode, selected, onToggleSelect }: {
   email: AnalyticsEmail
   onEditFollowUp: (e: AnalyticsEmail) => void
   onScheduleFollowUp?: (e: AnalyticsEmail) => void
   onSendNow?: (e: AnalyticsEmail) => void
   onCancelAllFollowUps?: (e: AnalyticsEmail) => void
   onViewReport?: () => void
+  selectionMode?: boolean
+  selected?: boolean
+  onToggleSelect?: () => void
 }) {
   const [expanded, setExpanded] = useState(false)
   const a = email.analyticsStatus || {}
@@ -218,46 +221,62 @@ function SentRow({ email, onEditFollowUp, onScheduleFollowUp, onSendNow, onCance
     )
   }
 
+  const followUpStatus = () => {
+    const rc  = email.rebumpCount  ?? 0
+    const max = email.maxFollowUps ?? 1
+    if (a.replied) return <span className="text-muted-foreground">Awaiting your response</span>
+    if (email.followUpDate) {
+      const overdue = new Date(email.followUpDate) <= new Date()
+      const days = Math.ceil((new Date(email.followUpDate).getTime() - Date.now()) / 86400000)
+      return overdue
+        ? <span className="text-orange-500">Overdue</span>
+        : <span className="text-muted-foreground">Scheduled in {days} day{days !== 1 ? 's' : ''}</span>
+    }
+    if (rc >= max && max > 0) return <span className="text-green-600 dark:text-green-400">Done ({rc}/{max})</span>
+    if (rc > 0) return <span className="text-muted-foreground">{rc} sent</span>
+    return <span className="text-muted-foreground">—</span>
+  }
+
   return (
-    <div className={cn('py-3 px-1 border-l-2 pl-3 transition-colors cursor-pointer', expanded ? 'border-l-primary bg-primary/5' : 'border-l-transparent hover:bg-muted/30')} onClick={() => setExpanded(p => !p)}>
-      <div className="flex items-start gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
-            <span className="font-medium text-sm text-foreground">{leadName(email)}</span>
-            {leadCompany(email) && <span className="text-xs text-muted-foreground flex items-center gap-0.5"><Building2 className="w-2.5 h-2.5" />{leadCompany(email)}</span>}
-          </div>
-          <p className="text-sm text-foreground truncate">{email.subject || '(no subject)'}</p>
-          <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-[11px]">
-            <span className="text-muted-foreground flex items-center gap-1"><Clock className="w-2.5 h-2.5" />{timeAgo(sentDate(email))}</span>
-            {statusBadge()}{followUpBadge()}
-          </div>
-        </div>
-        <div className="shrink-0 flex items-center gap-1 text-muted-foreground text-[11px] pt-0.5">
-          {a.opened && <span className="flex items-center gap-0.5"><Eye className="w-3 h-3" />{(a.openCount || 0) > 1 ? a.openCount : ''}</span>}
-          {a.clicked && <MousePointer className="w-3 h-3 text-yellow-400" />}
-          {a.replied && <MessageSquare className="w-3 h-3 text-green-400" />}
+    <>
+      <tr className={cn('border-b last:border-0 cursor-pointer transition-colors', expanded ? 'bg-primary/5' : 'hover:bg-muted/30')} onClick={() => setExpanded(p => !p)}>
+        {selectionMode && (
+          <td className="py-2.5 pl-3 pr-1" onClick={e => e.stopPropagation()}>
+            <input type="checkbox" className="w-3.5 h-3.5" checked={!!selected} onChange={onToggleSelect} />
+          </td>
+        )}
+        <td className="py-2.5 px-3">
+          <p className="text-sm font-medium truncate max-w-[220px]">{leadName(email)}</p>
+          <p className="text-xs text-muted-foreground truncate max-w-[220px]">{leadCompany(email)}</p>
+        </td>
+        <td className="py-2.5 px-3 text-xs text-muted-foreground whitespace-nowrap">{timeAgo(sentDate(email))}</td>
+        <td className="py-2.5 px-3">{statusBadge()}</td>
+        <td className="py-2.5 px-3 text-xs">{a.opened ? (a.openCount || 1) : 0}</td>
+        <td className="py-2.5 px-3 text-xs">{a.replied ? 1 : 0}</td>
+        <td className="py-2.5 px-3 text-xs whitespace-nowrap">{followUpStatus()}</td>
+        <td className="py-2.5 px-3 text-right" onClick={e => e.stopPropagation()}>
           {(onScheduleFollowUp || onSendNow || onCancelAllFollowUps) && !isBounced && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button onClick={e => e.stopPropagation()} className="w-5 h-5 flex items-center justify-center rounded hover:bg-muted transition-colors ml-0.5">
+                <button className="w-6 h-6 inline-flex items-center justify-center rounded hover:bg-muted transition-colors">
                   <MoreHorizontal className="w-3.5 h-3.5" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="text-xs min-w-[160px]">
                 {onScheduleFollowUp && !email.followUpScheduled && !email.isRebump && (
-                  <DropdownMenuItem onClick={e => { e.stopPropagation(); onScheduleFollowUp(email) }} className="text-xs gap-2">
+                  <DropdownMenuItem onClick={() => onScheduleFollowUp(email)} className="text-xs gap-2">
                     <CalendarClock className="w-3 h-3" /> Schedule follow-up
                   </DropdownMenuItem>
                 )}
                 {email.followUpScheduled && (
-                  <DropdownMenuItem onClick={e => { e.stopPropagation(); onEditFollowUp(email) }} className="text-xs gap-2">
+                  <DropdownMenuItem onClick={() => onEditFollowUp(email)} className="text-xs gap-2">
                     <CalendarClock className="w-3 h-3" /> Edit schedule
                   </DropdownMenuItem>
                 )}
                 {onSendNow && !email.isRebump && (
                   <>
                     {(onScheduleFollowUp && !email.followUpScheduled) || email.followUpScheduled ? <DropdownMenuSeparator /> : null}
-                    <DropdownMenuItem onClick={e => { e.stopPropagation(); onSendNow(email) }} className="text-xs gap-2">
+                    <DropdownMenuItem onClick={() => onSendNow(email)} className="text-xs gap-2">
                       <Zap className="w-3 h-3 text-yellow-400" /> Send follow-up now
                     </DropdownMenuItem>
                   </>
@@ -265,7 +284,7 @@ function SentRow({ email, onEditFollowUp, onScheduleFollowUp, onSendNow, onCance
                 {onCancelAllFollowUps && (email.followUpScheduled || (email.rebumpCount ?? 0) > 0) && (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={e => { e.stopPropagation(); onCancelAllFollowUps(email) }} className="text-xs gap-2 text-destructive focus:text-destructive">
+                    <DropdownMenuItem onClick={() => onCancelAllFollowUps(email)} className="text-xs gap-2 text-destructive focus:text-destructive">
                       <X className="w-3 h-3" /> Cancel all follow-ups
                     </DropdownMenuItem>
                   </>
@@ -273,36 +292,40 @@ function SentRow({ email, onEditFollowUp, onScheduleFollowUp, onSendNow, onCance
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-        </div>
-      </div>
+        </td>
+      </tr>
       {expanded && (
-        <div className="mt-3 grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs text-muted-foreground border-t border-border pt-3">
-          <div><span className="font-medium text-foreground mr-1">To</span>{email.to || email.recipient}</div>
-          <div><span className="font-medium text-foreground mr-1">Sent</span>{sentDate(email) ? new Date(sentDate(email)).toLocaleString() : '—'}</div>
-          <div className="col-span-2"><span className="font-medium text-foreground mr-1">Subject</span>{email.subject}</div>
-          {email.followUpDate && (
-            <div className="col-span-2 flex items-center gap-1.5">
-              <CalendarClock className="w-3 h-3 text-blue-400 shrink-0" />
-              <span className="font-medium text-foreground">Follow-up</span>
-              {new Date(email.followUpDate).toLocaleString()}
-              {(email.rebumpCount ?? 0) > 0 && <span className="text-muted-foreground">· {email.rebumpCount} sent</span>}
+        <tr className="border-b last:border-0 bg-muted/20">
+          <td colSpan={selectionMode ? 8 : 7} className="px-3 pb-3 pt-1">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs text-muted-foreground">
+              <div><span className="font-medium text-foreground mr-1">To</span>{email.to || email.recipient}</div>
+              <div><span className="font-medium text-foreground mr-1">Sent</span>{sentDate(email) ? new Date(sentDate(email)).toLocaleString() : '—'}</div>
+              <div className="col-span-2"><span className="font-medium text-foreground mr-1">Subject</span>{email.subject}</div>
+              {email.followUpDate && (
+                <div className="col-span-2 flex items-center gap-1.5">
+                  <CalendarClock className="w-3 h-3 text-blue-400 shrink-0" />
+                  <span className="font-medium text-foreground">Follow-up</span>
+                  {new Date(email.followUpDate).toLocaleString()}
+                  {(email.rebumpCount ?? 0) > 0 && <span className="text-muted-foreground">· {email.rebumpCount} sent</span>}
+                </div>
+              )}
+              {email.body && <div className="col-span-2"><span className="font-medium text-foreground mr-1">Body</span><span className="whitespace-pre-wrap">{email.body}</span></div>}
+              {email.aiReport && onViewReport && (
+                <div className="col-span-2 pt-1">
+                  <button
+                    onClick={e => { e.stopPropagation(); onViewReport() }}
+                    className="flex items-center gap-1.5 text-xs text-primary hover:opacity-80 transition-opacity font-medium"
+                  >
+                    <FileText className="w-3 h-3" />
+                    View Research Report
+                  </button>
+                </div>
+              )}
             </div>
-          )}
-          {email.body && <div className="col-span-2"><span className="font-medium text-foreground mr-1">Body</span><span className="whitespace-pre-wrap">{email.body}</span></div>}
-          {email.aiReport && onViewReport && (
-            <div className="col-span-2 pt-1">
-              <button
-                onClick={e => { e.stopPropagation(); onViewReport() }}
-                className="flex items-center gap-1.5 text-xs text-primary hover:opacity-80 transition-opacity font-medium"
-              >
-                <FileText className="w-3 h-3" />
-                View Research Report
-              </button>
-            </div>
-          )}
-        </div>
+          </td>
+        </tr>
       )}
-    </div>
+    </>
   )
 }
 
@@ -1048,18 +1071,37 @@ export function ContactedContent() {
             </div>
           ) : (
             <>
-              <div className="divide-y divide-border">
-                {pagedSent.map(e => (
-                  <div key={emailId(e)} className="flex items-start gap-2">
-                    {selectionMode && (
-                      <input type="checkbox" className="mt-3.5 w-3.5 h-3.5 shrink-0"
-                        checked={selectedIds.has(emailId(e))}
-                        onChange={() => setSelectedIds(prev => { const s = new Set(prev); s.has(emailId(e)) ? s.delete(emailId(e)) : s.add(emailId(e)); return s })}
-                        onClick={ev => ev.stopPropagation()} />
-                    )}
-                    <div className="flex-1 min-w-0"><SentRow email={e} onEditFollowUp={setEditFollowUpEmail} onScheduleFollowUp={scheduleFollowUp} onSendNow={retryFollowUp} onCancelAllFollowUps={cancelFollowUp} onViewReport={e.aiReport ? () => setActiveReport(e.aiReport!) : undefined} /></div>
-                  </div>
-                ))}
+              <div className="overflow-x-auto rounded-lg border border-border">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-[11px] text-muted-foreground border-b bg-muted/30">
+                      {selectionMode && <th className="py-2 pl-3 pr-1 w-8" />}
+                      <th className="py-2 px-3 font-medium">Thread</th>
+                      <th className="py-2 px-3 font-medium">Sent</th>
+                      <th className="py-2 px-3 font-medium">Delivery</th>
+                      <th className="py-2 px-3 font-medium">Opens</th>
+                      <th className="py-2 px-3 font-medium">Replies</th>
+                      <th className="py-2 px-3 font-medium">Follow-up</th>
+                      <th className="py-2 px-3 w-8" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagedSent.map(e => (
+                      <SentRow
+                        key={emailId(e)}
+                        email={e}
+                        onEditFollowUp={setEditFollowUpEmail}
+                        onScheduleFollowUp={scheduleFollowUp}
+                        onSendNow={retryFollowUp}
+                        onCancelAllFollowUps={cancelFollowUp}
+                        onViewReport={e.aiReport ? () => setActiveReport(e.aiReport!) : undefined}
+                        selectionMode={selectionMode}
+                        selected={selectedIds.has(emailId(e))}
+                        onToggleSelect={() => setSelectedIds(prev => { const s = new Set(prev); s.has(emailId(e)) ? s.delete(emailId(e)) : s.add(emailId(e)); return s })}
+                      />
+                    ))}
+                  </tbody>
+                </table>
               </div>
               <Pagination page={sentPage} total={displayedSent.length} onChange={p => { setSentPage(p); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
             </>

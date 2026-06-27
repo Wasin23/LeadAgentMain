@@ -3777,12 +3777,16 @@ class AWSManager {
   }
 
   async updateCRMContactStatus(userId, contactId, status) {
+    const now = new Date().toISOString();
+    const isAssigning = status === 'queued';
     await this.dynamodb.send(new UpdateCommand({
       TableName: this.tables.crmContacts,
       Key: { userId, contactId },
-      UpdateExpression: 'SET #s = :s, updatedAt = :t',
+      UpdateExpression: isAssigning
+        ? 'SET #s = :s, updatedAt = :t, assignedAt = if_not_exists(assignedAt, :t)'
+        : 'SET #s = :s, updatedAt = :t',
       ExpressionAttributeNames: { '#s': 'status' },
-      ExpressionAttributeValues: { ':s': status, ':t': new Date().toISOString() },
+      ExpressionAttributeValues: { ':s': status, ':t': now },
     }));
     return { success: true };
   }

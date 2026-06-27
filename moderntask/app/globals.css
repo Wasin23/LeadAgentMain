@@ -4,11 +4,11 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(0.98 0.003 150);
+  --background: oklch(0.97 0.012 80);
   --foreground: oklch(0.15 0.02 150);
-  --card: oklch(1 0 0);
+  --card: oklch(0.995 0.003 90);
   --card-foreground: oklch(0.15 0.02 150);
-  --popover: oklch(1 0 0);
+  --popover: oklch(0.995 0.003 90);
   --popover-foreground: oklch(0.15 0.02 150);
   --primary: oklch(0.35 0.13 153);
   --primary-foreground: oklch(0.98 0.01 150);
@@ -28,8 +28,8 @@
   --chart-3: oklch(0.57 0.10 153);
   --chart-4: oklch(0.67 0.07 153);
   --chart-5: oklch(0.77 0.04 153);
-  --radius: 0px;
-  --sidebar: oklch(1 0 0);
+  --radius: 0.75rem;
+  --sidebar: oklch(0.995 0.003 90);
   --sidebar-foreground: oklch(0.15 0.02 150);
   --sidebar-primary: oklch(0.35 0.13 153);
   --sidebar-primary-foreground: oklch(0.98 0.01 150);
@@ -78,6 +78,7 @@
   --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
   --font-heading: var(--font-michroma), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-lora), Georgia, 'Times New Roman', serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
