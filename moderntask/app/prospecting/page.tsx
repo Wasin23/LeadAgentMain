@@ -129,18 +129,14 @@ function ProspectingPageInner() {
             <h1 className="font-display text-4xl text-foreground">Prospecting</h1>
             <p className="mt-1.5 text-sm text-muted-foreground">Monitor and manage your AI outreach agents.</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button size="sm" className="gap-1.5" onClick={() => router.push('/outreach?section=awaiting')}>
-              <Send className="w-3.5 h-3.5" /> Send Emails
-            </Button>
-          </div>
         </div>
 
         <div className="mb-5">
           <GlobalStatRow />
         </div>
 
-        <div className="mb-5 flex items-center gap-2">
+        <div className="mb-5 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
           <button
             onClick={() => changeSection('monitor')}
             className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors ${
@@ -163,6 +159,10 @@ function ProspectingPageInner() {
             <SlidersHorizontal className="h-4 w-4" strokeWidth={1.75} />
             Agent Setup & Presets
           </button>
+          </div>
+          <Button size="sm" className="gap-1.5" onClick={() => router.push('/outreach?section=awaiting')}>
+            <Send className="w-3.5 h-3.5" /> Send Emails
+          </Button>
         </div>
 
         <div className="mt-5">
