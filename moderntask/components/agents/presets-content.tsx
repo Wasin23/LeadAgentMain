@@ -589,8 +589,8 @@ export function PresetsContent() {
         <Button size="sm" className="h-8 text-xs gap-1.5" onClick={startNew}><Plus className="w-3.5 h-3.5" /> New Preset</Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-4 items-start">
-        <div>
+      <div className="grid grid-cols-1 @5xl:grid-cols-[1fr_420px] gap-4 items-start">
+        <div className="min-w-0">
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {Array.from({ length: 3 }).map((_, i) => <div key={i} className="rounded-2xl border border-border bg-card p-5 h-40 animate-pulse" />)}

@@ -121,7 +121,7 @@ function ProspectingPageInner() {
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
-      <main className="flex-1 p-4 lg:p-6 lg:ml-64">
+      <main className="@container flex-1 p-4 lg:p-6 lg:ml-64">
         <Header />
 
         <div className="mb-5 flex flex-wrap items-start justify-between gap-3">

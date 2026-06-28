@@ -1142,9 +1142,10 @@ export function ContactedContent() {
 
       {/* ── FOLLOW-UPS ───────────────────────────────────────────────────── */}
       {tab === 'followups' && (
-        <div className="grid grid-cols-[1fr_280px] gap-4 items-start">
+        <div className="@container">
+        <div className="grid grid-cols-1 @3xl:grid-cols-[1fr_280px] gap-4 items-start">
           {/* list */}
-          <Card className="p-5">
+          <Card className="min-w-0 p-5">
             <div className="relative mb-4">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground pointer-events-none" />
               <input className="w-full h-8 rounded-md border border-input bg-background pl-7 pr-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
@@ -1173,7 +1174,7 @@ export function ContactedContent() {
 
           {/* settings sidebar */}
           {selectedAgent && (
-            <div className="space-y-3">
+            <div className="min-w-0 space-y-3">
               <p className="text-sm font-semibold flex items-center gap-1.5 px-1"><Settings2 className="w-4 h-4" /> Follow-up Settings</p>
 
               <Card className="p-4 divide-y divide-border">
@@ -1275,6 +1276,7 @@ export function ContactedContent() {
               {saved && <div className="flex items-center gap-1.5 text-green-500 text-xs px-1"><Check className="w-3.5 h-3.5" /> Saved</div>}
             </div>
           )}
+        </div>
         </div>
       )}
 

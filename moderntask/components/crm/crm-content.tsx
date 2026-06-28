@@ -484,7 +484,7 @@ export function CRMContent() {
   }
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4 items-start">
+    <div className="grid grid-cols-1 @5xl:grid-cols-[1fr_320px] gap-4 items-start">
     <div className="min-w-0 space-y-6">
 
       {/* ── connection header ─────────────────────────── */}

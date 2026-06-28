@@ -383,7 +383,7 @@ export default function DashboardPage() {
         <Sidebar />
       </div>
 
-      <main className="flex-1 p-3 md:p-4 lg:p-5 lg:ml-64">
+      <main className="@container flex-1 p-3 md:p-4 lg:p-5 lg:ml-64">
         <Header
           title="Home"
           description="Overview of your Meridian agents and outreach activity."

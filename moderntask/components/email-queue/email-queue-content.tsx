@@ -1257,7 +1257,7 @@ export function AIReportModal({ report, onClose }: { report: AIReport; onClose: 
 function ContextPane({ email, agentMap }: { email: QueueEmail | null; agentMap: Record<string, Agent> }) {
   if (!email) {
     return (
-      <div className="rounded-2xl border border-border bg-card p-4 text-xs text-muted-foreground">
+      <div className="min-w-0 rounded-2xl border border-border bg-card p-4 text-xs text-muted-foreground">
         Select an email to see why it was written.
       </div>
     )
@@ -1266,7 +1266,7 @@ function ContextPane({ email, agentMap }: { email: QueueEmail | null; agentMap: 
   const report = email.aiReport
   const agent = email.agentId ? agentMap[email.agentId] : null
   return (
-    <div className="rounded-2xl border border-border bg-card p-4">
+    <div className="min-w-0 rounded-2xl border border-border bg-card p-4">
       <p className="truncate text-sm font-semibold text-foreground">{report?.companyName || company || 'Company'}</p>
       {report && (
         <div className="mt-1.5 flex flex-wrap items-center gap-2">
@@ -1612,8 +1612,9 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
       ) : (() => {
         const active = filtered.find(e => e.id === activeId) ?? filtered[0]
         return (
-          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_280px] gap-3">
-            <div className="divide-y divide-border max-h-[600px] overflow-y-auto rounded-2xl border border-border bg-card">
+          <div className="@container">
+          <div className="grid grid-cols-1 @4xl:grid-cols-[280px_1fr_280px] gap-3">
+            <div className="min-w-0 divide-y divide-border max-h-[600px] overflow-y-auto rounded-2xl border border-border bg-card">
               {filtered.map(email => (
                 <CompactEmailRow
                   key={email.id}
@@ -1627,7 +1628,7 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
               ))}
             </div>
 
-            <div className="rounded-2xl border border-border bg-card p-4">
+            <div className="min-w-0 rounded-2xl border border-border bg-card p-4">
               <EmailRow
                 key={active.id}
                 email={active}
@@ -1665,6 +1666,7 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
             </div>
 
             <ContextPane email={active} agentMap={agentMap} />
+          </div>
           </div>
         )
       })()}

@@ -41,7 +41,7 @@ function OutreachPageInner() {
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
-      <main className="flex-1 p-4 lg:p-6 lg:ml-64">
+      <main className="@container flex-1 p-4 lg:p-6 lg:ml-64">
         <Header />
 
         <div className="mb-4 flex items-center gap-3">
@@ -80,13 +80,15 @@ function OutreachPageInner() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4 items-start">
+        <div className="grid grid-cols-1 @5xl:grid-cols-[1fr_280px] gap-4 items-start">
           <div className="min-w-0">
             {section === 'awaiting'
               ? <EmailQueueContent />
               : <ContactedContent />}
           </div>
-          <CalendarMini />
+          <div className="min-w-0">
+            <CalendarMini />
+          </div>
         </div>
       </main>
     </div>

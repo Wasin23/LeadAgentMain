@@ -191,11 +191,11 @@ export function HomeSections({
   return (
     <div className="space-y-3">
       {/* Hero row — matches reference: chart left, status cards stacked right */}
-      <div className="grid grid-cols-1 gap-4 md:gap-5 lg:grid-cols-[1.7fr_1fr]">
+      <div className="grid grid-cols-1 gap-4 md:gap-5 @5xl:grid-cols-[1.7fr_1fr]">
         <div className="min-w-0">
           <EmailActivityCard emailTimeSeries={emailTimeSeries} />
         </div>
-        <div className="flex flex-col gap-4 md:gap-5">
+        <div className="min-w-0 flex flex-col gap-4 md:gap-5">
           <TeamCollaboration agents={agentActivity} />
           <CreditConsumptionCard monthlyCredits={monthlyCredits} creditBalance={creditBalance} creditsUsed={creditsUsed} creditsLimit={creditsLimit} />
           <DeliveryHealthCard sent={sent} bounced={bounced} opened={opened} />

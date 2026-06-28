@@ -207,8 +207,8 @@ export function LeadsContent() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 items-start">
-        <div className="rounded-2xl border border-border bg-card p-4">
+      <div className="grid grid-cols-1 @5xl:grid-cols-[1fr_380px] gap-4 items-start">
+        <div className="min-w-0 rounded-2xl border border-border bg-card p-4">
           <div className="relative mb-3 max-w-xs">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
             <input
