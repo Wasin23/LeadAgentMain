@@ -706,7 +706,7 @@ function CompactEmailRow({ email, agentMap, active, selected, onActivate, onTogg
       onClick={onActivate}
       className={cn(
         'mb-1 flex w-full gap-3 rounded-xl px-3 py-3 text-left transition-colors',
-        active ? 'border border-[oklch(0.52_0.14_158)] bg-[oklch(0.965_0.035_158)]' : 'border border-transparent hover:bg-accent',
+        active ? 'border border-success bg-success-soft' : 'border border-transparent hover:bg-accent',
       )}
     >
       <span onClick={e => { e.stopPropagation(); onToggleSelect() }} className="mt-0.5 text-muted-foreground hover:text-foreground shrink-0">
@@ -1283,7 +1283,7 @@ function ContextPane({ email, agentMap }: { email: QueueEmail | null; agentMap: 
             <ul className="space-y-2">
               {report.keyStrengths.slice(0, 4).map((s, i) => (
                 <li key={i} className="flex items-start gap-2 text-xs text-foreground/85">
-                  <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[oklch(0.52_0.14_158)]" />
+                  <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" />
                   <span className="leading-relaxed">{s}</span>
                 </li>
               ))}
@@ -1299,11 +1299,11 @@ function ContextPane({ email, agentMap }: { email: QueueEmail | null; agentMap: 
           <div className="my-4 border-t border-border" />
           <p className="mb-2 text-xs font-semibold text-foreground">Key context</p>
           <div className="flex flex-wrap gap-1.5">
-            <span className="inline-flex items-center gap-1 rounded-md bg-[oklch(0.965_0.03_158)] px-2 py-1 text-[11px] text-[oklch(0.42_0.11_158)]">
+            <span className="inline-flex items-center gap-1 rounded-md bg-success-soft px-2 py-1 text-[11px] text-success-soft-foreground">
               <Sparkles className="h-3 w-3" />{report.tier.replace(/_/g, ' ')}
             </span>
             {report.researchQuality && (
-              <span className="inline-flex items-center gap-1 rounded-md bg-[oklch(0.965_0.03_158)] px-2 py-1 text-[11px] text-[oklch(0.42_0.11_158)]">
+              <span className="inline-flex items-center gap-1 rounded-md bg-success-soft px-2 py-1 text-[11px] text-success-soft-foreground">
                 <Sparkles className="h-3 w-3" />{report.researchQuality}
               </span>
             )}
@@ -1332,8 +1332,10 @@ function ContextPane({ email, agentMap }: { email: QueueEmail | null; agentMap: 
 }
 
 // ── queued list ───────────────────────────────────────────────────────────────
-function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule }: {
-  agentId: string; agentMap: Record<string, Agent>; fontSize: number; onCountChange: (n: number) => void
+function QueuedList({ agentId, agentMap, fontSize, setFontSize, onCountChange, activeSchedule }: {
+  agentId: string; agentMap: Record<string, Agent>; fontSize: number
+  setFontSize: (fn: (s: number) => number) => void
+  onCountChange: (n: number) => void
   activeSchedule?: SendingSchedule | null
 }) {
   const { toast } = useToast()
@@ -1602,8 +1604,20 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
         )}
       </div>
 
-      {/* pagination — top */}
-      <PaginationBar offset={offset} limit={LIMIT} total={total} onChange={off => load(off)} />
+      {/* pagination + font size — top */}
+      <div className="flex items-center justify-between gap-3">
+        <PaginationBar offset={offset} limit={LIMIT} total={total} onChange={off => load(off)} />
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="text-[10px] text-muted-foreground">Increase font size</span>
+          <button onClick={() => setFontSize(s => Math.max(9, s - 1))} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Smaller text">
+            <ZoomOut className="w-3.5 h-3.5" />
+          </button>
+          <span className="text-[10px] text-muted-foreground w-6 text-center">{fontSize}</span>
+          <button onClick={() => setFontSize(s => Math.min(18, s + 1))} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Larger text">
+            <ZoomIn className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
 
       {/* 3-pane: list / email body / context */}
       {loading ? <Skel /> : filtered.length === 0 ? (
@@ -1747,40 +1761,25 @@ export function EmailQueueContent() {
 
   return (
     <div className="space-y-5">
-      {/* controls */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2">
-          <Bot className="w-4 h-4 text-muted-foreground" />
-          <select
-            className="h-8 rounded-md border border-input bg-background px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring min-w-[160px]"
-            value={selectedAgent}
-            onChange={e => setSelectedAgent(e.target.value)}
-          >
-            <option value="all">All Agents</option>
-            {agents.map(a => <option key={a.agentId} value={a.agentId}>{a.name}</option>)}
-          </select>
-        </div>
-
-        {/* font size */}
-        <div className="flex items-center gap-1 ml-auto">
-          <button onClick={() => setFontSize(s => Math.max(9, s - 1))} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Smaller text">
-            <ZoomOut className="w-3.5 h-3.5" />
-          </button>
-          <span className="text-[10px] text-muted-foreground w-6 text-center">{fontSize}</span>
-          <button onClick={() => setFontSize(s => Math.min(18, s + 1))} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Larger text">
-            <ZoomIn className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
-
       {/* queue card */}
       <div className="rounded-2xl border border-border bg-card p-5 shadow-none">
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex flex-wrap items-center gap-2 mb-4">
           <Inbox className="w-4 h-4 text-primary" />
           <h2 className="font-display text-base text-foreground">Queued Emails</h2>
           {queuedCount > 0 && (
             <span className="px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold">{queuedCount}</span>
           )}
+          <div className="flex items-center gap-1.5">
+            <Bot className="w-3.5 h-3.5 text-muted-foreground" />
+            <select
+              className="h-7 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring min-w-[130px]"
+              value={selectedAgent}
+              onChange={e => setSelectedAgent(e.target.value)}
+            >
+              <option value="all">All Agents</option>
+              {agents.map(a => <option key={a.agentId} value={a.agentId}>{a.name}</option>)}
+            </select>
+          </div>
           {selectedAgent === 'all' && hasAnyActiveSchedules && (
             <span className="flex items-center gap-1 text-[11px] text-primary bg-primary/10 border border-primary/20 rounded-full px-2 py-0.5">
               <Clock className="w-2.5 h-2.5" />
@@ -1848,6 +1847,7 @@ export function EmailQueueContent() {
           agentId={selectedAgent}
           agentMap={agentMap}
           fontSize={fontSize}
+          setFontSize={setFontSize}
           onCountChange={setQueuedCount}
           activeSchedule={savedSchedule}
         />

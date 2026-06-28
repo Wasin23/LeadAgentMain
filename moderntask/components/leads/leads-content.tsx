@@ -74,7 +74,7 @@ function ScoreMeter({ value }: { value: number }) {
   return (
     <div className="flex items-center gap-0.5">
       {Array.from({ length: 5 }).map((_, i) => (
-        <span key={i} className="h-1.5 w-4 rounded-full" style={{ background: i < filled ? 'oklch(0.52 0.14 158)' : 'oklch(0.9 0.012 95)' }} />
+        <span key={i} className="h-1.5 w-4 rounded-full" style={{ background: i < filled ? 'var(--success)' : 'var(--muted-dot)' }} />
       ))}
     </div>
   )
@@ -91,11 +91,11 @@ function confidenceDotCount(confidence?: string): number {
 function ConfidenceDots({ confidence }: { confidence?: string }) {
   const filled = confidenceDotCount(confidence)
   const c = (confidence || '').toLowerCase()
-  const color = c === 'high' ? 'oklch(0.52 0.14 158)' : c === 'medium' ? 'oklch(0.72 0.09 80)' : 'oklch(0.6 0.18 28)'
+  const color = c === 'high' ? 'var(--success)' : c === 'medium' ? 'var(--brass)' : 'var(--destructive)'
   return (
     <div className="flex items-center gap-1">
       {Array.from({ length: 5 }).map((_, i) => (
-        <span key={i} className="h-1.5 w-1.5 rounded-full" style={{ background: i < filled ? color : 'oklch(0.9 0.012 95)' }} />
+        <span key={i} className="h-1.5 w-1.5 rounded-full" style={{ background: i < filled ? color : 'var(--muted-dot)' }} />
       ))}
     </div>
   )
@@ -173,7 +173,7 @@ export function LeadsContent() {
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3.5">
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full" style={{ background: 'oklch(0.52 0.14 158)' }}>
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full" style={{ background: 'var(--success)' }}>
             <CheckCircle2 className="h-5 w-5 text-white" strokeWidth={2.25} />
           </div>
           <div className="min-w-0">
@@ -182,7 +182,7 @@ export function LeadsContent() {
           </div>
         </div>
         <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3.5">
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full" style={{ background: 'oklch(0.72 0.09 80)' }}>
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full" style={{ background: 'var(--brass)' }}>
             <Search className="h-5 w-5 text-white" strokeWidth={2} />
           </div>
           <div className="min-w-0">
@@ -191,7 +191,7 @@ export function LeadsContent() {
           </div>
         </div>
         <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3.5">
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full" style={{ background: 'oklch(0.6 0.015 145)' }}>
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full" style={{ background: 'var(--muted-foreground)' }}>
             <XCircle className="h-5 w-5 text-white" strokeWidth={2.25} />
           </div>
           <div className="min-w-0">
@@ -200,7 +200,7 @@ export function LeadsContent() {
           </div>
         </div>
         <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3.5">
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full" style={{ background: 'oklch(0.6 0.07 290)' }}>
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full" style={{ background: 'var(--accent-lilac)' }}>
             <UsersIcon className="h-5 w-5 text-white" strokeWidth={2} />
           </div>
           <div className="min-w-0">
@@ -245,7 +245,7 @@ export function LeadsContent() {
                       onClick={() => { setSelectedId(l.id); setDetailTab('research') }}
                       className={cn(
                         'border-b border-border last:border-0 cursor-pointer hover:bg-accent/40 transition-colors',
-                        selectedId === l.id && 'bg-[oklch(0.97_0.02_150)] ring-1 ring-inset ring-[oklch(0.52_0.14_158)]',
+                        selectedId === l.id && 'bg-success-soft ring-1 ring-inset ring-success',
                       )}
                     >
                       <td className="py-2.5 px-3">

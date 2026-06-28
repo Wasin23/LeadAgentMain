@@ -394,7 +394,7 @@ export default function DashboardPage() {
           userPicture={userPicture}
         />
 
-        <div className="mt-4 md:mt-5 space-y-3 md:space-y-4">
+        <div className="space-y-3 md:space-y-4">
           {/* Unified customize bar */}
           <div className="flex items-center justify-between gap-2">
             <HomeActions checklist={checklist} isPaidPlan={isPaidPlan} mode="actions" />

@@ -59,12 +59,12 @@ function OutreachPageInner() {
             <button
               onClick={() => changeSection('awaiting')}
               className={`relative -mb-px flex items-center pb-3 pt-1 text-sm font-medium transition-colors ${
-                section === 'awaiting' ? 'text-foreground border-b-2 border-[oklch(0.52_0.14_158)]' : 'text-muted-foreground hover:text-foreground'
+                section === 'awaiting' ? 'text-foreground border-b-2 border-success' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               Awaiting Review
               <span className={`ml-2 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] font-medium tabular-nums ${
-                section === 'awaiting' ? 'bg-[oklch(0.52_0.14_158)] text-white' : 'bg-muted text-muted-foreground'
+                section === 'awaiting' ? 'bg-success text-white' : 'bg-muted text-muted-foreground'
               }`}>
                 {awaitingCount}
               </span>
@@ -72,7 +72,7 @@ function OutreachPageInner() {
             <button
               onClick={() => changeSection('sent')}
               className={`relative -mb-px flex items-center pb-3 pt-1 text-sm font-medium transition-colors ${
-                section === 'sent' ? 'text-foreground border-b-2 border-[oklch(0.52_0.14_158)]' : 'text-muted-foreground hover:text-foreground'
+                section === 'sent' ? 'text-foreground border-b-2 border-success' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               Sent

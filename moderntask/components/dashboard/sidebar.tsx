@@ -179,8 +179,8 @@ function SidebarInner() {
       <div className="h-full rounded-2xl border border-border bg-card p-4 overflow-y-auto shadow-[0_1px_0_oklch(0_0_0/0.02)]">
         <div className="flex items-center gap-2 mb-6 group cursor-pointer">
           <Link href="/home" className="flex items-center gap-2">
-            <Image src="/MeridianM.png" alt="Meridian" width={32} height={21} className="shrink-0" />
-            <MeridianWordmark className="h-3.5 w-auto dark:text-white text-black" />
+            <Image src="/MeridianM.png" alt="Meridian" width={20} height={13} className="shrink-0" />
+            <MeridianWordmark className="h-2.5 w-auto dark:text-white text-black" />
           </Link>
         </div>
 

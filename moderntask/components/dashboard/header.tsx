@@ -190,7 +190,7 @@ export function Header({
   ]
 
   return (
-    <header className="space-y-3 md:space-y-4 animate-slide-in-up relative z-10">
+    <header className="space-y-3 md:space-y-4 mb-4 md:mb-5 animate-slide-in-up relative z-10">
       <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-2.5">
         <div className="flex items-center gap-2 flex-1">
           <MobileNav />

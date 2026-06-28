@@ -540,9 +540,9 @@ export function CRMContent() {
       {crmName !== undefined && (
         <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-border bg-card p-4">
           <div className="flex items-center gap-3">
-            <div className={`grid h-10 w-10 place-items-center rounded-full ${crmName ? "bg-[oklch(0.95_0.04_150)]" : "bg-muted"}`}>
+            <div className={`grid h-10 w-10 place-items-center rounded-full ${crmName ? "bg-success-soft" : "bg-muted"}`}>
               {crmName
-                ? <CheckCircle2 className="h-5 w-5 text-[oklch(0.45_0.13_150)]" strokeWidth={2.5} />
+                ? <CheckCircle2 className="h-5 w-5 text-success-soft-foreground" strokeWidth={2.5} />
                 : <Link2Off className="h-5 w-5 text-muted-foreground" strokeWidth={1.75} />}
             </div>
             <div>
@@ -832,9 +832,9 @@ export function CRMContent() {
                   const assignedAgentName = launched ? agents.find(a => a.agentId === selectedAgent)?.name : undefined
                   const finding = findingFor(c)
                   const findingCls: Record<typeof finding.tone, string> = {
-                    amber: "bg-[oklch(0.95_0.04_80)] text-[oklch(0.5_0.1_80)]",
-                    rose:  "bg-[oklch(0.95_0.04_28)] text-[oklch(0.55_0.15_28)]",
-                    green: "bg-[oklch(0.95_0.04_150)] text-[oklch(0.4_0.11_150)]",
+                    amber: "bg-warning-soft text-warning-soft-foreground",
+                    rose:  "bg-danger-soft text-danger-soft-foreground",
+                    green: "bg-success-soft text-success-soft-foreground",
                     muted: "bg-muted text-muted-foreground",
                   }
                   const statusBadge = c.runStatus === "failed"
@@ -844,14 +844,14 @@ export function CRMContent() {
                       : c.runStatus === "success"
                         ? { label: c.runMessage || "Queued", cls: findingCls.green }
                         : isScanning
-                          ? { label: "Researching…", cls: "bg-[oklch(0.93_0.04_245)] text-[oklch(0.5_0.13_245)]" }
+                          ? { label: "Researching…", cls: "bg-info-soft text-info-soft-foreground" }
                           : c.status === "queued"
                             ? { label: "Queued", cls: findingCls.green }
                             : { label: "Fresh", cls: "bg-muted text-foreground/70" }
                   return (
                     <tr
                       key={id}
-                      className={`border-b last:border-0 cursor-pointer transition-colors ${isScanning ? "bg-blue-50/50 dark:bg-blue-900/20" : isSelected ? "bg-[oklch(0.97_0.02_150)]" : "hover:bg-accent/30"}`}
+                      className={`border-b last:border-0 cursor-pointer transition-colors ${isScanning ? "bg-info-soft" : isSelected ? "bg-success-soft" : "hover:bg-accent/30"}`}
                       onClick={() => !launched && toggleContact(id)}
                     >
                       {!launched && (
@@ -880,7 +880,7 @@ export function CRMContent() {
                       <td className="py-2 px-3">
                         {assignedAgentName ? (
                           <div className="flex items-center gap-2">
-                            <div className="grid h-6 w-6 place-items-center rounded-full bg-[oklch(0.85_0.04_80)] text-[9px] font-semibold text-[oklch(0.35_0.05_80)]">
+                            <div className="grid h-6 w-6 place-items-center rounded-full bg-chip-amber text-[9px] font-semibold text-chip-amber-foreground">
                               {assignedAgentName.slice(0, 2).toUpperCase()}
                             </div>
                             <span className="text-xs text-foreground">{assignedAgentName}</span>
@@ -1104,7 +1104,7 @@ function ImportSettingsPanel({
           <>
             <div className="flex items-center justify-between rounded-lg border border-border p-3">
               <span className="text-sm font-medium">{crmName}</span>
-              <span className="rounded-md bg-[oklch(0.95_0.04_150)] px-2 py-0.5 text-[10px] font-medium text-[oklch(0.4_0.11_150)]">
+              <span className="rounded-md bg-success-soft px-2 py-0.5 text-[10px] font-medium text-success-soft-foreground">
                 Connected
               </span>
             </div>

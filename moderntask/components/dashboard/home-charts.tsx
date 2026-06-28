@@ -181,20 +181,20 @@ export function EmailActivityCard({ emailTimeSeries = [] }: { emailTimeSeries?: 
             <AreaChart data={sliced} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="eacSent" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="oklch(0.32 0.035 155)" stopOpacity={0.12} />
-                  <stop offset="100%" stopColor="oklch(0.32 0.035 155)" stopOpacity={0} />
+                  <stop offset="0%" stopColor="var(--foreground)" stopOpacity={0.12} />
+                  <stop offset="100%" stopColor="var(--foreground)" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="eacReplied" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="oklch(0.7 0.16 145)" stopOpacity={0.18} />
-                  <stop offset="100%" stopColor="oklch(0.7 0.16 145)" stopOpacity={0} />
+                  <stop offset="0%" stopColor="var(--success)" stopOpacity={0.18} />
+                  <stop offset="100%" stopColor="var(--success)" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid stroke="oklch(0.92 0.01 95)" strokeDasharray="3 4" vertical={false} />
-              <XAxis dataKey="date" stroke="oklch(0.6 0.018 145)" fontSize={11} tickLine={false} axisLine={false} tickMargin={8} interval="preserveStartEnd" />
-              <YAxis stroke="oklch(0.6 0.018 145)" fontSize={11} tickLine={false} axisLine={false} width={32} allowDecimals={false} />
+              <CartesianGrid stroke="var(--border)" strokeDasharray="3 4" vertical={false} />
+              <XAxis dataKey="date" stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} tickMargin={8} interval="preserveStartEnd" />
+              <YAxis stroke="var(--muted-foreground)" fontSize={11} tickLine={false} axisLine={false} width={32} allowDecimals={false} />
               <Tooltip content={<ChartTooltip />} />
-              <Area type="monotone" dataKey="Sent" stroke="oklch(0.32 0.035 155)" strokeWidth={2} fill="url(#eacSent)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
-              <Area type="monotone" dataKey="Replied" stroke="oklch(0.7 0.16 145)" strokeWidth={2} fill="url(#eacReplied)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+              <Area type="monotone" dataKey="Sent" stroke="var(--foreground)" strokeWidth={2} fill="url(#eacSent)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
+              <Area type="monotone" dataKey="Replied" stroke="var(--success)" strokeWidth={2} fill="url(#eacReplied)" dot={false} activeDot={{ r: 4, strokeWidth: 0 }} />
             </AreaChart>
           </ResponsiveContainer>
         </div>

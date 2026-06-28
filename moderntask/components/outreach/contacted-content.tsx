@@ -1015,7 +1015,7 @@ export function ContactedContent() {
         {TABS.map(t => (
           <button key={t.id} onClick={() => changeTab(t.id)}
             className={cn('inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
-              tab === t.id ? 'bg-[oklch(0.42_0.11_158)] text-white' : 'text-foreground/70 hover:bg-accent')}>
+              tab === t.id ? 'bg-success-strong text-white' : 'text-foreground/70 hover:bg-accent')}>
             {t.label}{t.count !== undefined ? ` (${t.count})` : ''}
           </button>
         ))}
