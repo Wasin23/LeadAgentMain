@@ -325,8 +325,6 @@ export default function DashboardPage() {
 
       <main className="@container flex-1 p-3 md:p-4 lg:p-5 lg:ml-64">
         <Header
-          title="Home"
-          description="Overview of your Meridian agents and outreach activity."
           notificationCount={notifCount}
           userName={userName}
           userEmail={userEmail}
@@ -334,39 +332,42 @@ export default function DashboardPage() {
         />
 
         <div className="space-y-3 md:space-y-4">
-          {/* Unified customize bar */}
-          <div className="flex items-center justify-between gap-2">
-            <HomeActions checklist={checklist} isPaidPlan={isPaidPlan} mode="actions" />
-            <button
-              onClick={() => setEditMode(e => !e)}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                editMode
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-muted/60 text-muted-foreground border-border hover:text-foreground"
-              }`}
-            >
-              {editMode
-                ? <><Check className="w-3 h-3" /> Done</>
-                : <><Settings2 className="w-3 h-3" /> Customize</>
-              }
-            </button>
+          {/* Stat cards + actions, same line */}
+          <div className="flex items-start gap-3 flex-wrap lg:flex-nowrap">
+            <div className="flex-1 min-w-0">
+              <StatsCards
+                sent={counts.sent}
+                queued={counts.queued}
+                runningAgents={runningAgents}
+                cyclesCompleted={counts.replied}
+                replies={counts.replied}
+                totalAgents={totalAgents}
+                followUpCount={followUps.length}
+                scheduledCount={scheduledBatches.reduce((s, b) => s + b.count, 0)}
+                bouncedCount={bouncedCount}
+                openedCount={openedCount}
+                creditBalance={creditBalance}
+                editMode={editMode}
+                onEditModeChange={setEditMode}
+              />
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <HomeActions checklist={checklist} isPaidPlan={isPaidPlan} mode="actions" />
+              <button
+                onClick={() => setEditMode(e => !e)}
+                className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium border transition-all ${
+                  editMode
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-muted/60 text-muted-foreground border-border hover:text-foreground"
+                }`}
+              >
+                {editMode
+                  ? <><Check className="w-3 h-3" /> Done</>
+                  : <><Settings2 className="w-3 h-3" /> Customize</>
+                }
+              </button>
+            </div>
           </div>
-
-          <StatsCards
-            sent={counts.sent}
-            queued={counts.queued}
-            runningAgents={runningAgents}
-            cyclesCompleted={counts.replied}
-            replies={counts.replied}
-            totalAgents={totalAgents}
-            followUpCount={followUps.length}
-            scheduledCount={scheduledBatches.reduce((s, b) => s + b.count, 0)}
-            bouncedCount={bouncedCount}
-            openedCount={openedCount}
-            creditBalance={creditBalance}
-            editMode={editMode}
-            onEditModeChange={setEditMode}
-          />
 
           <HomeSections
             emailTimeSeries={emailTimeSeries}

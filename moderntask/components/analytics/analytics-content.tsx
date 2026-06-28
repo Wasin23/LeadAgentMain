@@ -1,6 +1,6 @@
 'use client'
 
-import { Download, Coins, ShieldCheck } from 'lucide-react'
+import { Coins, ShieldCheck } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import api from '@/lib/api'
 import { fetchDisplayedCreditData } from '@/lib/credit-balance'
@@ -10,11 +10,13 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { InfoTooltip } from '@/components/ui/info-tooltip'
-import { DateRangePicker, type RangePreset, PRESET_DAYS } from '@/components/dashboard/date-range-picker'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
+import { CalendarIcon } from 'lucide-react'
 import type { DateRange } from 'react-day-picker'
 
 // ── static data ──────────────────────────────────────────────────────────────
-type CreditGranularity = 'day' | 'week' | 'month'
+type CreditGranularity = 'day' | 'week' | 'month' | 'custom'
 
 function buildDailyCredits(emails: any[], days = 90) {
   const now = new Date()
@@ -147,7 +149,9 @@ function buildTimeSeries(emails: any[], range: Range) {
 // ── main component ────────────────────────────────────────────────────────────
 const RANGE: Range = 'week'
 
-export function AnalyticsContent() {
+export interface ExportState { run: () => void; loading: boolean }
+
+export function AnalyticsContent({ onExportReady }: { onExportReady?: (state: ExportState) => void } = {}) {
   const [agents, setAgents] = useState<any[]>([])
   const [totals, setTotals] = useState({ queued: 0, sent: 0, replied: 0, replyRate: '0' })
   const [allSentEmails, setAllSentEmails] = useState<any[]>([])
@@ -157,8 +161,8 @@ export function AnalyticsContent() {
   const [weeklyCredits, setWeeklyCredits] = useState<any[]>([])
   const [monthlyCredits, setMonthlyCredits] = useState<any[]>([])
   const [creditGranularity, setCreditGranularity] = useState<CreditGranularity>('day')
-  const [creditPreset, setCreditPreset] = useState<RangePreset>('30d')
   const [creditCustomRange, setCreditCustomRange] = useState<DateRange | undefined>()
+  const [creditPickerOpen, setCreditPickerOpen] = useState(false)
   const [creditBalance, setCreditBalance] = useState<number | null>(null)
   const [domainStats, setDomainStats] = useState<any[]>([])
   const loadData = useCallback(async () => {
@@ -221,12 +225,14 @@ export function AnalyticsContent() {
   const creditSeries =
     creditGranularity === 'week'  ? weeklyCredits :
     creditGranularity === 'month' ? monthlyCredits :
-    (creditCustomRange?.from && creditCustomRange?.to
-      ? dailyCredits.filter(p => {
-          const d = new Date(p.rawDate)
-          return d >= creditCustomRange.from! && d <= creditCustomRange.to!
-        })
-      : dailyCredits.slice(-PRESET_DAYS[creditPreset]))
+    creditGranularity === 'custom'
+      ? (creditCustomRange?.from && creditCustomRange?.to
+          ? dailyCredits.filter(p => {
+              const d = new Date(p.rawDate)
+              return d >= creditCustomRange.from! && d <= creditCustomRange.to!
+            })
+          : [])
+      : dailyCredits.slice(-30)
 
   const exportReport = useCallback(() => {
     const rows: string[] = []
@@ -298,20 +304,16 @@ export function AnalyticsContent() {
     URL.revokeObjectURL(url)
   }, [totals, agents, emailTimeSeries, domainStats, monthlyCredits, allSentEmails, creditBalance])
 
+  useEffect(() => {
+    onExportReady?.({ run: exportReport, loading })
+  }, [exportReport, loading, onExportReady])
+
   return (
     <div className="space-y-4">
 
-      {/* Section header + export */}
+      {/* Section header */}
       <div className="flex items-center justify-between gap-3">
         <h3 className="font-display text-lg text-foreground">Performance &amp; Analytics</h3>
-        <button
-          disabled={loading}
-          onClick={exportReport}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground/80 hover:bg-accent disabled:opacity-50"
-        >
-          <Download className="w-3.5 h-3.5" />
-          {loading ? 'Loading data…' : 'Export Report (.csv)'}
-        </button>
       </div>
 
       {/* monthly credit + domain success stats */}
@@ -335,29 +337,46 @@ export function AnalyticsContent() {
                 )}
               </div>
             </div>
-            <div className="flex flex-col items-end gap-1.5">
-              <div className="flex items-center gap-0.5 rounded-lg border border-border bg-surface p-0.5">
-                {(['day', 'week', 'month'] as CreditGranularity[]).map(g => (
+            <div className="flex items-center gap-0.5 rounded-lg border border-border bg-surface p-0.5">
+              {(['day', 'week', 'month'] as CreditGranularity[]).map(g => (
+                <button
+                  key={g}
+                  onClick={() => setCreditGranularity(g)}
+                  className={`rounded-md px-2.5 py-1 text-[11px] font-medium capitalize transition-colors ${
+                    creditGranularity === g ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {g}
+                </button>
+              ))}
+              <Popover open={creditPickerOpen} onOpenChange={setCreditPickerOpen}>
+                <PopoverTrigger asChild>
                   <button
-                    key={g}
-                    onClick={() => setCreditGranularity(g)}
-                    className={`rounded-md px-2.5 py-1 text-[11px] font-medium capitalize transition-colors ${
-                      creditGranularity === g ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                    onClick={() => setCreditGranularity('custom')}
+                    className={`flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors ${
+                      creditGranularity === 'custom' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
-                    {g}
+                    <CalendarIcon className="h-3 w-3" />
+                    {creditGranularity === 'custom' && creditCustomRange?.from && creditCustomRange?.to
+                      ? `${creditCustomRange.from.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${creditCustomRange.to.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+                      : 'Custom'}
                   </button>
-                ))}
-              </div>
-              {creditGranularity === 'day' && (
-                <DateRangePicker
-                  preset={creditPreset}
-                  onPresetChange={setCreditPreset}
-                  customRange={creditCustomRange}
-                  onCustomRangeChange={setCreditCustomRange}
-                  minDate={creditMinDate}
-                />
-              )}
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-auto p-2">
+                  <Calendar
+                    mode="range"
+                    selected={creditCustomRange}
+                    onSelect={(range) => {
+                      setCreditCustomRange(range)
+                      setCreditGranularity('custom')
+                      if (range?.from && range?.to) setCreditPickerOpen(false)
+                    }}
+                    disabled={creditMinDate ? { before: creditMinDate } : undefined}
+                    numberOfMonths={2}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
           <ResponsiveContainer width="100%" height={240}>

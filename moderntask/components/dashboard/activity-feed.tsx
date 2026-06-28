@@ -2,8 +2,9 @@
 
 import { useRouter } from "next/navigation"
 import { useState, useEffect, useCallback } from "react"
-import { AlertCircle, Bot, Mail, CreditCard, Info, RefreshCw, ChevronRight } from "lucide-react"
+import { AlertCircle, Bot, Mail, CreditCard, Info, RefreshCw, ChevronRight, Download } from "lucide-react"
 import api from "@/lib/api"
+import type { ExportState } from "@/components/analytics/analytics-content"
 
 export interface NotificationItem {
   issueId: string
@@ -17,6 +18,7 @@ export interface NotificationItem {
 
 interface ActivityFeedProps {
   notifications?: NotificationItem[]
+  exportState?: ExportState | null
 }
 
 type FeedKind = "notification" | "activity"
@@ -60,7 +62,7 @@ function timeAgo(dateStr: string): string {
   return "just now"
 }
 
-export function ActivityFeed({ notifications = [] }: ActivityFeedProps) {
+export function ActivityFeed({ notifications = [], exportState = null }: ActivityFeedProps) {
   const router = useRouter()
   const [filter, setFilter] = useState<Filter>("all")
   const [rawActivities, setRawActivities] = useState<any[]>([])
@@ -109,8 +111,20 @@ export function ActivityFeed({ notifications = [] }: ActivityFeedProps) {
 
   return (
     <div className="rounded-2xl border border-border bg-card p-4">
-      <div className="flex items-center justify-between gap-4">
-        <h3 className="font-display text-base text-foreground">Activity</h3>
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-2">
+          <h3 className="font-display text-base text-foreground">Activity</h3>
+          {exportState && (
+            <button
+              disabled={exportState.loading}
+              onClick={exportState.run}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-foreground/80 hover:bg-accent disabled:opacity-50"
+            >
+              <Download className="w-3 h-3" />
+              {exportState.loading ? "Loading…" : "Export Report (.csv)"}
+            </button>
+          )}
+        </div>
         <div className="flex items-center gap-0.5 rounded-lg border border-border bg-surface p-0.5">
           {(["all", "agents", "cycles", "issues"] as Filter[]).map(f => (
             <button

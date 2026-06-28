@@ -690,6 +690,7 @@ export function OperationsContent() {
             <div className="flex items-center gap-2">
               <Activity className="w-4 h-4 text-primary" />
               <CardTitle className="text-sm">Activity Log</CardTitle>
+              <span className="text-[11px] text-muted-foreground">Press 'Start' or 'Start all' to start your agents and begin prospecting.</span>
               {runningAgents.length > 0 && (
                 <Badge variant="secondary" className="text-[10px]">
                   {runningAgents.length} running

@@ -1604,10 +1604,11 @@ function QueuedList({ agentId, agentMap, fontSize, setFontSize, onCountChange, a
         )}
       </div>
 
-      {/* pagination + font size — top */}
-      <div className="flex items-center justify-between gap-3">
+      {/* pagination + title + font size — top */}
+      <div className="grid grid-cols-3 items-center gap-3">
         <PaginationBar offset={offset} limit={LIMIT} total={total} onChange={off => load(off)} />
-        <div className="flex items-center gap-1.5 shrink-0">
+        <p className="text-center text-[11px] text-muted-foreground">Review, approve, and manage your outreach.</p>
+        <div className="flex items-center gap-1.5 shrink-0 justify-end">
           <span className="text-[10px] text-muted-foreground">Increase font size</span>
           <button onClick={() => setFontSize(s => Math.max(9, s - 1))} className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors" title="Smaller text">
             <ZoomOut className="w-3.5 h-3.5" />

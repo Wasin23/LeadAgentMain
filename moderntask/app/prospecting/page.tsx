@@ -129,13 +129,6 @@ function ProspectingPageInner() {
       <main className="@container flex-1 p-4 lg:p-6 lg:ml-64">
         <Header />
 
-        <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="font-display text-4xl text-foreground">Prospecting</h1>
-            <p className="mt-1.5 text-sm text-muted-foreground">Press 'Start' or 'Start all' to start your agents and begin prospecting.</p>
-          </div>
-        </div>
-
         <div className="mb-5">
           <GlobalStatRow />
         </div>

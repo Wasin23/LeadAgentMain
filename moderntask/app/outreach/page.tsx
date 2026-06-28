@@ -1,7 +1,6 @@
 'use client'
 
 import { Suspense, useEffect, useState, useCallback } from 'react'
-import { Send } from 'lucide-react'
 import { Sidebar } from '@/components/dashboard/sidebar'
 import { Header } from '@/components/dashboard/header'
 import { EmailQueueContent } from '@/components/email-queue/email-queue-content'
@@ -43,16 +42,6 @@ function OutreachPageInner() {
       <Sidebar />
       <main className="@container flex-1 p-4 lg:p-6 lg:ml-64">
         <Header />
-
-        <div className="mb-4 flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-surface text-brass">
-            <Send className="h-5 w-5" strokeWidth={1.75} />
-          </div>
-          <div>
-            <h1 className="font-display text-3xl text-foreground">Outreach</h1>
-            <p className="text-sm text-muted-foreground">Review, approve, and manage your outreach.</p>
-          </div>
-        </div>
 
         <div className="mb-5 border-b border-border">
           <div className="flex items-center gap-6">

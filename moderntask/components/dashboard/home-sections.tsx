@@ -19,7 +19,7 @@ import {
 import { TeamCollaboration, type AgentActivityItem } from "@/components/dashboard/team-collaboration"
 import { ScheduledActivityCalendar, type ScheduledBatch, type FollowUpItem } from "@/components/dashboard/scheduled-activity-calendar"
 import { ActivityFeed, type NotificationItem } from "@/components/dashboard/activity-feed"
-import { AnalyticsContent } from "@/components/analytics/analytics-content"
+import { AnalyticsContent, type ExportState } from "@/components/analytics/analytics-content"
 
 export type HomeSectionId =
   | "performance"
@@ -111,6 +111,7 @@ export function HomeSections({
 }: HomeSectionsProps) {
   const [order, setOrder]            = useState<HomeSectionId[]>(DEFAULT_ORDER)
   const [hidden, setHidden]          = useState<HomeSectionId[]>([])
+  const [exportState, setExportState] = useState<ExportState | null>(null)
   const [internalEditMode, setInternalEditMode] = useState(false)
   const editMode    = onEditModeChange ? (externalEditMode ?? false) : internalEditMode
   const setEditMode = onEditModeChange ? onEditModeChange : setInternalEditMode
@@ -154,7 +155,7 @@ export function HomeSections({
 
   function renderContent(id: HomeSectionId) {
     switch (id) {
-      case "performance": return <AnalyticsContent />
+      case "performance": return <AnalyticsContent onExportReady={setExportState} />
     }
   }
 
@@ -232,7 +233,7 @@ export function HomeSections({
         </SortableContext>
       </DndContext>
 
-      <ActivityFeed notifications={notifications} />
+      <ActivityFeed notifications={notifications} exportState={exportState} />
     </div>
   )
 }

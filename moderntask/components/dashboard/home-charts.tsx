@@ -41,7 +41,7 @@ export function EmailActivityCard({ emailTimeSeries = [] }: { emailTimeSeries?: 
     : emailTimeSeries.slice(-PRESET_DAYS[preset])
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-3">
+    <div className="rounded-2xl border border-border bg-card p-3 h-[420px] flex flex-col">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-1.5">
           <h3 className="font-display text-sm text-foreground">Outreach Performance</h3>
@@ -56,9 +56,9 @@ export function EmailActivityCard({ emailTimeSeries = [] }: { emailTimeSeries?: 
         />
       </div>
       {sliced.length === 0 ? (
-        <div className="h-32 flex items-center justify-center text-xs text-muted-foreground">No email data yet</div>
+        <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground">No email data yet</div>
       ) : (
-        <div className="mt-2 h-32">
+        <div className="mt-2 flex-1 min-h-0">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={sliced} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
               <defs>

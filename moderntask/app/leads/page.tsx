@@ -31,11 +31,6 @@ function LeadsPageInner() {
       <main className="@container flex-1 p-4 lg:p-6 lg:ml-64">
         <Header />
 
-        <header className="mb-5">
-          <h1 className="font-display text-4xl text-primary">Leads</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Review, research, and route your leads.</p>
-        </header>
-
         <div className="mb-5 flex items-center gap-6 border-b border-border">
           <button
             onClick={() => changeTab('leads')}
