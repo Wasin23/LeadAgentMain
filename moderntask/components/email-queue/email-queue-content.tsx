@@ -1614,7 +1614,7 @@ function QueuedList({ agentId, agentMap, fontSize, onCountChange, activeSchedule
         return (
           <div className="@container">
           <div className="grid grid-cols-1 @4xl:grid-cols-[280px_1fr_280px] gap-3">
-            <div className="min-w-0 divide-y divide-border max-h-[600px] overflow-y-auto rounded-2xl border border-border bg-card">
+            <div className="min-w-0 divide-y divide-border max-h-[600px] overflow-y-auto rounded-lg border border-border bg-card p-1">
               {filtered.map(email => (
                 <CompactEmailRow
                   key={email.id}

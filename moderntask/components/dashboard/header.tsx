@@ -35,7 +35,7 @@ function crmBrand(name: string | null) {
 
 function CrmBadge({ name }: { name: string | null }) {
   const router = useRouter()
-  const handleClick = () => router.push("/settings?tab=crm")
+  const handleClick = () => router.push("/leads?tab=crm")
 
   if (!name) {
     return (

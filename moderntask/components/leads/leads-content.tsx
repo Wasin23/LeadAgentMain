@@ -11,6 +11,8 @@ import {
 import { cn } from '@/lib/utils'
 
 interface AIReport {
+  companyName?: string
+  contactName?: string
   score: number
   confidence: string
   tier: 'HIGHLY_QUALIFIED' | 'QUALIFIED' | 'SHOTGUN' | 'REJECTED'
@@ -37,16 +39,17 @@ function extractLead(e: Record<string, unknown>, status: 'queued' | 'sent', agen
   const personInfo = (leadDetails.personInfo as Record<string, unknown>) || {}
   const emailData = (e.emailData as Record<string, unknown>) || {}
   const agentId = e.agentId as string | undefined
+  const aiReport = e.aiReport as AIReport | undefined
   return {
     id: (e.id as string) || (e.SK as string) || String(Math.random()),
     agentId,
     agentName: agentId ? agentNameById.get(agentId) : undefined,
-    company: (leadDetails.companyName as string) || (e.leadCompany as string) || '',
-    contactName: (personInfo.fullName as string) || (personInfo.name as string) || (e.leadName as string) || (e.recipientName as string) || '',
+    company: aiReport?.companyName || (leadDetails.companyName as string) || (e.leadCompany as string) || '',
+    contactName: aiReport?.contactName || (personInfo.fullName as string) || (personInfo.name as string) || (e.leadName as string) || (e.recipientName as string) || '',
     status,
     subject: (emailData.finalSubject as string) || (e.subject as string),
     body: (emailData.finalBody as string) || (e.body as string),
-    aiReport: e.aiReport as AIReport | undefined,
+    aiReport,
   }
 }
 

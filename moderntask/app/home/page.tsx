@@ -126,8 +126,8 @@ export default function DashboardPage() {
       const d = planRes.value.data
       const bal = Number(d.credits?.remaining ?? d.plan?.remainingCredits ?? 0)
       if (bal > 0) setCreditBalance(Math.round(bal))
-      if (d.credits?.used !== null && d.credits?.used !== undefined) setCreditsUsed(Number(d.credits.used))
-      if (d.credits?.limit !== null && d.credits?.limit !== undefined) setCreditsLimit(Number(d.credits.limit))
+      if (d.credits?.used !== null && d.credits?.used !== undefined) setCreditsUsed(Math.round(Number(d.credits.used)))
+      if (d.credits?.limit !== null && d.credits?.limit !== undefined) setCreditsLimit(Math.round(Number(d.credits.limit)))
     }
 
     // ── email counts ────────────────────────────────────────────────────

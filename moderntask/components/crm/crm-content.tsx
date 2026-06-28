@@ -1,16 +1,17 @@
 "use client"
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react"
-import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { RefreshCw, Play, Square, Search, Building2, CheckCircle2, Loader2, User, Trash2, ChevronLeft, ChevronRight, GitMerge, Link2Off, ExternalLink, X } from "lucide-react"
+import { RefreshCw, Play, Square, Search, Building2, CheckCircle2, XCircle, Loader2, User, Trash2, ChevronLeft, ChevronRight, GitMerge, Link2Off, X, Database } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import api from "@/lib/api"
+import { CRM_CONFIGS, type CrmConfig } from "@/lib/crm-configs"
 
 interface CRMContact {
   email: string
@@ -51,7 +52,6 @@ interface AuditorResult {
 
 export function CRMContent() {
   const { toast } = useToast()
-  const router = useRouter()
   const { user } = useAuth()
 
   // ── connection status ──
@@ -65,6 +65,55 @@ export function CRMContent() {
       setCrmConnectedAt(r.data?.connectedAt || null)
     } catch { setCrmName(null) }
   }, [])
+
+  // ── connect / disconnect flow (inline — no redirect to Settings) ──
+  const [selectedCRM, setSelectedCRM]       = useState<CrmConfig | null>(null)
+  const [showCrmDropdown, setShowCrmDropdown] = useState(false)
+  const [crmCredentials, setCrmCredentials] = useState<Record<string, string>>({})
+  const [connectingCrm, setConnectingCrm]   = useState(false)
+  const [crmError, setCrmError]             = useState<string | null>(null)
+  const [disconnectingCrm, setDisconnectingCrm] = useState(false)
+
+  const connectCRMDirect = async () => {
+    if (!selectedCRM) return
+    const missing = selectedCRM.fields.filter(f => !crmCredentials[f.key]?.trim())
+    if (missing.length > 0) {
+      setCrmError(`Please fill in: ${missing.map(f => f.name).join(", ")}`)
+      return
+    }
+    setConnectingCrm(true)
+    setCrmError(null)
+    try {
+      await api.post("/api/crm/connect-direct", {
+        integrationName: selectedCRM.id,
+        apiUrl: crmCredentials.apiUrl?.trim() || "",
+        apiKey: crmCredentials.apiKey?.trim() || "",
+      })
+      await fetchCrmStatus()
+      toast({ title: `${selectedCRM.name} connected!` })
+      setSelectedCRM(null)
+      setCrmCredentials({})
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Failed to connect. Please check your credentials."
+      setCrmError(msg)
+    } finally {
+      setConnectingCrm(false)
+    }
+  }
+
+  const disconnectCrm = async () => {
+    setDisconnectingCrm(true)
+    try {
+      await api.post("/api/crm/disconnect")
+      setCrmName(null)
+      setCrmConnectedAt(null)
+      toast({ title: "CRM disconnected" })
+    } catch {
+      toast({ title: "Failed to disconnect", variant: "destructive" })
+    } finally {
+      setDisconnectingCrm(false)
+    }
+  }
 
   useEffect(() => { fetchCrmStatus() }, [fetchCrmStatus])
 
@@ -502,9 +551,10 @@ export function CRMContent() {
               {crmConnectedAt && <p className="text-[11px] text-muted-foreground">Connected {new Date(crmConnectedAt).toLocaleDateString()}</p>}
             </div>
           </div>
-          {!crmName && (
-            <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" onClick={() => router.push("/settings?tab=crm")}>
-              Connect a CRM
+          {crmName && (
+            <Button size="sm" variant="outline" className="h-8 text-xs gap-1.5" disabled={disconnectingCrm} onClick={disconnectCrm}>
+              {disconnectingCrm ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Link2Off className="w-3.5 h-3.5" />}
+              Disconnect
             </Button>
           )}
           <div className="ml-auto grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -514,6 +564,21 @@ export function CRMContent() {
             <CrmStat label="Assigned (month)" value={savedStats.assignedThisMonth} />
           </div>
         </div>
+      )}
+
+      {!crmName && (
+        <ConnectCrmPanel
+          selectedCRM={selectedCRM}
+          setSelectedCRM={setSelectedCRM}
+          showCrmDropdown={showCrmDropdown}
+          setShowCrmDropdown={setShowCrmDropdown}
+          crmCredentials={crmCredentials}
+          setCrmCredentials={setCrmCredentials}
+          connectingCrm={connectingCrm}
+          crmError={crmError}
+          setCrmError={setCrmError}
+          onConnect={connectCRMDirect}
+        />
       )}
 
       {/* ── SAVED CONTACTS (DB) ──────────────────────── */}
@@ -917,6 +982,110 @@ function CrmStat({ label, value }: { label: string; value: number }) {
   )
 }
 
+function ConnectCrmPanel({
+  selectedCRM, setSelectedCRM, showCrmDropdown, setShowCrmDropdown,
+  crmCredentials, setCrmCredentials, connectingCrm, crmError, setCrmError, onConnect,
+}: {
+  selectedCRM: CrmConfig | null
+  setSelectedCRM: (c: CrmConfig | null) => void
+  showCrmDropdown: boolean
+  setShowCrmDropdown: (v: boolean | ((v: boolean) => boolean)) => void
+  crmCredentials: Record<string, string>
+  setCrmCredentials: (v: Record<string, string> | ((v: Record<string, string>) => Record<string, string>)) => void
+  connectingCrm: boolean
+  crmError: string | null
+  setCrmError: (v: string | null) => void
+  onConnect: () => void
+}) {
+  return (
+    <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
+      <div>
+        <h3 className="text-sm font-semibold text-foreground">Connect your CRM</h3>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Connect HubSpot, Salesforce, Pipedrive, Zoho, and 17 more to sync researched leads and unlock Auditor Mode.
+        </p>
+      </div>
+
+      {!selectedCRM ? (
+        <div className="space-y-2">
+          <Label className="text-sm">Choose your CRM</Label>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowCrmDropdown(v => !v)}
+              className="w-full flex items-center justify-between px-3 py-2.5 text-sm rounded-md border border-input bg-background hover:bg-accent transition-colors"
+            >
+              <span className="text-muted-foreground">Select a CRM platform…</span>
+              <svg className={`w-4 h-4 text-muted-foreground transition-transform ${showCrmDropdown ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {showCrmDropdown && (
+              <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                {CRM_CONFIGS.map((crm) => (
+                  <button
+                    key={crm.id}
+                    type="button"
+                    onClick={() => { setSelectedCRM(crm); setShowCrmDropdown(false); setCrmCredentials({}); setCrmError(null) }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-left hover:bg-accent transition-colors border-b border-border/50 last:border-b-0"
+                  >
+                    <Database className="w-4 h-4 text-muted-foreground" />
+                    <span>{crm.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-border">
+            <div className="flex items-center gap-2">
+              <Database className="w-5 h-5 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">{selectedCRM.name}</p>
+                <p className="text-xs text-muted-foreground">Enter your credentials</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => { setSelectedCRM(null); setCrmCredentials({}); setCrmError(null) }}
+              className="text-xs text-primary hover:underline"
+            >
+              Change
+            </button>
+          </div>
+
+          {selectedCRM.fields.map((field) => (
+            <div key={field.key} className="space-y-1.5">
+              <Label className="text-xs">{field.name}</Label>
+              <Input
+                type={field.type}
+                value={crmCredentials[field.key] || ""}
+                onChange={(e) => setCrmCredentials(prev => ({ ...prev, [field.key]: e.target.value }))}
+                placeholder={field.placeholder}
+              />
+              {field.helpText && <p className="text-xs text-muted-foreground">{field.helpText}</p>}
+            </div>
+          ))}
+
+          {crmError && (
+            <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/30">
+              <XCircle className="w-4 h-4 text-destructive flex-shrink-0" />
+              <p className="text-xs text-destructive">{crmError}</p>
+            </div>
+          )}
+
+          <Button onClick={onConnect} disabled={connectingCrm} className="w-full gap-2">
+            {connectingCrm ? <Loader2 className="w-4 h-4 animate-spin" /> : <Database className="w-4 h-4" />}
+            {connectingCrm ? "Connecting…" : `Connect ${selectedCRM.name}`}
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function ImportSettingsPanel({
   crmName, crmConnectedAt, connectedBy, savedStats,
 }: {
@@ -925,7 +1094,6 @@ function ImportSettingsPanel({
   connectedBy?: string
   savedStats: { total: number; queued: number; assignedThisWeek: number; assignedThisMonth: number }
 }) {
-  const router = useRouter()
   return (
     <aside className="space-y-4 rounded-2xl border border-border bg-card p-5">
       <h2 className="font-display text-lg text-foreground">Import Settings</h2>
@@ -958,15 +1126,9 @@ function ImportSettingsPanel({
         ) : (
           <div className="flex items-center gap-2 rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground">
             <Link2Off className="h-3.5 w-3.5 shrink-0" />
-            No CRM connected
+            Use the form to connect a CRM
           </div>
         )}
-        <button
-          onClick={() => router.push("/settings?tab=crm")}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-xs font-medium text-foreground hover:bg-accent"
-        >
-          {crmName ? "Manage connection" : "Connect a CRM"} <ExternalLink className="h-3 w-3" />
-        </button>
       </section>
 
       <section className="space-y-3 border-t border-border pt-4">

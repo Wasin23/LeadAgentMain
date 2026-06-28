@@ -1,6 +1,6 @@
 "use client"
 
-import { LayoutDashboard, Settings, HelpCircle, LogOut, Bot, UserCheck, Circle, Users2, GripVertical, Pencil, Check, Users } from "lucide-react"
+import { Home, Settings, HelpCircle, LogOut, Search, Mail, Circle, Users2, GripVertical, Pencil, Check, Users } from "lucide-react"
 import { MeridianWordmark } from "@/components/ui/meridian-wordmark"
 import { cn } from "@/lib/utils"
 import { useState, useEffect, Suspense } from "react"
@@ -28,9 +28,9 @@ interface NavItem {
 }
 
 const staticItems: NavItem[] = [
-  { icon: LayoutDashboard, label: "Home",        href: "/home" },
+  { icon: Home, label: "Home",        href: "/home" },
   {
-    icon: Bot,
+    icon: Search,
     label: "Prospecting",
     href: "/prospecting",
     children: [
@@ -49,7 +49,7 @@ const staticItems: NavItem[] = [
     ],
   },
   {
-    icon: UserCheck,
+    icon: Mail,
     label: "Outreach",
     href: "/outreach",
     children: [
@@ -179,8 +179,8 @@ function SidebarInner() {
       <div className="h-full rounded-2xl border border-border bg-card p-4 overflow-y-auto shadow-[0_1px_0_oklch(0_0_0/0.02)]">
         <div className="flex items-center gap-2 mb-6 group cursor-pointer">
           <Link href="/home" className="flex items-center gap-2">
-            <Image src="/MeridianM.png" alt="Meridian" width={56} height={37} className="shrink-0" />
-            <MeridianWordmark className="h-3 w-auto dark:text-white text-black" />
+            <Image src="/MeridianM.png" alt="Meridian" width={32} height={21} className="shrink-0" />
+            <MeridianWordmark className="h-3.5 w-auto dark:text-white text-black" />
           </Link>
         </div>
 
