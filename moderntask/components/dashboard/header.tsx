@@ -324,7 +324,7 @@ export function Header({
 
       {title && (
         <div>
-          <h1 className="text-xl md:text-2xl lg:text-3xl font-bold font-serif text-foreground mb-1">{title}</h1>
+          <h1 className="font-display text-xl md:text-2xl lg:text-3xl text-foreground mb-1">{title}</h1>
           {description && <p className="text-xs md:text-sm text-muted-foreground">{description}</p>}
         </div>
       )}
