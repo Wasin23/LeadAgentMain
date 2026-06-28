@@ -387,7 +387,6 @@ export default function DashboardPage() {
         <Header
           title="Home"
           description="Overview of your Meridian agents and outreach activity."
-          actions={<HomeActions mode="icons" />}
           notificationCount={notifCount}
           userName={userName}
           userEmail={userEmail}
