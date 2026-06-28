@@ -13,42 +13,31 @@ import { CSS } from "@dnd-kit/utilities"
 import { GripVertical, X, Settings2, Check } from "lucide-react"
 
 import {
-  EmailActivityCard, CreditConsumptionCard, DeliveryHealthCard,
-  type EmailTimePoint, type MonthlyPoint,
+  EmailActivityCard, DeliveryHealthCard,
+  type EmailTimePoint,
 } from "@/components/dashboard/home-charts"
-import { Reminders, type ScheduledBatch } from "@/components/dashboard/reminders"
 import { TeamCollaboration, type AgentActivityItem } from "@/components/dashboard/team-collaboration"
-import { UpcomingFollowUps, type FollowUpItem } from "@/components/dashboard/upcoming-followups"
-import { RecentNotifications, type NotificationItem } from "@/components/dashboard/recent-notifications"
+import { ScheduledActivityCalendar, type ScheduledBatch, type FollowUpItem } from "@/components/dashboard/scheduled-activity-calendar"
+import { ActivityFeed, type NotificationItem } from "@/components/dashboard/activity-feed"
 import { AnalyticsContent } from "@/components/analytics/analytics-content"
 
 export type HomeSectionId =
-  | "scheduled-sends"
-  | "follow-ups"
-  | "notifications"
+  | "scheduled"
   | "performance"
 
 const SECTION_META: Record<HomeSectionId, { label: string; span: 1 | 2 }> = {
-  "notifications":      { label: "Recent Notifications", span: 2 },
-  "scheduled-sends":    { label: "Scheduled Sends",      span: 1 },
-  "follow-ups":         { label: "Upcoming Follow-ups",  span: 1 },
+  "scheduled":          { label: "Scheduled Activity",      span: 2 },
   "performance":        { label: "Performance & Analytics", span: 2 },
 }
 
 const DEFAULT_ORDER: HomeSectionId[] = [
-  "notifications",
-  "scheduled-sends",
-  "follow-ups",
+  "scheduled",
   "performance",
 ]
 
 interface HomeSectionsProps {
   emailTimeSeries?:  EmailTimePoint[]
-  monthlyCredits?:   MonthlyPoint[]
   scheduledBatches?: ScheduledBatch[]
-  creditBalance?:    number | null
-  creditsUsed?:      number | null
-  creditsLimit?:     number | null
   agentActivity?:    AgentActivityItem[]
   sent?:             number
   bounced?:          number
@@ -113,11 +102,7 @@ function SortableSection({
 
 export function HomeSections({
   emailTimeSeries = [],
-  monthlyCredits = [],
   scheduledBatches = [],
-  creditBalance = null,
-  creditsUsed = null,
-  creditsLimit = null,
   agentActivity = [],
   sent = 0,
   bounced = 0,
@@ -172,10 +157,8 @@ export function HomeSections({
 
   function renderContent(id: HomeSectionId) {
     switch (id) {
-      case "scheduled-sends":    return <Reminders batches={scheduledBatches} />
-      case "follow-ups":         return <UpcomingFollowUps followUps={followUps} />
-      case "notifications":      return <RecentNotifications notifications={notifications} />
-      case "performance":        return <AnalyticsContent />
+      case "scheduled":   return <ScheduledActivityCalendar batches={scheduledBatches} followUps={followUps} />
+      case "performance": return <AnalyticsContent />
     }
   }
 
@@ -190,7 +173,6 @@ export function HomeSections({
         </div>
         <div className="min-w-0 flex flex-col gap-4 md:gap-5">
           <TeamCollaboration agents={agentActivity} />
-          <CreditConsumptionCard monthlyCredits={monthlyCredits} creditBalance={creditBalance} creditsUsed={creditsUsed} creditsLimit={creditsLimit} />
           <DeliveryHealthCard sent={sent} bounced={bounced} opened={opened} />
         </div>
       </div>
@@ -250,6 +232,8 @@ export function HomeSections({
           </div>
         </SortableContext>
       </DndContext>
+
+      <ActivityFeed notifications={notifications} />
     </div>
   )
 }

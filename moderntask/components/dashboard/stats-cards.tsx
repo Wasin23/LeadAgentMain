@@ -113,7 +113,7 @@ function SortableCard({
         </>
       )}
       {editMode ? (
-        <div className="pt-8 select-none">
+        <div className="pt-6 select-none">
           <CardInner stat={stat} />
         </div>
       ) : (
@@ -121,7 +121,7 @@ function SortableCard({
           href={stat.href}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
-          className="group block rounded-2xl border border-border bg-card p-5 transition-colors hover:border-foreground/15"
+          className="group block rounded-2xl border border-border bg-card p-3 transition-colors hover:border-foreground/15"
         >
           <CardInner stat={stat} hovered={hovered} />
         </Link>
@@ -133,24 +133,16 @@ function SortableCard({
 function CardInner({ stat, hovered }: { stat: StatDef; hovered?: boolean }) {
   const Icon = stat.icon
   return (
-    <>
-      <div className="flex items-start gap-4">
-        <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-full ${toneStyles[stat.tone]}`}>
-          <Icon className="h-[18px] w-[18px]" strokeWidth={1.75} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-2">
-            <p className="text-[12px] font-medium text-muted-foreground">{stat.title}</p>
-            <ChevronRight className={`h-4 w-4 text-muted-foreground/60 transition-transform ${hovered ? "translate-x-0.5" : ""}`} />
-          </div>
-          <p className="mt-1 font-display text-[28px] leading-none tracking-tight text-foreground">{stat.value}</p>
-        </div>
+    <div className="flex items-center gap-3">
+      <div className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${toneStyles[stat.tone]}`}>
+        <Icon className="h-[14px] w-[14px]" strokeWidth={1.75} />
       </div>
-      <div className="mt-4 flex items-center gap-2 text-[11px] text-muted-foreground">
-        <span className={`h-1.5 w-1.5 rounded-full ${dotStyles[stat.tone]}`} />
-        {stat.increase || stat.subtitle}
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] font-medium leading-tight text-muted-foreground">{stat.title}</p>
+        <p className="font-display text-lg leading-tight tracking-tight text-foreground">{stat.value}</p>
       </div>
-    </>
+      <ChevronRight className={`h-3.5 w-3.5 shrink-0 text-muted-foreground/60 transition-transform ${hovered ? "translate-x-0.5" : ""}`} />
+    </div>
   )
 }
 

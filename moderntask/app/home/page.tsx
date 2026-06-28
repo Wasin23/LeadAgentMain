@@ -7,7 +7,7 @@ import { Settings2, Check } from "lucide-react"
 import { Sidebar } from "@/components/dashboard/sidebar"
 import { Header } from "@/components/dashboard/header"
 import { StatsCards } from "@/components/dashboard/stats-cards"
-import { HomeCharts, type EmailTimePoint, type MonthlyPoint } from "@/components/dashboard/home-charts"
+import type { EmailTimePoint } from "@/components/dashboard/home-charts"
 import { HomeSections } from "@/components/dashboard/home-sections"
 import { ProjectAnalytics } from "@/components/dashboard/project-analytics"
 import { QuickActions } from "@/components/dashboard/quick-actions"
@@ -15,9 +15,8 @@ import { HomeActions } from "@/components/dashboard/home-actions"
 import type { GettingStartedChecklist } from "@/components/dashboard/getting-started"
 import type { QueueChartDataPoint } from "@/components/dashboard/project-analytics"
 import type { AgentActivityItem } from "@/components/dashboard/team-collaboration"
-import type { ScheduledBatch } from "@/components/dashboard/reminders"
-import type { FollowUpItem } from "@/components/dashboard/upcoming-followups"
-import type { NotificationItem } from "@/components/dashboard/recent-notifications"
+import type { ScheduledBatch, FollowUpItem } from "@/components/dashboard/scheduled-activity-calendar"
+import type { NotificationItem } from "@/components/dashboard/activity-feed"
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -64,13 +63,10 @@ export default function DashboardPage() {
   const [bouncedCount, setBouncedCount] = useState(0)
   const [openedCount, setOpenedCount] = useState(0)
   const [creditBalance, setCreditBalance] = useState<number | null>(null)
-  const [creditsUsed, setCreditsUsed] = useState<number | null>(null)
-  const [creditsLimit, setCreditsLimit] = useState<number | null>(null)
 
   // chart – emails sent per day (last 7 days)
   const [chartData, setChartData] = useState<QueueChartDataPoint[]>([])
   const [emailTimeSeries, setEmailTimeSeries] = useState<EmailTimePoint[]>([])
-  const [monthlyCredits, setMonthlyCredits] = useState<MonthlyPoint[]>([])
 
   // agent panels
   const [agentActivity, setAgentActivity] = useState<AgentActivityItem[]>([])
@@ -124,8 +120,6 @@ export default function DashboardPage() {
       const d = planRes.value.data
       const bal = Number(d.credits?.remaining ?? d.plan?.remainingCredits ?? 0)
       if (bal > 0) setCreditBalance(Math.round(bal))
-      if (d.credits?.used !== null && d.credits?.used !== undefined) setCreditsUsed(Math.round(Number(d.credits.used)))
-      if (d.credits?.limit !== null && d.credits?.limit !== undefined) setCreditsLimit(Math.round(Number(d.credits.limit)))
     }
 
     // ── email counts ────────────────────────────────────────────────────
@@ -170,6 +164,10 @@ export default function DashboardPage() {
               ((a.personality as Record<string, unknown>)?.type as string) ||
               (a.personalityType as string) ||
               "professional",
+            avatar:
+              (a.avatar as string) ||
+              ((a.personality as Record<string, unknown>)?.avatar as string) ||
+              null,
           }))
       )
 
@@ -261,25 +259,9 @@ export default function DashboardPage() {
             if (e.replied === true || e.status === "REPLIED") r++
           }
         })
-        return { date: label, Sent: s, Replied: r }
+        return { date: label, rawDate: dayStr, Sent: s, Replied: r }
       })
       setEmailTimeSeries(timeSeries)
-
-      // monthly credit consumption (last 6 months)
-      const now = new Date()
-      const monthly: MonthlyPoint[] = Array.from({ length: 6 }, (_, rev) => {
-        const i = 5 - rev
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-        const start = new Date(d.getFullYear(), d.getMonth(), 1)
-        const end   = new Date(d.getFullYear(), d.getMonth() + 1, 1)
-        const label = d.toLocaleDateString("en-US", { month: "short" })
-        const credits = sentEmailsForChart.filter(e => {
-          const t = emailDate(e)
-          return t >= start && t < end
-        }).length
-        return { month: label, Credits: credits }
-      })
-      setMonthlyCredits(monthly)
     }
 
     // ── scheduled batches (server-computed) ────────────────────────────
@@ -388,11 +370,7 @@ export default function DashboardPage() {
 
           <HomeSections
             emailTimeSeries={emailTimeSeries}
-            monthlyCredits={monthlyCredits}
             scheduledBatches={scheduledBatches}
-            creditBalance={creditBalance}
-            creditsUsed={creditsUsed}
-            creditsLimit={creditsLimit}
             agentActivity={agentActivity}
             sent={counts.sent}
             bounced={bouncedCount}

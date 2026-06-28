@@ -1,6 +1,6 @@
 'use client'
 
-import { Activity, Download, Coins, ShieldCheck } from 'lucide-react'
+import { Download, Coins, ShieldCheck } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import api from '@/lib/api'
 import { fetchDisplayedCreditData } from '@/lib/credit-balance'
@@ -9,8 +9,46 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer,
 } from 'recharts'
+import { InfoTooltip } from '@/components/ui/info-tooltip'
+import { DateRangePicker, type RangePreset, PRESET_DAYS } from '@/components/dashboard/date-range-picker'
+import type { DateRange } from 'react-day-picker'
 
 // ── static data ──────────────────────────────────────────────────────────────
+type CreditGranularity = 'day' | 'week' | 'month'
+
+function buildDailyCredits(emails: any[], days = 90) {
+  const now = new Date()
+  return Array.from({ length: days }, (_, rev) => {
+    const daysAgo = days - 1 - rev
+    const d = new Date(now)
+    d.setDate(d.getDate() - daysAgo)
+    const rawDate = d.toLocaleDateString('en-CA')
+    const label   = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    const credits = emails.filter(e => {
+      const t = new Date(e.sentAt || e.createdAt || e.timestamp || 0)
+      return t.toLocaleDateString('en-CA') === rawDate
+    }).length
+    return { month: label, rawDate, Credits: credits }
+  })
+}
+
+function buildWeeklyCredits(emails: any[], weeks = 12) {
+  const now = new Date()
+  return Array.from({ length: weeks }, (_, rev) => {
+    const weeksAgo = weeks - 1 - rev
+    const end = new Date(now)
+    end.setDate(end.getDate() - weeksAgo * 7)
+    const start = new Date(end)
+    start.setDate(start.getDate() - 7)
+    const label = `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+    const credits = emails.filter(e => {
+      const t = new Date(e.sentAt || e.createdAt || e.timestamp || 0)
+      return t >= start && t < end
+    }).length
+    return { month: label, Credits: credits }
+  })
+}
+
 function buildMonthlyCredits(emails: any[]) {
   const now = new Date()
   return Array.from({ length: 6 }, (_, rev) => {
@@ -113,22 +151,23 @@ export function AnalyticsContent() {
   const [agents, setAgents] = useState<any[]>([])
   const [totals, setTotals] = useState({ queued: 0, sent: 0, replied: 0, replyRate: '0' })
   const [allSentEmails, setAllSentEmails] = useState<any[]>([])
-  const [rawActivities, setRawActivities] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [emailTimeSeries, setEmailTimeSeries] = useState<any[]>([])
+  const [dailyCredits, setDailyCredits] = useState<any[]>([])
+  const [weeklyCredits, setWeeklyCredits] = useState<any[]>([])
   const [monthlyCredits, setMonthlyCredits] = useState<any[]>([])
+  const [creditGranularity, setCreditGranularity] = useState<CreditGranularity>('day')
+  const [creditPreset, setCreditPreset] = useState<RangePreset>('30d')
+  const [creditCustomRange, setCreditCustomRange] = useState<DateRange | undefined>()
   const [creditBalance, setCreditBalance] = useState<number | null>(null)
   const [domainStats, setDomainStats] = useState<any[]>([])
-  const [activityFilter, setActivityFilter] = useState<'all' | 'cycles' | 'issues' | 'agents'>('all')
-
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      const [agentsRes, countsRes, sentRes, activityRes, creditRes] = await Promise.allSettled([
+      const [agentsRes, countsRes, sentRes, creditRes] = await Promise.allSettled([
         api.get('/api/auth/agents'),
         api.get('/api/email-queue/counts', { params: { agentId: 'all' } }),
         api.get('/api/email-queue/sent',   { params: { agentId: 'all' } }),
-        api.get('/api/monitoring/activity'),
         fetchDisplayedCreditData(),
       ])
 
@@ -162,10 +201,6 @@ export function AnalyticsContent() {
         setAllSentEmails(all)
       }
 
-      if (activityRes.status === 'fulfilled') {
-        setRawActivities(activityRes.value.data?.activities ?? [])
-      }
-
       if (creditRes.status === 'fulfilled') {
         setCreditBalance(creditRes.value.balance)
       }
@@ -176,17 +211,22 @@ export function AnalyticsContent() {
   useEffect(() => { loadData() }, [loadData])
   useEffect(() => {
     setEmailTimeSeries(buildTimeSeries(allSentEmails, RANGE))
+    setDailyCredits(buildDailyCredits(allSentEmails))
+    setWeeklyCredits(buildWeeklyCredits(allSentEmails))
     setMonthlyCredits(buildMonthlyCredits(allSentEmails))
     setDomainStats(buildDomainStats(allSentEmails))
   }, [allSentEmails])
 
-  const filteredActivities = rawActivities.filter((a: any) => {
-    if (activityFilter === 'all')    return true
-    if (activityFilter === 'cycles') return a.title?.toLowerCase().includes('cycle') || a.category === 'cycle'
-    if (activityFilter === 'issues') return a.activityType === 'issue' || a.category === 'issue'
-    if (activityFilter === 'agents') return ['agent', 'bot'].some((kw: string) => a.title?.toLowerCase().includes(kw))
-    return true
-  })
+  const creditMinDate = dailyCredits.length > 0 ? new Date(dailyCredits[0].rawDate) : undefined
+  const creditSeries =
+    creditGranularity === 'week'  ? weeklyCredits :
+    creditGranularity === 'month' ? monthlyCredits :
+    (creditCustomRange?.from && creditCustomRange?.to
+      ? dailyCredits.filter(p => {
+          const d = new Date(p.rawDate)
+          return d >= creditCustomRange.from! && d <= creditCustomRange.to!
+        })
+      : dailyCredits.slice(-PRESET_DAYS[creditPreset]))
 
   const exportReport = useCallback(() => {
     const rows: string[] = []
@@ -278,13 +318,16 @@ export function AnalyticsContent() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
         <div className="rounded-2xl border border-border bg-card p-5">
-          <div className="flex items-start justify-between mb-4">
+          <div className="flex items-start justify-between gap-3 mb-4">
             <div className="flex items-center gap-2">
               <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-warning-soft">
                 <Coins className="h-4 w-4 text-warning-soft-foreground" strokeWidth={1.75} />
               </div>
               <div>
-                <h4 className="font-display text-base text-foreground">Monthly Credit Consumption</h4>
+                <div className="flex items-center gap-1.5">
+                  <h4 className="font-display text-base text-foreground">Credit Consumption</h4>
+                  <InfoTooltip text="Credits consumed (1 credit ≈ 1 sent email) over the selected period" />
+                </div>
                 {creditBalance !== null && (
                   <p className="text-[11px] text-muted-foreground mt-0.5">
                     Balance: <span className="font-semibold text-foreground">{creditBalance.toLocaleString()}</span> credits remaining
@@ -292,9 +335,33 @@ export function AnalyticsContent() {
                 )}
               </div>
             </div>
+            <div className="flex flex-col items-end gap-1.5">
+              <div className="flex items-center gap-0.5 rounded-lg border border-border bg-surface p-0.5">
+                {(['day', 'week', 'month'] as CreditGranularity[]).map(g => (
+                  <button
+                    key={g}
+                    onClick={() => setCreditGranularity(g)}
+                    className={`rounded-md px-2.5 py-1 text-[11px] font-medium capitalize transition-colors ${
+                      creditGranularity === g ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
+              {creditGranularity === 'day' && (
+                <DateRangePicker
+                  preset={creditPreset}
+                  onPresetChange={setCreditPreset}
+                  customRange={creditCustomRange}
+                  onCustomRangeChange={setCreditCustomRange}
+                  minDate={creditMinDate}
+                />
+              )}
+            </div>
           </div>
           <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={monthlyCredits} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
+            <BarChart data={creditSeries} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
               <defs>
                 <linearGradient id="gCredit" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%"  stopColor="var(--brass)" stopOpacity={1}    />
@@ -302,7 +369,7 @@ export function AnalyticsContent() {
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" strokeOpacity={0.6} vertical={false} />
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} tickLine={false} axisLine={false} />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
               <YAxis tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} tickLine={false} axisLine={false} width={28} allowDecimals={false} />
               <Tooltip content={<ChartTooltip />} />
               <Bar dataKey="Credits" fill="url(#gCredit)" radius={[4, 4, 0, 0]} />
@@ -317,9 +384,9 @@ export function AnalyticsContent() {
               <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-success-soft">
                 <ShieldCheck className="h-4 w-4 text-success-soft-foreground" strokeWidth={1.75} />
               </div>
-              <div>
+              <div className="flex items-center gap-1.5">
                 <h4 className="font-display text-base text-foreground">Sender Delivery Stats</h4>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Success rate = delivered ÷ total · open rate = opened ÷ total</p>
+                <InfoTooltip text="Success rate = delivered ÷ total · open rate = opened ÷ total" />
               </div>
             </div>
           </div>
@@ -373,46 +440,6 @@ export function AnalyticsContent() {
               )}
         </div>
 
-      </div>
-
-      {/* activity log */}
-      <div className="rounded-2xl border border-border bg-card p-5">
-        <div className="flex items-center justify-between mb-4 gap-3">
-          <div className="flex items-center gap-2">
-            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-info-soft">
-              <Activity className="h-4 w-4 text-info-soft-foreground" strokeWidth={1.75} />
-            </div>
-            <h4 className="font-display text-base text-foreground">Activity Log</h4>
-          </div>
-          <div className="flex items-center gap-0.5 rounded-lg border border-border bg-surface p-0.5">
-            {(['all', 'cycles', 'issues', 'agents'] as const).map(f => (
-              <button key={f} onClick={() => setActivityFilter(f)}
-                className={`rounded-md px-2.5 py-1 text-[11px] font-medium capitalize transition-colors ${
-                  activityFilter === f ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                }`}>{f}</button>
-            ))}
-          </div>
-        </div>
-        <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
-          {loading
-            ? Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-10 rounded-lg bg-muted/40 animate-pulse" />)
-            : filteredActivities.length === 0
-              ? <p className="text-xs text-muted-foreground text-center py-10">No activity</p>
-              : filteredActivities.slice(0, 25).map((act: any, i: number) => {
-                  const isError = act.activityType === 'issue' || act.category === 'issue'
-                  const isCycle = act.title?.toLowerCase().includes('cycle') || act.category === 'cycle'
-                  return (
-                    <div key={i} className="flex items-start gap-2 p-2 rounded-lg hover:bg-accent transition-colors">
-                      <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${isError ? 'bg-destructive' : isCycle ? 'bg-success' : 'bg-info-soft-foreground'}`} />
-                      <div className="min-w-0">
-                        <p className="text-xs font-medium truncate">{act.title || act.message}</p>
-                        {act.details && <p className="text-[11px] text-muted-foreground truncate">{act.details}</p>}
-                        <p className="text-[10px] text-muted-foreground">{new Date(act.timestamp).toLocaleString()}</p>
-                      </div>
-                    </div>
-                  )
-                })}
-        </div>
       </div>
     </div>
   )
