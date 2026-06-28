@@ -14,7 +14,6 @@ import { QuickActions } from "@/components/dashboard/quick-actions"
 import { HomeActions } from "@/components/dashboard/home-actions"
 import type { GettingStartedChecklist } from "@/components/dashboard/getting-started"
 import type { QueueChartDataPoint } from "@/components/dashboard/project-analytics"
-import type { AgentProgressItem } from "@/components/dashboard/project-progress"
 import type { AgentActivityItem } from "@/components/dashboard/team-collaboration"
 import type { ScheduledBatch } from "@/components/dashboard/reminders"
 import type { FollowUpItem } from "@/components/dashboard/upcoming-followups"
@@ -74,7 +73,6 @@ export default function DashboardPage() {
   const [monthlyCredits, setMonthlyCredits] = useState<MonthlyPoint[]>([])
 
   // agent panels
-  const [agentProgress, setAgentProgress] = useState<AgentProgressItem[]>([])
   const [agentActivity, setAgentActivity] = useState<AgentActivityItem[]>([])
 
   // scheduled sends
@@ -175,14 +173,6 @@ export default function DashboardPage() {
           }))
       )
 
-      // agent progress rings (sent last 7d vs lead limit)
-      const sentEmails =
-        sentRes.status === "fulfilled"
-          ? normaliseArray(sentRes.value.data)
-          : []
-
-      const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-
       // checklist state — derived from live agent + email data
       const nonOrphanAgents = agents.filter((a) => a.agentId !== "orphan")
       const anyEmailConnected = nonOrphanAgents.some((a) => {
@@ -197,38 +187,6 @@ export default function DashboardPage() {
         hasSecondAgent: nonOrphanAgents.length > 1,
       }))
 
-      setAgentProgress(
-        agents
-          .filter((a) => {
-            if (a.agentId === "orphan") return false
-            return a.isRunning === true || a.status === "running"
-          })
-          .map((a) => {
-            const agentSent = (sentEmails as Record<string, unknown>[]).filter(
-              (e) => e.agentId === a.agentId
-            ).length
-            const agentQueued = queueRes.status === "fulfilled"
-              ? (normaliseArray(queueRes.value.data) as Record<string, unknown>[]).filter(
-                  (e) => e.agentId === a.agentId
-                ).length
-              : 0
-            const settings = (a.settings as Record<string, unknown>) || {}
-            const geo = (settings.geographicSettings as Record<string, unknown>) || {}
-            const targeting = (settings.targeting as Record<string, unknown>) || {}
-            const leadLimit =
-              (geo.leadLimit as number) ||
-              (targeting.leadLimit as number) ||
-              (settings.leadLimit as number) ||
-              (a.leadLimit as number) ||
-              10
-            return {
-              agentId: a.agentId as string,
-              name: (a.name as string) || "Agent",
-              current: agentSent + agentQueued,
-              max: leadLimit,
-            }
-          })
-      )
     }
 
     // ── queued emails → chart ────────────────────────────────────────────
@@ -436,7 +394,6 @@ export default function DashboardPage() {
             creditsUsed={creditsUsed}
             creditsLimit={creditsLimit}
             agentActivity={agentActivity}
-            agentProgress={agentProgress}
             sent={counts.sent}
             bounced={bouncedCount}
             opened={openedCount}

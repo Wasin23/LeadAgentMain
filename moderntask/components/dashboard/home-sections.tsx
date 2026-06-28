@@ -18,14 +18,12 @@ import {
 } from "@/components/dashboard/home-charts"
 import { Reminders, type ScheduledBatch } from "@/components/dashboard/reminders"
 import { TeamCollaboration, type AgentActivityItem } from "@/components/dashboard/team-collaboration"
-import { ProjectProgress, type AgentProgressItem } from "@/components/dashboard/project-progress"
 import { UpcomingFollowUps, type FollowUpItem } from "@/components/dashboard/upcoming-followups"
 import { RecentNotifications, type NotificationItem } from "@/components/dashboard/recent-notifications"
 import { AnalyticsContent } from "@/components/analytics/analytics-content"
 
 export type HomeSectionId =
   | "scheduled-sends"
-  | "agent-progress"
   | "follow-ups"
   | "notifications"
   | "performance"
@@ -33,7 +31,6 @@ export type HomeSectionId =
 const SECTION_META: Record<HomeSectionId, { label: string; span: 1 | 2 }> = {
   "notifications":      { label: "Recent Notifications", span: 2 },
   "scheduled-sends":    { label: "Scheduled Sends",      span: 1 },
-  "agent-progress":     { label: "Agent Progress",       span: 1 },
   "follow-ups":         { label: "Upcoming Follow-ups",  span: 1 },
   "performance":        { label: "Performance & Analytics", span: 2 },
 }
@@ -41,7 +38,6 @@ const SECTION_META: Record<HomeSectionId, { label: string; span: 1 | 2 }> = {
 const DEFAULT_ORDER: HomeSectionId[] = [
   "notifications",
   "scheduled-sends",
-  "agent-progress",
   "follow-ups",
   "performance",
 ]
@@ -54,7 +50,6 @@ interface HomeSectionsProps {
   creditsUsed?:      number | null
   creditsLimit?:     number | null
   agentActivity?:    AgentActivityItem[]
-  agentProgress?:    AgentProgressItem[]
   sent?:             number
   bounced?:          number
   opened?:           number
@@ -124,7 +119,6 @@ export function HomeSections({
   creditsUsed = null,
   creditsLimit = null,
   agentActivity = [],
-  agentProgress = [],
   sent = 0,
   bounced = 0,
   opened = 0,
@@ -179,7 +173,6 @@ export function HomeSections({
   function renderContent(id: HomeSectionId) {
     switch (id) {
       case "scheduled-sends":    return <Reminders batches={scheduledBatches} />
-      case "agent-progress":     return <ProjectProgress agents={agentProgress} />
       case "follow-ups":         return <UpcomingFollowUps followUps={followUps} />
       case "notifications":      return <RecentNotifications notifications={notifications} />
       case "performance":        return <AnalyticsContent />
