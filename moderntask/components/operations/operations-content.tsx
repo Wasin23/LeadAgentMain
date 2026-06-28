@@ -12,7 +12,7 @@ import {
   Play, Square, RefreshCw, Bot, Mail, Clock,
   MessageSquare, Activity,
   ChevronRight, ChevronDown, CheckCircle2, Send,
-  Target, ExternalLink, ArrowUp, ArrowDown, User,
+  Target, ExternalLink, User,
   UserCheck, Search, Settings, FileText, Users, Globe, Cpu,
   MoreHorizontal, Zap, Trash2, RotateCcw, Inbox,
   type LucideIcon
@@ -69,13 +69,6 @@ interface ActivityLog {
   }
 }
 
-interface TodayStats {
-  sent: number
-  queued: number
-  cycles: number
-  replied: number
-}
-
 interface PlanStatus {
   plan?: {
     maxConcurrency?: number
@@ -126,8 +119,6 @@ export function OperationsContent() {
   const [selectedAgent, setSelectedAgent] = useState<string>('all')
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([])
   const [agentActivities, setAgentActivities] = useState<Record<string, { status: string; timestamp: number }>>({})
-  const [stats, setStats] = useState<TodayStats>({ sent: 0, queued: 0, cycles: 0, replied: 0 })
-  const [prevStats, setPrevStats] = useState<TodayStats>({ sent: 0, queued: 0, cycles: 0, replied: 0 })
   const [sseConnected, setSseConnected] = useState(false)
   const [expandedLogs, setExpandedLogs] = useState<Record<string, boolean>>({})
   const [toggling, setToggling] = useState<Record<string, boolean>>({})
@@ -212,25 +203,9 @@ export function OperationsContent() {
         }))
         setAgents(withCounts)
       }
-      if (countsRes.status === 'fulfilled') {
-        const d = countsRes.value.data
-        setStats(p => ({ ...p, sent: d.sent ?? 0, queued: d.queued ?? 0, replied: d.replied ?? 0 }))
-      }
     } finally {
       setLoading(false)
     }
-  }, [])
-
-  // ── fetch yesterday's counts for delta badges ────────────────────────────
-  const fetchPrevDay = useCallback(async () => {
-    try {
-      const res = await api.get('/api/email-queue/sent', { params: { agentId: 'all' } })
-      const emails: any[] = Array.isArray(res.data) ? res.data : (res.data?.emails ?? [])
-      const yestStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
-      const sentYest = emails.filter(e => (e.sentAt || e.createdAt || '').startsWith(yestStr)).length
-      const repliedYest = emails.filter(e => e.replied && (e.repliedAt || e.sentAt || '').startsWith(yestStr)).length
-      setPrevStats(p => ({ ...p, sent: sentYest, replied: repliedYest }))
-    } catch { /* silent */ }
   }, [])
 
   const fetchPlanStatus = useCallback(async () => {
@@ -340,17 +315,11 @@ export function OperationsContent() {
 
         // cycle counters — events are wrapped: { type:'activity_added', data:{ type:'cycle_complete'|'cycle_start' } }
         if (payload.type === 'cycle_complete') {
-          setStats(p => ({ ...p, cycles: p.cycles + 1 }))
           // Re-fetch agents so nextCycleTime is updated (it's set in-memory only after cycle ends)
           fetchAgents()
         }
-        // count cycle_start as well so stopping mid-cycle still registers
-        if (payload.type === 'cycle_start') {
-          setStats(p => ({ ...p, cycles: Math.max(p.cycles, p.cycles) })) // bumped by cycle_complete; start just marks activity
-        }
         // direct top-level cycle events (fallback if broadcast uses top-level type)
         if (d.type === 'cycle_complete' && !payload.type) {
-          setStats(p => ({ ...p, cycles: p.cycles + 1 }))
           fetchAgents()
         }
 
@@ -366,7 +335,6 @@ export function OperationsContent() {
   }, [agents, fetchAgents])
 
   useEffect(() => { fetchAgents() }, [fetchAgents])
-  useEffect(() => { fetchPrevDay() }, [fetchPrevDay])
   useEffect(() => { fetchPlanStatus() }, [fetchPlanStatus])
 
   // auto-scroll logs
@@ -716,49 +684,6 @@ export function OperationsContent() {
         />
       ) : (
       <>
-        {/* Stats row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { icon: Mail,         label: 'Sent',    value: stats.sent,    prev: prevStats.sent,    color: 'text-blue-500',   tip: 'Total emails sent today vs yesterday — click to open Outreach',         onClick: () => router.push('/outreach?section=sent') },
-            { icon: Clock,        label: 'Queued',  value: stats.queued,  prev: prevStats.queued,  color: 'text-violet-500', tip: 'Emails waiting in queue to be sent — click to open Awaiting Review', onClick: () => router.push('/outreach?section=awaiting') },
-            { icon: CheckCircle2, label: 'Cycles',  value: stats.cycles,  prev: prevStats.cycles,  color: 'text-cyan-500',   tip: 'Agent cycles completed this session — click to open Home',           onClick: () => router.push('/home') },
-            { icon: Bot,          label: 'Agents',  value: agents.length, prev: null,              color: 'text-green-500',  tip: 'Total agents — click to manage',               onClick: () => router.push('/prospecting?section=setup&tab=agents') },
-          ].map(({ icon: Icon, label, value, prev, color, tip, onClick }) => {
-            const hasPrev  = prev !== null && prev !== undefined
-            const delta    = hasPrev ? (prev > 0 ? Math.round(((value - prev) / prev) * 100) : (value > 0 ? 100 : 0)) : null
-            const isUp     = delta !== null && delta >= 0
-            return (
-              <div key={label} className="relative group/stat">
-                <Card
-                  className="p-3 cursor-pointer hover:border-primary/40 hover:shadow-sm"
-                  onClick={onClick}
-                >
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Icon className={cn('w-3.5 h-3.5', color)} />
-                    <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">{label}</span>
-                  </div>
-                  <div className="flex items-baseline gap-1.5">
-                    <p className="text-2xl font-bold text-foreground leading-none">{value.toLocaleString()}</p>
-                    {delta !== null && (
-                      <span className={cn('flex items-center gap-0.5 text-[10px] font-bold', isUp ? 'text-green-500' : 'text-red-500')}>
-                        {isUp ? <ArrowUp className="w-2.5 h-2.5" /> : <ArrowDown className="w-2.5 h-2.5" />}
-                        {Math.abs(delta)}%
-                      </span>
-                    )}
-                    {label === 'Agents' && runningAgents.length > 0 && (
-                      <span className="text-[10px] font-semibold text-green-500">{runningAgents.length} on</span>
-                    )}
-                  </div>
-                </Card>
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1.5 bg-popover border border-border text-foreground text-[11px] rounded-md shadow-lg whitespace-nowrap opacity-0 group-hover/stat:opacity-100 transition-opacity pointer-events-none z-50">
-                  {tip}
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-border" />
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
         {/* Activity log */}
         <Card className="flex-1 min-h-0 flex flex-col overflow-hidden">
           <CardHeader className="px-4 py-2 pb-2 border-b flex-shrink-0">

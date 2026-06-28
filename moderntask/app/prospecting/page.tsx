@@ -20,6 +20,7 @@ function isValidSection(value: string | null): value is Section {
 }
 
 function GlobalStatRow() {
+  const router = useRouter()
   const [stats, setStats] = useState({ sent: 0, queued: 0, cycles: 0, agents: 0, running: 0 })
 
   const load = useCallback(async () => {
@@ -44,22 +45,26 @@ function GlobalStatRow() {
   useEffect(() => { load() }, [load])
 
   const items = [
-    { label: 'Sent', value: stats.sent, icon: Send },
-    { label: 'Queued', value: stats.queued, icon: Mail },
-    { label: 'Cycles', value: stats.cycles, icon: Clock },
-    { label: 'Agents', value: stats.agents, sublabel: `${stats.running} running`, icon: Bot },
+    { label: 'Sent', value: stats.sent, icon: Send, onClick: () => router.push('/outreach?section=sent') },
+    { label: 'Queued', value: stats.queued, icon: Mail, onClick: () => router.push('/outreach?section=awaiting') },
+    { label: 'Cycles', value: stats.cycles, icon: Clock, onClick: () => router.push('/home') },
+    { label: 'Agents', value: stats.agents, sublabel: `${stats.running} running`, icon: Bot, onClick: () => router.push('/prospecting?section=setup&tab=agents') },
   ]
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-      {items.map(({ label, value, sublabel, icon: Icon }) => (
-        <div key={label} className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
+      {items.map(({ label, value, sublabel, icon: Icon, onClick }) => (
+        <button
+          key={label}
+          onClick={onClick}
+          className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-left hover:border-primary/40 hover:bg-accent transition-colors"
+        >
           <Icon className="w-3.5 h-3.5 text-primary shrink-0" />
           <div className="min-w-0">
             <p className="text-sm font-semibold leading-tight tabular-nums">{value.toLocaleString()}</p>
             <p className="text-[10px] text-muted-foreground leading-tight">{sublabel ?? label}</p>
           </div>
-        </div>
+        </button>
       ))}
     </div>
   )
@@ -127,7 +132,7 @@ function ProspectingPageInner() {
         <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="font-display text-4xl text-foreground">Prospecting</h1>
-            <p className="mt-1.5 text-sm text-muted-foreground">Monitor and manage your AI outreach agents.</p>
+            <p className="mt-1.5 text-sm text-muted-foreground">Press 'Start' or 'Start all' to start your agents and begin prospecting.</p>
           </div>
         </div>
 
