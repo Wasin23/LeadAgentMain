@@ -99,43 +99,42 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [] }: Sche
   ]
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-4">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <CalendarClock className="h-4 w-4 text-foreground/70" strokeWidth={1.75} />
-          <h3 className="font-display text-base text-foreground">Scheduled Activity</h3>
+    <div className="rounded-2xl border border-border bg-card p-2.5">
+      <div className="flex items-center justify-between gap-1.5">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <CalendarClock className="h-3.5 w-3.5 text-foreground/70 shrink-0" strokeWidth={1.75} />
+          <h3 className="font-display text-xs text-foreground truncate">Scheduled Activity</h3>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-0.5 rounded-lg border border-border bg-surface p-0.5">
-            {([["both", "Both"], ["sends", "Sends"], ["followups", "Follow-ups"]] as [Mode, string][]).map(([m, label]) => (
-              <button
-                key={m}
-                onClick={() => setMode(m)}
-                className={`rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                  mode === m ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-0.5">
-            <button onClick={() => setMonthOffset(o => o - 1)} className="grid h-6 w-6 place-items-center rounded-md hover:bg-accent text-muted-foreground">
-              <ChevronLeft className="h-3.5 w-3.5" />
-            </button>
-            <span className="w-28 text-center text-[11px] font-medium text-foreground">{monthLabel}</span>
-            <button onClick={() => setMonthOffset(o => o + 1)} className="grid h-6 w-6 place-items-center rounded-md hover:bg-accent text-muted-foreground">
-              <ChevronRight className="h-3.5 w-3.5" />
-            </button>
-          </div>
+        <div className="flex items-center gap-0.5 shrink-0">
+          <button onClick={() => setMonthOffset(o => o - 1)} className="grid h-4 w-4 place-items-center rounded hover:bg-accent text-muted-foreground">
+            <ChevronLeft className="h-3 w-3" />
+          </button>
+          <span className="w-14 text-center text-[9px] font-medium text-foreground">{monthLabel}</span>
+          <button onClick={() => setMonthOffset(o => o + 1)} className="grid h-4 w-4 place-items-center rounded hover:bg-accent text-muted-foreground">
+            <ChevronRight className="h-3 w-3" />
+          </button>
         </div>
       </div>
 
-      <div className="mt-3 grid grid-cols-7 gap-1 text-center text-[10px] font-medium text-muted-foreground">
+      <div className="mt-1.5 flex items-center gap-0.5 rounded-md border border-border bg-surface p-0.5">
+        {([["both", "Both"], ["sends", "Sends"], ["followups", "F/U"]] as [Mode, string][]).map(([m, label]) => (
+          <button
+            key={m}
+            onClick={() => setMode(m)}
+            className={`flex-1 rounded px-1 py-0.5 text-[9px] font-medium transition-colors ${
+              mode === m ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-1.5 grid grid-cols-7 gap-px text-center text-[8px] font-medium text-muted-foreground">
         {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => <div key={i}>{d}</div>)}
       </div>
 
-      <div className="mt-1 grid grid-cols-7 gap-1">
+      <div className="mt-0.5 grid grid-cols-7 gap-px">
         {cells.map((d, i) => {
           if (!d) return <div key={i} />
           const key = dayKey(d)
@@ -147,15 +146,15 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [] }: Sche
               <PopoverTrigger asChild>
                 <button
                   disabled={items.length === 0}
-                  className={`relative aspect-square w-full rounded-lg text-[11px] font-medium transition-colors flex flex-col items-center justify-center gap-0.5 ${
+                  className={`relative aspect-square w-full rounded text-[9px] font-medium transition-colors flex flex-col items-center justify-center ${
                     isToday ? "border border-primary text-primary" : "text-foreground/80"
                   } ${items.length > 0 ? "hover:bg-accent cursor-pointer" : "cursor-default opacity-60"}`}
                 >
                   {d.getDate()}
                   {items.length > 0 && (
-                    <span className="flex items-center gap-0.5">
-                      {items.some(it => it.kind === "send") && <span className="h-1 w-1 rounded-full bg-foreground/70" />}
-                      {items.some(it => it.kind === "followup") && <span className="h-1 w-1 rounded-full bg-success" />}
+                    <span className="flex items-center gap-0.5 absolute bottom-0.5">
+                      {items.some(it => it.kind === "send") && <span className="h-[3px] w-[3px] rounded-full bg-foreground/70" />}
+                      {items.some(it => it.kind === "followup") && <span className="h-[3px] w-[3px] rounded-full bg-success" />}
                     </span>
                   )}
                 </button>

@@ -22,16 +22,13 @@ import { ActivityFeed, type NotificationItem } from "@/components/dashboard/acti
 import { AnalyticsContent } from "@/components/analytics/analytics-content"
 
 export type HomeSectionId =
-  | "scheduled"
   | "performance"
 
 const SECTION_META: Record<HomeSectionId, { label: string; span: 1 | 2 }> = {
-  "scheduled":          { label: "Scheduled Activity",      span: 2 },
   "performance":        { label: "Performance & Analytics", span: 2 },
 }
 
 const DEFAULT_ORDER: HomeSectionId[] = [
-  "scheduled",
   "performance",
 ]
 
@@ -157,7 +154,6 @@ export function HomeSections({
 
   function renderContent(id: HomeSectionId) {
     switch (id) {
-      case "scheduled":   return <ScheduledActivityCalendar batches={scheduledBatches} followUps={followUps} />
       case "performance": return <AnalyticsContent />
     }
   }
@@ -166,14 +162,17 @@ export function HomeSections({
 
   return (
     <div className="space-y-3">
-      {/* Hero row — matches reference: chart left, status cards stacked right */}
-      <div className="grid grid-cols-1 gap-4 md:gap-5 @5xl:grid-cols-[1.7fr_1fr]">
+      {/* Hero row — chart / agent status+health / scheduled calendar, side by side */}
+      <div className="grid grid-cols-1 gap-4 md:gap-5 @5xl:grid-cols-3">
         <div className="min-w-0">
           <EmailActivityCard emailTimeSeries={emailTimeSeries} />
         </div>
         <div className="min-w-0 flex flex-col gap-4 md:gap-5">
           <TeamCollaboration agents={agentActivity} />
           <DeliveryHealthCard sent={sent} bounced={bounced} opened={opened} />
+        </div>
+        <div className="min-w-0">
+          <ScheduledActivityCalendar batches={scheduledBatches} followUps={followUps} />
         </div>
       </div>
 
