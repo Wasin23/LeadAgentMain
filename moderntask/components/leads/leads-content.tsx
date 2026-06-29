@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import {
   CheckCircle2, Search, Building2, ExternalLink, X,
   ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight,
-  Linkedin, Newspaper, Globe, FileText, Mail, Info, XCircle, Users as UsersIcon,
+  Linkedin, Newspaper, Globe, FileText, Mail, Info, AlertTriangle,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -18,6 +18,7 @@ interface AIReport {
   tier: 'HIGHLY_QUALIFIED' | 'QUALIFIED' | 'SHOTGUN' | 'REJECTED'
   reasoning: string
   keyStrengths?: string[]
+  weaknesses?: string[]
   citedEvidence?: { fact: string; source: string }[]
   allCitedFacts?: { fact: string; source: string; sourceTitle?: string }[]
 }
@@ -171,55 +172,25 @@ export function LeadsContent() {
         Select a lead to view its research report, sources, and outreach draft.
       </div>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3.5">
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full" style={{ background: 'var(--success)' }}>
-            <CheckCircle2 className="h-5 w-5 text-white" strokeWidth={2.25} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Qualified</p>
-            <p className="font-display text-2xl leading-tight text-primary">{counts.qualified}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3.5">
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full" style={{ background: 'var(--brass)' }}>
-            <Search className="h-5 w-5 text-white" strokeWidth={2} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Research</p>
-            <p className="font-display text-2xl leading-tight text-primary">{counts.research}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3.5">
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full" style={{ background: 'var(--muted-foreground)' }}>
-            <XCircle className="h-5 w-5 text-white" strokeWidth={2.25} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Rejected</p>
-            <p className="font-display text-2xl leading-tight text-primary">{counts.rejected}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3.5">
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full" style={{ background: 'var(--accent-lilac)' }}>
-            <UsersIcon className="h-5 w-5 text-white" strokeWidth={2} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Total Leads</p>
-            <p className="font-display text-2xl leading-tight text-primary">{counts.total}</p>
-          </div>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 @5xl:grid-cols-[1fr_380px] gap-4 items-start">
         <div className="min-w-0 rounded-2xl border border-border bg-card p-4">
-          <div className="relative mb-3 max-w-xs">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
-            <input
-              value={search}
-              onChange={e => { setSearch(e.target.value); setPage(1) }}
-              placeholder="Search company, contact, agent…"
-              className="w-full h-8 rounded-md border border-input bg-background pl-7 pr-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
-            />
+          <div className="mb-3 flex items-center gap-3">
+            <div className="flex shrink-0 items-center gap-2 text-[11px] text-muted-foreground">
+              <span><span className="font-display text-sm text-foreground">{counts.total}</span> Total Leads</span>
+              <span className="text-border">|</span>
+              <span><span className="font-semibold text-success">{counts.qualified}</span> Qualified</span>
+              <span className="text-muted-foreground/50">/</span>
+              <span><span className="font-semibold text-foreground/70">{counts.research + counts.rejected}</span> Unqualified</span>
+            </div>
+            <div className="relative max-w-xs flex-1">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
+              <input
+                value={search}
+                onChange={e => { setSearch(e.target.value); setPage(1) }}
+                placeholder="Search company, contact, agent…"
+                className="w-full h-8 rounded-md border border-input bg-background pl-7 pr-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
           </div>
 
           {loading ? (
@@ -345,6 +316,18 @@ export function LeadsContent() {
                       {selected.aiReport.keyStrengths.map((s, i) => (
                         <li key={i} className="text-sm flex items-start gap-1.5">
                           <CheckCircle2 className="w-3.5 h-3.5 text-green-600 mt-0.5 shrink-0" /> {s}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {selected.aiReport?.weaknesses && selected.aiReport.weaknesses.length > 0 && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-1">Concerns</p>
+                    <ul className="space-y-1">
+                      {selected.aiReport.weaknesses.map((w, i) => (
+                        <li key={i} className="text-sm flex items-start gap-1.5">
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-600 mt-0.5 shrink-0" /> {w}
                         </li>
                       ))}
                     </ul>

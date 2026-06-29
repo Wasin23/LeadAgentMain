@@ -4,6 +4,7 @@ import { leadEmail } from '../tools/leadEmail.js';
 import { authenticateToken } from '../middleware/jwt.js';
 import AWSEmailQueue from '../utils/awsEmailQueue.js';
 import { autoScheduleFollowUp } from '../utils/rebumpChecker.js';
+import { buildComplianceFooter } from './unsubscribe.js';
 import { desktopNotifications } from '../utils/desktopNotifications.js';
 import AWSManager from '../utils/awsManager.js';
 
@@ -666,6 +667,14 @@ router.post('/:id/approve', async (req, res) => {
 
     // Strip sentinel if chat was disabled or injection failed
     emailBodyWithChat = emailBodyWithChat.replace('<!--MERIDIAN_FOOTER-->', '');
+
+    // Append legal compliance footer (company branding + unsubscribe link) — built fresh
+    // at actual send time, never baked into the editable draft.
+    emailBodyWithChat += buildComplianceFooter({
+      recipientEmail: finalRecipient,
+      userId,
+      companyBranding: agentCompanyBranding,
+    }).replace('<!--MERIDIAN_FOOTER-->', '');
 
     const sendResult = await leadEmail(
       finalRecipient,

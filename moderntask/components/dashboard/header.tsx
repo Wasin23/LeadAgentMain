@@ -8,6 +8,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { MobileNav } from "./mobile-nav"
 import { GlobalSearch, type GlobalSearchProps } from "./global-search"
+import { HomeActions } from "./home-actions"
+import { useGettingStarted } from "./use-getting-started"
 import type { ReactNode } from "react"
 import { useState, useEffect } from "react"
 import { useAuth } from "@/contexts/AuthContext"
@@ -113,6 +115,7 @@ export function Header({
   const [profilePicture, setProfilePicture] = useState<string>("")
   const [crmName, setCrmName]               = useState<string | null | undefined>(undefined) // undefined = loading
   const [planStatus, setPlanStatus]         = useState<PlanStatusResponse | null>(null)
+  const { checklist, isPaidPlan } = useGettingStarted()
 
   // Sync with billing tab credit calculation
   useEffect(() => {
@@ -204,6 +207,8 @@ export function Header({
           />
 
           {actions && <div className="flex items-center">{actions}</div>}
+
+          <HomeActions mode="get-started" checklist={checklist} isPaidPlan={isPaidPlan} />
         </div>
 
         <div className="flex items-center gap-1.5 md:gap-2">

@@ -111,23 +111,32 @@ function logIcon(msg: string): LucideIcon {
   return Activity
 }
 
-// ── easter egg ───────────────────────────────────────────────────────────────
+// ── real refund total (credits refunded for disqualified/rejected leads) ─────
 function TotalRefundCounter() {
-  const [credits, setCredits] = useState(() => Math.floor(Math.random() * 40) + 10)
+  const [credits, setCredits] = useState<number | null>(null)
 
   useEffect(() => {
-    const id = setInterval(() => {
-      setCredits(c => c + Math.floor(Math.random() * 3) + 1)
-    }, 2500)
-    return () => clearInterval(id)
+    let cancelled = false
+    api.get('/api/notifications', { params: { limit: 100 } }).then(r => {
+      if (cancelled) return
+      const notifications: Record<string, unknown>[] = r.data?.notifications ?? []
+      const total = notifications.reduce((sum, n) => {
+        const refunded = (n.data as Record<string, unknown> | undefined)?.creditsRefunded
+        return typeof refunded === 'number' ? sum + refunded : sum
+      }, 0)
+      setCredits(total)
+    }).catch(() => setCredits(0))
+    return () => { cancelled = true }
   }, [])
+
+  if (credits === null) return null
 
   return (
     <span
       className="text-[10px] font-medium text-muted-foreground/70 tabular-nums select-none"
-      title="This number means nothing. Please don't ask for a refund."
+      title="Credits refunded for disqualified or rejected leads"
     >
-      Total Refunds: {credits.toLocaleString()} credits
+      Total Refunds: {credits.toFixed(1)} credits
     </span>
   )
 }

@@ -17,6 +17,7 @@ import { leadEmail } from '../tools/leadEmail.js';
 import { sendSystemEmail } from '../tools/emailMailgun.js';
 import { sendSMS } from './smsManager.js';
 import { QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { buildComplianceFooter } from '../routes/unsubscribe.js';
 
 // How close to sendTime we need to be (in minutes) to fire.
 // 1 means: fire within the same minute as the scheduled time.
@@ -328,25 +329,35 @@ async function approveAndSend(awsQueue, awsManagerInst, userId, agentId, email) 
 
     const personInfo = approvedEmail.leadDetails?.personInfo || null;
 
-    // Fetch CC / BCC / senderName from agent settings
+    // Fetch CC / BCC / senderName / companyBranding from agent settings
     let ccEmails = approvedEmail.cc || approvedEmail.emailData?.cc || null;
     let bccEmails = approvedEmail.bcc || approvedEmail.emailData?.bcc || null;
     let senderName = null;
+    let companyBranding = null;
     try {
       const agentSettings = await awsManagerInst.getLeadAgentSettings(userId, agentId);
       if (agentSettings) {
         if (!ccEmails && agentSettings.emailBuilder?.ccEmails)  ccEmails  = agentSettings.emailBuilder.ccEmails;
         if (!bccEmails && agentSettings.emailBuilder?.bccEmails) bccEmails = agentSettings.emailBuilder.bccEmails;
         senderName = agentSettings.companyName || agentSettings.emailBuilder?.companyName || null;
+        companyBranding = agentSettings.companyBranding || null;
       }
     } catch { /* non-fatal */ }
 
     const replyOptions = approvedEmail.replyOptions || null;
 
+    // Append legal compliance footer (company branding + unsubscribe link) — built fresh
+    // at actual send time, never baked into the editable draft.
+    const finalBodyWithFooter = finalBody + buildComplianceFooter({
+      recipientEmail: finalRecipient,
+      userId,
+      companyBranding,
+    }).replace('<!--MERIDIAN_FOOTER-->', '');
+
     const sendResult = await leadEmail(
       finalRecipient,
       finalSubject,
-      finalBody,
+      finalBodyWithFooter,
       personInfo,
       userId,
       agentId,

@@ -165,18 +165,23 @@ export function HomeSections({
 
   return (
     <div className="space-y-3">
-      {/* Hero row — scheduled calendar / agent status+health / chart, side by side */}
+      {/* Hero row — scheduled calendar / activity feed / chart, side by side */}
       <div className="grid grid-cols-1 gap-4 md:gap-5 @5xl:grid-cols-3">
         <div className="min-w-0">
           <ScheduledActivityCalendar batches={scheduledBatches} followUps={followUps} onChanged={onScheduleChanged} />
         </div>
-        <div className="min-w-0 flex flex-col gap-4 md:gap-5">
-          <TeamCollaboration agents={agentActivity} />
-          <DeliveryHealthCard sent={sent} bounced={bounced} opened={opened} />
+        <div className="min-w-0">
+          <ActivityFeed notifications={notifications} exportState={exportState} />
         </div>
         <div className="min-w-0">
           <EmailActivityCard emailTimeSeries={emailTimeSeries} />
         </div>
+      </div>
+
+      {/* Agent status + delivery health — below the hero row */}
+      <div className="grid grid-cols-1 gap-4 md:gap-5 @5xl:grid-cols-2">
+        <TeamCollaboration agents={agentActivity} />
+        <DeliveryHealthCard sent={sent} bounced={bounced} opened={opened} />
       </div>
 
       {/* Add pills — always shown when editing and sections are hidden */}
@@ -234,8 +239,6 @@ export function HomeSections({
           </div>
         </SortableContext>
       </DndContext>
-
-      <ActivityFeed notifications={notifications} exportState={exportState} />
     </div>
   )
 }

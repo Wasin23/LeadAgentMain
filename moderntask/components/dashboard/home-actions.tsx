@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Bot, CheckCircle, Circle, ChevronDown, ArrowRight, Play, Mail, UserCheck, Users2, Settings } from "lucide-react"
 import type { GettingStartedChecklist } from "@/components/dashboard/getting-started"
+import { PersonalChecklist } from "@/components/dashboard/personal-checklist"
 
 const QUICK_ACTIONS = [
   { label: "Start All",       icon: Play,      href: "/prospecting",            accent: "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10" },
@@ -78,6 +79,8 @@ export function HomeActions({ checklist, isPaidPlan = false, mode }: Props) {
   }
 
   if (mode === "get-started") {
+    if (checklist && allDone) return <PersonalChecklist />
+
     return (
       <div ref={ref} className="relative">
         <Button

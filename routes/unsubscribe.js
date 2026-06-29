@@ -30,6 +30,26 @@ function generateUnsubscribeToken(email) {
 }
 
 /**
+ * Build the legal compliance footer (company branding + unsubscribe link) for an
+ * outgoing email. Generated fresh at actual send time — NOT baked into the
+ * editable draft — so the unsubscribe token's 30-day clock starts at send,
+ * and reviewers can't accidentally edit or remove it.
+ */
+function buildComplianceFooter({ recipientEmail, userId, companyBranding }) {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const unsubscribeUrl = `${frontendUrl}/unsubscribe?token=${generateUnsubscribeToken(recipientEmail)}&uid=${userId}`;
+
+  const companyWebsite = companyBranding?.companyWebsite || companyBranding?.website || '';
+  const footerParts = [companyBranding?.companyName || 'Our Company'];
+  if (companyWebsite) {
+    const displayHost = companyWebsite.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    footerParts.push(`<a href="${companyWebsite}" style="color:#6b7280;text-decoration:none;">${displayHost}</a>`);
+  }
+
+  return `\n\n<!--MERIDIAN_FOOTER-->${footerParts.join(' | ')}\n<a href="${unsubscribeUrl}">Stop emails</a>`;
+}
+
+/**
  * Validate unsubscribe token
  */
 function validateUnsubscribeToken(token) {
@@ -302,5 +322,5 @@ router.get('/list', async (req, res) => {
 });
 
 // Export token generation function for use in email generation
-export { generateUnsubscribeToken };
+export { generateUnsubscribeToken, buildComplianceFooter };
 export default router;

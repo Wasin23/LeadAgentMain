@@ -13,7 +13,6 @@ import { ProjectAnalytics } from "@/components/dashboard/project-analytics"
 import { QuickActions } from "@/components/dashboard/quick-actions"
 import { HomeActions } from "@/components/dashboard/home-actions"
 import { WelcomeMessage } from "@/components/dashboard/welcome-message"
-import type { GettingStartedChecklist } from "@/components/dashboard/getting-started"
 import type { QueueChartDataPoint } from "@/components/dashboard/project-analytics"
 import type { AgentActivityItem } from "@/components/dashboard/team-collaboration"
 import type { ScheduledBatch, FollowUpItem } from "@/components/dashboard/scheduled-activity-calendar"
@@ -82,15 +81,6 @@ export default function DashboardPage() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [notifCount, setNotifCount] = useState(0)
 
-  // getting-started checklist (derived from live data — persists naturally)
-  const [checklist, setChecklist] = useState<GettingStartedChecklist>({
-    hasAgent: false,
-    emailConnected: false,
-    agentStarted: false,
-    gotReply: false,
-    hasSecondAgent: false,
-  })
-  const [isPaidPlan, setIsPaidPlan] = useState(false)
   const [editMode, setEditMode] = useState(false)
 
   const fetchAll = useCallback(async () => {
@@ -116,8 +106,6 @@ export default function DashboardPage() {
     ])
 
     if (planRes.status === "fulfilled") {
-      const planId = planRes.value.data?.plan?.id || "free-trial"
-      setIsPaidPlan(planId !== "free-trial")
       const d = planRes.value.data
       const bal = Number(d.credits?.remaining ?? d.plan?.remainingCredits ?? 0)
       if (bal > 0) setCreditBalance(Math.round(bal))
@@ -133,12 +121,6 @@ export default function DashboardPage() {
         queued: d.queued ?? 0,
         replied,
       })
-      // Update the parts of checklist that depend on counts
-      setChecklist((prev) => ({
-        ...prev,
-        agentStarted: prev.agentStarted,
-        gotReply: replied > 0,
-      }))
     }
 
     // ── agents ──────────────────────────────────────────────────────────
@@ -171,21 +153,6 @@ export default function DashboardPage() {
               null,
           }))
       )
-
-      // checklist state — derived from live agent + email data
-      const nonOrphanAgents = agents.filter((a) => a.agentId !== "orphan")
-      const anyEmailConnected = nonOrphanAgents.some((a) => {
-        const eb = ((a.settings as Record<string, unknown>)?.emailBuilder as Record<string, unknown>) || {}
-        return eb.useGmail === true || eb.useOutlook === true
-      })
-      setChecklist((prev) => ({
-        ...prev,
-        hasAgent: nonOrphanAgents.length > 0,
-        emailConnected: anyEmailConnected,
-        agentStarted: nonOrphanAgents.some((a) => a.isRunning === true || a.status === "running" || Boolean(a.lastRun)),
-        hasSecondAgent: nonOrphanAgents.length > 1,
-      }))
-
     }
 
     // ── queued emails → chart ────────────────────────────────────────────
@@ -332,7 +299,6 @@ export default function DashboardPage() {
           userName={userName}
           userEmail={userEmail}
           userPicture={userPicture}
-          actions={<HomeActions checklist={checklist} isPaidPlan={isPaidPlan} mode="get-started" />}
         />
 
         <div className="space-y-3 md:space-y-4">
@@ -340,7 +306,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <WelcomeMessage name={userName?.split(" ")[0]} />
             <div className="flex items-center gap-2 shrink-0">
-              <HomeActions checklist={checklist} isPaidPlan={isPaidPlan} mode="create-agent" />
+              <HomeActions mode="create-agent" />
               <button
                 onClick={() => setEditMode(e => !e)}
                 className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium border transition-all ${

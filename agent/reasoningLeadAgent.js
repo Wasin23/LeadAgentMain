@@ -4897,34 +4897,10 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       }
       
       
-      // Add legal compliance footer
-      const { generateUnsubscribeToken } = await import('../routes/unsubscribe.js');
-      const unsubscribeToken = generateUnsubscribeToken(leadData.email);
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      const unsubscribeUrl = `${frontendUrl}/unsubscribe?token=${unsubscribeToken}&uid=${this.userId}`;
-      
-      // Get company address from settings (use company profile)
-      
-      const companyAddress = this.memory.userSettings?.companyProfile?.companyAddress || 
-                            this.memory.userSettings?.companyAddress || 
-                            emailSettings.companyBranding?.companyAddress ||
-                            'Your Company Address';
-      
-      
-      // Minimal compliance footer - less promotional looking
-      const companyWebsite = emailSettings.companyBranding?.companyWebsite ||
-                             emailSettings.companyBranding?.website ||
-                             this.memory.userSettings?.companyProfile?.website ||
-                             this.memory.userSettings?.companyProfile?.companyWebsite || '';
-      const footerParts = [emailSettings.companyBranding?.companyName || 'Our Company'];
-      if (companyWebsite) {
-        const displayHost = companyWebsite.replace(/^https?:\/\//, '').replace(/\/$/, '');
-        footerParts.push(`<a href="${companyWebsite}" style="color:#6b7280;text-decoration:none;">${displayHost}</a>`);
-      }
-      const footer = `\n\n<!--MERIDIAN_FOOTER-->${footerParts.join(' | ')}\n` +
-        `<a href="${unsubscribeUrl}">Stop emails</a>`;
-
-      body = body + footer;
+      // Legal compliance footer (company branding + unsubscribe link) is now appended
+      // fresh at actual send time (routes/emailQueue.js, utils/sendingScheduleProcessor.js,
+      // utils/emailScheduler.js) instead of being baked into the draft here — keeps it out
+      // of the editable preview so reviewers can't accidentally edit or strip it.
 
       return {
         success: true,
