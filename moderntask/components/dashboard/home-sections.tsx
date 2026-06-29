@@ -165,7 +165,7 @@ export function HomeSections({
 
   return (
     <div className="space-y-3">
-      {/* Hero row — scheduled calendar / chart / activity feed, side by side, all stretched to match the tallest */}
+      {/* Hero row — scheduled calendar / chart / activity feed, side by side, all matching the calendar's height */}
       <div className="grid grid-cols-1 gap-4 md:gap-5 @5xl:grid-cols-3 items-stretch">
         <div className="min-w-0">
           <ScheduledActivityCalendar batches={scheduledBatches} followUps={followUps} onChanged={onScheduleChanged} />
