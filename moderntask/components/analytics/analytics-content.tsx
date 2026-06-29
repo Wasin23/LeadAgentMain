@@ -68,10 +68,10 @@ function buildMonthlyCredits(emails: any[]) {
 }
 
 function buildDomainStats(emails: any[], limit = 10) {
-  const map: Record<string, { sent: number; bounced: number; opened: number }> = {}
+  const map: Record<string, { sent: number; bounced: number; opened: number; primary: number; promotional: number }> = {}
   emails.forEach((e: any) => {
     const sender: string = (e.fromAccount || e.from || 'Unknown').toLowerCase()
-    if (!map[sender]) map[sender] = { sent: 0, bounced: 0, opened: 0 }
+    if (!map[sender]) map[sender] = { sent: 0, bounced: 0, opened: 0, primary: 0, promotional: 0 }
     const sk: string = e.SK || ''
     if (sk.startsWith('BOUNCED#')) {
       map[sender].bounced++
@@ -79,6 +79,8 @@ function buildDomainStats(emails: any[], limit = 10) {
       map[sender].sent++
     }
     if (e.opened) map[sender].opened++
+    if (e.inboxPlacement === 'primary') map[sender].primary++
+    else if (e.inboxPlacement === 'promotional') map[sender].promotional++
   })
   return Object.entries(map)
     .sort((a, b) => (b[1].sent + b[1].bounced) - (a[1].sent + a[1].bounced))
@@ -93,6 +95,8 @@ function buildDomainStats(emails: any[], limit = 10) {
         Opened: d.opened,
         'Success Rate': total > 0 ? parseFloat((((total - d.bounced) / total) * 100).toFixed(1)) : 0,
         'Open Rate': total > 0 ? parseFloat(((d.opened / total) * 100).toFixed(1)) : 0,
+        'Primary Inbox': total > 0 ? parseFloat(((d.primary / total) * 100).toFixed(1)) : 0,
+        'Promotional Inbox': total > 0 ? parseFloat(((d.promotional / total) * 100).toFixed(1)) : 0,
       }
     })
 }
@@ -234,6 +238,9 @@ export function AnalyticsContent({ onExportReady }: { onExportReady?: (state: Ex
           : [])
       : dailyCredits.slice(-30)
 
+  const creditMaxTick = Math.max(10, Math.ceil(Math.max(0, ...creditSeries.map((p: any) => p.Credits ?? 0)) / 10) * 10)
+  const creditTicks = Array.from({ length: creditMaxTick / 10 + 1 }, (_, i) => i * 10)
+
   const exportReport = useCallback(() => {
     const rows: string[] = []
     const q = (s: string) => `"${String(s ?? '').replace(/"/g, '""')}"`
@@ -267,9 +274,9 @@ export function AnalyticsContent({ onExportReady }: { onExportReady?: (state: Ex
 
     // ── Sender Delivery Stats ────────────────────────────────────────────
     rows.push('SENDER DELIVERY STATS')
-    rows.push(['Sender', 'Total Sent', 'Bounced', 'Opened', 'Success Rate', 'Open Rate'].map(q).join(','))
+    rows.push(['Sender', 'Total Sent', 'Bounced', 'Opened', 'Success Rate', 'Open Rate', 'Primary Inbox', 'Promotional Inbox'].map(q).join(','))
     domainStats.forEach(d => {
-      rows.push([q(d.fullSender), q(d.Sent), q(d.Bounced), q(d.Opened), q(d['Success Rate'] + '%'), q(d['Open Rate'] + '%')].join(','))
+      rows.push([q(d.fullSender), q(d.Sent), q(d.Bounced), q(d.Opened), q(d['Success Rate'] + '%'), q(d['Open Rate'] + '%'), q(d['Primary Inbox'] + '%'), q(d['Promotional Inbox'] + '%')].join(','))
     })
     rows.push('')
 
@@ -389,7 +396,15 @@ export function AnalyticsContent({ onExportReady }: { onExportReady?: (state: Ex
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" strokeOpacity={0.6} vertical={false} />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-              <YAxis tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }} tickLine={false} axisLine={false} width={28} allowDecimals={false} />
+              <YAxis
+                tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }}
+                tickLine={false}
+                axisLine={false}
+                width={28}
+                allowDecimals={false}
+                domain={[0, creditMaxTick]}
+                ticks={creditTicks}
+              />
               <Tooltip content={<ChartTooltip />} />
               <Bar dataKey="Credits" fill="url(#gCredit)" radius={[4, 4, 0, 0]} />
             </BarChart>
@@ -414,13 +429,13 @@ export function AnalyticsContent({ onExportReady }: { onExportReady?: (state: Ex
             : domainStats.length === 0
               ? <div className="h-[240px] flex items-center justify-center text-xs text-muted-foreground">No emails sent yet</div>
               : (
-                <ResponsiveContainer width="100%" height={240}>
+                <ResponsiveContainer width="100%" height={280}>
                   <BarChart
                     data={domainStats}
                     layout="vertical"
                     margin={{ top: 0, right: 40, left: 8, bottom: 0 }}
-                    barSize={9}
-                    barGap={3}
+                    barSize={7}
+                    barGap={2}
                     barCategoryGap="28%"
                   >
                     <defs>
@@ -431,6 +446,14 @@ export function AnalyticsContent({ onExportReady }: { onExportReady?: (state: Ex
                       <linearGradient id="gOpenRate" x1="0" y1="0" x2="1" y2="0">
                         <stop offset="0%"   stopColor="var(--brass)" stopOpacity={0.9} />
                         <stop offset="100%" stopColor="var(--brass)" stopOpacity={0.5} />
+                      </linearGradient>
+                      <linearGradient id="gPrimary" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%"   stopColor="#3b82f6" stopOpacity={0.9} />
+                        <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.5} />
+                      </linearGradient>
+                      <linearGradient id="gPromo" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%"   stopColor="#a855f7" stopOpacity={0.9} />
+                        <stop offset="100%" stopColor="#a855f7" stopOpacity={0.5} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" strokeOpacity={0.6} horizontal={false} />
@@ -447,13 +470,16 @@ export function AnalyticsContent({ onExportReady }: { onExportReady?: (state: Ex
                             <p className="text-muted-foreground">Bounced: <span className="text-foreground font-medium">{d.Bounced}</span></p>
                             <p className="text-muted-foreground">Success rate: <span className="text-success font-semibold">{d['Success Rate']}%</span></p>
                             <p className="text-muted-foreground">Opened: <span className="text-foreground font-medium">{d.Opened}</span> · Open rate: <span className="text-warning-soft-foreground font-semibold">{d['Open Rate']}%</span></p>
+                            <p className="text-muted-foreground">Primary inbox: <span className="font-semibold" style={{ color: '#3b82f6' }}>{d['Primary Inbox']}%</span> · Promotional/other: <span className="font-semibold" style={{ color: '#a855f7' }}>{d['Promotional Inbox']}%</span></p>
                           </div>
                         )
                       }}
                     />
                     <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11, paddingTop: 8, color: 'var(--muted-foreground)' }} />
-                    <Bar dataKey="Success Rate" name="Success Rate" fill="url(#gSuccess)" radius={[0, 3, 3, 0]} />
-                    <Bar dataKey="Open Rate"    name="Open Rate"    fill="url(#gOpenRate)" radius={[0, 3, 3, 0]} />
+                    <Bar dataKey="Success Rate"      name="Success Rate"      fill="url(#gSuccess)" radius={[0, 3, 3, 0]} />
+                    <Bar dataKey="Open Rate"         name="Open Rate"         fill="url(#gOpenRate)" radius={[0, 3, 3, 0]} />
+                    <Bar dataKey="Primary Inbox"     name="Primary Inbox"     fill="url(#gPrimary)" radius={[0, 3, 3, 0]} />
+                    <Bar dataKey="Promotional Inbox" name="Promotional Inbox" fill="url(#gPromo)" radius={[0, 3, 3, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}

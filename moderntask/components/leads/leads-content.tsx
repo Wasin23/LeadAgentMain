@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button'
 import {
   CheckCircle2, Search, Building2, ExternalLink, X,
   ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight,
-  Linkedin, Newspaper, Globe, FileText, Mail, Info, AlertTriangle,
+  Linkedin, Newspaper, Globe, FileText, Mail, Info, AlertTriangle, ArrowUpDown, Check,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
 interface AIReport {
   companyName?: string
@@ -35,6 +36,13 @@ interface LeadRecord {
   aiReport?: AIReport
 }
 
+// Strips the compliance footer (company branding + unsubscribe link) from a body for
+// display — it's appended fresh at actual send time and shouldn't be shown in the UI.
+function stripFooter(body: string) {
+  const idx = body.indexOf('<!--MERIDIAN_FOOTER-->')
+  return idx === -1 ? body : body.slice(0, idx).replace(/\s+$/, '')
+}
+
 function extractLead(e: Record<string, unknown>, status: 'queued' | 'sent', agentNameById: Map<string, string>): LeadRecord {
   const leadDetails = (e.leadDetails as Record<string, unknown>) || {}
   const personInfo = (leadDetails.personInfo as Record<string, unknown>) || {}
@@ -49,7 +57,7 @@ function extractLead(e: Record<string, unknown>, status: 'queued' | 'sent', agen
     contactName: aiReport?.contactName || (personInfo.fullName as string) || (personInfo.name as string) || (e.leadName as string) || (e.recipientName as string) || '',
     status,
     subject: (emailData.finalSubject as string) || (e.subject as string),
-    body: (emailData.finalBody as string) || (e.body as string),
+    body: stripFooter((emailData.finalBody as string) || (e.body as string) || ''),
     aiReport,
   }
 }
@@ -81,16 +89,16 @@ function ScoreMeter({ value }: { value: number }) {
   )
 }
 
-function confidenceDotCount(confidence?: string): number {
-  const c = (confidence || '').toLowerCase()
-  if (c === 'high') return 5
-  if (c === 'medium') return 3
-  if (c === 'low') return 2
-  return 0
+// Confidence is only a 3-tier label (low/medium/high) from the model, which only gives
+// 1/3/5 dots of variation. Use the numeric score to spread it across the full 1-5 range
+// instead, while keeping the label's color for the tier the dots are filled in.
+function confidenceDotCount(score?: number): number {
+  if (score === undefined) return 0
+  return Math.min(5, Math.max(1, Math.round(score / 20)))
 }
 
-function ConfidenceDots({ confidence }: { confidence?: string }) {
-  const filled = confidenceDotCount(confidence)
+function ConfidenceDots({ confidence, score }: { confidence?: string; score?: number }) {
+  const filled = confidenceDotCount(score)
   const c = (confidence || '').toLowerCase()
   const color = c === 'high' ? 'var(--success)' : c === 'medium' ? 'var(--brass)' : 'var(--destructive)'
   return (
@@ -102,6 +110,21 @@ function ConfidenceDots({ confidence }: { confidence?: string }) {
   )
 }
 
+type SortKey = 'score-desc' | 'score-asc' | 'confidence-desc' | 'confidence-asc' | 'status' | 'assigned' | 'alpha'
+
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: 'score-desc', label: 'Fit Score (High → Low)' },
+  { key: 'score-asc', label: 'Fit Score (Low → High)' },
+  { key: 'confidence-desc', label: 'Confidence (High → Low)' },
+  { key: 'confidence-asc', label: 'Confidence (Low → High)' },
+  { key: 'status', label: 'Status' },
+  { key: 'assigned', label: 'Assigned (A → Z)' },
+  { key: 'alpha', label: 'Company (A → Z)' },
+]
+
+const TIER_RANK: Record<string, number> = { HIGHLY_QUALIFIED: 4, QUALIFIED: 3, SHOTGUN: 2, REJECTED: 1 }
+const CONFIDENCE_RANK: Record<string, number> = { high: 3, medium: 2, low: 1 }
+
 export function LeadsContent() {
   const [leads, setLeads] = useState<LeadRecord[]>([])
   const [loading, setLoading] = useState(true)
@@ -109,6 +132,8 @@ export function LeadsContent() {
   const [page, setPage] = useState(1)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [detailTab, setDetailTab] = useState<'research' | 'sources' | 'draft'>('research')
+  const [sortKey, setSortKey] = useState<SortKey>('score-desc')
+  const [sortOpen, setSortOpen] = useState(false)
   const pageSize = 10
 
   const load = useCallback(async () => {
@@ -143,6 +168,27 @@ export function LeadsContent() {
     return leads.filter(l => `${l.company} ${l.contactName} ${l.agentName ?? ''}`.toLowerCase().includes(q))
   }, [leads, search])
 
+  const sorted = useMemo(() => {
+    const arr = [...filtered]
+    switch (sortKey) {
+      case 'score-desc':
+        arr.sort((a, b) => (b.aiReport?.score ?? -1) - (a.aiReport?.score ?? -1)); break
+      case 'score-asc':
+        arr.sort((a, b) => (a.aiReport?.score ?? 999) - (b.aiReport?.score ?? 999)); break
+      case 'confidence-desc':
+        arr.sort((a, b) => (CONFIDENCE_RANK[(b.aiReport?.confidence || '').toLowerCase()] ?? 0) - (CONFIDENCE_RANK[(a.aiReport?.confidence || '').toLowerCase()] ?? 0)); break
+      case 'confidence-asc':
+        arr.sort((a, b) => (CONFIDENCE_RANK[(a.aiReport?.confidence || '').toLowerCase()] ?? 0) - (CONFIDENCE_RANK[(b.aiReport?.confidence || '').toLowerCase()] ?? 0)); break
+      case 'status':
+        arr.sort((a, b) => (TIER_RANK[b.aiReport?.tier ?? ''] ?? 0) - (TIER_RANK[a.aiReport?.tier ?? ''] ?? 0)); break
+      case 'assigned':
+        arr.sort((a, b) => (a.agentName ?? '').localeCompare(b.agentName ?? '')); break
+      case 'alpha':
+        arr.sort((a, b) => (a.company ?? '').localeCompare(b.company ?? '')); break
+    }
+    return arr
+  }, [filtered, sortKey])
+
   const counts = useMemo(() => {
     let qualified = 0, research = 0, rejected = 0
     for (const l of leads) {
@@ -154,8 +200,8 @@ export function LeadsContent() {
     return { qualified, research, rejected, total: leads.length }
   }, [leads])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
-  const pageItems = filtered.slice((page - 1) * pageSize, page * pageSize)
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
+  const pageItems = sorted.slice((page - 1) * pageSize, page * pageSize)
   const selected = leads.find(l => l.id === selectedId) || null
 
   const tierColors: Record<string, string> = {
@@ -191,6 +237,26 @@ export function LeadsContent() {
                 className="w-full h-8 rounded-md border border-input bg-background pl-7 pr-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
               />
             </div>
+            <Popover open={sortOpen} onOpenChange={setSortOpen}>
+              <PopoverTrigger asChild>
+                <button className="flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-input bg-background px-2.5 text-xs font-medium text-foreground/80 hover:bg-accent">
+                  <ArrowUpDown className="h-3 w-3" />
+                  Sort
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-56 p-1">
+                {SORT_OPTIONS.map(opt => (
+                  <button
+                    key={opt.key}
+                    onClick={() => { setSortKey(opt.key); setSortOpen(false) }}
+                    className="flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-left text-xs hover:bg-accent"
+                  >
+                    {opt.label}
+                    {sortKey === opt.key && <Check className="h-3.5 w-3.5 text-primary" />}
+                  </button>
+                ))}
+              </PopoverContent>
+            </Popover>
           </div>
 
           {loading ? (
@@ -232,7 +298,7 @@ export function LeadsContent() {
                       <td className="py-2.5 px-3">
                         <div className="space-y-1">
                           <p>{l.aiReport?.confidence ?? '—'}</p>
-                          <ConfidenceDots confidence={l.aiReport?.confidence} />
+                          <ConfidenceDots confidence={l.aiReport?.confidence} score={l.aiReport?.score} />
                         </div>
                       </td>
                       <td className="py-2.5 px-3">

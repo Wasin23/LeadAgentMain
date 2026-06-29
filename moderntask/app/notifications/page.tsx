@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Bell, Reply, Eye, XCircle, Calendar, AlertTriangle, ArrowLeft, CheckCheck, RefreshCw, Inbox, Send, Mail, MessageSquare, Phone } from 'lucide-react'
+import { Bell, Reply, Eye, XCircle, Calendar, AlertTriangle, ArrowLeft, CheckCheck, RefreshCw, Inbox, Send, Mail, MessageSquare, Phone, Bot, CreditCard, Info, Server } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
@@ -24,13 +24,24 @@ interface Notification {
   data?: Record<string, any>
 }
 
+const DEFAULT_META = { icon: Info, bg: 'bg-slate-500/10 border-slate-500/20', badge: 'bg-slate-500/20 text-slate-400', label: 'Info' }
+
 const TYPE_META: Record<NotifType, { icon: React.ComponentType<{ className?: string }>; bg: string; badge: string; label: string }> = {
   reply:       { icon: Reply,        bg: 'bg-blue-500/10 border-blue-500/20',   badge: 'bg-blue-500/20 text-blue-400',   label: 'Reply' },
   view:        { icon: Eye,          bg: 'bg-green-500/10 border-green-500/20', badge: 'bg-green-500/20 text-green-400', label: 'Opened' },
   failed_send: { icon: XCircle,      bg: 'bg-red-500/10 border-red-500/20',     badge: 'bg-red-500/20 text-red-400',     label: 'Failed' },
   meeting:     { icon: Calendar,     bg: 'bg-purple-500/10 border-purple-500/20', badge: 'bg-purple-500/20 text-purple-400', label: 'Meeting' },
   issue:       { icon: AlertTriangle, bg: 'bg-yellow-500/10 border-yellow-500/20', badge: 'bg-yellow-500/20 text-yellow-400', label: 'Issue' },
+  warning:     { icon: AlertTriangle, bg: 'bg-yellow-500/10 border-yellow-500/20', badge: 'bg-yellow-500/20 text-yellow-400', label: 'Warning' },
+  error:       { icon: AlertTriangle, bg: 'bg-red-500/10 border-red-500/20',     badge: 'bg-red-500/20 text-red-400',     label: 'Error' },
   batch_send:  { icon: Send,         bg: 'bg-indigo-500/10 border-indigo-500/20', badge: 'bg-indigo-500/20 text-indigo-400', label: 'Batch Sent' },
+  email:       { icon: Mail,         bg: 'bg-green-500/10 border-green-500/20', badge: 'bg-green-500/20 text-green-400', label: 'Email' },
+  agent:       { icon: Bot,          bg: 'bg-slate-500/10 border-slate-500/20', badge: 'bg-slate-500/20 text-slate-400', label: 'Agent' },
+  info:        DEFAULT_META,
+  billing:     { icon: CreditCard,   bg: 'bg-amber-500/10 border-amber-500/20', badge: 'bg-amber-500/20 text-amber-400', label: 'Billing' },
+  system:      { icon: Server,       bg: 'bg-slate-500/10 border-slate-500/20', badge: 'bg-slate-500/20 text-slate-400', label: 'System' },
+  chat:        { icon: MessageSquare, bg: 'bg-blue-500/10 border-blue-500/20',  badge: 'bg-blue-500/20 text-blue-400',   label: 'Chat' },
+  scheduled_send: { icon: Calendar,  bg: 'bg-indigo-500/10 border-indigo-500/20', badge: 'bg-indigo-500/20 text-indigo-400', label: 'Scheduled Send' },
 }
 
 const SEVERITY_COLORS: Record<Severity, string> = {
@@ -120,7 +131,7 @@ export default function NotificationsPage() {
 
   const unreadCount = notifications.filter(n => !n.read).length
 
-  const getMeta = (type: NotifType) => TYPE_META[type] ?? TYPE_META['issue']
+  const getMeta = (type: NotifType) => TYPE_META[type] ?? DEFAULT_META
 
   const formatTime = (ts: string) => {
     try {

@@ -127,6 +127,13 @@ function leadCompany(e: AnalyticsEmail) { return e.personInfo?.company || e.lead
 function sentDate(e: AnalyticsEmail) { return e.sentAt || e.timestamp || '' }
 function emailId(e: AnalyticsEmail) { return e.trackingId || e.id || '' }
 
+// Strips the compliance footer (company branding + unsubscribe link) from a body for
+// display — it's appended fresh at actual send time and shouldn't be shown in the UI.
+function stripFooter(body: string) {
+  const idx = body.indexOf('<!--MERIDIAN_FOOTER-->')
+  return idx === -1 ? body : body.slice(0, idx).replace(/\s+$/, '')
+}
+
 function replyClassText(value?: string | null) {
   if (!value) return 'Neutral'
   return value.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase())
@@ -309,7 +316,7 @@ function SentRow({ email, onEditFollowUp, onScheduleFollowUp, onSendNow, onCance
                   {(email.rebumpCount ?? 0) > 0 && <span className="text-muted-foreground">· {email.rebumpCount} sent</span>}
                 </div>
               )}
-              {email.body && <div className="col-span-2"><span className="font-medium text-foreground mr-1">Body</span><span className="whitespace-pre-wrap">{email.body}</span></div>}
+              {email.body && <div className="col-span-2"><span className="font-medium text-foreground mr-1">Body</span><span className="whitespace-pre-wrap">{stripFooter(email.body)}</span></div>}
               {email.aiReport && onViewReport && (
                 <div className="col-span-2 pt-1">
                   <button

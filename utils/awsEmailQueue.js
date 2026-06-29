@@ -268,14 +268,14 @@ class AWSEmailQueue {
       trackingEvents.forEach(event => {
         const id = event.trackingId;
         if (!trackingMap.has(id)) {
-          trackingMap.set(id, { opened: false, clicked: false, replied: false, hasProxy: false, events: [] });
+          trackingMap.set(id, { realOpen: false, clicked: false, replied: false, hasProxy: false, events: [] });
         }
         const data = trackingMap.get(id);
         data.events.push(event);
-        
+
         // Set flags based on event type
-        if (event.eventType === 'open') data.opened = true; // Real open (second hit)
-        if (event.eventType === 'proxy') data.hasProxy = true; // First hit (image proxy)
+        if (event.eventType === 'open') data.realOpen = true; // Pixel hit >10s after send — manual/promotional open
+        if (event.eventType === 'proxy') data.hasProxy = true; // Pixel hit <10s after send — Gmail proxy pre-fetch (primary inbox)
         if (event.eventType === 'click') data.clicked = true;
         if (event.eventType === 'reply') data.replied = true;
         if (event.eventType === 'ai_response') data.aiResponded = true;
@@ -284,23 +284,35 @@ class AWSEmailQueue {
       // Enrich each email with its tracking data
       const enrichedEmails = emails.map(email => {
         const tracking = trackingMap.get(email.trackingId) || trackingMap.get(email.id);
-        
+
         if (tracking) {
+          // Any pixel hit (proxy pre-fetch OR a later manual open) counts as "opened" —
+          // Gmail's image proxy caches the pixel after its first fetch, so a genuine human
+          // open frequently never produces a *second* hit. Treating proxy-only hits as
+          // "not opened" was undercounting real opens almost entirely for Gmail recipients.
+          const opened = tracking.realOpen || tracking.hasProxy;
+          // Inbox placement, inferred from which kind of hit we saw: a proxy pre-fetch implies
+          // Gmail rendered the email in the Primary tab (it preloads images there); a pixel hit
+          // with no preceding proxy implies a manual open — most consistent with Promotions/Other tabs.
+          const inboxPlacement = tracking.hasProxy ? 'primary' : (tracking.realOpen ? 'promotional' : null);
+
           return {
             ...email,
             analytics: {
-              opened: tracking.opened,
+              opened,
               clicked: tracking.clicked,
               replied: tracking.replied,
               aiResponded: tracking.aiResponded,
-              hasProxy: tracking.hasProxy
+              hasProxy: tracking.hasProxy,
+              inboxPlacement
             },
-            opened: tracking.opened,
+            opened,
+            inboxPlacement,
             replied: tracking.replied,
             trackingEvents: tracking.events
           };
         }
-        
+
         return email;
       });
 

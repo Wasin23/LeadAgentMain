@@ -63,13 +63,22 @@ export interface AIReport {
   researchQuality?: string
 }
 
+// Strips the compliance footer (company branding + unsubscribe link) from a draft body
+// for display/editing — it's appended fresh at actual send time and shouldn't be shown
+// or editable in the review queue. Covers both the sentinel marker and any legacy drafts
+// that had the footer baked in before send-time injection existed.
+function stripFooter(body: string) {
+  const idx = body.indexOf('<!--MERIDIAN_FOOTER-->')
+  return idx === -1 ? body : body.slice(0, idx).replace(/\s+$/, '')
+}
+
 function ef(e: QueueEmail) {
   return {
     to:      e.emailData?.finalRecipient || e.to      || '',
     cc:      e.emailData?.cc            || e.cc       || '',
     bcc:     e.emailData?.bcc           || e.bcc      || '',
     subject: e.emailData?.finalSubject  || e.subject  || '(no subject)',
-    body:    e.emailData?.finalBody     || e.body      || '',
+    body:    stripFooter(e.emailData?.finalBody || e.body || ''),
     name:    e.leadDetails?.personInfo?.fullName || e.leadDetails?.personInfo?.name || e.leadName || e.recipientName || '',
     company: e.leadDetails?.companyName || '',
   }

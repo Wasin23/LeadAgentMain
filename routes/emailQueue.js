@@ -717,10 +717,10 @@ router.post('/:id/approve', async (req, res) => {
         await awsManager.addIssue(
           userId,
           'email',
-          'low',
           `✅ Email sent to ${leadName}`,
           `Your email to ${leadName} at ${companyName} has been sent successfully.`,
           {
+            severity: 'low',
             emailId: id,
             recipient: finalRecipient,
             subject: finalSubject,

@@ -110,7 +110,7 @@ export function ActivityFeed({ notifications = [], exportState = null }: Activit
   })
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-4 h-[420px] flex flex-col">
+    <div className="rounded-2xl border border-border bg-card p-4 h-full flex flex-col">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-2">
           <h3 className="font-display text-base text-foreground">Activity</h3>

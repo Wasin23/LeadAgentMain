@@ -190,7 +190,7 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
       </div>
 
       <div className="mt-1.5 flex items-center gap-0.5 rounded-md border border-border bg-surface p-0.5">
-        {([["both", "Both"], ["sends", "Sends"], ["followups", "F/U"]] as [Mode, string][]).map(([m, label]) => (
+        {([["both", "Both"], ["sends", "Sends"], ["followups", "Follow-ups"]] as [Mode, string][]).map(([m, label]) => (
           <button
             key={m}
             onClick={() => setMode(m)}

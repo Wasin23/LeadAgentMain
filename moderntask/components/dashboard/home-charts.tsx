@@ -41,7 +41,7 @@ export function EmailActivityCard({ emailTimeSeries = [] }: { emailTimeSeries?: 
     : emailTimeSeries.slice(-PRESET_DAYS[preset])
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-3 h-[420px] flex flex-col">
+    <div className="rounded-2xl border border-border bg-card p-3 h-full flex flex-col">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-1.5">
           <h3 className="font-display text-sm text-foreground">Outreach Performance</h3>
