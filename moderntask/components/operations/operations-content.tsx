@@ -113,11 +113,11 @@ function logIcon(msg: string): LucideIcon {
 
 // ── easter egg ───────────────────────────────────────────────────────────────
 function TotalRefundCounter() {
-  const [amount, setAmount] = useState(() => Math.random() * 40 + 10)
+  const [credits, setCredits] = useState(() => Math.floor(Math.random() * 40) + 10)
 
   useEffect(() => {
     const id = setInterval(() => {
-      setAmount(a => a + Math.random() * 1.5)
+      setCredits(c => c + Math.floor(Math.random() * 3) + 1)
     }, 2500)
     return () => clearInterval(id)
   }, [])
@@ -127,7 +127,7 @@ function TotalRefundCounter() {
       className="text-[10px] font-medium text-muted-foreground/70 tabular-nums select-none"
       title="This number means nothing. Please don't ask for a refund."
     >
-      Total Refunds: ${amount.toFixed(2)}
+      Total Refunds: {credits.toLocaleString()} credits
     </span>
   )
 }

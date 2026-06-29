@@ -203,13 +203,13 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
         ))}
       </div>
 
-      <div className="mt-1.5 grid grid-cols-7 gap-px text-center text-[8px] font-medium text-muted-foreground">
+      <div className="mt-1.5 grid grid-cols-7 gap-px text-center text-[10px] font-bold text-foreground">
         {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => <div key={i}>{d}</div>)}
       </div>
 
-      <div className="mt-0.5 grid grid-cols-7 gap-px">
+      <div className="mt-0.5 grid grid-cols-7 gap-0 rounded-lg border border-border overflow-hidden">
         {cells.map((d, i) => {
-          if (!d) return <div key={i} />
+          if (!d) return <div key={i} className="aspect-[1/1.2] border border-border/50" />
           const key = dayKey(d)
           const items = itemsByDay[key] ?? []
           const isToday = key === todayKey
@@ -218,8 +218,8 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
             <Popover key={key} open={openDay === key} onOpenChange={(o) => setOpenDay(o ? key : null)}>
               <PopoverTrigger asChild>
                 <button
-                  className={`relative aspect-square w-full rounded text-[9px] font-medium transition-colors flex flex-col items-center justify-center hover:bg-accent cursor-pointer ${
-                    isToday ? "border border-primary text-primary" : "text-foreground/80"
+                  className={`relative aspect-[1/1.2] w-full border border-border/50 text-[9px] font-medium transition-colors flex flex-col items-center justify-center hover:bg-accent cursor-pointer ${
+                    isToday ? "bg-primary/10 text-primary" : "text-foreground/80"
                   }`}
                 >
                   {d.getDate()}

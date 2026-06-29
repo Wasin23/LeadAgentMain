@@ -22,6 +22,7 @@ interface DateRangePickerProps {
 
 export function DateRangePicker({ preset, onPresetChange, customRange, onCustomRangeChange, minDate }: DateRangePickerProps) {
   const [open, setOpen] = useState(false)
+  const [draftRange, setDraftRange] = useState<DateRange | undefined>(customRange)
   const isCustom = !!(customRange?.from && customRange?.to)
 
   const label = isCustom
@@ -41,7 +42,13 @@ export function DateRangePicker({ preset, onPresetChange, customRange, onCustomR
           {PRESET_LABELS[r]}
         </button>
       ))}
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover
+        open={open}
+        onOpenChange={(o) => {
+          setOpen(o)
+          if (o) setDraftRange(customRange)
+        }}
+      >
         <PopoverTrigger asChild>
           <button
             className={`flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors ${
@@ -55,14 +62,26 @@ export function DateRangePicker({ preset, onPresetChange, customRange, onCustomR
         <PopoverContent align="end" className="w-auto p-2">
           <Calendar
             mode="range"
-            selected={customRange}
-            onSelect={(range) => {
-              onCustomRangeChange(range)
-              if (range?.from && range?.to) setOpen(false)
-            }}
+            selected={draftRange}
+            onSelect={setDraftRange}
             disabled={minDate ? { before: minDate } : undefined}
             numberOfMonths={2}
           />
+          <div className="mt-1 flex items-center justify-end gap-1.5 border-t border-border pt-2">
+            <button
+              onClick={() => setOpen(false)}
+              className="rounded-md px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => { onCustomRangeChange(draftRange); setOpen(false) }}
+              disabled={!draftRange?.from || !draftRange?.to}
+              className="rounded-md bg-primary px-3 py-1 text-[11px] font-medium text-primary-foreground disabled:opacity-50"
+            >
+              OK
+            </button>
+          </div>
         </PopoverContent>
       </Popover>
     </div>
