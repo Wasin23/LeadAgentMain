@@ -172,7 +172,7 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
   ]
 
   return (
-    <div className="rounded-2xl border border-border bg-card p-2.5">
+    <div className="rounded-2xl border border-border bg-card p-2.5 h-[340px] flex flex-col">
       <div className="flex items-center justify-between gap-1.5">
         <div className="flex items-center gap-1.5 min-w-0">
           <CalendarClock className="h-3.5 w-3.5 text-foreground/70 shrink-0" strokeWidth={1.75} />
@@ -209,7 +209,7 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
 
       <div className="mt-0.5 grid grid-cols-7 gap-0 rounded-lg border border-border overflow-hidden">
         {cells.map((d, i) => {
-          if (!d) return <div key={i} className="h-9 border border-border/50" />
+          if (!d) return <div key={i} className="aspect-[1/1.2] border border-border/50" />
           const key = dayKey(d)
           const items = itemsByDay[key] ?? []
           const isToday = key === todayKey
@@ -218,7 +218,7 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
             <Popover key={key} open={openDay === key} onOpenChange={(o) => setOpenDay(o ? key : null)}>
               <PopoverTrigger asChild>
                 <button
-                  className={`relative h-9 w-full border border-border/50 text-[9px] font-medium transition-colors flex flex-col items-center justify-center hover:bg-accent cursor-pointer ${
+                  className={`relative aspect-[1/1.2] w-full border border-border/50 text-[9px] font-medium transition-colors flex flex-col items-center justify-center hover:bg-accent cursor-pointer ${
                     isToday ? "bg-primary/10 text-primary" : "text-foreground/80"
                   }`}
                 >
