@@ -41,6 +41,7 @@ interface HomeSectionsProps {
   opened?:           number
   followUps?:        FollowUpItem[]
   notifications?:    NotificationItem[]
+  onScheduleChanged?: () => void
   editMode?:         boolean
   onEditModeChange?: (v: boolean) => void
 }
@@ -105,6 +106,7 @@ export function HomeSections({
   bounced = 0,
   opened = 0,
   followUps = [],
+  onScheduleChanged,
   notifications = [],
   editMode: externalEditMode,
   onEditModeChange,
@@ -163,17 +165,17 @@ export function HomeSections({
 
   return (
     <div className="space-y-3">
-      {/* Hero row — chart / agent status+health / scheduled calendar, side by side */}
+      {/* Hero row — scheduled calendar / agent status+health / chart, side by side */}
       <div className="grid grid-cols-1 gap-4 md:gap-5 @5xl:grid-cols-3">
         <div className="min-w-0">
-          <EmailActivityCard emailTimeSeries={emailTimeSeries} />
+          <ScheduledActivityCalendar batches={scheduledBatches} followUps={followUps} onChanged={onScheduleChanged} />
         </div>
         <div className="min-w-0 flex flex-col gap-4 md:gap-5">
           <TeamCollaboration agents={agentActivity} />
           <DeliveryHealthCard sent={sent} bounced={bounced} opened={opened} />
         </div>
         <div className="min-w-0">
-          <ScheduledActivityCalendar batches={scheduledBatches} followUps={followUps} />
+          <EmailActivityCard emailTimeSeries={emailTimeSeries} />
         </div>
       </div>
 

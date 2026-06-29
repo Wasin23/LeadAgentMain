@@ -26,8 +26,8 @@ const PAID_PLAN_LAST_STEP = { key: "hasSecondAgent" as const, title: "Create ano
 interface Props {
   checklist?: GettingStartedChecklist
   isPaidPlan?: boolean
-  /** "icons" = only the 5 quick-action icon buttons; "actions" = only Create Agent + Get Started */
-  mode?: "icons" | "actions"
+  /** "icons" = only the 5 quick-action icon buttons; "actions" = Create Agent + Get Started; "create-agent" = just the Create Agent button; "get-started" = just the Get Started dropdown */
+  mode?: "icons" | "actions" | "create-agent" | "get-started"
 }
 
 export function HomeActions({ checklist, isPaidPlan = false, mode }: Props) {
@@ -65,28 +65,8 @@ export function HomeActions({ checklist, isPaidPlan = false, mode }: Props) {
     )
   }
 
-  return (
-    <div className="flex items-center gap-1">
-      {mode === undefined && (
-        <>
-          {/* Quick action icon buttons */}
-          {QUICK_ACTIONS.map(({ label, icon: Icon, href, accent }) => (
-            <button
-              key={label}
-              onClick={() => router.push(href)}
-              title={label}
-              className={`flex items-center justify-center w-8 h-8 rounded-lg transition-colors ${accent}`}
-            >
-              <Icon className="w-4 h-4" />
-            </button>
-          ))}
-          <div className="w-px h-5 bg-border mx-1" />
-        </>
-      )}
-
-
-
-      {/* Create Agent */}
+  if (mode === "create-agent") {
+    return (
       <Button
         onClick={() => router.push("/prospecting?tab=agents&create=true")}
         className="h-8 text-xs px-3 bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300 hover:shadow-lg hover:shadow-primary/30 hover:scale-105"
@@ -94,8 +74,11 @@ export function HomeActions({ checklist, isPaidPlan = false, mode }: Props) {
         <Bot className="w-3.5 h-3.5 mr-1.5" />
         Create Agent
       </Button>
+    )
+  }
 
-      {/* Get Started dropdown */}
+  if (mode === "get-started") {
+    return (
       <div ref={ref} className="relative">
         <Button
           variant="outline"
@@ -157,6 +140,8 @@ export function HomeActions({ checklist, isPaidPlan = false, mode }: Props) {
           </div>
         )}
       </div>
-    </div>
-  )
+    )
+  }
+
+  return null
 }

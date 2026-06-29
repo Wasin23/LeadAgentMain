@@ -2,14 +2,16 @@
 
 import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronLeft, ChevronRight, CalendarClock, Send, Bot } from "lucide-react"
+import { ChevronLeft, ChevronRight, CalendarClock, Send, Bot, Loader2 } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import api from "@/lib/api"
 
 export interface ScheduledBatch {
   scheduledSendTime: string   // ISO string
   count: number               // number of emails in this batch
   agentName?: string
   agentId?: string
+  emailIds?: { id: string; agentId: string }[]
 }
 
 export interface FollowUpItem {
@@ -26,6 +28,7 @@ export interface FollowUpItem {
 interface ScheduledActivityCalendarProps {
   batches?: ScheduledBatch[]
   followUps?: FollowUpItem[]
+  onChanged?: () => void
 }
 
 type Mode = "both" | "sends" | "followups"
@@ -36,13 +39,75 @@ interface DayItem {
   time: string
   label: string
   sublabel?: string
+  rescheduleAction: (newIso: string) => Promise<void>
 }
 
 function dayKey(d: Date) {
   return d.toLocaleDateString("en-CA")
 }
 
-export function ScheduledActivityCalendar({ batches = [], followUps = [] }: ScheduledActivityCalendarProps) {
+function toDatetimeLocal(d: Date) {
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+function DayItemRow({ item, onEditTarget }: { item: DayItem; onEditTarget: string }) {
+  const router = useRouter()
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState(() => toDatetimeLocal(new Date()))
+  const [saving, setSaving] = useState(false)
+
+  const save = async () => {
+    setSaving(true)
+    try {
+      await item.rescheduleAction(new Date(value).toISOString())
+      setEditing(false)
+    } catch {}
+    finally { setSaving(false) }
+  }
+
+  return (
+    <div className="rounded-lg p-1.5 hover:bg-accent">
+      <div className="flex items-start gap-2">
+        <div className={`grid h-6 w-6 shrink-0 place-items-center rounded-full ${item.kind === "send" ? "bg-muted text-muted-foreground" : "bg-success-soft text-success-soft-foreground"}`}>
+          {item.kind === "send" ? <Send className="h-3 w-3" /> : <Bot className="h-3 w-3" />}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs font-medium text-foreground">{item.label}</p>
+          <p className="truncate text-[10px] text-muted-foreground">{item.time}{item.sublabel ? ` · ${item.sublabel}` : ""}</p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <button onClick={() => setEditing(e => !e)} className="text-[10px] font-medium text-primary hover:underline">
+            Reschedule
+          </button>
+          <button onClick={() => router.push(onEditTarget)} className="text-[10px] font-medium text-muted-foreground hover:text-foreground hover:underline">
+            Edit
+          </button>
+        </div>
+      </div>
+      {editing && (
+        <div className="mt-1.5 flex items-center gap-1.5 pl-8">
+          <input
+            type="datetime-local"
+            value={value}
+            onChange={e => setValue(e.target.value)}
+            className="h-7 flex-1 rounded-md border border-input bg-background px-2 text-[11px] focus:outline-none focus:ring-1 focus:ring-ring"
+          />
+          <button
+            onClick={save}
+            disabled={saving}
+            className="flex h-7 items-center gap-1 rounded-md bg-primary px-2 text-[11px] font-medium text-primary-foreground disabled:opacity-50"
+          >
+            {saving && <Loader2 className="h-3 w-3 animate-spin" />}
+            Save
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function ScheduledActivityCalendar({ batches = [], followUps = [], onChanged }: ScheduledActivityCalendarProps) {
   const router = useRouter()
   const [mode, setMode] = useState<Mode>("both")
   const [monthOffset, setMonthOffset] = useState(0)
@@ -68,6 +133,10 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [] }: Sche
           time: d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
           label: `${b.count} email${b.count !== 1 ? "s" : ""} scheduled`,
           sublabel: b.agentName,
+          rescheduleAction: async (newIso: string) => {
+            await api.patch("/api/email-queue/scheduled-batches", { emailIds: b.emailIds, newScheduledAt: newIso })
+            onChanged?.()
+          },
         })
       })
     }
@@ -82,11 +151,15 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [] }: Sche
           time: d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
           label: f.leadName ?? f.leadEmail ?? "Follow-up",
           sublabel: f.company,
+          rescheduleAction: async (newIso: string) => {
+            await api.put(`/api/email-queue/${f.id}/followup`, { agentId: f.agentId, followUpDate: newIso })
+            onChanged?.()
+          },
         })
       })
     }
     return map
-  }, [batches, followUps, mode])
+  }, [batches, followUps, mode, onChanged])
 
   const monthLabel = cursor.toLocaleDateString("en-US", { month: "long", year: "numeric" })
   const firstDow = new Date(cursor.getFullYear(), cursor.getMonth(), 1).getDay()
@@ -145,10 +218,9 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [] }: Sche
             <Popover key={key} open={openDay === key} onOpenChange={(o) => setOpenDay(o ? key : null)}>
               <PopoverTrigger asChild>
                 <button
-                  disabled={items.length === 0}
-                  className={`relative aspect-square w-full rounded text-[9px] font-medium transition-colors flex flex-col items-center justify-center ${
+                  className={`relative aspect-square w-full rounded text-[9px] font-medium transition-colors flex flex-col items-center justify-center hover:bg-accent cursor-pointer ${
                     isToday ? "border border-primary text-primary" : "text-foreground/80"
-                  } ${items.length > 0 ? "hover:bg-accent cursor-pointer" : "cursor-default opacity-60"}`}
+                  }`}
                 >
                   {d.getDate()}
                   {items.length > 0 && (
@@ -159,30 +231,30 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [] }: Sche
                   )}
                 </button>
               </PopoverTrigger>
-              {items.length > 0 && (
-                <PopoverContent align="center" className="w-64 p-2">
-                  <p className="px-1 text-[11px] font-semibold text-foreground">{d.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}</p>
-                  <div className="mt-1.5 space-y-1 max-h-56 overflow-y-auto">
+              <PopoverContent align="center" className="w-72 p-2">
+                <p className="px-1 text-[11px] font-semibold text-foreground">{d.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}</p>
+                {items.length === 0 ? (
+                  <div className="px-1 py-3 text-center">
+                    <p className="text-[11px] text-muted-foreground">Nothing scheduled this day.</p>
+                    <button
+                      onClick={() => router.push("/outreach?section=awaiting")}
+                      className="mt-1.5 text-[11px] font-medium text-primary hover:underline"
+                    >
+                      Schedule emails →
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-1.5 space-y-1 max-h-64 overflow-y-auto">
                     {items.map(it => (
-                      <div key={it.key} className="flex items-start gap-2 rounded-lg p-1.5 hover:bg-accent">
-                        <div className={`grid h-6 w-6 shrink-0 place-items-center rounded-full ${it.kind === "send" ? "bg-muted text-muted-foreground" : "bg-success-soft text-success-soft-foreground"}`}>
-                          {it.kind === "send" ? <Send className="h-3 w-3" /> : <Bot className="h-3 w-3" />}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-xs font-medium text-foreground">{it.label}</p>
-                          <p className="truncate text-[10px] text-muted-foreground">{it.time}{it.sublabel ? ` · ${it.sublabel}` : ""}</p>
-                        </div>
-                        <button
-                          onClick={() => router.push(it.kind === "send" ? "/outreach?section=awaiting" : "/outreach?section=sent&tab=followups")}
-                          className="shrink-0 text-[10px] font-medium text-primary hover:underline"
-                        >
-                          Edit
-                        </button>
-                      </div>
+                      <DayItemRow
+                        key={it.key}
+                        item={it}
+                        onEditTarget={it.kind === "send" ? "/outreach?section=awaiting" : "/outreach?section=sent&tab=followups"}
+                      />
                     ))}
                   </div>
-                </PopoverContent>
-              )}
+                )}
+              </PopoverContent>
             </Popover>
           )
         })}

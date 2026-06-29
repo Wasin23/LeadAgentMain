@@ -111,6 +111,27 @@ function logIcon(msg: string): LucideIcon {
   return Activity
 }
 
+// ── easter egg ───────────────────────────────────────────────────────────────
+function TotalRefundCounter() {
+  const [amount, setAmount] = useState(() => Math.random() * 40 + 10)
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setAmount(a => a + Math.random() * 1.5)
+    }, 2500)
+    return () => clearInterval(id)
+  }, [])
+
+  return (
+    <span
+      className="text-[10px] font-medium text-muted-foreground/70 tabular-nums select-none"
+      title="This number means nothing. Please don't ask for a refund."
+    >
+      Total Refunds: ${amount.toFixed(2)}
+    </span>
+  )
+}
+
 // ── component ──────────────────────────────────────────────────────────────
 export function OperationsContent() {
   const router = useRouter()
@@ -687,20 +708,23 @@ export function OperationsContent() {
         {/* Activity log */}
         <Card className="flex-1 min-h-0 flex flex-col overflow-hidden">
           <CardHeader className="px-4 py-2 pb-2 border-b flex-shrink-0">
-            <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 text-primary" />
-              <CardTitle className="text-sm">Activity Log</CardTitle>
-              <span className="text-[11px] text-muted-foreground">Press 'Start' or 'Start all' to start your agents and begin prospecting.</span>
-              {runningAgents.length > 0 && (
-                <Badge variant="secondary" className="text-[10px]">
-                  {runningAgents.length} running
-                </Badge>
-              )}
-              {filteredLogs.length > 0 && (
-                <Badge variant="outline" className="text-[10px] ml-1">
-                  {filteredLogs.length}
-                </Badge>
-              )}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Activity className="w-4 h-4 text-primary" />
+                <CardTitle className="text-sm">Activity Log</CardTitle>
+                <span className="text-[11px] text-muted-foreground">Press 'Start' or 'Start all' to start your agents and begin prospecting.</span>
+                {runningAgents.length > 0 && (
+                  <Badge variant="secondary" className="text-[10px]">
+                    {runningAgents.length} running
+                  </Badge>
+                )}
+                {filteredLogs.length > 0 && (
+                  <Badge variant="outline" className="text-[10px] ml-1">
+                    {filteredLogs.length}
+                  </Badge>
+                )}
+              </div>
+              <TotalRefundCounter />
             </div>
           </CardHeader>
 

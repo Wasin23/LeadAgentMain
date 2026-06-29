@@ -12,6 +12,7 @@ import { HomeSections } from "@/components/dashboard/home-sections"
 import { ProjectAnalytics } from "@/components/dashboard/project-analytics"
 import { QuickActions } from "@/components/dashboard/quick-actions"
 import { HomeActions } from "@/components/dashboard/home-actions"
+import { WelcomeMessage } from "@/components/dashboard/welcome-message"
 import type { GettingStartedChecklist } from "@/components/dashboard/getting-started"
 import type { QueueChartDataPoint } from "@/components/dashboard/project-analytics"
 import type { AgentActivityItem } from "@/components/dashboard/team-collaboration"
@@ -224,7 +225,7 @@ export default function DashboardPage() {
         )
         .slice(0, 8)
         .map((e) => ({
-          id: (e.emailId as string) || (e.id as string) || String(Math.random()),
+          id: (e.id as string) || (e.trackingId as string) || (e.emailId as string) || String(Math.random()),
           leadName: (e.leadName as string) || (e.recipientName as string) || "Lead",
           leadEmail:
             (e.leadEmail as string) ||
@@ -235,6 +236,7 @@ export default function DashboardPage() {
           subject: (e.subject as string) || "",
           followUpDate: e.followUpDate as string,
           agentName: (e.agentName as string) || "",
+          agentId: (e.agentId as string) || "",
         }))
       setFollowUps(followUpList)
 
@@ -273,6 +275,7 @@ export default function DashboardPage() {
           count:     b.count as number,
           agentName: (b.agentName as string) || undefined,
           agentId:   (b.agentId as string)   || undefined,
+          emailIds:  (b.emailIds as { id: string; agentId: string }[]) || undefined,
         }))
       )
     }
@@ -329,30 +332,15 @@ export default function DashboardPage() {
           userName={userName}
           userEmail={userEmail}
           userPicture={userPicture}
+          actions={<HomeActions checklist={checklist} isPaidPlan={isPaidPlan} mode="get-started" />}
         />
 
         <div className="space-y-3 md:space-y-4">
-          {/* Stat cards + actions, same line */}
-          <div className="flex items-start gap-3 flex-wrap lg:flex-nowrap">
-            <div className="flex-1 min-w-0">
-              <StatsCards
-                sent={counts.sent}
-                queued={counts.queued}
-                runningAgents={runningAgents}
-                cyclesCompleted={counts.replied}
-                replies={counts.replied}
-                totalAgents={totalAgents}
-                followUpCount={followUps.length}
-                scheduledCount={scheduledBatches.reduce((s, b) => s + b.count, 0)}
-                bouncedCount={bouncedCount}
-                openedCount={openedCount}
-                creditBalance={creditBalance}
-                editMode={editMode}
-                onEditModeChange={setEditMode}
-              />
-            </div>
+          {/* Welcome message + actions, same line */}
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <WelcomeMessage name={userName?.split(" ")[0]} />
             <div className="flex items-center gap-2 shrink-0">
-              <HomeActions checklist={checklist} isPaidPlan={isPaidPlan} mode="actions" />
+              <HomeActions checklist={checklist} isPaidPlan={isPaidPlan} mode="create-agent" />
               <button
                 onClick={() => setEditMode(e => !e)}
                 className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium border transition-all ${
@@ -369,6 +357,22 @@ export default function DashboardPage() {
             </div>
           </div>
 
+          <StatsCards
+            sent={counts.sent}
+            queued={counts.queued}
+            runningAgents={runningAgents}
+            cyclesCompleted={counts.replied}
+            replies={counts.replied}
+            totalAgents={totalAgents}
+            followUpCount={followUps.length}
+            scheduledCount={scheduledBatches.reduce((s, b) => s + b.count, 0)}
+            bouncedCount={bouncedCount}
+            openedCount={openedCount}
+            creditBalance={creditBalance}
+            editMode={editMode}
+            onEditModeChange={setEditMode}
+          />
+
           <HomeSections
             emailTimeSeries={emailTimeSeries}
             scheduledBatches={scheduledBatches}
@@ -378,6 +382,7 @@ export default function DashboardPage() {
             opened={openedCount}
             followUps={followUps}
             notifications={notifications}
+            onScheduleChanged={fetchAll}
             editMode={editMode}
             onEditModeChange={setEditMode}
           />

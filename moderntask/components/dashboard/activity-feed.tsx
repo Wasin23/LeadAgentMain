@@ -114,30 +114,30 @@ export function ActivityFeed({ notifications = [], exportState = null }: Activit
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-2">
           <h3 className="font-display text-base text-foreground">Activity</h3>
-          {exportState && (
-            <button
-              disabled={exportState.loading}
-              onClick={exportState.run}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-foreground/80 hover:bg-accent disabled:opacity-50"
-            >
-              <Download className="w-3 h-3" />
-              {exportState.loading ? "Loading…" : "Export Report (.csv)"}
-            </button>
-          )}
+          <div className="flex items-center gap-0.5 rounded-lg border border-border bg-surface p-0.5">
+            {(["all", "agents", "cycles", "issues"] as Filter[]).map(f => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`rounded-md px-2.5 py-1 text-[11px] font-medium capitalize transition-colors ${
+                  filter === f ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="flex items-center gap-0.5 rounded-lg border border-border bg-surface p-0.5">
-          {(["all", "agents", "cycles", "issues"] as Filter[]).map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`rounded-md px-2.5 py-1 text-[11px] font-medium capitalize transition-colors ${
-                filter === f ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
+        {exportState && (
+          <button
+            disabled={exportState.loading}
+            onClick={exportState.run}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1 text-[11px] font-medium text-foreground/80 hover:bg-accent disabled:opacity-50"
+          >
+            <Download className="w-3 h-3" />
+            {exportState.loading ? "Loading…" : "Export Report (.csv)"}
+          </button>
+        )}
       </div>
 
       {loading ? (

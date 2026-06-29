@@ -254,11 +254,9 @@ function PresetEditorPanel({
           <h2 className="font-display text-xl text-foreground">{isNew ? 'New Preset' : `Edit: ${form.name || 'Preset'}`}</h2>
           <p className="text-xs text-muted-foreground mt-0.5">Configure reusable outreach messaging styles and behaviour.</p>
         </div>
-        {!isNew && (
-          <button onClick={onCancel} className="text-muted-foreground hover:text-foreground">
-            <X className="w-4 h-4" />
-          </button>
-        )}
+        <button onClick={onCancel} className="text-muted-foreground hover:text-foreground">
+          <X className="w-4 h-4" />
+        </button>
       </div>
 
       <Field label="Preset Name *">
@@ -466,6 +464,7 @@ export function PresetsContent() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<Omit<Preset, 'id' | 'createdAt' | 'updatedAt'>>(EMPTY_FORM)
   const [deleteTarget, setDeleteTarget] = useState<Preset | null>(null)
+  const [showEditor, setShowEditor] = useState(false)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
@@ -518,8 +517,9 @@ export function PresetsContent() {
     finally { setDeleteTarget(null) }
   }
 
-  const selectPreset = (p: Preset) => { setEditingId(p.id); setForm({ ...EMPTY_FORM, ...p }) }
-  const startNew = () => { setEditingId(null); setForm(EMPTY_FORM) }
+  const selectPreset = (p: Preset) => { setEditingId(p.id); setForm({ ...EMPTY_FORM, ...p }); setShowEditor(true) }
+  const startNew = () => { setEditingId(null); setForm(EMPTY_FORM); setShowEditor(true) }
+  const closeEditor = () => setShowEditor(false)
 
   const applyPresetToAgent = async (preset: Preset, agentId: string) => {
     try {
@@ -589,7 +589,7 @@ export function PresetsContent() {
         <Button size="sm" className="h-8 text-xs gap-1.5" onClick={startNew}><Plus className="w-3.5 h-3.5" /> New Preset</Button>
       </div>
 
-      <div className="grid grid-cols-1 @5xl:grid-cols-[1fr_420px] gap-4 items-start">
+      <div className="grid grid-cols-1 gap-4 items-start">
         <div className="min-w-0">
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -619,16 +619,22 @@ export function PresetsContent() {
             </div>
           )}
         </div>
-
-        <PresetEditorPanel
-          form={form}
-          setForm={setForm}
-          onSave={handleSave}
-          onCancel={startNew}
-          saving={saving}
-          isNew={!editingId}
-        />
       </div>
+
+      {showEditor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={closeEditor}>
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <PresetEditorPanel
+              form={form}
+              setForm={setForm}
+              onSave={handleSave}
+              onCancel={closeEditor}
+              saving={saving}
+              isNew={!editingId}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

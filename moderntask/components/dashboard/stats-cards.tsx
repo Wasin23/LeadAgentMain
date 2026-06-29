@@ -138,7 +138,7 @@ function CardInner({ stat, hovered }: { stat: StatDef; hovered?: boolean }) {
         <Icon className="h-[14px] w-[14px]" strokeWidth={1.75} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-medium leading-tight text-muted-foreground">{stat.title}</p>
+        <p className="font-display text-sm leading-tight text-foreground truncate">{stat.title}</p>
         <p className="font-display text-lg leading-tight tracking-tight text-foreground">{stat.value}</p>
       </div>
       <ChevronRight className={`h-3.5 w-3.5 shrink-0 text-muted-foreground/60 transition-transform ${hovered ? "translate-x-0.5" : ""}`} />

@@ -2,20 +2,19 @@
 
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, CalendarDays, Link2, Check } from "lucide-react"
+import { Link2, Check } from "lucide-react"
 import { useState, useEffect, useCallback } from "react"
 import api from "@/lib/api"
-
-function startOfMonth(d: Date) { return new Date(d.getFullYear(), d.getMonth(), 1) }
-function daysInMonth(d: Date) { return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate() }
+import { ScheduledActivityCalendar, type ScheduledBatch, type FollowUpItem } from "@/components/dashboard/scheduled-activity-calendar"
 
 export function CalendarMini() {
-  const [viewDate, setViewDate] = useState(() => new Date())
   const [googleConnected, setGoogleConnected] = useState(false)
   const [calendlyLink, setCalendlyLink] = useState("")
   const [calendlyInput, setCalendlyInput] = useState("")
   const [savingLink, setSavingLink] = useState(false)
   const [connecting, setConnecting] = useState(false)
+  const [batches, setBatches] = useState<ScheduledBatch[]>([])
+  const [followUps, setFollowUps] = useState<FollowUpItem[]>([])
 
   const loadStatus = useCallback(async () => {
     try {
@@ -26,7 +25,47 @@ export function CalendarMini() {
     } catch {}
   }, [])
 
-  useEffect(() => { loadStatus() }, [loadStatus])
+  const loadSchedule = useCallback(async () => {
+    try {
+      const [batchesRes, sentRes] = await Promise.allSettled([
+        api.get("/api/email-queue/scheduled-batches"),
+        api.get("/api/email-queue/sent", { params: { agentId: "all" } }),
+      ])
+      if (batchesRes.status === "fulfilled") {
+        setBatches((batchesRes.value.data?.batches ?? []).map((b: Record<string, unknown>) => ({
+          scheduledSendTime: b.scheduledSendTime as string,
+          count: b.count as number,
+          agentName: (b.agentName as string) || undefined,
+          agentId: (b.agentId as string) || undefined,
+          emailIds: (b.emailIds as { id: string; agentId: string }[]) || undefined,
+        })))
+      }
+      if (sentRes.status === "fulfilled") {
+        const emails: Record<string, unknown>[] = Array.isArray(sentRes.value.data) ? sentRes.value.data : []
+        setFollowUps(
+          emails
+            .filter((e) => {
+              if (!e.followUpScheduled || !e.followUpDate) return false
+              const rebumpCount = (e.rebumpCount as number) || 0
+              const maxFollowUps = (e.maxFollowUps as number) || 1
+              return rebumpCount < maxFollowUps
+            })
+            .map((e) => ({
+              id: (e.id as string) || (e.trackingId as string) || String(Math.random()),
+              leadName: (e.leadName as string) || (e.recipientName as string) || "Lead",
+              leadEmail: (e.leadEmail as string) || (e.recipientEmail as string) || (e.to as string) || "",
+              company: (e.company as string) || (e.leadCompany as string) || "",
+              subject: (e.subject as string) || "",
+              followUpDate: e.followUpDate as string,
+              agentName: (e.agentName as string) || "",
+              agentId: (e.agentId as string) || "",
+            }))
+        )
+      }
+    } catch {}
+  }, [])
+
+  useEffect(() => { loadStatus(); loadSchedule() }, [loadStatus, loadSchedule])
 
   const connectGoogle = async () => {
     setConnecting(true)
@@ -55,51 +94,9 @@ export function CalendarMini() {
     }
   }
 
-  const today = new Date()
-  const isCurrentMonth = viewDate.getMonth() === today.getMonth() && viewDate.getFullYear() === today.getFullYear()
-  const firstWeekday = startOfMonth(viewDate).getDay()
-  const totalDays = daysInMonth(viewDate)
-  const monthLabel = viewDate.toLocaleDateString("en-US", { month: "long", year: "numeric" })
-
   return (
-    <Card className="p-4">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <CalendarDays className="w-4 h-4 text-primary" />
-          <h3 className="text-sm font-semibold">Calendar</h3>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setViewDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))}>
-            <ChevronLeft className="w-3.5 h-3.5" />
-          </Button>
-          <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => setViewDate(d => new Date(d.getFullYear(), d.getMonth() + 1, 1))}>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </Button>
-        </div>
-      </div>
-
-      <p className="text-xs font-medium text-muted-foreground mb-2">{monthLabel}</p>
-      <div className="grid grid-cols-7 gap-1 mb-1">
-        {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
-          <div key={i} className="text-center text-[10px] text-muted-foreground">{d}</div>
-        ))}
-      </div>
-      <div className="grid grid-cols-7 gap-1 mb-4">
-        {Array.from({ length: firstWeekday }).map((_, i) => <div key={`pad-${i}`} />)}
-        {Array.from({ length: totalDays }, (_, i) => i + 1).map(day => {
-          const isToday = isCurrentMonth && day === today.getDate()
-          return (
-            <div
-              key={day}
-              className={`aspect-square rounded-md flex items-center justify-center text-[11px] ${
-                isToday ? "bg-primary text-primary-foreground font-semibold" : "text-foreground"
-              }`}
-            >
-              {day}
-            </div>
-          )
-        })}
-      </div>
+    <Card className="p-3 space-y-3">
+      <ScheduledActivityCalendar batches={batches} followUps={followUps} onChanged={loadSchedule} />
 
       <div className="space-y-2 pt-3 border-t border-border">
         <div className="flex items-center justify-between">
