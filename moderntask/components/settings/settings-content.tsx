@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { toast } from "sonner"
+import { useToast } from "@/hooks/use-toast"
 import api from "@/lib/api"
 import { useAuth } from "@/contexts/AuthContext"
 import { PresetsContent } from "@/components/agents/presets-content"
@@ -109,6 +109,7 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
 // Main component
 // ─────────────────────────────────────────────────────────────────────────────
 export function SettingsContent() {
+  const { toast } = useToast()
   const { user } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -301,10 +302,10 @@ export function SettingsContent() {
         setKeywords(prev => prev.filter(k => k.searchCombo !== searchCombo))
         const statsRes = await api.get('/api/lead-agent/memory/stats')
         if (statsRes.data.success) setMemoryStats(statsRes.data.stats)
-        toast.success('Keyword reset successfully')
+        toast({ title: 'Keyword reset successfully', duration: 2500 })
       }
     } catch {
-      toast.error('Failed to reset keyword')
+      toast({ title: 'Failed to reset keyword', variant: 'destructive', duration: 2500 })
     } finally {
       setResettingKeyword(null)
     }
@@ -325,10 +326,10 @@ export function SettingsContent() {
           avgDuplicateRate: 0,
           totalSearchAttempts: 0
         })
-        toast.success('All memory reset successfully')
+        toast({ title: 'All memory reset successfully', duration: 2500 })
       }
     } catch {
-      toast.error('Failed to reset memory')
+      toast({ title: 'Failed to reset memory', variant: 'destructive', duration: 2500 })
     } finally {
       setResettingKeyword(null)
     }
@@ -408,8 +409,8 @@ export function SettingsContent() {
   useEffect(() => {
     if (typeof window === "undefined") return
     const params = new URLSearchParams(window.location.search)
-    if (params.get("gmailAuth") === "success")   { toast.success("Gmail connected!"); setTab("email") }
-    if (params.get("outlookAuth") === "success") { toast.success("Outlook connected!"); setTab("email") }
+    if (params.get("gmailAuth") === "success")   { toast({ title: "Gmail connected!", duration: 2500 }); setTab("email") }
+    if (params.get("outlookAuth") === "success") { toast({ title: "Outlook connected!", duration: 2500 }); setTab("email") }
     if (params.get("gmailAuth") || params.get("outlookAuth"))
       window.history.replaceState({}, "", "/settings")
   }, [])
@@ -421,7 +422,7 @@ export function SettingsContent() {
 
   const savePrefs = async (updates: object) => {
     try { await api.post("/api/auth/settings/preferences", { preferences: updates }) }
-    catch { toast.error("Failed to save") }
+    catch { toast({ title: "Failed to save", variant: 'destructive', duration: 2500 }) }
   }
 
   // Gmail OAuth popup
@@ -434,7 +435,7 @@ export function SettingsContent() {
     const onMsg = async (e: MessageEvent) => {
       if (e.data?.type !== "GMAIL_CONNECTED") return
       got = true
-      toast.success(`Gmail connected: ${e.data.email}`)
+      toast({ title: `Gmail connected: ${e.data.email}`, duration: 2500 })
       const r = await api.get("/api/auth/gmail/status").catch(() => null)
       if (r?.data?.accounts) setGmailAccounts(r.data.accounts)
     }
@@ -444,7 +445,7 @@ export function SettingsContent() {
       clearInterval(poll); window.removeEventListener("message", onMsg)
       if (!got) setTimeout(async () => {
         const r = await api.get("/api/auth/gmail/status").catch(() => null)
-        if (r?.data?.accounts?.length) { setGmailAccounts(r.data.accounts); toast.success("Gmail connected!") }
+        if (r?.data?.accounts?.length) { setGmailAccounts(r.data.accounts); toast({ title: "Gmail connected!", duration: 2500 }) }
       }, 1000)
     }, 800)
   }
@@ -455,13 +456,13 @@ export function SettingsContent() {
       const w = window.open(r.data.authUrl, "Outlook", "width=600,height=700,left=400,top=100")
       const onMsg = async (e: MessageEvent) => {
         if (e.data?.type !== "OUTLOOK_CONNECTED") return
-        toast.success(`Outlook connected: ${e.data.email}`)
+        toast({ title: `Outlook connected: ${e.data.email}`, duration: 2500 })
         const sr = await api.get("/api/auth/outlook/status").catch(() => null)
         if (sr?.data?.accounts) setOutlookAccounts(sr.data.accounts)
       }
       window.addEventListener("message", onMsg)
       const poll = setInterval(() => { if (!w?.closed) return; clearInterval(poll); window.removeEventListener("message", onMsg) }, 800)
-    } catch { toast.error("Failed to connect Outlook") }
+    } catch { toast({ title: "Failed to connect Outlook", variant: 'destructive', duration: 2500 }) }
   }
 
   const disconnectGmail = async (email: string) => {
@@ -473,11 +474,11 @@ export function SettingsContent() {
       if (reverted.length > 0) {
         setRevertedAgents(reverted)
         setReassignProvider(outlookAccounts.length > 0 ? 'outlook' : 'mailgun')
-        toast.warning(`${reverted.length} agent${reverted.length !== 1 ? 's' : ''} reverted to Mailgun`)
+        toast({ title: `${reverted.length} agent${reverted.length !== 1 ? 's' : ''} reverted to Mailgun`, duration: 2500 })
       } else {
-        toast.success("Disconnected")
+        toast({ title: "Disconnected", duration: 2500 })
       }
-    } catch { toast.error("Failed to disconnect") }
+    } catch { toast({ title: "Failed to disconnect", variant: 'destructive', duration: 2500 }) }
   }
 
   const disconnectOutlook = async (email: string) => {
@@ -489,11 +490,11 @@ export function SettingsContent() {
       if (reverted.length > 0) {
         setRevertedAgents(reverted)
         setReassignProvider(gmailAccounts.length > 0 ? 'gmail' : 'mailgun')
-        toast.warning(`${reverted.length} agent${reverted.length !== 1 ? 's' : ''} reverted to Mailgun`)
+        toast({ title: `${reverted.length} agent${reverted.length !== 1 ? 's' : ''} reverted to Mailgun`, duration: 2500 })
       } else {
-        toast.success("Disconnected")
+        toast({ title: "Disconnected", duration: 2500 })
       }
-    } catch { toast.error("Failed to disconnect") }
+    } catch { toast({ title: "Failed to disconnect", variant: 'destructive', duration: 2500 }) }
   }
 
   const connectLinkedIn = async () => {
@@ -505,10 +506,10 @@ export function SettingsContent() {
         if (e.data?.type === "LINKEDIN_CONNECTED") {
           setLinkedinConnected(true)
           setLinkedinAccountId(e.data.accountId)
-          toast.success("LinkedIn connected")
+          toast({ title: "LinkedIn connected", duration: 2500 })
           window.removeEventListener("message", onMsg)
         } else if (e.data?.type === "LINKEDIN_ERROR") {
-          toast.error("LinkedIn connection failed")
+          toast({ title: "LinkedIn connection failed", variant: 'destructive', duration: 2500 })
           window.removeEventListener("message", onMsg)
         }
       }
@@ -520,7 +521,7 @@ export function SettingsContent() {
         setLinkedinConnecting(false)
       }, 800)
     } catch {
-      toast.error("Failed to connect LinkedIn")
+      toast({ title: "Failed to connect LinkedIn", variant: 'destructive', duration: 2500 })
       setLinkedinConnecting(false)
     }
   }
@@ -531,8 +532,8 @@ export function SettingsContent() {
       await api.post("/api/auth/linkedin/disconnect")
       setLinkedinConnected(false)
       setLinkedinAccountId(null)
-      toast.success("LinkedIn disconnected")
-    } catch { toast.error("Failed to disconnect LinkedIn") }
+      toast({ title: "LinkedIn disconnected", duration: 2500 })
+    } catch { toast({ title: "Failed to disconnect LinkedIn", variant: 'destructive', duration: 2500 }) }
   }
 
   const reassignAgents = async () => {
@@ -545,23 +546,23 @@ export function SettingsContent() {
       })
       setRevertedAgents([])
       const label = reassignProvider === 'gmail' ? 'Gmail' : reassignProvider === 'outlook' ? 'Outlook' : 'Mailgun'
-      toast.success(`Agents updated to use ${label}`)
-    } catch { toast.error("Failed to update agents") }
+      toast({ title: `Agents updated to use ${label}`, duration: 2500 })
+    } catch { toast({ title: "Failed to update agents", variant: 'destructive', duration: 2500 }) }
     finally { setReassigning(false) }
   }
 
   const checkDomainHealth = async () => {
-    if (!customDomain.trim()) { toast.error("Enter a domain first"); return }
+    if (!customDomain.trim()) { toast({ title: "Enter a domain first", variant: 'destructive', duration: 2500 }); return }
     setCheckingDomain(true)
     try {
       const r = await api.post("/api/email/check-domain-health", { domain: customDomain })
       if (r.data.success) {
         const h = { spf: r.data.health.spf || false, dkim: r.data.health.dkim || false, dmarc: r.data.health.dmarc || false, lastChecked: new Date().toISOString() }
         setDomainHealth(h)
-        toast.success("Domain health checked!")
+        toast({ title: "Domain health checked!", duration: 2500 })
       }
     } catch (e: any) {
-      toast.error(e.response?.data?.message || "Check failed")
+      toast({ title: e.response?.data?.message || "Check failed", variant: 'destructive', duration: 2500 })
     } finally { setCheckingDomain(false) }
   }
 
@@ -575,7 +576,7 @@ export function SettingsContent() {
         companySizeMax:   targeting.companySizeMax,
         defaultLeadLimit: targeting.defaultLeadLimit,
       })
-      toast.success("Lead targeting defaults saved!")
+      toast({ title: "Lead targeting defaults saved!", duration: 2500 })
     } finally { setSaving(false) }
   }
 
@@ -594,13 +595,13 @@ export function SettingsContent() {
     setSavingCP(true)
     try {
       await api.post("/api/company-profile/save", { profile: companyProfile, recommendedPreset: null })
-      toast.success("Company profile saved!")
-    } catch { toast.error("Failed to save profile") }
+      toast({ title: "Company profile saved!", duration: 2500 })
+    } catch { toast({ title: "Failed to save profile", variant: 'destructive', duration: 2500 }) }
     finally { setSavingCP(false) }
   }
 
   const analyzeFromWebsite = async () => {
-    if (!analyzeWebsiteUrl.trim()) { toast.error("Enter a website URL first"); return }
+    if (!analyzeWebsiteUrl.trim()) { toast({ title: "Enter a website URL first", variant: 'destructive', duration: 2500 }); return }
     const url = /^https?:\/\//i.test(analyzeWebsiteUrl.trim()) ? analyzeWebsiteUrl.trim() : `https://${analyzeWebsiteUrl.trim()}`
     setAnalyzingWebsite(true)
     try {
@@ -609,9 +610,9 @@ export function SettingsContent() {
         const merged = { ...companyProfile, ...r.data.profile }
         setCompanyProfile(merged)
         await api.post("/api/company-profile/save", { profile: merged, recommendedPreset: r.data?.recommendedPreset || null })
-        toast.success("Company profile reset from website!")
+        toast({ title: "Company profile reset from website!", duration: 2500 })
       }
-    } catch { toast.error("Failed to scrape website. Check the URL and try again.") }
+    } catch { toast({ title: "Failed to scrape website. Check the URL and try again.", variant: 'destructive', duration: 2500 }) }
     finally { setAnalyzingWebsite(false) }
   }
 
@@ -633,7 +634,7 @@ export function SettingsContent() {
       })
       const statusRes = await api.get("/api/crm/status").catch(() => null)
       if (statusRes?.data) setCrmStatus(statusRes.data)
-      toast.success(`${selectedCRM.name} connected!`)
+      toast({ title: `${selectedCRM.name} connected!`, duration: 2500 })
       setSelectedCRM(null)
       setCrmCredentials({})
     } catch (e: any) {
@@ -650,8 +651,8 @@ export function SettingsContent() {
       await api.post("/api/crm/disconnect")
       setCrmStatus({ connected: false })
       setCrmImportedLeads(null)
-      toast.success("CRM disconnected")
-    } catch { toast.error("Failed to disconnect") }
+      toast({ title: "CRM disconnected", duration: 2500 })
+    } catch { toast({ title: "Failed to disconnect", variant: 'destructive', duration: 2500 }) }
     finally { setCrmLoading(false) }
   }
 
@@ -662,10 +663,10 @@ export function SettingsContent() {
       if (res.data?.contacts) {
         setCrmImportedLeads(res.data.contacts)
         setCrmImportExpanded(true)
-        toast.success(`Loaded ${res.data.contacts.length} contacts from ${crmStatus.integration}`)
+        toast({ title: `Loaded ${res.data.contacts.length} contacts from ${crmStatus.integration}`, duration: 2500 })
       }
     } catch (e: any) {
-      toast.error(e.response?.data?.error || "Failed to import leads")
+      toast({ title: e.response?.data?.error || "Failed to import leads", variant: 'destructive', duration: 2500 })
     } finally {
       setCrmImportLoading(false)
     }
@@ -731,7 +732,7 @@ export function SettingsContent() {
                     <Label>User ID</Label>
                     <div className="flex gap-2">
                       <Input value={profile.userId} disabled className="opacity-60 font-mono text-xs" />
-                      <Button variant="outline" size="sm" className="shrink-0" onClick={() => { navigator.clipboard.writeText(profile.userId); toast.success("Copied!") }}>Copy</Button>
+                      <Button variant="outline" size="sm" className="shrink-0" onClick={() => { navigator.clipboard.writeText(profile.userId); toast({ title: "Copied!", duration: 2500 }) }}>Copy</Button>
                     </div>
                   </div>
                 )}
@@ -771,7 +772,7 @@ export function SettingsContent() {
                     setPwSaving(true)
                     try {
                       await api.post("/api/auth/change-password", { currentPassword: pwForm.current, newPassword: pwForm.next })
-                      toast.success("Password changed!")
+                      toast({ title: "Password changed!", duration: 2500 })
                       setPwForm({ current: "", next: "", confirm: "" })
                     } catch (e: any) {
                       setPwError(e.response?.data?.message || "Failed to change password")
@@ -787,8 +788,8 @@ export function SettingsContent() {
                       try {
                         await api.post("/api/auth/forgot-password", { email: profile.email })
                         setForgotSent(true)
-                        toast.success("Reset link sent to " + profile.email)
-                      } catch { toast.error("Failed to send reset email") }
+                        toast({ title: "Reset link sent to " + profile.email, duration: 2500 })
+                      } catch { toast({ title: "Failed to send reset email", variant: 'destructive', duration: 2500 }) }
                     }}
                   >
                     {forgotSent ? "Reset email sent ✓" : "Forgot password?"}
@@ -837,12 +838,12 @@ export function SettingsContent() {
                         setResetting(true)
                         try {
                           await api.delete('/api/company-profile')
-                          toast.success('Account reset. Redirecting to sign in...')
+                          toast({ title: 'Account reset. Redirecting to sign in...', duration: 2500 })
                           localStorage.clear()
                           sessionStorage.clear()
                           setTimeout(() => { window.location.href = '/signin' }, 1500)
                         } catch (e: any) {
-                          toast.error(e.response?.data?.error || 'Failed to reset account')
+                          toast({ title: e.response?.data?.error || 'Failed to reset account', variant: 'destructive', duration: 2500 })
                           setResetting(false)
                         }
                       }}
@@ -1038,7 +1039,7 @@ export function SettingsContent() {
                           const updated = { ...notifPrefs, [item.key]: v }
                           setNotifPrefs(updated)
                           await savePrefs({ notifPrefs: updated })
-                          toast.success("Saved")
+                          toast({ title: "Saved", duration: 2500 })
                         }}
                       />
                     </div>

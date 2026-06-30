@@ -12,6 +12,7 @@ import {
   AlertCircle, CheckCircle2, PauseCircle, Plus, X, Settings, Crown
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useToast } from '@/hooks/use-toast'
 
 // ── types ────────────────────────────────────────────────────────────────────
 interface Agent {
@@ -458,8 +459,8 @@ function CreateAgentModal({ onClose, onCreated, atLimit = false }: { onClose: ()
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
         <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-sm p-8 flex flex-col items-center text-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-            <Crown className="w-7 h-7 text-amber-500" />
+          <div className="w-14 h-14 rounded-full bg-teal-500/10 dark:bg-emerald-500/15 border border-teal-500/20 dark:border-emerald-500/25 flex items-center justify-center">
+            <Crown className="w-7 h-7 text-teal-600 dark:text-emerald-400" />
           </div>
           <div>
             <h2 className="text-xl font-bold text-foreground">Add More Agent Plans</h2>
@@ -467,7 +468,7 @@ function CreateAgentModal({ onClose, onCreated, atLimit = false }: { onClose: ()
           </div>
           <div className="flex gap-3 w-full mt-2">
             <Button variant="outline" className="flex-1" onClick={onClose}>Close</Button>
-            <Button className="flex-1 bg-amber-500 hover:bg-amber-600 text-white" onClick={() => { onClose(); router.push('/settings?tab=billing&upgrade=plans') }}>See Plans</Button>
+            <Button className="flex-1 bg-teal-600 hover:bg-teal-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white" onClick={() => { onClose(); router.push('/settings?tab=billing&upgrade=plans') }}>See Plans</Button>
           </div>
         </div>
       </div>
@@ -831,13 +832,12 @@ export function AgentsContent({ highlightAgentId, autoOpenCreate }: { highlightA
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<Record<string, boolean>>({})
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
-  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
+  const { toast } = useToast()
   const [showCreate, setShowCreate] = useState(false)
   const [planStatus, setPlanStatus] = useState<PlanStatusResponse | null>(null)
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
-    setToast({ msg, type })
-    setTimeout(() => setToast(null), 3000)
+    toast({ title: msg, variant: type === 'error' ? 'destructive' : 'default', duration: 2500 })
   }
 
   // ── fetch all agents + their email counts ──────────────────────────────────
@@ -985,19 +985,6 @@ export function AgentsContent({ highlightAgentId, autoOpenCreate }: { highlightA
 
   return (
     <div className="space-y-5">
-      {/* toast */}
-      {toast && (
-        <div className={cn(
-          'fixed bottom-5 right-5 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium shadow-xl border animate-slide-in-up',
-          toast.type === 'success'
-            ? 'bg-green-500/15 border-green-500/30 text-green-400'
-            : 'bg-destructive/15 border-destructive/30 text-destructive'
-        )}>
-          {toast.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-          {toast.msg}
-        </div>
-      )}
-
       {/* create agent modal */}
       {showCreate && (
         <CreateAgentModal

@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { toast } from "sonner"
+import { useToast } from "@/hooks/use-toast"
 import api from "@/lib/api"
 import {
   Send, Edit2, Check, RotateCcw, Bot, ArrowLeft,
@@ -27,6 +27,7 @@ const QUICK_HELP = [
 ]
 
 export function HelpContent() {
+  const { toast } = useToast()
   const [showContact, setShowContact] = useState(false)
 
   // ── chat ──────────────────────────────────────────────────────────────────
@@ -108,11 +109,11 @@ export function HelpContent() {
     setSending(true)
     try {
       await api.post('/api/help/contact', form)
-      toast.success("Message sent! We'll get back to you within 24-48 hours.")
+      toast({ title: "Message sent! We'll get back to you within 24-48 hours.", duration: 3000 })
       setForm({ name: '', email: '', subject: '', message: '' })
       setShowContact(false)
     } catch {
-      toast.error('Failed to send message. Please try again.')
+      toast({ title: 'Failed to send message. Please try again.', variant: 'destructive', duration: 2500 })
     } finally {
       setSending(false)
     }

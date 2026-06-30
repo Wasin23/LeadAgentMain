@@ -18,7 +18,7 @@ import {
   type LucideIcon
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { toast } from 'sonner'
+import { useToast } from '@/hooks/use-toast'
 
 // ── types ──────────────────────────────────────────────────────────────────
 interface Agent {
@@ -144,6 +144,7 @@ function TotalRefundCounter() {
 // ── component ──────────────────────────────────────────────────────────────
 export function OperationsContent() {
   const router = useRouter()
+  const { toast } = useToast()
 
   const [agents, setAgents] = useState<Agent[]>([])
   const [selectedAgent, setSelectedAgent] = useState<string>('all')
@@ -178,11 +179,11 @@ export function OperationsContent() {
         api.delete(`/api/auth/agents/${agentId}`),
         api.delete('/api/lead-agent/agent-data', { params: { agentId } }),
       ])
-      toast.success('Agent deleted')
+      toast({ title: 'Agent deleted', duration: 2500 })
       setSelectedAgent('all')
       fetchAgents()
     } catch {
-      toast.error('Failed to delete agent')
+      toast({ title: 'Failed to delete agent', variant: 'destructive', duration: 2500 })
     } finally {
       setConfirmingDelete(false)
       setShowAgentMenu(false)
@@ -192,10 +193,10 @@ export function OperationsContent() {
   async function resetAgent(agentId: string) {
     try {
       await api.post('/api/lead-agent/reset', { agentId })
-      toast.success('Agent reset')
+      toast({ title: 'Agent reset', duration: 2500 })
       setActivityLogs(p => p.filter(l => l.agentId !== agentId))
     } catch {
-      toast.error('Failed to reset agent')
+      toast({ title: 'Failed to reset agent', variant: 'destructive', duration: 2500 })
     } finally {
       setShowAgentMenu(false)
     }
@@ -289,9 +290,9 @@ export function OperationsContent() {
         }
       }))
 
-      toast.success('Agent updated')
+      toast({ title: 'Agent updated', duration: 2500 })
     } catch (error: any) {
-      toast.error(error?.response?.data?.error || 'Failed to update agent')
+      toast({ title: error?.response?.data?.error || 'Failed to update agent', variant: 'destructive', duration: 2500 })
     } finally {
       setSavingInline(prev => ({ ...prev, [saveKey]: false }))
     }

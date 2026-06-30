@@ -7,9 +7,10 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   Plus, Trash2, Pencil, Building2, Users, MapPin, Mail,
-  Zap, AlertCircle, CheckCircle2, X, Send, MessageSquare, Wand2, Copy,
+  Zap, X, Send, MessageSquare, Wand2, Copy,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useToast } from '@/hooks/use-toast'
 
 // ── types ────────────────────────────────────────────────────────────────────
 interface Preset {
@@ -459,11 +460,10 @@ export function PresetsContent() {
   const [form, setForm] = useState<Omit<Preset, 'id' | 'createdAt' | 'updatedAt'>>(EMPTY_FORM)
   const [deleteTarget, setDeleteTarget] = useState<Preset | null>(null)
   const [showEditor, setShowEditor] = useState(false)
-  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
+  const { toast } = useToast()
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
-    setToast({ msg, type })
-    setTimeout(() => setToast(null), 3000)
+    toast({ title: msg, variant: type === 'error' ? 'destructive' : 'default', duration: 2500 })
   }
 
   const load = useCallback(async () => {
@@ -561,16 +561,6 @@ export function PresetsContent() {
 
   return (
     <div className="space-y-5">
-      {toast && (
-        <div className={cn(
-          'fixed bottom-5 right-5 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium shadow-xl border',
-          toast.type === 'success' ? 'bg-green-500/15 border-green-500/30 text-green-400' : 'bg-destructive/15 border-destructive/30 text-destructive'
-        )}>
-          {toast.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-          {toast.msg}
-        </div>
-      )}
-
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <Card className="p-6 w-full max-w-sm space-y-4">
