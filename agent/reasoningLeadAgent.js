@@ -232,6 +232,7 @@ class ReasoningLeadAgent extends EventEmitter {
         parameters: {
           type: 'object',
           properties: {
+            apolloId: { type: 'string', description: 'Apollo person ID from a prior search — skips re-search and enriches directly (1 credit instead of 2)' },
             firstName: { type: 'string', description: 'Lead first name' },
             lastName: { type: 'string', description: 'Lead last name' },
             companyName: { type: 'string', description: 'Lead company name' },
@@ -1117,6 +1118,7 @@ IMPORTANT RULES:
     switch (action) {
       case 'unlock_email':
         return {
+          apolloId: lead?._leadSource === 'apollo' ? lead?.apolloId : undefined,
           firstName: lead?.first_name,
           lastName: lead?.last_name,
           companyName: lead?.company || lead?.organization?.name,
@@ -1490,8 +1492,24 @@ IMPORTANT RULES:
         break;
         
       case 'unlock_email':
-        
+
         if (actionResult?.success && actionResult?.email) {
+          // Dedup-by-name+company already ran before enrichment (in lead_search),
+          // but the unsubscribe-by-email check couldn't run then since there was
+          // no email yet. Check now, right after the email becomes available.
+          const isUnsub = await this.awsManager.isUnsubscribed(actionResult.email).catch(() => false);
+          if (isUnsub) {
+            console.log(`[SKIP] ${actionResult.email} is unsubscribed, skipping lead`);
+            this.memory.currentCycle.currentLead = null;
+            if (this.memory.currentCycle.leadQueue.length > 0) {
+              this.memory.currentCycle.currentLead = this.memory.currentCycle.leadQueue.shift();
+              this.memory.currentCycle.processingPhase = 'research';
+            } else {
+              this.memory.currentCycle.processingPhase = 'search';
+            }
+            break;
+          }
+
           // Email unlocked successfully, UPDATE the lead email and company name from enriched data
           this.memory.currentCycle.currentLead.email = actionResult.email;
           
@@ -3719,6 +3737,16 @@ Format as:
         throw new Error('Apollo API key not configured');
       }
 
+      // FAST PATH: if we already have this lead's Apollo ID (from a prior
+      // mixed_people/search), skip the redundant re-search entirely and go
+      // straight to people/enrich. Saves 1 credit per lead (search + enrich
+      // -> just enrich) vs. the name/company re-search path below.
+      let targetPerson = null;
+      if (parameters.apolloId) {
+        targetPerson = { id: parameters.apolloId };
+      }
+
+      if (!targetPerson) {
       // STEP 1: First search for the person to get their Apollo ID
       const searchPayload = {
         per_page: 10,
@@ -3858,34 +3886,34 @@ Format as:
             error: 'No people found in search (tried with and without domain)'
           };
         }
-      }
+      } // end of "if no results from initial search, try fallback"
 
       // Find matching person with flexible matching
-      let targetPerson = searchData.people.find(p => 
-        p.first_name?.toLowerCase() === parameters.firstName?.toLowerCase() && 
+      targetPerson = searchData.people.find(p =>
+        p.first_name?.toLowerCase() === parameters.firstName?.toLowerCase() &&
         p.last_name?.toLowerCase() === parameters.lastName?.toLowerCase()
       );
-      
+
       // If exact match fails, try partial name matching
       if (!targetPerson && parameters.firstName && parameters.lastName) {
-        targetPerson = searchData.people.find(p => 
+        targetPerson = searchData.people.find(p =>
           p.first_name?.toLowerCase().includes(parameters.firstName.toLowerCase()) ||
           p.last_name?.toLowerCase().includes(parameters.lastName.toLowerCase())
         );
       }
-      
+
       // Final fallback to first person if from same company
       if (!targetPerson && parameters.companyName) {
-        targetPerson = searchData.people.find(p => 
+        targetPerson = searchData.people.find(p =>
           p.organization?.name?.toLowerCase().includes(parameters.companyName.toLowerCase())
         );
       }
-      
+
       // Ultimate fallback
       if (!targetPerson) {
         targetPerson = searchData.people[0];
       }
-
+      } // end of !targetPerson (apolloId fast path) block
 
       // STEP 2: Use enrich endpoint to unlock actual emails
       
@@ -5606,76 +5634,29 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       }
 
       const rawLeads = data.people || [];
-      
-      // Enrich leads to get actual email addresses and full names
-      const enrichedLeads = [];
-      for (const lead of rawLeads) {
-        try {
-          // Check if lead has email available
-          if (!lead.has_email) {
-            continue;
-          }
 
-          // Call people/enrich to get actual email and full name
-          const enrichResponse = await fetch('https://api.apollo.io/api/v1/people/enrich', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Cache-Control': 'no-cache',
-              'X-Api-Key': apiKey
-            },
-            body: JSON.stringify({
-              id: lead.id,
-              reveal_personal_emails: true
-            })
-          });
-
-          if (!enrichResponse.ok) {
-            console.log(`[APOLLO] Failed to enrich lead ${lead.id}: ${enrichResponse.status}`);
-            continue;
-          }
-
-          const enrichedData = await enrichResponse.json();
-          const enrichedPerson = enrichedData.person;
-
-          // Build complete lead object with enriched data
-          const completeLead = {
-            id: lead.id,
-            name: `${enrichedPerson.first_name} ${enrichedPerson.last_name}`,
-            email: enrichedPerson.email,
-            title: enrichedPerson.title,
-            company: enrichedPerson.organization?.name || lead.organization?.name,
-            organization: enrichedPerson.organization || lead.organization,
-            city: enrichedPerson.city,
-            state: enrichedPerson.state,
-            country: enrichedPerson.country,
-            linkedin_url: enrichedPerson.linkedin_url,
-            phone: enrichedPerson.phone_number || enrichedPerson.direct_phone,
-            ...enrichedPerson, // Include all other fields from enriched data
-            _leadSource: 'apollo' // Tag with source so all downstream code knows where this lead came from
-          };
-
-          enrichedLeads.push(completeLead);
-
-          // Log each enrichment for API usage tracking
-          await this.awsManager.logApiUsage({
-            userId: this.userId,
-            agentId: this.agentId,
-            service: 'apollo',
-            operation: 'email_enrichment',
-            usage: 1,
-            metadata: {
-              personName: completeLead.name,
-              company: completeLead.company,
-              hasEmail: !!completeLead.email
-            }
-          }).catch(err => console.error('Failed to log enrichment:', err));
-
-        } catch (enrichError) {
-          console.error(`[APOLLO] Error enriching lead ${lead.id}:`, enrichError.message);
-          continue;
-        }
-      }
+      // Build lead stubs from the FREE search response only — do NOT spend an
+      // Apollo enrichment credit here. Enrichment (people/enrich, 1 credit)
+      // is deferred until after dedup + pre-qualification via unlockEmail(),
+      // so credits are never spent on leads that get filtered out before
+      // qualification. See unlockEmail()'s apolloId fast path.
+      const enrichedLeads = rawLeads
+        .filter(lead => lead.has_email)
+        .map(lead => ({
+          apolloId: lead.id,
+          name: lead.name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim(),
+          first_name: lead.first_name,
+          last_name: lead.last_name,
+          title: lead.title,
+          company: lead.organization?.name,
+          organization: lead.organization,
+          city: lead.city,
+          state: lead.state,
+          country: lead.country,
+          linkedin_url: lead.linkedin_url,
+          has_email: true,
+          _leadSource: 'apollo' // Tag with source so all downstream code knows where this lead came from
+        }));
 
 
       // Log Apollo search usage
