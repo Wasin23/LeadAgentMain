@@ -459,8 +459,8 @@ function CreateAgentModal({ onClose, onCreated, atLimit = false }: { onClose: ()
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
         <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-sm p-8 flex flex-col items-center text-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-teal-500/10 dark:bg-emerald-500/15 border border-teal-500/20 dark:border-emerald-500/25 flex items-center justify-center">
-            <Crown className="w-7 h-7 text-teal-600 dark:text-emerald-400" />
+          <div className="w-14 h-14 rounded-full bg-green-900/20 border border-green-800/30 flex items-center justify-center">
+            <Crown className="w-7 h-7 text-green-700 dark:text-green-500" />
           </div>
           <div>
             <h2 className="text-xl font-bold text-foreground">Add More Agent Plans</h2>
@@ -468,7 +468,7 @@ function CreateAgentModal({ onClose, onCreated, atLimit = false }: { onClose: ()
           </div>
           <div className="flex gap-3 w-full mt-2">
             <Button variant="outline" className="flex-1" onClick={onClose}>Close</Button>
-            <Button className="flex-1 bg-teal-600 hover:bg-teal-700 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white" onClick={() => { onClose(); router.push('/settings?tab=billing&upgrade=plans') }}>See Plans</Button>
+            <Button className="flex-1 bg-green-800 hover:bg-green-900 dark:bg-green-700 dark:hover:bg-green-800 text-white" onClick={() => { onClose(); router.push('/settings?tab=billing&upgrade=plans') }}>See Plans</Button>
           </div>
         </div>
       </div>
