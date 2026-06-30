@@ -9,9 +9,11 @@ import { PresetsContent } from '@/components/agents/presets-content'
 import { ChatLabContent } from '@/components/chat-lab/chat-lab-content'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
-import { Send, MessageSquare, Activity, SlidersHorizontal } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
+import { Send, MessageSquare, Activity, SlidersHorizontal, Loader2 } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import api from '@/lib/api'
+import { useEffect } from 'react'
 
 type Section = 'monitor' | 'setup'
 
@@ -20,10 +22,25 @@ function isValidSection(value: string | null): value is Section {
 }
 
 function BulkChatLinkToggle() {
-  const [applying, setApplying] = useState<'on' | 'off' | null>(null)
+  const [enabled, setEnabled] = useState<boolean>(false)
+  const [applying, setApplying] = useState(false)
+  const [loading, setLoading] = useState(true)
 
-  const applyToAll = async (enabled: boolean) => {
-    setApplying(enabled ? 'on' : 'off')
+  useEffect(() => {
+    api.get('/api/auth/agents').then(async res => {
+      const agents = (res.data?.agents ?? []).filter((a: { agentId: string }) => a.agentId !== 'orphan')
+      if (agents.length === 0) { setLoading(false); return }
+      const settings = await Promise.allSettled(
+        agents.map((a: { agentId: string }) => api.get(`/api/lead-agent/settings?agentId=${a.agentId}`))
+      )
+      const allOn = settings.every(r => r.status === 'fulfilled' && r.value.data?.settings?.emailBuilder?.includeChatLink === true)
+      setEnabled(allOn)
+    }).catch(() => {}).finally(() => setLoading(false))
+  }, [])
+
+  const toggle = async (next: boolean) => {
+    setEnabled(next)
+    setApplying(true)
     try {
       const agentsRes = await api.get('/api/auth/agents')
       const agents = (agentsRes.data?.agents ?? []).filter((a: { agentId: string }) => a.agentId !== 'orphan')
@@ -34,25 +51,27 @@ function BulkChatLinkToggle() {
           await api.post('/api/lead-agent/settings', {
             ...current,
             agentId: a.agentId,
-            emailBuilder: { ...(current.emailBuilder || {}), includeChatLink: enabled },
+            emailBuilder: { ...(current.emailBuilder || {}), includeChatLink: next },
           })
         } catch { /* continue with remaining agents */ }
       }
+    } catch {
+      setEnabled(!next)
     } finally {
-      setApplying(null)
+      setApplying(false)
     }
   }
 
   return (
     <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-2 text-xs">
       <MessageSquare className="w-3.5 h-3.5 text-primary shrink-0" />
-      <span className="text-muted-foreground">Chat link in emails — apply to all agents:</span>
-      <Button size="sm" variant="outline" className="h-6 text-[11px]" disabled={!!applying} onClick={() => applyToAll(true)}>
-        {applying === 'on' ? 'Applying…' : 'Turn on for all'}
-      </Button>
-      <Button size="sm" variant="outline" className="h-6 text-[11px]" disabled={!!applying} onClick={() => applyToAll(false)}>
-        {applying === 'off' ? 'Applying…' : 'Turn off for all'}
-      </Button>
+      <span className="text-muted-foreground">Include chat link in all agent emails</span>
+      {loading ? (
+        <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+      ) : (
+        <Switch checked={enabled} onCheckedChange={toggle} disabled={applying} />
+      )}
+      {applying && <span className="text-muted-foreground">Applying…</span>}
     </div>
   )
 }
@@ -128,6 +147,7 @@ function ProspectingPageInner() {
                 <PresetsContent />
               </TabsContent>
               <TabsContent value="chat-setup">
+                <p className="text-xs text-muted-foreground mb-4">When a prospect clicks your chat link, they&apos;re dropped into a conversation with an AI that already knows who they are — built from your research report. Upload documents below so the AI can answer questions about your product, pricing, and use cases.</p>
                 <ChatLabContent hideSessions />
               </TabsContent>
             </Tabs>

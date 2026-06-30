@@ -1355,6 +1355,7 @@ export function SettingsContent() {
                   {analyzingWebsite ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                   {analyzingWebsite ? 'Scanning…' : 'Reset from website'}
                 </Button>
+                <Button className="flex-shrink-0" onClick={saveCompanyProfile}>Save</Button>
               </div>
             </div>
 
