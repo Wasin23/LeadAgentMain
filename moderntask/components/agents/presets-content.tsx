@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   Plus, Trash2, Pencil, Building2, Users, MapPin, Mail,
-  Zap, AlertCircle, CheckCircle2, X, Send, MessageSquare, Wand2,
+  Zap, AlertCircle, CheckCircle2, X, Send, MessageSquare, Wand2, Copy,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -407,29 +407,30 @@ function ApplyPicker({ agents, onApply, onClose }: { agents: AgentLite[]; onAppl
 
 // ── preset card ───────────────────────────────────────────────────────────────
 function PresetCard({
-  preset, selected, onSelect, onDelete, agents, onApply,
-}: { preset: Preset; selected: boolean; onSelect: () => void; onDelete: () => void; agents: AgentLite[]; onApply: (agentId: string) => void }) {
+  preset, selected, onSelect, onDelete, onDuplicate, agents, onApply,
+}: { preset: Preset; selected: boolean; onSelect: () => void; onDelete: () => void; onDuplicate: () => void; agents: AgentLite[]; onApply: (agentId: string) => void }) {
   const industries = preset.targetIndustries ?? []
   const positions  = preset.targetPositions  ?? []
   const tags       = [...industries.slice(0, 3), ...positions.slice(0, 3)]
   const [showApply, setShowApply] = useState(false)
 
   return (
-    <div className={cn('rounded-2xl border border-border bg-card p-5 space-y-3 transition-colors cursor-pointer hover:border-foreground/15', selected && 'border-primary ring-1 ring-primary/30')} onClick={onSelect}>
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <h3 className="text-sm font-semibold text-foreground">{preset.name}</h3>
+    <div className={cn('rounded-xl border border-border bg-card p-3 space-y-2 transition-colors cursor-pointer hover:border-foreground/15', selected && 'border-primary ring-1 ring-primary/30')} onClick={onSelect}>
+      <div className="flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <h3 className="text-xs font-semibold text-foreground truncate">{preset.name}</h3>
           {preset.createdAt && (
-            <p className="text-[10px] text-muted-foreground mt-0.5">Created {new Date(preset.createdAt).toLocaleDateString()}</p>
+            <p className="text-[10px] text-muted-foreground">Created {new Date(preset.createdAt).toLocaleDateString()}</p>
           )}
         </div>
-        <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-0.5 shrink-0" onClick={e => e.stopPropagation()}>
           <div className="relative">
-            <Button size="sm" variant="outline" className="h-7 text-[11px] px-2" onClick={() => setShowApply(v => !v)}>Apply</Button>
+            <Button size="sm" variant="outline" className="h-6 text-[10px] px-1.5" onClick={() => setShowApply(v => !v)}>Apply</Button>
             {showApply && <ApplyPicker agents={agents} onApply={(id) => { onApply(id); setShowApply(false) }} onClose={() => setShowApply(false)} />}
           </div>
-          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={onSelect}><Pencil className="w-3.5 h-3.5" /></Button>
-          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10" onClick={onDelete}><Trash2 className="w-3.5 h-3.5" /></Button>
+          <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={onSelect}><Pencil className="w-3 h-3" /></Button>
+          <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={onDuplicate}><Copy className="w-3 h-3" /></Button>
+          <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive hover:bg-destructive/10" onClick={onDelete}><Trash2 className="w-3 h-3" /></Button>
         </div>
       </div>
 
@@ -439,18 +440,11 @@ function PresetCard({
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-1.5 text-[10px]">
-        {preset.leadLimit && <div className="flex items-center gap-1 text-muted-foreground"><Zap className="w-3 h-3 text-primary" />{preset.leadLimit} leads</div>}
-        {(preset.companySizeMin || preset.companySizeMax) && (
-          <div className="flex items-center gap-1 text-muted-foreground"><Building2 className="w-3 h-3" />{preset.companySizeMin ?? '?'}–{preset.companySizeMax ?? '∞'}</div>
-        )}
-        {preset.emailLength && <div className="flex items-center gap-1 text-muted-foreground"><Mail className="w-3 h-3" />{preset.emailLength} email</div>}
-        {preset.includeChatLink && <div className="flex items-center gap-1 text-muted-foreground"><MessageSquare className="w-3 h-3" />chat link</div>}
+      <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground">
+        {preset.leadLimit && <span className="flex items-center gap-0.5"><Zap className="w-2.5 h-2.5 text-primary" />{preset.leadLimit} leads</span>}
+        {preset.emailLength && <span className="flex items-center gap-0.5"><Mail className="w-2.5 h-2.5" />{preset.emailLength}</span>}
+        {preset.includeChatLink && <span className="flex items-center gap-0.5"><MessageSquare className="w-2.5 h-2.5" />chat link</span>}
       </div>
-
-      {preset.specialInstructions && (
-        <p className="text-[11px] text-muted-foreground italic border-l-2 border-border pl-2 line-clamp-2">{preset.specialInstructions}</p>
-      )}
     </div>
   )
 }
@@ -520,6 +514,15 @@ export function PresetsContent() {
   const selectPreset = (p: Preset) => { setEditingId(p.id); setForm({ ...EMPTY_FORM, ...p }); setShowEditor(true) }
   const startNew = () => { setEditingId(null); setForm(EMPTY_FORM); setShowEditor(true) }
   const closeEditor = () => setShowEditor(false)
+
+  const handleDuplicate = async (p: Preset) => {
+    try {
+      const { id, createdAt, updatedAt, ...fields } = p
+      const res = await api.post('/api/settings/presets', { ...fields, name: `${p.name} (copy)` })
+      setPresets(prev => [...prev, res.data.preset])
+      showToast(`Duplicated "${p.name}"`)
+    } catch { showToast('Failed to duplicate preset', 'error') }
+  }
 
   const applyPresetToAgent = async (preset: Preset, agentId: string) => {
     try {
@@ -592,8 +595,8 @@ export function PresetsContent() {
       <div className="grid grid-cols-1 gap-4 items-start">
         <div className="min-w-0">
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {Array.from({ length: 3 }).map((_, i) => <div key={i} className="rounded-2xl border border-border bg-card p-5 h-40 animate-pulse" />)}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+              {Array.from({ length: 3 }).map((_, i) => <div key={i} className="rounded-xl border border-border bg-card p-3 h-20 animate-pulse" />)}
             </div>
           ) : presets.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border bg-card/60 p-16 flex flex-col items-center justify-center gap-4 text-center">
@@ -604,7 +607,7 @@ export function PresetsContent() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
               {presets.map(p => (
                 <PresetCard
                   key={p.id}
@@ -612,6 +615,7 @@ export function PresetsContent() {
                   selected={editingId === p.id}
                   onSelect={() => selectPreset(p)}
                   onDelete={() => setDeleteTarget(p)}
+                  onDuplicate={() => handleDuplicate(p)}
                   agents={agents}
                   onApply={(agentId) => applyPresetToAgent(p, agentId)}
                 />

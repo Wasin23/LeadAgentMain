@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import {
   Bot, Play, Square, Zap, Mail, MessageSquare, Clock, Cpu,
   ExternalLink, Trash2, Send, TrendingUp, MoreHorizontal,
-  AlertCircle, CheckCircle2, PauseCircle, Plus, X, Settings
+  AlertCircle, CheckCircle2, PauseCircle, Plus, X, Settings, Crown
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -451,8 +451,28 @@ const PERSONALITIES = [
 type PersonalityDef = typeof PERSONALITIES[number]
 
 // ── create agent modal — exact replica of InfoDashboard personality modal ─────
-function CreateAgentModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+function CreateAgentModal({ onClose, onCreated, atLimit = false }: { onClose: () => void; onCreated: () => void; atLimit?: boolean }) {
   const router = useRouter()
+
+  if (atLimit) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-sm p-8 flex flex-col items-center text-center gap-4">
+          <div className="w-14 h-14 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+            <Crown className="w-7 h-7 text-amber-500" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-foreground">Add More Agent Plans</h2>
+            <p className="text-sm text-muted-foreground mt-2">To create additional agents, you&apos;ll need to upgrade your plan.</p>
+          </div>
+          <div className="flex gap-3 w-full mt-2">
+            <Button variant="outline" className="flex-1" onClick={onClose}>Close</Button>
+            <Button className="flex-1 bg-amber-500 hover:bg-amber-600 text-white" onClick={() => { onClose(); router.push('/settings?tab=billing&upgrade=plans') }}>See Plans</Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
   const [selectedPersonalityId, setSelectedPersonalityId] = useState<string | null>(null)
   const [agentName, setAgentName] = useState('')
   const [showPresetSelection, setShowPresetSelection] = useState(false)
@@ -983,6 +1003,7 @@ export function AgentsContent({ highlightAgentId, autoOpenCreate }: { highlightA
         <CreateAgentModal
           onClose={() => setShowCreate(false)}
           onCreated={() => { showToast('Agent created successfully!'); loadAgents() }}
+          atLimit={atAgentLimit}
         />
       )}
 
@@ -1020,9 +1041,9 @@ export function AgentsContent({ highlightAgentId, autoOpenCreate }: { highlightA
             size="sm"
             variant={atAgentLimit ? 'default' : 'default'}
             className="h-8 text-xs gap-1.5"
-            onClick={() => atAgentLimit ? router.push('/settings?tab=billing&upgrade=plans') : setShowCreate(true)}
+            onClick={() => setShowCreate(true)}
           >
-            <Plus className="w-3.5 h-3.5" /> {atAgentLimit ? 'Upgrade to Add More' : 'New Agent'}
+            <Plus className="w-3.5 h-3.5" /> {atAgentLimit ? 'Add Agent' : 'New Agent'}
           </Button>
         </div>
       </div>

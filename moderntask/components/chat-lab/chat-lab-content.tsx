@@ -535,6 +535,25 @@ export function ChatLabContent({ hideSessions = false }: { hideSessions?: boolea
 
         {/* ── Knowledge ── */}
         <TabsContent value="knowledge" className="flex-1 flex flex-col min-h-0 mt-3 gap-3">
+          <div className="rounded-xl border border-border bg-muted/40 p-3 space-y-2">
+            <p className="text-xs font-semibold text-foreground">What to upload</p>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">Upload business documents your AI should know when talking to prospects. The more specific, the better the conversations.</p>
+            <div className="grid grid-cols-2 gap-1.5 text-[11px] text-muted-foreground">
+              {[
+                'Pricing sheets & tier breakdowns',
+                'Product one-pagers or data sheets',
+                'Case studies & customer results',
+                'Sales battlecards & objection handlers',
+                'Company FAQs',
+                'ROI calculators or benchmark stats',
+              ].map(ex => (
+                <div key={ex} className="flex items-center gap-1.5">
+                  <span className="w-1 h-1 rounded-full bg-primary/60 shrink-0" />
+                  {ex}
+                </div>
+              ))}
+            </div>
+          </div>
           <div
             onDragOver={e => { e.preventDefault(); setDragging(true) }}
             onDragLeave={() => setDragging(false)}
