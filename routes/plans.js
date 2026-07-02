@@ -10,10 +10,15 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 // Prices in cents; must match the frontend pricingTiers
 const PLAN_PRICES_CENTS = {
+  // current plan names
+  solo:         10000,   // $100
+  team:         25000,   // $250
+  agency:       50000,   // $500
+  enterprise:   250000,  // $2,500
+  // legacy names — keep so any existing sessions don't break
   basic:        10000,   // $100
   starter:      50000,   // $500
   professional: 100000,  // $1,000
-  enterprise:   250000,  // $2,500
 };
 
 // Get user's current plan and credit status
@@ -251,7 +256,7 @@ router.get('/purchase-history', authenticateToken, async (req, res) => {
   }
 });
 
-const PLAN_ORDER = ['free-trial', 'basic', 'starter', 'professional', 'enterprise'];
+const PLAN_ORDER = ['free-trial', 'solo', 'team', 'agency', 'enterprise', 'basic', 'starter', 'professional'];
 
 // Cancel plan — schedules cancellation at end of current billing period
 router.post('/cancel', authenticateToken, async (req, res) => {

@@ -69,6 +69,38 @@ class AWSManager {
         maxConcurrency: 3,
         description: 'Try Meridian with 250 free credits'
       },
+      // current plan names
+      'solo': {
+        name: 'Solo',
+        initialCredits: 1100,
+        maxCredits: 10000,
+        canPurchaseMore: true,
+        creditPackages: [1000, 2000, 5000],
+        maxAgents: 2,
+        maxConcurrency: 4,
+        description: 'For solo outreach'
+      },
+      'team': {
+        name: 'Team',
+        initialCredits: 2800,
+        maxCredits: 30000,
+        canPurchaseMore: true,
+        creditPackages: [1000, 5000, 10000],
+        maxAgents: 6,
+        maxConcurrency: 8,
+        description: 'For small teams'
+      },
+      'agency': {
+        name: 'Agency',
+        initialCredits: 5500,
+        maxCredits: 80000,
+        canPurchaseMore: true,
+        creditPackages: [5000, 10000, 20000],
+        maxAgents: 15,
+        maxConcurrency: 12,
+        description: 'For agencies and growing businesses'
+      },
+      // legacy plan names — kept so existing users are unaffected
       'basic': {
         name: 'Basic Plan',
         initialCredits: 1200,
