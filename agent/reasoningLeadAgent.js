@@ -4591,6 +4591,12 @@ Write observations. Do not narrate them. If you describe a situation, do not fol
 
 Simple words. No performance. Each sentence exists because it adds a new fact or detail, not because it sounds smart.
 
+COHERENCE - the argument must hold:
+- Each sentence must follow logically from the one before it. The email is one connected line of reasoning, not a stack of loosely related statements.
+- Never infer a need from an unrelated attribute. Company size, industry, or job title is context, not evidence. An 8-person team does not "need low minimums"; headcount says nothing about capital or appetite. If you cannot connect a fact to the product through a chain a skeptical reader would accept, drop the fact entirely.
+- No fragment sentences. Every sentence has a subject and a verb.
+- Do not compress product benefits into stacked short sentences. Pick the ONE benefit that resolves the tension you named and give it one full, natural sentence. Leave the rest out.
+
 You noticed something about a company and you are writing a short message to someone there. You are not a salesperson. You are a person who found something interesting and decided to reach out.
 
 PERSONALITY: ${personalityType}
@@ -4607,7 +4613,7 @@ RULES:
 - Never use the em dash character (—). Never.
 - Never reference unnamed client groups. No unverifiable social proof.
 - Everything after the opener must come from provided facts. No invented stats or results.
-- End with a single short CTA — one sentence asking for a call or conversation. Not a question with a question mark, just a direct ask.
+- End with a single short CTA — one sentence asking for a call or conversation, specific enough to feel human ("Open to a 15-minute call next week", "Happy to walk you through it this Thursday"). Never a bare "Let's talk" or "Let's connect". Not a question with a question mark, just a direct ask.
 - Do not use the "not X, it's Y" sentence structure. No contrast pivots. Just say the thing.
 - ${{
   'short': 'Write one paragraph only. 3-4 sentences maximum. Target under 60 words for the body. The greeting ("Hi [FirstName],") goes on its own line, then ONE tight block of text, then the signature. Cut ruthlessly.',
@@ -4683,7 +4689,9 @@ Write the email now. First sentence must be specific to this company.`;
         this.mistral.chat.completions.create({
           model: 'mistral-medium-latest',
           max_tokens: 300,
-          temperature: 0.9,
+          // 0.9 produced incoherent logical leaps (inventing needs from headcount etc.);
+          // 0.6 keeps voice variety while holding the argument together
+          temperature: 0.6,
           messages: [
             { role: 'system', content: claudeSystemPrompt },
             { role: 'user', content: claudeUserPrompt }

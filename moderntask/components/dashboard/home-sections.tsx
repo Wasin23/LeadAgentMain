@@ -25,7 +25,7 @@ export type HomeSectionId =
   | "performance"
 
 const SECTION_META: Record<HomeSectionId, { label: string; span: 1 | 2 }> = {
-  "performance":        { label: "Delivery", span: 2 },
+  "performance":        { label: "Delivery", span: 1 },
 }
 
 const DEFAULT_ORDER: HomeSectionId[] = [
@@ -178,11 +178,6 @@ export function HomeSections({
         </div>
       </div>
 
-      {/* Agent status - below the hero row (delivery health lives inside the Delivery section now) */}
-      <div className="grid grid-cols-1 gap-4 md:gap-5">
-        <TeamCollaboration agents={agentActivity} />
-      </div>
-
       {/* Add pills - always shown when editing and sections are hidden */}
       {editMode && addable.length > 0 && (
         <div className="flex items-center gap-1.5 flex-wrap justify-end">
@@ -220,10 +215,11 @@ export function HomeSections({
         </div>
       )}
 
-      {/* Sortable grid */}
+      {/* Agent status + Delivery, side by side */}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={visible} strategy={rectSortingStrategy}>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
+          <div className="grid grid-cols-1 gap-4 md:gap-5 @5xl:grid-cols-2 items-start">
+            <TeamCollaboration agents={agentActivity} />
             {visible.map(id => (
               <SortableSection
                 key={id}
