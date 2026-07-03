@@ -64,7 +64,7 @@ export function DotGrid() {
         ctx.fillRect(0, 0, W, H)
       })
 
-      // Dot grid — draw on top of glows
+      // Dot grid - draw on top of glows
       const spacing = 28
       const dotR    = 1.1
       const cols = Math.ceil(W / spacing) + 1

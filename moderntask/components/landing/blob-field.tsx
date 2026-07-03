@@ -20,23 +20,23 @@ const MORPH_SPEED  = [0.12, 0.09, 0.11, 0.08, 0.13]
 
 // Per-section palettes: [brightSurface, darkShadow] per blob
 const PALETTES: Array<[[number,number,number],[number,number,number]][]> = [
-  // 0 Hero — electric blue & indigo
+  // 0 Hero - electric blue & indigo
   [[[0.30,0.50,0.98],[0.08,0.12,0.58]],[[0.50,0.28,0.96],[0.18,0.06,0.54]],[[0.18,0.64,0.98],[0.04,0.22,0.56]],[[0.62,0.40,0.98],[0.22,0.12,0.56]],[[0.08,0.52,0.90],[0.02,0.18,0.48]]],
-  // 1 Agents — violet & cobalt
+  // 1 Agents - violet & cobalt
   [[[0.62,0.28,0.98],[0.24,0.06,0.58]],[[0.22,0.44,0.98],[0.06,0.14,0.58]],[[0.78,0.18,0.88],[0.36,0.04,0.50]],[[0.38,0.58,0.98],[0.12,0.18,0.58]],[[0.52,0.12,0.80],[0.20,0.02,0.44]]],
-  // 2 AI Research — teal & cyan
+  // 2 AI Research - teal & cyan
   [[[0.04,0.82,0.78],[0.00,0.34,0.38]],[[0.18,0.92,0.62],[0.04,0.40,0.24]],[[0.00,0.70,0.90],[0.00,0.28,0.44]],[[0.10,0.88,0.72],[0.02,0.38,0.32]],[[0.00,0.62,0.82],[0.00,0.24,0.40]]],
-  // 3 Outreach — coral, amber, pink
+  // 3 Outreach - coral, amber, pink
   [[[0.98,0.44,0.18],[0.58,0.14,0.04]],[[0.98,0.22,0.54],[0.58,0.06,0.22]],[[0.96,0.72,0.08],[0.56,0.32,0.02]],[[0.98,0.34,0.30],[0.58,0.10,0.10]],[[0.92,0.54,0.12],[0.50,0.20,0.02]]],
-  // 4 CRM — blue-teal & ocean
+  // 4 CRM - blue-teal & ocean
   [[[0.06,0.72,0.88],[0.00,0.26,0.44]],[[0.20,0.80,0.70],[0.04,0.34,0.30]],[[0.00,0.60,0.96],[0.00,0.22,0.52]],[[0.12,0.76,0.80],[0.02,0.30,0.38]],[[0.04,0.52,0.88],[0.00,0.18,0.44]]],
-  // 5 Teams — violet, magenta, fuchsia
+  // 5 Teams - violet, magenta, fuchsia
   [[[0.72,0.18,0.98],[0.32,0.04,0.50]],[[0.98,0.18,0.72],[0.50,0.04,0.32]],[[0.52,0.08,0.92],[0.22,0.02,0.46]],[[0.92,0.10,0.82],[0.44,0.02,0.38]],[[0.80,0.24,0.98],[0.36,0.06,0.50]]],
-  // 6 Pricing — royal blue & periwinkle
+  // 6 Pricing - royal blue & periwinkle
   [[[0.28,0.38,0.98],[0.08,0.12,0.56]],[[0.52,0.58,0.98],[0.18,0.22,0.58]],[[0.18,0.28,0.92],[0.04,0.08,0.52]],[[0.62,0.68,0.98],[0.22,0.26,0.56]],[[0.38,0.44,0.96],[0.12,0.14,0.52]]],
-  // 7 FAQ — sky & aqua
+  // 7 FAQ - sky & aqua
   [[[0.18,0.62,0.98],[0.04,0.22,0.54]],[[0.04,0.82,0.90],[0.00,0.34,0.44]],[[0.28,0.72,0.98],[0.08,0.26,0.54]],[[0.08,0.90,0.80],[0.00,0.38,0.36]],[[0.22,0.58,0.94],[0.06,0.20,0.50]]],
-  // 8 Footer — muted blue-greens
+  // 8 Footer - muted blue-greens
   [[[0.22,0.52,0.72],[0.08,0.20,0.36]],[[0.18,0.60,0.80],[0.06,0.24,0.40]],[[0.26,0.58,0.70],[0.10,0.22,0.34]],[[0.20,0.54,0.76],[0.06,0.20,0.38]],[[0.24,0.56,0.74],[0.08,0.22,0.36]]],
 ]
 
@@ -95,7 +95,7 @@ float blobSDF(vec2 p, int i) {
   harm += sin(5.0*theta + ph*2.4     + u_time*0.04) * 0.06;
   harm += sin(7.0*theta + ph*0.8     - u_time*0.03) * 0.04;
 
-  // two FBM layers — coarse warp + fine detail
+  // two FBM layers - coarse warp + fine detail
   float n1 = (fbm(p*1.5 + vec2(u_pos[i].x,u_pos[i].y)*2.0 + u_time*0.04 + ph      ) - 0.5) * 0.30;
   float n2 = (fbm(p*3.4 + vec2(u_pos[i].y,u_pos[i].x)*1.5 + u_time*0.03 + ph*0.7  ) - 0.5) * 0.10;
 
@@ -121,7 +121,7 @@ void main() {
     float depth = clamp(-sdf / (u_rad[i].x * 0.55), 0.0, 1.0);
     depth = depth * depth; // steepen so interior stays bright
 
-    // Height within blob (1=top,0=bottom) — simulates top-down light
+    // Height within blob (1=top,0=bottom) - simulates top-down light
     vec2  ctr  = vec2(u_pos[i].x * asp, u_pos[i].y);
     float ht   = 1.0 - clamp((uvA.y - (ctr.y - u_rad[i].y * 0.9)) / (u_rad[i].y * 1.8), 0.0, 1.0);
 
@@ -132,7 +132,7 @@ void main() {
     // Surface colour
     vec3 surf = mix(u_dark[i], u_bright[i], bright);
 
-    // Specular highlight — small bright oval near top of blob
+    // Specular highlight - small bright oval near top of blob
     vec2 hiPos = ctr + vec2(-u_rad[i].x * asp * 0.18, u_rad[i].y * 0.38);
     float hi   = exp(-dot(uvA - hiPos, uvA - hiPos) / (u_rad[i].x * asp * 0.18));
     surf += u_bright[i] * hi * 0.55;

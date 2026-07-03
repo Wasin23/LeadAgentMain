@@ -1,6 +1,6 @@
 'use client'
 
-// ── SAVED GLOBE VIZ — not currently used in OutreachSection ──
+// ── SAVED GLOBE VIZ - not currently used in OutreachSection ──
 // Re-import GlobeViz and drop it back into OutreachSection to restore.
 
 import { useEffect, useRef } from 'react'

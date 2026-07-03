@@ -199,13 +199,13 @@ export function GlobeCrmSection() {
             Sends. Tracks.<br />Follows up.
           </h2>
           <p className="text-black/50 text-lg leading-relaxed mb-7 max-w-[400px]">
-            Every email fires from your real inbox. Opens tracked, follow-ups scheduled automatically, and when a reply lands — all sequences stop instantly.
+            Every email fires from your real inbox. Opens tracked, follow-ups scheduled automatically, and when a reply lands - all sequences stop instantly.
           </p>
           <div className="space-y-3">
             {[
-              'Sends from Gmail or Outlook — your real domain',
+              'Sends from Gmail or Outlook - your real domain',
               'Open and click tracking per email',
-              'Smart follow-ups — pause on reply, resume on silence',
+              'Smart follow-ups - pause on reply, resume on silence',
               'Every reply routes back to your inbox',
             ].map(f => (
               <div key={f} className="flex items-center gap-3 text-black/55 text-[15px]">
@@ -227,7 +227,7 @@ export function GlobeCrmSection() {
                 Keeps your CRM<br />up to date.
               </h2>
               <p className="text-black/50 text-base leading-relaxed mb-6">
-                Every time Meridian researches a lead or gets a reply, your CRM updates automatically — deal stage, last contact, next action, signals from the web.
+                Every time Meridian researches a lead or gets a reply, your CRM updates automatically - deal stage, last contact, next action, signals from the web.
               </p>
               <div className="space-y-2.5 mb-8">
                 {[

@@ -16,7 +16,7 @@ interface DateRangePickerProps {
   onPresetChange: (preset: RangePreset) => void
   customRange: DateRange | undefined
   onCustomRangeChange: (range: DateRange | undefined) => void
-  /** earliest selectable day — charts only have data back this far */
+  /** earliest selectable day - charts only have data back this far */
   minDate?: Date
 }
 

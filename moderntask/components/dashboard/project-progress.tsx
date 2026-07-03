@@ -27,7 +27,7 @@ function AgentRing({ agent, onClick }: { agent: AgentProgressItem; onClick: () =
     <button
       onClick={onClick}
       className="flex flex-col items-center gap-1 group focus:outline-none"
-      title={`${agent.name} — ${agent.current}/${agent.max} leads`}
+      title={`${agent.name} - ${agent.current}/${agent.max} leads`}
     >
       <div className="relative w-[64px] h-[64px]">
         <svg className="-rotate-90 w-full h-full" viewBox="0 0 90 90">

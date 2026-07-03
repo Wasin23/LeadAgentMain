@@ -17,6 +17,7 @@ import {
   ArrowLeftRight, Mail,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { CopyChip } from '@/components/leads/leads-content'
 
 // ── types ─────────────────────────────────────────────────────────────────────
 interface Agent { agentId: string; name: string; personality?: { avatar?: string }; settings?: { sendingSchedule?: SendingSchedule; emailBuilder?: { smartRebump?: boolean } } }
@@ -65,7 +66,7 @@ export interface AIReport {
 }
 
 // Strips the compliance footer (company branding + unsubscribe link) from a draft body
-// for display/editing — it's appended fresh at actual send time and shouldn't be shown
+// for display/editing - it's appended fresh at actual send time and shouldn't be shown
 // or editable in the review queue. Covers both the sentinel marker and any legacy drafts
 // that had the footer baked in before send-time injection existed.
 function stripFooter(body: string) {
@@ -86,7 +87,7 @@ function ef(e: QueueEmail) {
 }
 
 function timeAgo(iso?: string) {
-  if (!iso) return '—'
+  if (!iso) return '-'
   const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
   if (m < 1) return 'Just now'
   if (m < 60) return `${m}m ago`
@@ -203,7 +204,7 @@ const TIMEZONES = [
   'Australia/Sydney', 'Australia/Melbourne', 'Pacific/Auckland',
 ]
 
-// Browser's own IANA timezone — used as the default for new agents
+// Browser's own IANA timezone - used as the default for new agents
 const BROWSER_TZ: string =
   typeof window !== 'undefined'
     ? Intl.DateTimeFormat().resolvedOptions().timeZone
@@ -239,7 +240,7 @@ function ScheduledBatchesModal({ onClose, onChanged }: { onClose: () => void; on
   useEffect(() => { load() }, [load])
 
   const toLocalInput = (utcSlot: string) => {
-    // "YYYY-MM-DDTHH:MM" is treated as UTC — convert to local datetime-local value
+    // "YYYY-MM-DDTHH:MM" is treated as UTC - convert to local datetime-local value
     const d = new Date(utcSlot + ':00Z')
     const pad = (n: number) => String(n).padStart(2, '0')
     return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
@@ -882,8 +883,14 @@ function EmailRow({ email, agentMap, selected, onSelect, fontSize, actions, onEd
           </div>
         </div>
         {expanded && body && (
-          <div className="mt-2 p-3 rounded-lg bg-muted/40 border border-border text-muted-foreground whitespace-pre-wrap leading-relaxed max-h-72 overflow-y-auto" style={{ fontSize }}>
-            {body}
+          <div className="relative mt-2 rounded-lg bg-muted/40 border border-border">
+            <div className="absolute right-2 top-2 z-10 flex items-center gap-1 rounded-md bg-background/80 backdrop-blur-sm border border-border px-1.5 py-1">
+              {to && <CopyChip text={to} title="Copy recipient email" />}
+              <CopyChip text={body} title="Copy email content" />
+            </div>
+            <div className="p-3 text-muted-foreground whitespace-pre-wrap leading-relaxed max-h-72 overflow-y-auto" style={{ fontSize }}>
+              {body}
+            </div>
           </div>
         )}
       </div>
@@ -953,7 +960,7 @@ function RebuildModal({ email, onSave, onClose }: {
       })
       setPendingSave({ subject: res.data.subject, body: res.data.body })
     } catch {
-      setError('Rebuild failed — try again.')
+      setError('Rebuild failed - try again.')
     } finally {
       setRebuilding(false)
     }
@@ -1327,7 +1334,7 @@ function ContextPane({ email, agentMap }: { email: QueueEmail | null; agentMap: 
         <div className="grid h-8 w-8 place-items-center rounded-full bg-surface text-brass">
           <Bot className="h-4 w-4" strokeWidth={1.75} />
         </div>
-        <p className="text-xs font-medium text-foreground">{agent?.name || '—'}</p>
+        <p className="text-xs font-medium text-foreground">{agent?.name || '-'}</p>
       </div>
 
       <button
@@ -1375,7 +1382,7 @@ function QueuedList({ agentId, agentMap, fontSize, setFontSize, onCountChange, a
     } catch {} finally { setLoading(false) }
   }, [agentId, onCountChange])
 
-  // Silent background refresh — doesn't clear selection or show spinner
+  // Silent background refresh - doesn't clear selection or show spinner
   const silentRefresh = useCallback(async () => {
     try {
       const params: Record<string, string | number> = { limit: LIMIT, offset: 0, agentId: agentId === 'all' ? 'all' : agentId }
@@ -1614,7 +1621,7 @@ function QueuedList({ agentId, agentMap, fontSize, setFontSize, onCountChange, a
         )}
       </div>
 
-      {/* pagination + title + font size — top */}
+      {/* pagination + title + font size - top */}
       <div className="grid grid-cols-3 items-center gap-3">
         <PaginationBar offset={offset} limit={LIMIT} total={total} onChange={off => load(off)} />
         <p className="text-center text-[11px] text-muted-foreground">Review, approve, and manage your outreach.</p>
@@ -1911,7 +1918,7 @@ export function EmailQueueContent() {
               <Clock className="w-2.5 h-2.5" />
               {queuedCount > 0
                 ? `${queuedCount} email${queuedCount !== 1 ? 's' : ''} auto-sending across ${activeScheduledAgentsCount} agent${activeScheduledAgentsCount !== 1 ? 's' : ''}`
-                : `Auto-send schedule active across ${activeScheduledAgentsCount} agent${activeScheduledAgentsCount !== 1 ? 's' : ''} — waiting for queued emails`}
+                : `Auto-send schedule active across ${activeScheduledAgentsCount} agent${activeScheduledAgentsCount !== 1 ? 's' : ''} - waiting for queued emails`}
             </span>
           )}
           {selectedAgent !== 'all' && hasSelectedAgentSchedule && (

@@ -23,7 +23,7 @@ export function FeaturesCarousel({ children, labels = [] }: { children: ReactNod
     setTimeout(() => { locked.current = false }, 750)
   }, [total])
 
-  // wheel — always intercept since this is the whole page
+  // wheel - always intercept since this is the whole page
   useEffect(() => {
     const onWheel = (e: WheelEvent) => {
       e.preventDefault()

@@ -78,10 +78,10 @@ export default function TermsOfServicePage() {
               You are responsible for ensuring your use of the Service complies with all applicable laws, including but not limited to:
             </p>
             <ul className="list-disc pl-6 space-y-1.5 text-muted-foreground">
-              <li><span className="font-medium text-foreground">CAN-SPAM Act (USA)</span> — Commercial email requirements</li>
-              <li><span className="font-medium text-foreground">CASL (Canada)</span> — Anti-spam legislation</li>
-              <li><span className="font-medium text-foreground">GDPR (EU)</span> — Data protection regulations (if applicable)</li>
-              <li><span className="font-medium text-foreground">CCPA (California)</span> — Consumer privacy rights</li>
+              <li><span className="font-medium text-foreground">CAN-SPAM Act (USA)</span> - Commercial email requirements</li>
+              <li><span className="font-medium text-foreground">CASL (Canada)</span> - Anti-spam legislation</li>
+              <li><span className="font-medium text-foreground">GDPR (EU)</span> - Data protection regulations (if applicable)</li>
+              <li><span className="font-medium text-foreground">CCPA (California)</span> - Consumer privacy rights</li>
             </ul>
             <p className="text-muted-foreground mt-3">
               Violation of these laws may result in immediate termination of your account without refund.

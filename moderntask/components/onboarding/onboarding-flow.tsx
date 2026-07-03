@@ -764,7 +764,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
     if (step === 4) return (
       <>
         <h2 className="text-3xl font-bold text-gray-900 mb-2">Connect your inbox</h2>
-        <p className="text-base text-gray-500 mb-8">Your agent sends from your real email address — your name, your domain.</p>
+        <p className="text-base text-gray-500 mb-8">Your agent sends from your real email address - your name, your domain.</p>
 
         <div className="space-y-2.5 mb-5">
           <button onClick={() => { setUseGmail(true); setUseOutlook(false); if (!gmailConnected) connectGmail() }}
@@ -775,7 +775,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
               <div className="text-xs text-gray-500">Send from your Google inbox</div>
             </div>
             {gmailConnected && useGmail ? <span className="text-green-600 text-xs font-semibold">Active ✓</span>
-              : gmailConnected ? <span className="text-gray-400 text-xs">Connected — click to activate</span>
+              : gmailConnected ? <span className="text-gray-400 text-xs">Connected - click to activate</span>
               : <span className="text-gray-400 text-xs">Connect →</span>}
           </button>
 
@@ -787,7 +787,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
               <div className="text-xs text-gray-500">Send from your Microsoft inbox</div>
             </div>
             {outlookConnected && useOutlook ? <span className="text-green-600 text-xs font-semibold">Active ✓</span>
-              : outlookConnected ? <span className="text-gray-400 text-xs">Connected — click to activate</span>
+              : outlookConnected ? <span className="text-gray-400 text-xs">Connected - click to activate</span>
               : <span className="text-gray-400 text-xs">Connect →</span>}
           </button>
 
@@ -816,7 +816,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
 
         {!gmailConnected && !outlookConnected && (
           <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 mb-5">
-            No email connected — agent will use Mailgun. You can add Gmail or Outlook anytime in Settings.
+            No email connected - agent will use Mailgun. You can add Gmail or Outlook anytime in Settings.
           </p>
         )}
 
@@ -966,10 +966,10 @@ export default function OnboardingFlow({ onComplete }: Props) {
 
         {selectedPlan !== 'free-trial' && (
           <div className="mb-4 p-4 border border-gray-200 rounded-xl">
-            <p className="text-sm font-semibold text-gray-900 mb-1">{planDetails.name} — ${planDetails.price}/mo</p>
+            <p className="text-sm font-semibold text-gray-900 mb-1">{planDetails.name} - ${planDetails.price}/mo</p>
             {planPurchased ? (
               <div className="flex items-center gap-2 text-green-600 text-sm font-medium mt-2">
-                <Check size={14} /> Plan purchased — {planDetails.credits.toLocaleString()} credits added
+                <Check size={14} /> Plan purchased - {planDetails.credits.toLocaleString()} credits added
               </div>
             ) : !paymentAdded ? (
               <div className="space-y-2 mt-2">
@@ -984,7 +984,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
                 <div className="flex items-center gap-2 text-green-600 text-xs font-medium"><Check size={12} /> Payment method on file</div>
                 <button onClick={purchasePlan}
                   className="w-full h-10 bg-green-800 text-white text-sm rounded-xl font-medium hover:bg-green-900 transition-colors">
-                  Purchase {planDetails.name} — ${planDetails.price}
+                  Purchase {planDetails.name} - ${planDetails.price}
                 </button>
               </div>
             )}
@@ -1065,7 +1065,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
         {crmConnected ? (
           <div className="flex items-center gap-2.5 p-4 bg-green-50 border border-green-200 rounded-xl mb-5">
             <Check className="text-green-600 shrink-0" size={16} />
-            <span className="text-sm text-green-700 font-medium">CRM connected — leads will auto-sync after research</span>
+            <span className="text-sm text-green-700 font-medium">CRM connected - leads will auto-sync after research</span>
           </div>
         ) : (
           <div className="mb-5">

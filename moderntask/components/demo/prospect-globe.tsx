@@ -67,7 +67,7 @@ const LEADS = [
   },
 ]
 
-// Bezier control-point offsets per lead (keeps curves stable — no Math.random in draw loop)
+// Bezier control-point offsets per lead (keeps curves stable - no Math.random in draw loop)
 const CP_OFFSETS = [
   [-80, -90] as [number, number],
   [-30, -110] as [number, number],
@@ -217,7 +217,7 @@ export function ProspectGlobe() {
       ctx.arc(GCX, GCY, GR, 0, Math.PI * 2)
       ctx.clip()
 
-      // Globe body — solid base so visible portion is never blended into background
+      // Globe body - solid base so visible portion is never blended into background
       ctx.fillStyle = '#061428'
       ctx.fillRect(0, 0, W, H)
 

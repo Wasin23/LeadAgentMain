@@ -84,7 +84,7 @@ export function PreviewChat() {
   return (
     <div className="flex flex-col h-screen bg-white max-w-2xl mx-auto">
 
-      {/* Header — identical to lead chat */}
+      {/* Header - identical to lead chat */}
       <div className="shrink-0 border-b border-gray-100 px-5 py-4 flex items-center gap-3">
         <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-lg shrink-0 overflow-hidden">
           <span>{agent?.personality?.avatar || '🤖'}</span>
@@ -105,7 +105,7 @@ export function PreviewChat() {
         <span>This is exactly what your prospect sees. You&apos;re typing as <span className="font-semibold">{MOCK_LEAD.name}, {MOCK_LEAD.title} at {MOCK_LEAD.company}</span>.</span>
       </div>
 
-      {/* Messages — identical to lead chat */}
+      {/* Messages - identical to lead chat */}
       <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4">
         {messages.length === 0 && !loading && (
           <div className="text-center text-gray-400 text-sm pt-10">Send a message to start the preview.</div>
@@ -157,7 +157,7 @@ export function PreviewChat() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input — identical to lead chat */}
+      {/* Input - identical to lead chat */}
       <div className="shrink-0 border-t border-gray-100 px-3 py-3">
         <div className="flex gap-2 items-end">
           <textarea

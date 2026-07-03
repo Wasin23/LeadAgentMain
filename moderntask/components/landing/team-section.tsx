@@ -233,7 +233,7 @@ function TeamViz() {
       ctx.lineWidth = 1
       ctx.stroke()
 
-      // agent icon — simple "brain" square with grid lines
+      // agent icon - simple "brain" square with grid lines
       ctx.strokeStyle = 'rgba(165,180,252,0.85)'
       ctx.lineWidth = 1.1
       const s = 8

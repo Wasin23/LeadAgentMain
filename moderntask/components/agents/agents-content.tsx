@@ -451,7 +451,7 @@ const PERSONALITIES = [
 
 type PersonalityDef = typeof PERSONALITIES[number]
 
-// ── create agent modal — exact replica of InfoDashboard personality modal ─────
+// ── create agent modal - exact replica of InfoDashboard personality modal ─────
 function CreateAgentModal({ onClose, onCreated, atLimit = false }: { onClose: () => void; onCreated: () => void; atLimit?: boolean }) {
   const router = useRouter()
 
@@ -581,7 +581,7 @@ function CreateAgentModal({ onClose, onCreated, atLimit = false }: { onClose: ()
     } finally { setIsCreating(false) }
   }
 
-  // gradientStyle removed — now using p.ringStyle and p.pillStyle directly
+  // gradientStyle removed - now using p.ringStyle and p.pillStyle directly
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -972,12 +972,12 @@ export function AgentsContent({ highlightAgentId, autoOpenCreate }: { highlightA
   const atAgentLimit = hasPlanLimit && totalAgents >= maxAgents
 
   const summaryCards = [
-    { label: 'Total Agents',   value: loading ? '—' : totalAgents,  icon: Bot,          accent: 'text-primary',    bg: 'bg-primary/10' },
-    { label: 'Running',        value: loading ? '—' : runningCount, icon: Cpu,          accent: 'text-green-400',  bg: 'bg-green-500/10' },
-    { label: 'Total Sent',     value: loading ? '—' : totalSent.toLocaleString(),    icon: Send,   accent: 'text-purple-400', bg: 'bg-purple-500/10' },
-    { label: 'Total Queued',   value: loading ? '—' : totalQueued.toLocaleString(),  icon: Mail,   accent: 'text-blue-400',   bg: 'bg-blue-500/10' },
-    { label: 'Total Replies',  value: loading ? '—' : totalReplied.toLocaleString(), icon: MessageSquare, accent: 'text-teal-400', bg: 'bg-teal-500/10' },
-    { label: 'Reply Rate',     value: loading ? '—' : `${overallReplyRate}%`,        icon: TrendingUp,   accent: 'text-orange-400', bg: 'bg-orange-500/10' },
+    { label: 'Total Agents',   value: loading ? '-' : totalAgents,  icon: Bot,          accent: 'text-primary',    bg: 'bg-primary/10' },
+    { label: 'Running',        value: loading ? '-' : runningCount, icon: Cpu,          accent: 'text-green-400',  bg: 'bg-green-500/10' },
+    { label: 'Total Sent',     value: loading ? '-' : totalSent.toLocaleString(),    icon: Send,   accent: 'text-purple-400', bg: 'bg-purple-500/10' },
+    { label: 'Total Queued',   value: loading ? '-' : totalQueued.toLocaleString(),  icon: Mail,   accent: 'text-blue-400',   bg: 'bg-blue-500/10' },
+    { label: 'Total Replies',  value: loading ? '-' : totalReplied.toLocaleString(), icon: MessageSquare, accent: 'text-teal-400', bg: 'bg-teal-500/10' },
+    { label: 'Reply Rate',     value: loading ? '-' : `${overallReplyRate}%`,        icon: TrendingUp,   accent: 'text-orange-400', bg: 'bg-orange-500/10' },
   ]
 
   // ── loading skeleton ───────────────────────────────────────────────────────

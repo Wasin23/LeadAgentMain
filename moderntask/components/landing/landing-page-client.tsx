@@ -48,7 +48,7 @@ export function LandingPageClient() {
             <MeridianWordmark className="h-2 w-auto sm:h-2.5" color="#111111" />
           </Link>
 
-          {/* Center: section tabs — hidden on mobile */}
+          {/* Center: section tabs - hidden on mobile */}
           <div className="absolute left-1/2 -translate-x-1/2 hidden md:flex items-center gap-0.5">
             {LABELS.map((label, i) =>
               label ? (

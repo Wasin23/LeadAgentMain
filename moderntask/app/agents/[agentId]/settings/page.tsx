@@ -273,7 +273,7 @@ function TemplateEditor({ templates, onChange }: {
   return (
     <div className="mt-4 space-y-3">
       {templates.length === 0 && editing === null && (
-        <p className="text-sm text-muted-foreground">No templates yet. A template lets you write a static email body with merge tags — the agent fills them in using research instead of generating the whole email from scratch.</p>
+        <p className="text-sm text-muted-foreground">No templates yet. A template lets you write a static email body with merge tags - the agent fills them in using research instead of generating the whole email from scratch.</p>
       )}
 
       {/* Saved templates list */}
@@ -300,7 +300,7 @@ function TemplateEditor({ templates, onChange }: {
             <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Cold Outreach v1" />
           </div>
           <div className="space-y-1.5">
-            <Label>Subject Line <span className="text-muted-foreground font-normal">(optional — overrides AI subject)</span></Label>
+            <Label>Subject Line <span className="text-muted-foreground font-normal">(optional - overrides AI subject)</span></Label>
             <Input value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} placeholder="Quick question for {{firstName}}" />
           </div>
           <div className="space-y-1.5">
@@ -314,7 +314,7 @@ function TemplateEditor({ templates, onChange }: {
             />
           </div>
           <div className="space-y-1.5">
-            <p className="text-xs text-muted-foreground font-medium">Merge tags (click to insert — agent fills these in):</p>
+            <p className="text-xs text-muted-foreground font-medium">Merge tags (click to insert - agent fills these in):</p>
             <div className="flex flex-wrap gap-1.5">
               {MERGE_TAGS.map(tag => (
                 <button
@@ -506,7 +506,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
         },
       }));
     } catch {
-      alert('Could not autofill — make sure your Company Profile is filled out in Settings.');
+      alert('Could not autofill - make sure your Company Profile is filled out in Settings.');
     } finally {
       setAutofilling(false);
     }
@@ -715,7 +715,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
       }
     } catch (e: any) {
       console.error('[TEST EMAIL] error:', e?.name, e?.message);
-      setTestEmailError(e?.name === 'AbortError' ? 'Timed out — try again' : (e?.message || 'Failed to generate test email'));
+      setTestEmailError(e?.name === 'AbortError' ? 'Timed out - try again' : (e?.message || 'Failed to generate test email'));
     } finally {
       clearTimeout(timeout);
       setTestEmailLoading(false);
@@ -759,7 +759,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                 <ArrowLeft className="w-5 h-5" />
               </Button>
               <div>
-                <h1 className="text-lg font-semibold text-foreground">{agentName} — Settings</h1>
+                <h1 className="text-lg font-semibold text-foreground">{agentName} - Settings</h1>
                 <p className="text-sm text-muted-foreground">Configure targeting, messaging & behaviour</p>
               </div>
             </div>
@@ -943,7 +943,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                     helpText="Not in the list? Type it and press Enter to add."
                   />
                   <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 text-xs text-amber-700 dark:text-amber-400">
-                    <span className="font-semibold">Each industry is paired with each job title below during search.</span> Make sure the combinations make sense — e.g. &ldquo;Real Estate&rdquo; + &ldquo;Investor&rdquo; are almost never real Apollo titles and will return almost nothing. Use titles people actually put on their LinkedIn profiles at those companies.
+                    <span className="font-semibold">Each industry is paired with each job title below during search.</span> Make sure the combinations make sense - e.g. &ldquo;Real Estate&rdquo; + &ldquo;Investor&rdquo; are almost never real Apollo titles and will return almost nothing. Use titles people actually put on their LinkedIn profiles at those companies.
                   </div>
                 </>
               )}
@@ -1168,7 +1168,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
           <Section
             title="Email Templates"
             description="Pre-written email bodies the agent uses instead of generating from scratch"
-            badge={settings.emailBuilder.useTemplates ? (settings.emailBuilder.templates?.length ? `${settings.emailBuilder.templates.length} active` : 'on — no templates') : (settings.emailBuilder.templates?.length ? `${settings.emailBuilder.templates.length} saved (off)` : undefined)}
+            badge={settings.emailBuilder.useTemplates ? (settings.emailBuilder.templates?.length ? `${settings.emailBuilder.templates.length} active` : 'on - no templates') : (settings.emailBuilder.templates?.length ? `${settings.emailBuilder.templates.length} saved (off)` : undefined)}
           >
             <div className="mt-4 space-y-4">
               <ToggleRow

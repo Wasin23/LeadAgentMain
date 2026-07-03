@@ -607,7 +607,7 @@ export default function AgentDashboardPage({ params }: { params: Promise<{ agent
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-xl font-semibold text-foreground">{agentName || agentId} — Outreach</h1>
+              <h1 className="text-xl font-semibold text-foreground">{agentName || agentId} - Outreach</h1>
               <p className="text-sm text-muted-foreground">Conversations, analytics & settings</p>
             </div>
           </div>

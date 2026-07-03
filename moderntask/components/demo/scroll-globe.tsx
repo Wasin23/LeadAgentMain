@@ -23,7 +23,7 @@ const SECTIONS: Section[] = [
     title: 'Your AI',
     subtitle: 'Outreach Team',
     description:
-      'Meridian agents research every lead, write personalized emails, and send from your real inbox — all on autopilot. No shared domains. No templates.',
+      'Meridian agents research every lead, write personalized emails, and send from your real inbox - all on autopilot. No shared domains. No templates.',
     align: 'left',
     actions: [
       { label: 'Start free', variant: 'primary', href: '/signin' },

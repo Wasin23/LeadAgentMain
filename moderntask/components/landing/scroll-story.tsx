@@ -304,7 +304,7 @@ export function ScrollStory() {
 
   return (
     <>
-      {/* ── Page 1 — How the agent finds prospects ── */}
+      {/* ── Page 1 - How the agent finds prospects ── */}
       <div ref={ref1} style={{ height: '200vh' }}>
         <GlobeSection>
           <p className="text-indigo-400/80 text-xs font-semibold tracking-[0.2em] uppercase mb-5">
@@ -314,11 +314,11 @@ export function ScrollStory() {
             Your agent finds 50 new qualified prospects every morning.
           </h2>
           <p className="text-black/45 text-[1.05rem] leading-relaxed mb-10 max-w-md">
-            Define your ICP once. Meridian scans companies, scores by fit, researches each account, and hands you a live prospect list — fully automated.
+            Define your ICP once. Meridian scans companies, scores by fit, researches each account, and hands you a live prospect list - fully automated.
           </p>
           <div className="space-y-5">
             {[
-              { icon: Target,   step: '① Define your ICP',          desc: 'Industry, title, company size, tech stack — as specific as you need.' },
+              { icon: Target,   step: '① Define your ICP',          desc: 'Industry, title, company size, tech stack - as specific as you need.' },
               { icon: Search,   step: '② Agent scans for matches',   desc: 'Funding rounds, hiring spikes, product launches, LinkedIn signals.' },
               { icon: FileText, step: '③ Research and rank',         desc: 'Scores each prospect by fit and intent, pulls context for the email.' },
               { icon: Send,     step: '④ Always-on sourcing',        desc: 'New leads surface every day. No spreadsheets, no manual list-building.' },
@@ -344,7 +344,7 @@ export function ScrollStory() {
         </GlobeSection>
       </div>
 
-      {/* ── Page 2 — The email ── */}
+      {/* ── Page 2 - The email ── */}
       <div ref={ref2} style={{ height: '200vh' }}>
         <GlobeSection>
           <p className="text-indigo-400/80 text-xs font-semibold tracking-[0.2em] uppercase mb-5">
@@ -354,7 +354,7 @@ export function ScrollStory() {
             One personalized email per prospect. Written from research.
           </h2>
           <p className="text-black/45 text-base leading-relaxed mb-7 max-w-[400px]">
-            Not a template with a name token. Every email is written from account context — funding, hiring signals, product news, and role-specific hooks.
+            Not a template with a name token. Every email is written from account context - funding, hiring signals, product news, and role-specific hooks.
           </p>
           <div className="space-y-3 max-w-[430px]">
             {[
@@ -394,7 +394,7 @@ export function ScrollStory() {
         </GlobeSection>
       </div>
 
-      {/* ── Section C — Full pipeline ── */}
+      {/* ── Section C - Full pipeline ── */}
       <div className="relative overflow-hidden bg-[#03050d]">
         <StarField />
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_80%_50%_at_50%_0%,rgba(60,80,220,0.12),transparent)]" />
@@ -407,7 +407,7 @@ export function ScrollStory() {
               Prospect to pipeline,<br className="hidden sm:block" /> fully automated.
             </h2>
             <p className="text-black/40 text-lg leading-relaxed max-w-xl mx-auto">
-              From the moment a prospect is found to the moment a reply lands in your inbox — Meridian handles every step.
+              From the moment a prospect is found to the moment a reply lands in your inbox - Meridian handles every step.
             </p>
           </div>
 

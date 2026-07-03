@@ -1560,7 +1560,7 @@ export function SettingsContent() {
               </div>
             )}
 
-            {/* Not connected — dropdown + credential form */}
+            {/* Not connected - dropdown + credential form */}
             {!crmStatus.connected && (
               <div className="space-y-5">
                 {/* CRM selector dropdown */}
@@ -1928,7 +1928,7 @@ export function SettingsContent() {
                   </div>
                 ) : Object.keys(industryFactsGrouped).length === 0 ? (
                   <div className="text-center py-8 text-sm text-muted-foreground">
-                    No industry facts yet — run the agent on a few leads to build the database.
+                    No industry facts yet - run the agent on a few leads to build the database.
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -2010,7 +2010,7 @@ export function SettingsContent() {
               </div>
               <ul className="text-xs text-amber-700 dark:text-amber-400 space-y-1 pl-6 list-disc">
                 <li>Adds the lead to your personal favorites list for quick filtering</li>
-                <li>Queues them for continuous background research — news, funding rounds, hiring signals, leadership changes</li>
+                <li>Queues them for continuous background research - news, funding rounds, hiring signals, leadership changes</li>
                 <li>Each research pass crawls real web pages (no API cost), dates them, and only sends recent content to AI for scoring</li>
                 <li>High-scoring findings (≥6/10) appear as a visual timeline in the lead&apos;s detail panel</li>
               </ul>
@@ -2031,18 +2031,18 @@ export function SettingsContent() {
 
               <div className="rounded-lg border border-border bg-muted/40 px-3 py-2.5 space-y-1.5">
                 <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
-                  {timelineResearchCriteria.trim() ? 'Default (replaced by your criteria below)' : 'Default — active now'}
+                  {timelineResearchCriteria.trim() ? 'Default (replaced by your criteria below)' : 'Default - active now'}
                 </p>
                 <ul className="text-xs text-muted-foreground space-y-0.5">
-                  <li><span className="text-foreground/70 font-medium">8–10</span> · Strong buying signal — funding round, hiring surge, new initiative, expansion, expressed pain point</li>
-                  <li><span className="text-foreground/70 font-medium">6–7</span> · Useful context — leadership change, market shift, product launch, company growth</li>
-                  <li><span className="text-foreground/70 font-medium">0–5</span> · Not useful — generic content, unrelated topic, or no actionable insight (never stored)</li>
+                  <li><span className="text-foreground/70 font-medium">8–10</span> · Strong buying signal - funding round, hiring surge, new initiative, expansion, expressed pain point</li>
+                  <li><span className="text-foreground/70 font-medium">6–7</span> · Useful context - leadership change, market shift, product launch, company growth</li>
+                  <li><span className="text-foreground/70 font-medium">0–5</span> · Not useful - generic content, unrelated topic, or no actionable insight (never stored)</li>
                 </ul>
               </div>
 
               <textarea
                 className="w-full min-h-[96px] px-3 py-2 text-sm rounded-md border border-input bg-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
-                placeholder={`Override the default — describe in plain English what signals matter to you. e.g. "I care most about companies that just raised a Series A or B, are hiring engineers, or announced a new product. Leadership changes at VP+ are also useful."`}
+                placeholder={`Override the default - describe in plain English what signals matter to you. e.g. "I care most about companies that just raised a Series A or B, are hiring engineers, or announced a new product. Leadership changes at VP+ are also useful."`}
                 value={timelineResearchCriteria}
                 onChange={e => setTimelineResearchCriteria(e.target.value.slice(0, 800))}
               />

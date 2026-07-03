@@ -17,11 +17,11 @@ interface ProjectAnalyticsProps {
 function getBlueShade(value: number, max: number): string {
   if (max === 0) return "#bfdbfe" // blue-200
   const ratio = value / max
-  if (ratio < 0.2) return "#bfdbfe"  // blue-200 — very low
-  if (ratio < 0.4) return "#60a5fa"  // blue-400 — low
-  if (ratio < 0.6) return "#3b82f6"  // blue-500 — mid
-  if (ratio < 0.8) return "#2563eb"  // blue-600 — high
-  return "#1d4ed8"                    // blue-700 — peak
+  if (ratio < 0.2) return "#bfdbfe"  // blue-200 - very low
+  if (ratio < 0.4) return "#60a5fa"  // blue-400 - low
+  if (ratio < 0.6) return "#3b82f6"  // blue-500 - mid
+  if (ratio < 0.8) return "#2563eb"  // blue-600 - high
+  return "#1d4ed8"                    // blue-700 - peak
 }
 
 export function ProjectAnalytics({ data }: ProjectAnalyticsProps) {

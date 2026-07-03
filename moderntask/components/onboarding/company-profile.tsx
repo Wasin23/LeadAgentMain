@@ -522,7 +522,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
                           {question.question}
                           {question.required && <span className="text-blue-600 ml-1">*</span>}
-                          {isEmpty && <span className="text-blue-500 ml-2 text-xs">(Empty — Please fill)</span>}
+                          {isEmpty && <span className="text-blue-500 ml-2 text-xs">(Empty - Please fill)</span>}
                         </label>
                         {question.type === 'textarea' ? (
                           <Textarea

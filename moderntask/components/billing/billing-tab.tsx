@@ -172,7 +172,7 @@ function AddCardForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
       {/* Wallet Pay (Apple Pay / Google Pay) */}
       <WalletPayButton onSuccess={onSuccess} />
 
-      {/* Grouped fields — Stripe-style bordered rows */}
+      {/* Grouped fields - Stripe-style bordered rows */}
       <div className="rounded-xl border border-input overflow-hidden">
         {/* Name row */}
         <div className="px-4 py-3 border-b border-input">
@@ -307,10 +307,10 @@ function BillingTabInner() {
 
   const PLAN_ORDER = ['free-trial', 'solo', 'team', 'agency', 'enterprise']
   const PLAN_LABELS: Record<string, string> = {
-    solo: 'Solo — $100/mo',
-    team: 'Team — $250/mo',
-    agency: 'Agency — $500/mo',
-    enterprise: 'Enterprise — Custom',
+    solo: 'Solo - $100/mo',
+    team: 'Team - $250/mo',
+    agency: 'Agency - $500/mo',
+    enterprise: 'Enterprise - Custom',
   }
 
   const avgCreditsPerEmail = 0.7
@@ -564,7 +564,7 @@ function BillingTabInner() {
             <div className="flex justify-between pb-3">
               <span className="text-muted-foreground">Plan Type</span>
               <div className="flex items-center gap-2">
-                <span className="font-medium">{userPlan?.plan?.name ?? '—'}</span>
+                <span className="font-medium">{userPlan?.plan?.name ?? '-'}</span>
                 {userPlan?.pendingCancel && (
                   <span className="text-xs px-1.5 py-0.5 rounded bg-destructive/10 text-destructive font-medium">
                     Cancels {new Date(userPlan.pendingCancelAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -580,7 +580,7 @@ function BillingTabInner() {
             <div className="flex justify-between py-3">
               <span className="text-muted-foreground">Plan Pricing</span>
               <span className="font-medium">
-                {userPlan?.plan?.id === 'free-trial' ? 'Free' : userPlan?.plan?.price ? `$${userPlan.plan.price}/mo` : '—'}
+                {userPlan?.plan?.id === 'free-trial' ? 'Free' : userPlan?.plan?.price ? `$${userPlan.plan.price}/mo` : '-'}
               </span>
             </div>
             {nextPaymentDue && userPlan?.plan?.id !== 'free-trial' && !userPlan?.pendingCancel ? (
@@ -609,7 +609,7 @@ function BillingTabInner() {
           <div className="mt-5 flex flex-wrap items-center gap-3">
             {userPlan?.plan?.id && userPlan.plan.id !== 'free-trial' && !userPlan?.pendingCancel && (
               <>
-                {/* Manage plan — hidden behind a toggle */}
+                {/* Manage plan - hidden behind a toggle */}
                 <button
                   onClick={() => { setShowManagePlan(v => !v); setCancelConfirm(false) }}
                   className="px-3 py-1.5 text-sm border border-input rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
@@ -643,7 +643,7 @@ function BillingTabInner() {
                         )}
                       </div>
                     )}
-                    {/* Cancel — buried at the bottom */}
+                    {/* Cancel - buried at the bottom */}
                     <div className="pt-2 border-t border-border">
                       {!cancelConfirm ? (
                         <button
@@ -733,10 +733,10 @@ function BillingTabInner() {
                   onChange={e => { const updated = { ...autoTopup, tierId: e.target.value }; setAutoTopup(updated); saveAutoTopup(updated) }}
                   className="w-full text-sm border border-input rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
                 >
-                  <option value="mini">Mini — 100 credits ($10)</option>
-                  <option value="small">Small — 550 credits ($50)</option>
-                  <option value="medium">Medium — 1,150 credits ($100)</option>
-                  <option value="bulk">Bulk — 3,000 credits ($250)</option>
+                  <option value="mini">Mini - 100 credits ($10)</option>
+                  <option value="small">Small - 550 credits ($50)</option>
+                  <option value="medium">Medium - 1,150 credits ($100)</option>
+                  <option value="bulk">Bulk - 3,000 credits ($250)</option>
                 </select>
               </div>
             </div>
@@ -833,7 +833,7 @@ function BillingTabInner() {
           {!creditLoading && creditBalance < 100 && creditBalance >= 0 && (
             <div className="mt-4 flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
               <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
-              {creditBalance === 0 ? 'No credits remaining.' : `Low balance — ${creditBalance} credits left.`}
+              {creditBalance === 0 ? 'No credits remaining.' : `Low balance - ${creditBalance} credits left.`}
             </div>
           )}
           <div className="mt-5 flex flex-wrap gap-2">

@@ -118,7 +118,7 @@ export default function CalendarSetup({ onComplete }: Props) {
                 ) : (
                   <div className="flex items-center gap-2 text-sm text-green-400">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    Calendar connected — availability sync active
+                    Calendar connected - availability sync active
                   </div>
                 )}
               </div>
@@ -160,8 +160,8 @@ export default function CalendarSetup({ onComplete }: Props) {
             <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-5">
               <h3 className="font-semibold text-green-400 mb-2">Calendar Integration Active</h3>
               <ul className="space-y-1.5 text-sm text-green-300">
-                {calendarConnected && <li>✓ Google Calendar connected — meeting bookings will sync</li>}
-                {calendlySaved && <li>✓ Calendly link saved — agent will include it in outreach</li>}
+                {calendarConnected && <li>✓ Google Calendar connected - meeting bookings will sync</li>}
+                {calendlySaved && <li>✓ Calendly link saved - agent will include it in outreach</li>}
               </ul>
             </div>
           )}

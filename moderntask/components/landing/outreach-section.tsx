@@ -387,7 +387,7 @@ export function OutreachSection() {
   return (
     <section className="relative z-10 h-full overflow-hidden">
 
-      {/* left copy — centered vertically, above the globe layer */}
+      {/* left copy - centered vertically, above the globe layer */}
       <div className="relative z-10 h-full flex items-center pointer-events-none">
         <div className="w-full max-w-7xl mx-auto px-6 sm:px-12">
           <div className="max-w-[440px] pointer-events-auto">
@@ -421,7 +421,7 @@ export function OutreachSection() {
         </div>
       </div>
 
-      {/* globe — absolutely fills right 62% of section, full height */}
+      {/* globe - absolutely fills right 62% of section, full height */}
       <div className="absolute top-0 bottom-0 right-0" style={{ left: '38%', top: '15%' }}>
         <GlobeViz />
         <div className="absolute bottom-4 left-4 z-10 flex items-center gap-4 pointer-events-none">

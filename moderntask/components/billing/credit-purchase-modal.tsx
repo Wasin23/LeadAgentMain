@@ -214,7 +214,7 @@ export function CreditPurchaseModal({
                         <div className="mb-5">
                           {tier.id === "enterprise" ? (
                             <>
-                              <div className="text-2xl font-bold">—</div>
+                              <div className="text-2xl font-bold">-</div>
                               <div className="text-sm text-muted-foreground">credits</div>
                             </>
                           ) : (
@@ -352,7 +352,7 @@ export function CreditPurchaseModal({
                 const sel = options.find((t) => t.id === selectedTier)
                 if (!sel) return "Select a plan above"
                 return mode === "upgrade"
-                  ? `Upgrade to ${sel.name} — ${sel.credits.toLocaleString()} Credits Included`
+                  ? `Upgrade to ${sel.name} - ${sel.credits.toLocaleString()} Credits Included`
                   : `Add ${sel.credits.toLocaleString()} Credits for $${sel.price}`
               })()
             )}

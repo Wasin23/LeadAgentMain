@@ -16,6 +16,7 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
+import { CopyChip } from '@/components/leads/leads-content'
 import { AIReportModal, AIReport } from '@/components/email-queue/email-queue-content'
 
 // ── types ─────────────────────────────────────────────────────────────────────
@@ -112,7 +113,7 @@ interface ReplyConversation {
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 function timeAgo(ts?: string | null) {
-  if (!ts) return '—'
+  if (!ts) return '-'
   const diff = Date.now() - new Date(ts).getTime()
   const m = Math.floor(diff / 60000)
   if (m < 1) return 'just now'
@@ -128,7 +129,7 @@ function sentDate(e: AnalyticsEmail) { return e.sentAt || e.timestamp || '' }
 function emailId(e: AnalyticsEmail) { return e.trackingId || e.id || '' }
 
 // Strips the compliance footer (company branding + unsubscribe link) from a body for
-// display — it's appended fresh at actual send time and shouldn't be shown in the UI.
+// display - it's appended fresh at actual send time and shouldn't be shown in the UI.
 function stripFooter(body: string) {
   const idx = body.indexOf('<!--MERIDIAN_FOOTER-->')
   return idx === -1 ? body : body.slice(0, idx).replace(/\s+$/, '')
@@ -241,7 +242,7 @@ function SentRow({ email, onEditFollowUp, onScheduleFollowUp, onSendNow, onCance
     }
     if (rc >= max && max > 0) return <span className="text-green-600 dark:text-green-400">Done ({rc}/{max})</span>
     if (rc > 0) return <span className="text-muted-foreground">{rc} sent</span>
-    return <span className="text-muted-foreground">—</span>
+    return <span className="text-muted-foreground">-</span>
   }
 
   return (
@@ -305,8 +306,8 @@ function SentRow({ email, onEditFollowUp, onScheduleFollowUp, onSendNow, onCance
         <tr className="border-b last:border-0 bg-muted/20">
           <td colSpan={selectionMode ? 8 : 7} className="px-3 pb-3 pt-1">
             <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs text-muted-foreground">
-              <div><span className="font-medium text-foreground mr-1">To</span>{email.to || email.recipient}</div>
-              <div><span className="font-medium text-foreground mr-1">Sent</span>{sentDate(email) ? new Date(sentDate(email)).toLocaleString() : '—'}</div>
+              <div className="flex items-center gap-1"><span className="font-medium text-foreground mr-1">To</span>{email.to || email.recipient}{(email.to || email.recipient) && <CopyChip text={(email.to || email.recipient)!} title="Copy recipient email" />}</div>
+              <div><span className="font-medium text-foreground mr-1">Sent</span>{sentDate(email) ? new Date(sentDate(email)).toLocaleString() : '-'}</div>
               <div className="col-span-2"><span className="font-medium text-foreground mr-1">Subject</span>{email.subject}</div>
               {email.followUpDate && (
                 <div className="col-span-2 flex items-center gap-1.5">
@@ -316,7 +317,13 @@ function SentRow({ email, onEditFollowUp, onScheduleFollowUp, onSendNow, onCance
                   {(email.rebumpCount ?? 0) > 0 && <span className="text-muted-foreground">· {email.rebumpCount} sent</span>}
                 </div>
               )}
-              {email.body && <div className="col-span-2"><span className="font-medium text-foreground mr-1">Body</span><span className="whitespace-pre-wrap">{stripFooter(email.body)}</span></div>}
+              {email.body && (
+                <div className="col-span-2">
+                  <span className="font-medium text-foreground mr-1">Body</span>
+                  <CopyChip text={stripFooter(email.body)} title="Copy email content" />
+                  <span className="whitespace-pre-wrap block mt-0.5">{stripFooter(email.body)}</span>
+                </div>
+              )}
               {email.aiReport && onViewReport && (
                 <div className="col-span-2 pt-1">
                   <button
@@ -444,7 +451,7 @@ function FollowUpRow({ email, onEditFollowUp, onCancelFollowUp, onRetryFollowUp 
           <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
             <div><span className="font-medium text-foreground mr-1">To</span>{email.to || email.recipient}</div>
             {lastSent && <div><span className="font-medium text-foreground mr-1">Follow-up sent</span>{new Date(lastSent).toLocaleString()}</div>}
-            <div><span className="font-medium text-foreground mr-1">Original sent</span>{sentDate(email) ? new Date(sentDate(email)).toLocaleString() : '—'}</div>
+            <div><span className="font-medium text-foreground mr-1">Original sent</span>{sentDate(email) ? new Date(sentDate(email)).toLocaleString() : '-'}</div>
             <div><span className="font-medium text-foreground mr-1">Count</span>{rc} / {max}</div>
             {templateName && <div className="col-span-2"><span className="font-medium text-foreground mr-1">Template</span>{templateName}</div>}
             {nextDate && rc < max && (
@@ -697,7 +704,7 @@ function TemplatesPanel({ agent, templates, onMutate, onMassFollowUp, saved, fol
     if (!newT.subject.trim() || !newT.body.trim()) return
     const updated = [...templates, { ...newT, name: newT.name || `Template ${templates.length + 1}` }]
     onMutate(agent, { useTemplates: true } as any)
-    // save via settings update — store in followUpTemplates
+    // save via settings update - store in followUpTemplates
     api.put(`/api/auth/agents/${agent.agentId}/settings`, {
       ...agent.settings,
       followUpTemplates: { ...agent.settings?.followUpTemplates, templates: updated }
@@ -732,9 +739,9 @@ function TemplatesPanel({ agent, templates, onMutate, onMassFollowUp, saved, fol
           <p className="text-xs font-semibold text-primary">New Template</p>
           <input placeholder="Name (optional)" value={newT.name} onChange={e => setNewT(p => ({ ...p, name: e.target.value }))}
             className="w-full h-8 rounded-md border border-input bg-background px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring" />
-          <input placeholder="Subject — use {name}, {company}, {topic}, {days_ago}" value={newT.subject} onChange={e => setNewT(p => ({ ...p, subject: e.target.value }))}
+          <input placeholder="Subject - use {name}, {company}, {topic}, {days_ago}" value={newT.subject} onChange={e => setNewT(p => ({ ...p, subject: e.target.value }))}
             className="w-full h-8 rounded-md border border-input bg-background px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring" />
-          <textarea placeholder="Body — use {name}, {company}, {topic}, {days_ago}" value={newT.body} onChange={e => setNewT(p => ({ ...p, body: e.target.value }))} rows={4}
+          <textarea placeholder="Body - use {name}, {company}, {topic}, {days_ago}" value={newT.body} onChange={e => setNewT(p => ({ ...p, body: e.target.value }))} rows={4}
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring resize-none" />
           <div className="flex gap-2">
             <Button size="sm" className="h-7 text-xs" onClick={saveNew}>Save</Button>
@@ -1364,7 +1371,7 @@ export function ContactedContent() {
             <p className="text-xs text-muted-foreground mt-0.5">
               When a lead clicks the link in their outreach email, they land on a branded chat page where they can ask
               questions and get answers grounded in your knowledge base, instead of just reading a static email. Every
-              conversation here is a lead actively engaging back with you — ranked by an intent score so you can see who's
+              conversation here is a lead actively engaging back with you - ranked by an intent score so you can see who's
               warming up. Configure what the chat knows (knowledge base, system prompt) under Prospecting → agent settings.
             </p>
           </div>

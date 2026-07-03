@@ -31,7 +31,7 @@ export function IllustrationTeam() {
       ))}
 
       {/* ── Team member cards ── */}
-      {/* Card 1 — top center */}
+      {/* Card 1 - top center */}
       <rect x="96" y="30" width="168" height="52" rx="12" fill="white" fillOpacity="0.08" stroke="white" strokeOpacity="0.15" strokeWidth="1" />
       {/* People icon: left */}
       <circle cx="122" cy="49" r="3.5" fill="white" fillOpacity="0.22" />
@@ -45,7 +45,7 @@ export function IllustrationTeam() {
       <rect x="156" y="40" width="80" height="7" rx="2" fill="white" fillOpacity="0.4" />
       <rect x="156" y="52" width="56" height="5" rx="2" fill="white" fillOpacity="0.2" />
 
-      {/* Card 2 — right */}
+      {/* Card 2 - right */}
       <rect x="208" y="130" width="144" height="52" rx="12" fill="white" fillOpacity="0.07" stroke="white" strokeOpacity="0.12" strokeWidth="1" />
       <circle cx="228" cy="148" r="3.5" fill="white" fillOpacity="0.2" />
       <path d="M224.5 161 Q224.5 155 228 155 Q231.5 155 231.5 161" fill="white" fillOpacity="0.15" />
@@ -56,7 +56,7 @@ export function IllustrationTeam() {
       <rect x="260" y="140" width="64" height="7" rx="2" fill="white" fillOpacity="0.38" />
       <rect x="260" y="152" width="44" height="5" rx="2" fill="white" fillOpacity="0.18" />
 
-      {/* Card 3 — left */}
+      {/* Card 3 - left */}
       <rect x="10" y="170" width="144" height="52" rx="12" fill="white" fillOpacity="0.07" stroke="white" strokeOpacity="0.12" strokeWidth="1" />
       <circle cx="30" cy="188" r="3.5" fill="white" fillOpacity="0.2" />
       <path d="M26.5 201 Q26.5 195 30 195 Q33.5 195 33.5 201" fill="white" fillOpacity="0.15" />
@@ -67,7 +67,7 @@ export function IllustrationTeam() {
       <rect x="62" y="180" width="68" height="7" rx="2" fill="white" fillOpacity="0.38" />
       <rect x="62" y="192" width="48" height="5" rx="2" fill="white" fillOpacity="0.18" />
 
-      {/* Card 4 — bottom right */}
+      {/* Card 4 - bottom right */}
       <rect x="186" y="278" width="144" height="52" rx="12" fill="white" fillOpacity="0.06" stroke="white" strokeOpacity="0.1" strokeWidth="1" />
       <circle cx="206" cy="295" r="3.5" fill="white" fillOpacity="0.17" />
       <path d="M202.5 308 Q202.5 302 206 302 Q209.5 302 209.5 308" fill="white" fillOpacity="0.13" />
@@ -78,7 +78,7 @@ export function IllustrationTeam() {
       <rect x="238" y="287" width="64" height="7" rx="2" fill="white" fillOpacity="0.32" />
       <rect x="238" y="299" width="44" height="5" rx="2" fill="white" fillOpacity="0.15" />
 
-      {/* Card 5 — bottom left */}
+      {/* Card 5 - bottom left */}
       <rect x="20" y="318" width="148" height="52" rx="12" fill="white" fillOpacity="0.06" stroke="white" strokeOpacity="0.1" strokeWidth="1" />
       <circle cx="40" cy="335" r="3.5" fill="white" fillOpacity="0.17" />
       <path d="M36.5 348 Q36.5 342 40 342 Q43.5 342 43.5 348" fill="white" fillOpacity="0.13" />
@@ -151,7 +151,7 @@ export function IllustrationCompanyScrape() {
       <circle cx="234" cy="148" r="18" fill={G} fillOpacity="0.06" />
       <circle cx="234" cy="148" r="9"  fill={G} fillOpacity="0.15" />
       <circle cx="234" cy="148" r="4"  fill={G} fillOpacity="0.95" />
-      {/* Rows above scan — completed */}
+      {/* Rows above scan - completed */}
       <rect x="48" y="84"  width="52" height="7" rx="2" fill="white" fillOpacity="0.2" />
       <rect x="112" y="84" width="130" height="7" rx="2" fill="white" fillOpacity="0.65" />
       <circle cx="260" cy="87" r="4" fill={G} fillOpacity="0.8" />
@@ -161,11 +161,11 @@ export function IllustrationCompanyScrape() {
       <rect x="48" y="120" width="56" height="7" rx="2" fill="white" fillOpacity="0.15" />
       <rect x="114" y="120" width="80" height="7" rx="2" fill="white" fillOpacity="0.4" />
       <circle cx="208" cy="123" r="4" fill={G} fillOpacity="0.7" />
-      {/* Row at scan — filling in */}
+      {/* Row at scan - filling in */}
       <rect x="48"  y="158" width="48" height="7" rx="2" fill="white" fillOpacity="0.12" />
       <rect x="106" y="158" width="60" height="7" rx="2" fill={G} fillOpacity="0.35" />
       <rect x="168" y="158" width="2"  height="7" rx="1" fill={G} fillOpacity="0.8" />
-      {/* Rows below scan — unfilled */}
+      {/* Rows below scan - unfilled */}
       <rect x="48"  y="176" width="44" height="7" rx="2" fill="white" fillOpacity="0.08" />
       <rect x="102" y="176" width="90" height="7" rx="2" fill="white" fillOpacity="0.08" />
       <rect x="48"  y="194" width="58" height="7" rx="2" fill="white" fillOpacity="0.05" />
@@ -288,28 +288,28 @@ export function IllustrationEmailConnect() {
       <circle cx="180" cy="150" r="40" fill={G} fillOpacity="0.05" />
       {/* Connection nodes */}
 
-      {/* Gmail — top left, connected */}
+      {/* Gmail - top left, connected */}
       <line x1="128" y1="128" x2="72" y2="82" stroke={G} strokeOpacity="0.4" strokeWidth="1" strokeDasharray="4 3" />
       <rect x="44" y="56" width="54" height="48" rx="10" fill="white" fillOpacity="0.07" stroke={G} strokeOpacity="0.4" strokeWidth="1" />
       <image href="/gmail.png" x="57" y="66" width="28" height="28" />
       {/* Connected green dot */}
       <circle cx="86" cy="60" r="5" fill={G} fillOpacity="0.9" />
 
-      {/* Outlook — top right */}
+      {/* Outlook - top right */}
       <line x1="232" y1="128" x2="288" y2="82" stroke="white" strokeOpacity="0.15" strokeWidth="1" strokeDasharray="4 3" />
       <rect x="262" y="56" width="54" height="48" rx="10" fill="white" fillOpacity="0.05" stroke="white" strokeOpacity="0.1" strokeWidth="1" />
       <image href="/outlook.png" x="275" y="66" width="28" height="28" />
 
-      {/* Mailgun — bottom left */}
+      {/* Mailgun - bottom left */}
       <line x1="128" y1="172" x2="72" y2="218" stroke="white" strokeOpacity="0.12" strokeWidth="1" strokeDasharray="4 3" />
       <rect x="44" y="196" width="54" height="48" rx="10" fill="white" fillOpacity="0.05" stroke="white" strokeOpacity="0.1" strokeWidth="1" />
-      {/* Mailgun SVG fallback — crimson envelope */}
+      {/* Mailgun SVG fallback - crimson envelope */}
       <rect x="57" y="206" width="28" height="28" rx="5" fill="#C13B3B" />
       <rect x="60" y="214" width="22" height="16" rx="1.5" fill="white" fillOpacity="0.9" />
       <path d="M60 214 L60 210 L82 210 L82 214 L71 221 Z" fill="#C13B3B" />
       <path d="M60 214 L71 221 L82 214" fill="none" stroke="white" strokeOpacity="0.85" strokeWidth="1.5" strokeLinejoin="round" />
 
-      {/* LinkedIn — bottom right */}
+      {/* LinkedIn - bottom right */}
       <line x1="232" y1="172" x2="288" y2="218" stroke="white" strokeOpacity="0.12" strokeWidth="1" strokeDasharray="4 3" />
       <rect x="262" y="196" width="54" height="48" rx="10" fill="white" fillOpacity="0.05" stroke="white" strokeOpacity="0.1" strokeWidth="1" />
       <image href="/linkedin.png" x="275" y="206" width="28" height="28" />
@@ -376,7 +376,7 @@ export function IllustrationPlan() {
   return (
     <svg viewBox="0 0 360 300" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
       <ellipse cx="180" cy="292" rx="110" ry="10" fill={G} fillOpacity="0.07" />
-      {/* Left card — Basic */}
+      {/* Left card - Basic */}
       <rect x="20" y="72" width="90" height="144" rx="12" fill="white" fillOpacity="0.04" stroke="white" strokeOpacity="0.1" strokeWidth="1" />
       <rect x="34" y="88"  width="62" height="7" rx="2" fill="white" fillOpacity="0.3" />
       <rect x="34" y="104" width="40" height="18" rx="4" fill="white" fillOpacity="0.2" />
@@ -386,7 +386,7 @@ export function IllustrationPlan() {
       <rect x="34" y="166" width="44" height="4" rx="2" fill="white" fillOpacity="0.07" />
       <rect x="34" y="192" width="62" height="18" rx="8" fill="white" fillOpacity="0.07" stroke="white" strokeOpacity="0.1" strokeWidth="1" />
 
-      {/* Center card — Pro (highlighted, elevated) */}
+      {/* Center card - Pro (highlighted, elevated) */}
       <rect x="132" y="44" width="96" height="196" rx="14" fill="white" fillOpacity="0.07" stroke={G} strokeOpacity="0.5" strokeWidth="1.5" />
       {/* Popular badge */}
       <rect x="151" y="34" width="58" height="20" rx="10" fill={G} fillOpacity="0.25" stroke={G} strokeOpacity="0.5" strokeWidth="1" />
@@ -406,7 +406,7 @@ export function IllustrationPlan() {
       <rect x="148" y="208" width="64" height="22" rx="9" fill={G} fillOpacity="0.25" stroke={G} strokeOpacity="0.45" strokeWidth="1" />
       <rect x="163" y="217" width="34" height="5" rx="2" fill={G} fillOpacity="0.8" />
 
-      {/* Right card — Enterprise */}
+      {/* Right card - Enterprise */}
       <rect x="250" y="72" width="90" height="144" rx="12" fill="white" fillOpacity="0.04" stroke="white" strokeOpacity="0.1" strokeWidth="1" />
       <rect x="264" y="88"  width="62" height="7" rx="2" fill="white" fillOpacity="0.3" />
       <rect x="264" y="104" width="40" height="18" rx="4" fill="white" fillOpacity="0.2" />
@@ -475,7 +475,7 @@ export function IllustrationCRM() {
   return (
     <svg viewBox="0 0 360 300" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
       <ellipse cx="180" cy="292" rx="110" ry="10" fill={G} fillOpacity="0.07" />
-      {/* Lead cards — left column */}
+      {/* Lead cards - left column */}
       {[40, 110, 180].map((y, i) => (
         <g key={i}>
           <rect x="24" y={y} width="118" height="56" rx="10" fill="white" fillOpacity={0.06 - i * 0.01} stroke="white" strokeOpacity={0.14 - i * 0.02} strokeWidth="1" />
@@ -498,7 +498,7 @@ export function IllustrationCRM() {
         )
       })}
 
-      {/* CRM database block — right */}
+      {/* CRM database block - right */}
       <rect x="204" y="36" width="132" height="192" rx="14" fill="white" fillOpacity="0.05" stroke={G} strokeOpacity="0.3" strokeWidth="1.5" />
       {/* DB header */}
       <rect x="204" y="36" width="132" height="40" rx="14" fill={G} fillOpacity="0.08" />

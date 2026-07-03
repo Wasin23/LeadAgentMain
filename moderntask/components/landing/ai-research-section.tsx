@@ -708,7 +708,7 @@ export function AiResearchSection() {
                         <span className="text-[13px] font-medium" style={{ color: '#e8eaed' }}>New Message</span>
                       </div>
                       <div className="flex items-center gap-1">
-                        {['—', '⤢', '×'].map(icon => (
+                        {['-', '⤢', '×'].map(icon => (
                           <button key={icon} className="w-5 h-5 rounded flex items-center justify-center text-[13px]" style={{ color: '#bdc1c6' }}>{icon}</button>
                         ))}
                       </div>
@@ -843,7 +843,7 @@ export function AiResearchSection() {
                         {CRM_FIELDS.map((f, i) => (
                           <div key={f.label} className={`flex items-center gap-3 px-4 py-2.5 border-b border-gray-100 last:border-0 transition-all duration-300 ${crmField > i ? 'opacity-100' : 'opacity-20'}`}>
                             <span className="text-black/28 text-[13px] w-18 shrink-0">{f.label}</span>
-                            <span className={`text-[13px] font-medium flex-1 ${crmField > i ? 'text-black/70' : 'text-black/10'}`}>{crmField > i ? f.value : '—'}</span>
+                            <span className={`text-[13px] font-medium flex-1 ${crmField > i ? 'text-black/70' : 'text-black/10'}`}>{crmField > i ? f.value : '-'}</span>
                             {crmField > i && <span className="ml-auto text-[13px]" style={{ color: 'rgba(255,122,89,0.6)' }}>✓</span>}
                           </div>
                         ))}

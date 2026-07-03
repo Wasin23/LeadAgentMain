@@ -127,7 +127,7 @@ export default function DashboardPage() {
     if (agentsRes.status === "fulfilled") {
       const agents: Record<string, unknown>[] = agentsRes.value.data?.agents ?? []
 
-      // running count — only count agents that are actually running, not merely "active" (created)
+      // running count - only count agents that are actually running, not merely "active" (created)
       const running = agents.filter(
         (a) => a.isRunning === true || a.status === "running"
       ).length
@@ -213,7 +213,7 @@ export default function DashboardPage() {
       setBouncedCount(bounced)
       setOpenedCount(opened)
 
-      // email activity time series — last 90 days
+      // email activity time series - last 90 days
       const timeSeries: EmailTimePoint[] = Array.from({ length: 90 }, (_, rev) => {
         const daysAgo = 89 - rev
         const d = new Date()

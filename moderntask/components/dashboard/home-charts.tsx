@@ -96,9 +96,9 @@ export function EmailActivityCard({ emailTimeSeries = [] }: { emailTimeSeries?: 
 }
 
 export function DeliveryHealthCard({ sent = 0, bounced = 0, opened = 0 }: { sent?: number; bounced?: number; opened?: number }) {
-  const openRate    = sent > 0 ? ((opened  / sent) * 100).toFixed(1) : "—"
+  const openRate    = sent > 0 ? ((opened  / sent) * 100).toFixed(1) : "-"
   const bounceRateN = sent > 0 ? (bounced / sent) * 100 : 0
-  const bounceRate  = sent > 0 ? bounceRateN.toFixed(1) : "—"
+  const bounceRate  = sent > 0 ? bounceRateN.toFixed(1) : "-"
   const isHealthy   = sent === 0 || bounceRateN <= 5
 
   return (

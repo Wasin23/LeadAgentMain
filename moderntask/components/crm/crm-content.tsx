@@ -25,7 +25,7 @@ interface CRMContact {
   status?: "fresh" | "queued" | "skipped"
   savedAt?: string
   assignedAt?: string
-  // client-side only — live run status for the table (replaces the separate results feed)
+  // client-side only - live run status for the table (replaces the separate results feed)
   runStatus?: "scanning" | "success" | "failed" | "skipped"
   runMessage?: string
 }
@@ -66,7 +66,7 @@ export function CRMContent() {
     } catch { setCrmName(null) }
   }, [])
 
-  // ── connect / disconnect flow (inline — no redirect to Settings) ──
+  // ── connect / disconnect flow (inline - no redirect to Settings) ──
   const [selectedCRM, setSelectedCRM]       = useState<CrmConfig | null>(null)
   const [showCrmDropdown, setShowCrmDropdown] = useState(false)
   const [crmCredentials, setCrmCredentials] = useState<Record<string, string>>({})
@@ -256,7 +256,7 @@ export function CRMContent() {
             next.delete(id)
             return next
           })
-          // Mark the row's live status in-place instead of removing it from the table —
+          // Mark the row's live status in-place instead of removing it from the table -
           // the table is the single source of truth now, no separate results feed.
           setContacts(prev => prev.map(c => (c.crmId || c.email) === id
             ? { ...c, runStatus: result.crmStatus, runMessage: result.crmMessage }
@@ -279,7 +279,7 @@ export function CRMContent() {
               ? `${name}: ${resultLabel} ✓  (${newCount}/${total}) · ${remainingActive} still in progress`
               : `${name}: ${resultLabel} ✓  (${newCount}/${total})`)
             if (newCount >= total && remainingActive === 0) {
-              // Auto-stop the agent — job is done
+              // Auto-stop the agent - job is done
               api.post("/api/lead-agent/stop", { agentId: selectedAgentRef.current }).catch(() => {})
               esRef.current?.close()
               esRef.current = null
@@ -547,7 +547,7 @@ export function CRMContent() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">{crmName ? "CRM Connected" : "No CRM connected"}</p>
-              <p className="text-sm font-semibold text-foreground">{crmName ?? "—"}</p>
+              <p className="text-sm font-semibold text-foreground">{crmName ?? "-"}</p>
               {crmConnectedAt && <p className="text-[11px] text-muted-foreground">Connected {new Date(crmConnectedAt).toLocaleDateString()}</p>}
             </div>
           </div>
@@ -618,7 +618,7 @@ export function CRMContent() {
                     {isDupe && (
                       <button
                         onClick={() => mergeDuplicate(id)}
-                        title="Duplicate email — keep the earliest record, discard this one"
+                        title="Duplicate email - keep the earliest record, discard this one"
                         className="flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400 hover:underline shrink-0"
                       >
                         <GitMerge className="w-3 h-3" />Merge
@@ -885,7 +885,7 @@ export function CRMContent() {
                             </div>
                             <span className="text-xs text-foreground">{assignedAgentName}</span>
                           </div>
-                        ) : <span className="text-xs text-muted-foreground">—</span>}
+                        ) : <span className="text-xs text-muted-foreground">-</span>}
                       </td>
                       <td className="py-2 px-3" onClick={e => e.stopPropagation()}>
                         {finding.tone === "amber" && savedEmailSet.has((c.email || "").toLowerCase().trim()) ? (
@@ -896,7 +896,7 @@ export function CRMContent() {
                             Merge
                           </button>
                         ) : launched ? (
-                          <span className="text-xs text-muted-foreground">—</span>
+                          <span className="text-xs text-muted-foreground">-</span>
                         ) : (
                           <button
                             onClick={() => toggleContact(id)}
@@ -952,7 +952,7 @@ export function CRMContent() {
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-800 px-4 py-3 flex items-center gap-3">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
           <div>
-            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">All done — {completedCount} contact{completedCount !== 1 ? "s" : ""} completed</p>
+            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">All done - {completedCount} contact{completedCount !== 1 ? "s" : ""} completed</p>
             <p className="text-xs text-emerald-600 dark:text-emerald-500">Head to <strong>Email Queue</strong> to review and approve before sending.</p>
           </div>
           <Button size="sm" variant="outline" className="ml-auto shrink-0 gap-1.5 h-7 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-900/30" onClick={resetAuditor}>

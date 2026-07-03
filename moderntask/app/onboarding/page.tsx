@@ -120,7 +120,7 @@ function OnboardingInner() {
   useEffect(() => {
     const init = async () => {
       try {
-        // Fresh registration — wipe any stale onboarding cache so it can't skip the team-prompt
+        // Fresh registration - wipe any stale onboarding cache so it can't skip the team-prompt
         const isNewRegistration = searchParams.get('new') === '1'
         if (isNewRegistration) localStorage.removeItem('onboardingProgress')
 
@@ -137,7 +137,7 @@ function OnboardingInner() {
           return
         }
 
-        // Check if already in a team — if so, skip onboarding entirely
+        // Check if already in a team - if so, skip onboarding entirely
         try {
           const teamRes = await api.get('/api/teams/me')
           if (teamRes.data?.team) {
@@ -175,7 +175,7 @@ function OnboardingInner() {
   }, [router, searchParams])
 
   const handleTeamJoined = () => {
-    // Joined a team — no need to set up their own profile
+    // Joined a team - no need to set up their own profile
     localStorage.removeItem('onboardingProgress')
     router.replace('/home')
   }

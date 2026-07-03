@@ -272,7 +272,7 @@ export default function SignInPage() {
 
     <div className="min-h-screen relative flex items-center justify-center overflow-hidden p-4" style={{ background: '#f4efe6' }}>
 
-      {/* Back to landing — top left */}
+      {/* Back to landing - top left */}
       <Button
         variant="ghost"
         size="icon"
@@ -284,7 +284,7 @@ export default function SignInPage() {
         <ArrowLeft className="w-4 h-4" />
       </Button>
 
-      {/* Help button — top right */}
+      {/* Help button - top right */}
       <Button
         variant="ghost"
         size="icon"
@@ -296,7 +296,7 @@ export default function SignInPage() {
         <HelpCircle className="w-4 h-4" />
       </Button>
 
-      {/* ── Card panel — centered ── */}
+      {/* ── Card panel - centered ── */}
       <div className="relative w-full max-w-md signin-card-anim" style={{ zIndex: 10, padding: '12px', background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(16px)', borderRadius: '28px', border: '1px solid rgba(255,255,255,0.8)' }}>
         {/* Logo */}
         <div className="text-center mb-7">

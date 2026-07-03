@@ -78,7 +78,7 @@ export function PersonalChecklist() {
           </div>
           <div className="max-h-64 overflow-y-auto py-1">
             {items.length === 0 ? (
-              <p className="px-4 py-4 text-xs text-muted-foreground text-center">Nothing here yet — add a task below.</p>
+              <p className="px-4 py-4 text-xs text-muted-foreground text-center">Nothing here yet - add a task below.</p>
             ) : (
               items.map((item) => (
                 <div key={item.id} className="group flex items-center gap-2.5 px-4 py-2 hover:bg-muted/50">

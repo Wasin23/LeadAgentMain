@@ -81,13 +81,13 @@ export default function PrivacyPolicyPage() {
               Meridian integrates with the following third-party services, each with its own privacy policy:
             </p>
             <ul className="list-disc pl-6 space-y-1.5 text-muted-foreground">
-              <li><span className="font-medium text-foreground">OpenAI (GPT-4)</span> — AI-powered email generation and lead qualification</li>
-              <li><span className="font-medium text-foreground">Apollo.io</span> — Lead search and contact data enrichment</li>
-              <li><span className="font-medium text-foreground">Mailgun</span> — Email delivery and tracking infrastructure</li>
-              <li><span className="font-medium text-foreground">Serper</span> — Company research and web search</li>
-              <li><span className="font-medium text-foreground">Amazon Web Services (AWS)</span> — Cloud hosting and data storage</li>
-              <li><span className="font-medium text-foreground">Zilliz</span> — Vector database for tracking and analytics</li>
-              <li><span className="font-medium text-foreground">Stripe</span> — Secure payment processing and subscription management (payment card details are not stored on our servers)</li>
+              <li><span className="font-medium text-foreground">OpenAI (GPT-4)</span> - AI-powered email generation and lead qualification</li>
+              <li><span className="font-medium text-foreground">Apollo.io</span> - Lead search and contact data enrichment</li>
+              <li><span className="font-medium text-foreground">Mailgun</span> - Email delivery and tracking infrastructure</li>
+              <li><span className="font-medium text-foreground">Serper</span> - Company research and web search</li>
+              <li><span className="font-medium text-foreground">Amazon Web Services (AWS)</span> - Cloud hosting and data storage</li>
+              <li><span className="font-medium text-foreground">Zilliz</span> - Vector database for tracking and analytics</li>
+              <li><span className="font-medium text-foreground">Stripe</span> - Secure payment processing and subscription management (payment card details are not stored on our servers)</li>
             </ul>
           </section>
 

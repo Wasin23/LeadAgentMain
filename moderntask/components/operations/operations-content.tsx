@@ -322,8 +322,8 @@ export function OperationsContent() {
           }
         }
 
-        // activity log entry — prefer details (full text), then cardMessage, skip bare status strings like "info"
-        // Skip logs from agents in CRM/auditor mode — those belong on the CRM page
+        // activity log entry - prefer details (full text), then cardMessage, skip bare status strings like "info"
+        // Skip logs from agents in CRM/auditor mode - those belong on the CRM page
         const logMsg = payload.details || payload.cardMessage || payload.message || payload.currentActivity || ''
         const agentIsCrm = payload.isCrmMode || agents.find(a => a.agentId === payload.agentId)?.isCrmMode
         if (payload.agentId && logMsg && logMsg !== 'info' && logMsg !== 'running' && logMsg !== 'active' && !agentIsCrm) {
@@ -344,7 +344,7 @@ export function OperationsContent() {
           setActivityLogs(p => [entry, ...p].slice(0, 120))
         }
 
-        // cycle counters — events are wrapped: { type:'activity_added', data:{ type:'cycle_complete'|'cycle_start' } }
+        // cycle counters - events are wrapped: { type:'activity_added', data:{ type:'cycle_complete'|'cycle_start' } }
         if (payload.type === 'cycle_complete') {
           // Re-fetch agents so nextCycleTime is updated (it's set in-memory only after cycle ends)
           fetchAgents()
@@ -801,7 +801,7 @@ export function OperationsContent() {
                           </p>
                         </div>
 
-                        {/* Expand button — only for qualify events with reasoning */}
+                        {/* Expand button - only for qualify events with reasoning */}
                         {log.data?.reasoning && (
                           <button
                             onClick={() => setExpandedLogs(p => ({ ...p, [log.id]: !p[log.id] }))}
@@ -888,7 +888,7 @@ function AgentDetailPanel({
   const leadLimit = agent.settings?.targeting?.leadLimit ?? agent.settings?.geographicSettings?.leadLimit ?? 0
   const industries = agent.settings?.companyCriteria?.companyIndustries ?? []
   const positions = agent.settings?.contactCriteria?.targetPositions ?? []
-  // Live per-cycle counter — sourced from the agent's own cycle tracker (reasoningLeadAgent.js
+  // Live per-cycle counter - sourced from the agent's own cycle tracker (reasoningLeadAgent.js
   // resets this.memory.currentCycle.leadsProcessed to 0 at cycle start), broadcast via SSE on
   // each 'Lead Complete' log entry. Falls back to a queued+sent approximation until the first
   // lead of the cycle completes.
@@ -965,8 +965,8 @@ function AgentDetailPanel({
             { label: 'Sent', value: sent },
             { label: 'Replied', value: replied },
             { label: 'Reply %', value: replyRate },
-            { label: 'Leads/cycle', value: leadLimit || '—' },
-            { label: 'Last run', value: agent.nextCycleTime ? '—' : '—' },
+            { label: 'Leads/cycle', value: leadLimit || '-' },
+            { label: 'Last run', value: agent.nextCycleTime ? '-' : '-' },
           ].map(s => (
             <div key={s.label} className="rounded-lg bg-muted/50 px-2 py-1.5 text-center">
               <p className="text-sm font-bold tabular-nums">{s.value}</p>
@@ -1067,7 +1067,7 @@ function AgentDetailPanel({
 
       {tab === 'queue' && (
         <Card className="p-4">
-          <p className="text-xs text-muted-foreground mb-2">Showing the full email queue — filter by this agent using the selector inside.</p>
+          <p className="text-xs text-muted-foreground mb-2">Showing the full email queue - filter by this agent using the selector inside.</p>
           <Button size="sm" variant="outline" onClick={() => router.push('/outreach?section=awaiting')}>
             Open Awaiting Review →
           </Button>

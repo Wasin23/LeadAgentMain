@@ -147,7 +147,7 @@ function ProspectingPageInner() {
                 <PresetsContent />
               </TabsContent>
               <TabsContent value="chat-setup">
-                <p className="text-xs text-muted-foreground mb-4">When a prospect clicks your chat link, they&apos;re dropped into a conversation with an AI that already knows who they are — built from your research report. Upload documents below so the AI can answer questions about your product, pricing, and use cases.</p>
+                <p className="text-xs text-muted-foreground mb-4">When a prospect clicks your chat link, they&apos;re dropped into a conversation with an AI that already knows who they are - built from your research report. Upload documents below so the AI can answer questions about your product, pricing, and use cases.</p>
                 <ChatLabContent hideSessions />
               </TabsContent>
             </Tabs>

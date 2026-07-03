@@ -35,7 +35,7 @@ const GlobeBackground = memo(function GlobeBackground() {
       t += 0.001
       ctx.clearRect(0, 0, W, H)
 
-      // bg — solid deep blue
+      // bg - solid deep blue
       const bg = ctx.createRadialGradient(W / 2, H * 0.3, 0, W / 2, H * 0.5, H * 1.2)
       bg.addColorStop(0, '#0a1e3d')
       bg.addColorStop(0.5, '#060f22')

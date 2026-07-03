@@ -203,7 +203,7 @@ function Toggle({ value, onChange, label }: {
   )
 }
 
-// ── inline preset editor panel (was a modal — now always visible, per the new layout) ──
+// ── inline preset editor panel (was a modal - now always visible, per the new layout) ──
 function PresetEditorPanel({
   form, setForm, onSave, onCancel, saving, isNew,
 }: {
@@ -261,7 +261,7 @@ function PresetEditorPanel({
       </div>
 
       <Field label="Preset Name *">
-        <TextInput value={form.name} onChange={v => set('name', v)} placeholder="e.g. SaaS CTOs — Mid-Market" />
+        <TextInput value={form.name} onChange={v => set('name', v)} placeholder="e.g. SaaS CTOs - Mid-Market" />
       </Field>
 
       <div className="space-y-3">
@@ -577,7 +577,7 @@ export function PresetsContent() {
       <div className="flex items-center justify-between">
         <div>
           <p className="font-display text-xl text-foreground">{loading ? 'Loading…' : `${presets.length} Preset${presets.length !== 1 ? 's' : ''}`}</p>
-          <p className="text-xs text-muted-foreground">Reusable targeting &amp; email configs — apply to any agent</p>
+          <p className="text-xs text-muted-foreground">Reusable targeting &amp; email configs - apply to any agent</p>
         </div>
         <Button size="sm" className="h-8 text-xs gap-1.5" onClick={startNew}><Plus className="w-3.5 h-3.5" /> New Preset</Button>
       </div>

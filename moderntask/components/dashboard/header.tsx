@@ -56,7 +56,7 @@ function CrmBadge({ name }: { name: string | null }) {
     <button
       onClick={handleClick}
       className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-border text-[11px] font-medium hover:bg-muted cursor-pointer transition-colors select-none"
-      title={`${name} connected — click to manage`}
+      title={`${name} connected - click to manage`}
     >
       <span
         className="w-4 h-4 rounded text-[8px] font-bold flex items-center justify-center shrink-0 leading-none"
@@ -131,7 +131,7 @@ export function Header({
 
   // Self-fetch fresh profile, credits, notif count when not provided by parent
   useEffect(() => {
-    // Profile — always fetch so we get the real email (not stale localStorage)
+    // Profile - always fetch so we get the real email (not stale localStorage)
     api.get("/api/auth/profile").then(r => {
       const u = r.data?.user
       if (!u) return

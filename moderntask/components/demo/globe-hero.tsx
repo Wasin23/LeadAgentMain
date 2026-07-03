@@ -64,7 +64,7 @@ export function GlobeHero() {
         </div>
 
         <p className="text-xl text-white/40 max-w-2xl mx-auto leading-relaxed">
-          Agents that research leads, write hyper-personalized emails, and send from your real inbox — automatically.
+          Agents that research leads, write hyper-personalized emails, and send from your real inbox - automatically.
         </p>
 
         {/* CTAs */}

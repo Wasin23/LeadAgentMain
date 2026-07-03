@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
       subject: `Enterprise inquiry from ${name}${company ? ` · ${company}` : ''}`,
       text: `Name:    ${name}
 Email:   ${email}
-Company: ${company || '—'}
+Company: ${company || '-'}
 
 ${message}`,
       html: `
@@ -32,7 +32,7 @@ ${message}`,
   <table style="width:100%;border-collapse:collapse;font-size:14px">
     <tr><td style="padding:6px 0;color:#666;width:80px">Name</td><td style="padding:6px 0;color:#111;font-weight:600">${name}</td></tr>
     <tr><td style="padding:6px 0;color:#666">Email</td><td style="padding:6px 0"><a href="mailto:${email}" style="color:#4f46e5">${email}</a></td></tr>
-    <tr><td style="padding:6px 0;color:#666">Company</td><td style="padding:6px 0;color:#111">${company || '—'}</td></tr>
+    <tr><td style="padding:6px 0;color:#666">Company</td><td style="padding:6px 0;color:#111">${company || '-'}</td></tr>
   </table>
   <hr style="margin:20px 0;border:none;border-top:1px solid #e5e7eb"/>
   <p style="font-size:14px;color:#374151;line-height:1.6;white-space:pre-wrap;margin:0">${message}</p>

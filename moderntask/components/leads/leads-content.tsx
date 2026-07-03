@@ -7,7 +7,7 @@ import {
   CheckCircle2, Search, Building2, ExternalLink, X,
   ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight,
   Linkedin, Newspaper, Globe, FileText, Mail, Info, AlertTriangle, ArrowUpDown, Check,
-  Star, Clock, Loader2,
+  Star, Clock, Loader2, Copy,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -51,7 +51,7 @@ interface TimelineEntry {
 }
 
 // Strips the compliance footer (company branding + unsubscribe link) from a body for
-// display — it's appended fresh at actual send time and shouldn't be shown in the UI.
+// display - it's appended fresh at actual send time and shouldn't be shown in the UI.
 function stripFooter(body: string) {
   const idx = body.indexOf('<!--MERIDIAN_FOOTER-->')
   return idx === -1 ? body : body.slice(0, idx).replace(/\s+$/, '')
@@ -125,6 +125,27 @@ function ConfidenceDots({ confidence, score }: { confidence?: string; score?: nu
   )
 }
 
+// Small inline copy-to-clipboard button - shows a check for 1.5s after copying
+export function CopyChip({ text, title = 'Copy' }: { text: string; title?: string }) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <button
+      title={title}
+      onClick={async e => {
+        e.stopPropagation()
+        try {
+          await navigator.clipboard.writeText(text)
+          setCopied(true)
+          setTimeout(() => setCopied(false), 1500)
+        } catch {}
+      }}
+      className="inline-flex shrink-0 items-center justify-center rounded p-0.5 text-muted-foreground/60 hover:text-foreground hover:bg-accent transition-colors"
+    >
+      {copied ? <Check className="w-3 h-3 text-green-600" /> : <Copy className="w-3 h-3" />}
+    </button>
+  )
+}
+
 type SortKey = 'score-desc' | 'score-asc' | 'confidence-desc' | 'confidence-asc' | 'status' | 'assigned' | 'alpha'
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
@@ -153,7 +174,12 @@ export function LeadsContent() {
   const [timelineLoading, setTimelineLoading] = useState(false)
   const [sortKey, setSortKey] = useState<SortKey>('score-desc')
   const [sortOpen, setSortOpen] = useState(false)
+  const [showBanner, setShowBanner] = useState(true)
   const pageSize = 10
+
+  useEffect(() => {
+    try { if (localStorage.getItem('leadsInfoBannerDismissed')) setShowBanner(false) } catch {}
+  }, [])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -269,17 +295,26 @@ export function LeadsContent() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
-        <Info className="mt-0.5 h-4 w-4 shrink-0" />
-        <span>
-          Select a lead to view its research report, sources, and outreach draft.{' '}
-          <span className="inline-flex items-center gap-1">
-            <Star className="inline w-3 h-3 text-amber-400 fill-amber-400" />
-            <span>Star a lead</span>
+      {showBanner && (
+        <div className="flex items-start gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
+          <Info className="mt-0.5 h-4 w-4 shrink-0" />
+          <span className="flex-1">
+            Select a lead to view its research report, sources, and outreach draft.{' '}
+            <span className="inline-flex items-center gap-1">
+              <Star className="inline w-3 h-3 text-amber-400 fill-amber-400" />
+              <span>Star a lead</span>
+            </span>
+            {' '}to add it to your favorites and start automatic background research. Meridian will continuously scan the web for news, funding signals, and hiring activity and surface findings in a live timeline.
           </span>
-          {' '}to add it to your favorites and start automatic background research — Meridian will continuously scan the web for news, funding signals, and hiring activity and surface findings in a live timeline.
-        </span>
-      </div>
+          <button
+            onClick={() => { setShowBanner(false); try { localStorage.setItem('leadsInfoBannerDismissed', '1') } catch {} }}
+            className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            title="Dismiss"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 @5xl:grid-cols-[1fr_380px] gap-4 items-start">
         <div className="min-w-0 rounded-2xl border border-border bg-card p-4">
@@ -361,28 +396,33 @@ export function LeadsContent() {
                         </button>
                       </td>
                       <td className="py-2.5 px-3">
-                        <p className="font-medium truncate max-w-[180px]">{l.company || '—'}</p>
+                        <p className="font-medium truncate max-w-[180px]">{l.company || '-'}</p>
                         <p className="text-xs text-muted-foreground truncate max-w-[180px]">{l.contactName}</p>
-                        {l.email && <p className="text-[11px] text-muted-foreground/70 truncate max-w-[180px]">{l.email}</p>}
+                        {l.email && (
+                          <span className="flex items-center gap-1 max-w-[180px]">
+                            <span className="text-[11px] text-muted-foreground/70 truncate">{l.email}</span>
+                            <CopyChip text={l.email} title="Copy email address" />
+                          </span>
+                        )}
                       </td>
                       <td className="py-2.5 px-3">
                         <div className="flex items-center gap-2">
-                          <span className="tabular-nums">{l.aiReport?.score ?? '—'}%</span>
+                          <span className="tabular-nums">{l.aiReport?.score ?? '-'}%</span>
                           {l.aiReport?.score !== undefined && <ScoreMeter value={l.aiReport.score} />}
                         </div>
                       </td>
                       <td className="py-2.5 px-3">
                         <div className="space-y-1">
-                          <p>{l.aiReport?.confidence ?? '—'}</p>
+                          <p>{l.aiReport?.confidence ?? '-'}</p>
                           <ConfidenceDots confidence={l.aiReport?.confidence} score={l.aiReport?.score} />
                         </div>
                       </td>
                       <td className="py-2.5 px-3">
                         <span className={cn('inline-flex items-center rounded-md px-2 py-1 text-[11px] font-medium', tierColors[l.aiReport?.tier ?? ''] ?? 'bg-muted text-muted-foreground')}>
-                          {l.aiReport?.tier ?? '—'}
+                          {l.aiReport?.tier?.replace(/_/g, ' ') ?? '-'}
                         </span>
                       </td>
-                      <td className="py-2.5 px-3 text-xs">{l.agentName ?? '—'}</td>
+                      <td className="py-2.5 px-3 text-xs">{l.agentName ?? '-'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -419,7 +459,7 @@ export function LeadsContent() {
               <button onClick={() => setSelectedId(null)}><X className="w-4 h-4 text-muted-foreground" /></button>
             </div>
 
-            <div className="flex items-center gap-5 border-b border-border mb-3">
+            <div className="flex items-center gap-5 border-b border-border mb-3 overflow-x-auto whitespace-nowrap [scrollbar-width:thin]">
               {(['research', 'sources', 'draft', 'timeline'] as const).map(t => (
                 <button
                   key={t}
@@ -428,7 +468,7 @@ export function LeadsContent() {
                     if (t === 'timeline' && selected) loadTimeline(selected.id)
                   }}
                   className={cn(
-                    'relative pb-2.5 text-sm font-medium capitalize',
+                    'relative shrink-0 pb-2.5 text-sm font-medium capitalize',
                     detailTab === t ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
                   )}
                 >
@@ -451,11 +491,11 @@ export function LeadsContent() {
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="rounded-lg bg-muted/50 p-2.5">
-                    <p className="text-lg font-bold">{selected.aiReport?.score ?? '—'}%</p>
+                    <p className="text-lg font-bold">{selected.aiReport?.score ?? '-'}%</p>
                     <p className="text-[11px] text-muted-foreground">Fit Score</p>
                   </div>
                   <div className="rounded-lg bg-muted/50 p-2.5">
-                    <p className="text-lg font-bold">{selected.aiReport?.confidence ?? '—'}</p>
+                    <p className="text-lg font-bold">{selected.aiReport?.confidence ?? '-'}</p>
                     <p className="text-[11px] text-muted-foreground">Confidence</p>
                   </div>
                 </div>
@@ -581,7 +621,7 @@ export function LeadsContent() {
                               <Clock className="w-3.5 h-3.5 text-muted-foreground" />
                             </div>
                             <p className="text-xs text-muted-foreground">
-                              {isStarred ? 'No entries yet — research runs every 20 min.' : 'No timeline entries.'}
+                              {isStarred ? 'No entries yet. Research runs continuously between agent cycles.' : 'No timeline entries.'}
                             </p>
                           </div>
                         ) : (
@@ -605,7 +645,7 @@ export function LeadsContent() {
                                     {Math.round(days)}d
                                   </div>
                                 )}
-                                {/* Node circle — click to open source */}
+                                {/* Node circle - click to open source */}
                                 <a
                                   href={entry.url}
                                   target="_blank"

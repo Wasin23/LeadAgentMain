@@ -187,7 +187,7 @@ export function StatsCards({ sent = 0, queued = 0, runningAgents = 0, cyclesComp
     bounced:         { title: "Bounced Emails",      value: bouncedCount.toLocaleString(),    subtitle: "Delivery failures", icon: MailWarning,  tone: "lilac" },
     "bounce-rate":   { title: "Bounce Rate",         value: bounceRate,                       subtitle: "Bounced / total",   icon: PieChart,     tone: "amber" },
     "open-rate":     { title: "Open Rate",           value: openRate,                         subtitle: "Opens / total",     icon: Percent,      tone: "sage" },
-    credits:         { title: "Credit Balance",      value: creditBalance !== null ? creditBalance.toLocaleString() : "—", subtitle: "Remaining", icon: Coins, tone: "lilac" },
+    credits:         { title: "Credit Balance",      value: creditBalance !== null ? creditBalance.toLocaleString() : "-", subtitle: "Remaining", icon: Coins, tone: "lilac" },
   }
   const allStats: Record<StatId, StatDef> = Object.fromEntries(
     (Object.entries(allStatsBase) as [StatId, Omit<StatDef, "href">][]).map(

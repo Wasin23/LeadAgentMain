@@ -54,7 +54,7 @@ export function TeamContent() {
   const [team, setTeam] = useState<Team | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Computed — never stale regardless of when authUser loads
+  // Computed - never stale regardless of when authUser loads
   const isOwner = !!(team && authUser?.userId && team.ownerId === authUser.userId)
 
   // Create team form
@@ -367,7 +367,7 @@ export function TeamContent() {
               )}
             </div>
 
-            {/* Invite link — owner only */}
+            {/* Invite link - owner only */}
             {isOwner && (
               <div className="mt-5 pt-4 border-t border-border">
                 <p className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wider">Invite link</p>
@@ -456,7 +456,7 @@ export function TeamContent() {
 
           {/* Proxy note */}
           <p className="text-xs text-muted-foreground px-1">
-            Team members operate under the owner&apos;s seat — sharing the same agents, contacts, and credits.
+            Team members operate under the owner&apos;s seat - sharing the same agents, contacts, and credits.
           </p>
         </div>
       )}

@@ -100,9 +100,9 @@ const INTRO_SLIDES = [
     title: 'You build it once. It runs forever.',
     avatars: PERSONALITY_TYPES.slice(0, 3),
     items: [
-      'Pick a personality — The Hunter, The Analyst, whatever fits your style',
+      'Pick a personality - The Hunter, The Analyst, whatever fits your style',
       'Tell it who to target: industry, company size, job title, location',
-      'Connect your Gmail or Outlook — emails come from you, not a tool',
+      'Connect your Gmail or Outlook - emails come from you, not a tool',
     ],
   },
   {
@@ -112,7 +112,7 @@ const INTRO_SLIDES = [
     items: [
       'Pulls leads from Apollo that match your exact target audience',
       'Reads each company\'s website, recent news, and LinkedIn before writing',
-      'Writes a unique email for every lead — not a template with a name swapped in',
+      'Writes a unique email for every lead - not a template with a name swapped in',
     ],
   },
   {
@@ -120,7 +120,7 @@ const INTRO_SLIDES = [
     title: 'Emails go out from your real inbox.',
     avatars: [PERSONALITY_TYPES[1], PERSONALITY_TYPES[4], PERSONALITY_TYPES[2]],
     items: [
-      'Sent from your actual Gmail or Outlook — your name, your domain',
+      'Sent from your actual Gmail or Outlook - your name, your domain',
       'Sending is spread across your schedule window so it looks natural',
       'If no reply after a few days, a follow-up sends automatically',
     ],
@@ -130,7 +130,7 @@ const INTRO_SLIDES = [
     title: 'You see exactly who opens, clicks, and replies.',
     avatars: [PERSONALITY_TYPES[0], PERSONALITY_TYPES[3], PERSONALITY_TYPES[1]],
     items: [
-      'Every email is tracked — you see opens and link clicks in real time',
+      'Every email is tracked - you see opens and link clicks in real time',
       'When someone replies, it gets flagged so nothing slips through',
       'Hot leads bubble up automatically so you know who to follow up with',
     ],
@@ -222,7 +222,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
         jobTitles: a.jobTitles?.length ? a.jobTitles : s.jobTitles,
       }))
     } catch {
-      alert('Could not autofill — make sure your Company Profile is filled out in Settings.')
+      alert('Could not autofill - make sure your Company Profile is filled out in Settings.')
     } finally {
       setAutofilling(false)
     }
@@ -1117,7 +1117,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                   LinkedIn
                   {linkedinConnected && <span className="text-xs text-green-400 font-semibold bg-green-500/20 px-2 py-0.5 rounded">CONNECTED</span>}
                 </h3>
-                <p className="text-sm text-gray-500 mb-3">When a lead is graded as highly qualified, your agent will also send them an InMail or connection request — in addition to email.</p>
+                <p className="text-sm text-gray-500 mb-3">When a lead is graded as highly qualified, your agent will also send them an InMail or connection request - in addition to email.</p>
                 <button
                   onClick={() => { if (!linkedinConnected) connectLinkedIn() }}
                   disabled={linkedinConnected || linkedinConnecting}
@@ -1393,7 +1393,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
           <div className="max-w-2xl mx-auto">
             <div className="text-center mb-7">
               <h2 className="text-4xl font-bold text-white mb-2">{selectedPlan === 'free-trial' ? 'Start Your Free Trial' : 'Complete Purchase'}</h2>
-              <p className="text-xl text-white/70">Selected: {planDetails.name} — {planDetails.credits.toLocaleString()} credits</p>
+              <p className="text-xl text-white/70">Selected: {planDetails.name} - {planDetails.credits.toLocaleString()} credits</p>
             </div>
             <div className="bg-white/95 backdrop-blur-md border border-gray-200 rounded-2xl p-7 mb-6 shadow-sm">
               {selectedPlan === 'free-trial' ? (
@@ -1434,7 +1434,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                         }}
                         className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-bold text-lg hover:shadow-xl hover:scale-105 transition-all"
                       >
-                        Purchase {planDetails.name} — ${planDetails.price}
+                        Purchase {planDetails.name} - ${planDetails.price}
                       </button>
                     </div>
                   )}
@@ -1558,7 +1558,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1">
                 <p className="text-sm text-gray-500 mb-1">Plan</p>
-                <p className="font-semibold text-gray-900">{planDetails.name} — {planDetails.credits.toLocaleString()} credits</p>
+                <p className="font-semibold text-gray-900">{planDetails.name} - {planDetails.credits.toLocaleString()} credits</p>
                 <p className="text-xs text-gray-500 mt-1">Up to {planDetails.maxAgents} agent{planDetails.maxAgents === 1 ? '' : 's'} · Up to {planDetails.maxConcurrency}x concurrency</p>
                 <p className="text-xs text-gray-500 mt-1">Higher tiers unlock up to {highestPlanLimits.maxAgents} agents and {highestPlanLimits.maxConcurrency}x concurrency.</p>
                 {planDetails.maxAgents < highestPlanLimits.maxAgents && (

@@ -23,7 +23,7 @@ function UnsubscribeContent() {
   const [token, setToken] = useState('');
   const [uid, setUid] = useState('');
 
-  // Canvas globe — same as signin
+  // Canvas globe - same as signin
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;

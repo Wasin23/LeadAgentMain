@@ -165,7 +165,7 @@ export function HomeSections({
 
   return (
     <div className="space-y-3">
-      {/* Hero row — scheduled calendar / chart / activity feed, side by side, all the same fixed height */}
+      {/* Hero row - scheduled calendar / chart / activity feed, side by side, all the same fixed height */}
       <div className="grid grid-cols-1 gap-4 md:gap-5 @5xl:grid-cols-3 items-start">
         <div className="min-w-0">
           <ScheduledActivityCalendar batches={scheduledBatches} followUps={followUps} onChanged={onScheduleChanged} />
@@ -178,13 +178,13 @@ export function HomeSections({
         </div>
       </div>
 
-      {/* Agent status + delivery health — below the hero row */}
+      {/* Agent status + delivery health - below the hero row */}
       <div className="grid grid-cols-1 gap-4 md:gap-5 @5xl:grid-cols-2">
         <TeamCollaboration agents={agentActivity} />
         <DeliveryHealthCard sent={sent} bounced={bounced} opened={opened} />
       </div>
 
-      {/* Add pills — always shown when editing and sections are hidden */}
+      {/* Add pills - always shown when editing and sections are hidden */}
       {editMode && addable.length > 0 && (
         <div className="flex items-center gap-1.5 flex-wrap justify-end">
           <span className="text-xs text-muted-foreground">Add section:</span>
@@ -200,9 +200,9 @@ export function HomeSections({
         </div>
       )}
 
-      {/* Stats add pills — shown via StatsCards internally */}
+      {/* Stats add pills - shown via StatsCards internally */}
 
-      {/* Edit bar — only shown when not controlled externally */}
+      {/* Edit bar - only shown when not controlled externally */}
       {!onEditModeChange && (
         <div className="flex items-center justify-end gap-2 flex-wrap">
           <button

@@ -5,6 +5,7 @@ import {
   Upload, Trash2, Edit2, FileText, Check,
   MessageSquare, History, Sparkles, Save,
   ExternalLink, FlaskConical, Download, Eye, EyeOff,
+  MoreHorizontal, X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -104,7 +105,7 @@ You have been given:
 - Prior conversation history if any
 
 Your job:
-- Answer questions accurately using the knowledge base — never fabricate details
+- Answer questions accurately using the knowledge base - never fabricate details
 - Reference the lead's specific situation naturally
 - Handle objections with empathy first, then evidence
 - Suggest next steps proactively
@@ -169,6 +170,8 @@ export function ChatLabContent({ hideSessions = false }: { hideSessions?: boolea
 
   // Selected session for Memory tab
   const [activeTab, setActiveTab]               = useState('knowledge')
+  const [menuOpen, setMenuOpen]                 = useState(false)
+  const [showPromptEditor, setShowPromptEditor] = useState(false)
   const [selectedSession, setSelectedSession]   = useState<ChatSession | null>(null)
   const [sessionMessages, setSessionMessages]   = useState<{ role: string; content: string }[]>([])
   const [sessionLoading, setSessionLoading]     = useState(false)
@@ -266,7 +269,7 @@ export function ChatLabContent({ hideSessions = false }: { hideSessions?: boolea
       companyAdvantages: cb.advantages    || '',
       buyerMotivation:  snap.buyerMotivation || '',
       emailHooksText:   (snap.emailHooks  || []).join('\n'),
-      citedFactsText:   (snap.citedFacts  || []).map((f: any) => f.source ? `${f.fact} — ${f.source}` : f.fact).join('\n'),
+      citedFactsText:   (snap.citedFacts  || []).map((f: any) => f.source ? `${f.fact} - ${f.source}` : f.fact).join('\n'),
       originalEmail:    snap.originalEmail || '',
     })
     setEditingSnap(true)
@@ -282,7 +285,7 @@ export function ChatLabContent({ hideSessions = false }: { hideSessions?: boolea
       buyerMotivation: snapDraft.buyerMotivation,
       emailHooks: snapDraft.emailHooksText.split('\n').map((s: string) => s.trim()).filter(Boolean),
       citedFacts: snapDraft.citedFactsText.split('\n').map((line: string) => {
-        const idx = line.indexOf(' — ')
+        const idx = line.indexOf(' - ')
         if (idx === -1) return { fact: line.trim(), source: '' }
         return { fact: line.slice(0, idx).trim(), source: line.slice(idx + 3).trim() }
       }).filter((f: any) => f.fact),
@@ -508,7 +511,7 @@ export function ChatLabContent({ hideSessions = false }: { hideSessions?: boolea
           </span>
         </div>
 
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-1.5">
           <Button
             variant="outline"
             size="sm"
@@ -520,14 +523,101 @@ export function ChatLabContent({ hideSessions = false }: { hideSessions?: boolea
             Preview Chat
             <ExternalLink className="w-3 h-3 ml-0.5 opacity-60" />
           </Button>
+          <div className="relative">
+            <button
+              onClick={() => setMenuOpen(p => !p)}
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-input bg-background text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              title="More options"
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-full z-50 mt-1 w-48 bg-popover border border-border rounded-lg shadow-xl overflow-hidden">
+                <button
+                  onClick={() => { setMenuOpen(false); setShowPromptEditor(true) }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs text-foreground hover:bg-muted transition-colors"
+                >
+                  <Sparkles className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                  Edit System Prompt
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
+      {/* ── System prompt editor (hidden behind the three-dot menu) ───────── */}
+      {showPromptEditor && (
+        <div className="shrink-0 rounded-xl border border-border bg-card p-3 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Label className="text-sm font-medium">System Prompt</Label>
+              {!promptSaved && (
+                <span className="text-[10px] text-amber-600 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-400 px-1.5 py-0.5 rounded-full font-medium">unsaved</span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {promptVersions.length > 0 && (
+                <Select
+                  defaultValue={String(promptVersions[0]?.version)}
+                  onValueChange={v => {
+                    const found = promptVersions.find(p => String(p.version) === v)
+                    if (found) { setSystemPrompt(found.promptText); setPromptSaved(true) }
+                  }}
+                >
+                  <SelectTrigger className="h-7 text-xs w-32">
+                    <SelectValue placeholder="Version" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {promptVersions.map((p, i) => (
+                      <SelectItem key={p.version} value={String(p.version)} className="text-xs">
+                        v{p.version}{i === 0 ? ' (current)' : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              <Button size="sm" className="h-7 text-xs gap-1.5" onClick={savePrompt} disabled={promptSaved || !agentId}>
+                <Save className="w-3 h-3" /> Save
+              </Button>
+              <button
+                onClick={() => setShowPromptEditor(false)}
+                className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                title="Close editor"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {promptLoading
+            ? <Skeleton className="h-48 rounded-xl" />
+            : (
+              <Textarea
+                value={systemPrompt}
+                onChange={e => { setSystemPrompt(e.target.value); setPromptSaved(false) }}
+                className="min-h-[220px] text-xs font-mono resize-y leading-relaxed"
+                placeholder="Enter your system prompt..."
+                disabled={!agentId}
+              />
+            )
+          }
+
+          <div className="p-2.5 bg-muted/40 rounded-lg border border-border text-xs text-muted-foreground">
+            <p className="font-medium text-foreground mb-1">Available variables</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              {['{lead_name}', '{lead_company}', '{lead_title}', '{company_name}', '{personality_tone}', '{original_email}'].map(v => (
+                <code key={v} className="text-primary">{v}</code>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Tabs ─────────────────────────────────────────────────────────── */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-        <TabsList className={cn('shrink-0 w-full grid h-9', hideSessions ? 'grid-cols-2' : 'grid-cols-3')}>
+        <TabsList className={cn('shrink-0 w-full grid h-9', hideSessions ? 'grid-cols-1' : 'grid-cols-2')}>
           <TabsTrigger value="knowledge" className="text-xs gap-1.5"><FileText className="w-3 h-3" />Knowledge</TabsTrigger>
-          <TabsTrigger value="prompt"    className="text-xs gap-1.5"><Sparkles className="w-3 h-3" />Prompt</TabsTrigger>
           {!hideSessions && (
             <TabsTrigger value="sessions"  className="text-xs gap-1.5"><History className="w-3 h-3" />Sessions</TabsTrigger>
           )}
@@ -573,7 +663,7 @@ export function ChatLabContent({ hideSessions = false }: { hideSessions?: boolea
             />
             <Upload className="w-5 h-5 mx-auto mb-1.5 text-muted-foreground" />
             <p className="text-sm font-medium">{uploading ? 'Uploading...' : 'Drop files or click to upload'}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">PDF, DOCX, TXT, MD — chunked & embedded automatically</p>
+            <p className="text-xs text-muted-foreground mt-0.5">PDF, DOCX, TXT, MD - chunked & embedded automatically</p>
           </div>
 
           <ScrollArea className="flex-1 min-h-0">
@@ -637,7 +727,7 @@ export function ChatLabContent({ hideSessions = false }: { hideSessions?: boolea
                             ) : (
                               <textarea
                                 readOnly
-                                value={(docChunks[doc.docId] ?? []).join('\n\n— — —\n\n')}
+                                value={(docChunks[doc.docId] ?? []).join('\n\n- - -\n\n')}
                                 rows={10}
                                 className="w-full text-xs border border-border rounded px-2 py-1.5 bg-muted/40 resize-y focus:outline-none font-mono leading-relaxed"
                               />
@@ -657,65 +747,6 @@ export function ChatLabContent({ hideSessions = false }: { hideSessions?: boolea
               )}
             </div>
           </ScrollArea>
-        </TabsContent>
-
-        {/* ── Prompt ── */}
-        <TabsContent value="prompt" className="flex-1 flex flex-col min-h-0 mt-3 gap-3">
-          <div className="flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-2">
-              <Label className="text-sm font-medium">System Prompt</Label>
-              {!promptSaved && (
-                <span className="text-[10px] text-amber-600 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-400 px-1.5 py-0.5 rounded-full font-medium">unsaved</span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              {promptVersions.length > 0 && (
-                <Select
-                  defaultValue={String(promptVersions[0]?.version)}
-                  onValueChange={v => {
-                    const found = promptVersions.find(p => String(p.version) === v)
-                    if (found) { setSystemPrompt(found.promptText); setPromptSaved(true) }
-                  }}
-                >
-                  <SelectTrigger className="h-7 text-xs w-32">
-                    <SelectValue placeholder="Version" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {promptVersions.map((p, i) => (
-                      <SelectItem key={p.version} value={String(p.version)} className="text-xs">
-                        v{p.version}{i === 0 ? ' (current)' : ''}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-              <Button size="sm" className="h-7 text-xs gap-1.5" onClick={savePrompt} disabled={promptSaved || !agentId}>
-                <Save className="w-3 h-3" /> Save
-              </Button>
-            </div>
-          </div>
-
-          {promptLoading
-            ? <Skeleton className="flex-1 rounded-xl" />
-            : (
-              <Textarea
-                value={systemPrompt}
-                onChange={e => { setSystemPrompt(e.target.value); setPromptSaved(false) }}
-                className="flex-1 min-h-0 text-xs font-mono resize-none leading-relaxed"
-                placeholder="Enter your system prompt..."
-                disabled={!agentId}
-              />
-            )
-          }
-
-          <div className="shrink-0 p-3 bg-muted/40 rounded-xl border border-border text-xs text-muted-foreground">
-            <p className="font-medium text-foreground mb-1">Available variables</p>
-            <div className="flex flex-wrap gap-x-4 gap-y-1">
-              {['{lead_name}', '{lead_company}', '{lead_title}', '{company_name}', '{personality_tone}', '{original_email}'].map(v => (
-                <code key={v} className="text-primary">{v}</code>
-              ))}
-            </div>
-          </div>
         </TabsContent>
 
         {/* ── Sessions ── */}
@@ -863,7 +894,7 @@ export function ChatLabContent({ hideSessions = false }: { hideSessions?: boolea
 
                                     <div className="rounded-lg bg-card border border-border p-2.5">
                                       <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Research facts</p>
-                                      <p className="text-[9px] text-muted-foreground mb-1">One per line · optionally append <span className="font-mono"> — source-url</span></p>
+                                      <p className="text-[9px] text-muted-foreground mb-1">One per line · optionally append <span className="font-mono"> - source-url</span></p>
                                       <textarea value={snapDraft.citedFactsText} onChange={e => setSnapDraft(p => ({ ...p, citedFactsText: e.target.value }))} rows={5} className="w-full text-xs border border-border rounded px-2 py-1 bg-background resize-none focus:outline-none focus:border-primary" />
                                     </div>
 
@@ -906,7 +937,7 @@ export function ChatLabContent({ hideSessions = false }: { hideSessions?: boolea
                                         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Research facts</p>
                                         <ul className="space-y-0.5">
                                           {snap.citedFacts.map((f: any, i: number) => (
-                                            <li key={i} className="text-xs text-muted-foreground">· {f.fact}{f.source ? ` — ${f.source}` : ''}</li>
+                                            <li key={i} className="text-xs text-muted-foreground">· {f.fact}{f.source ? ` - ${f.source}` : ''}</li>
                                           ))}
                                         </ul>
                                       </div>

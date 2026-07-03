@@ -273,7 +273,7 @@ export function GlobalSearch({
             <>
               <CommandEmpty>No results found for "{query}"</CommandEmpty>
 
-              {/* Quick actions — shown when no query */}
+              {/* Quick actions - shown when no query */}
               {showQuick && (
                 <CommandGroup heading="Quick Actions">
                   {QUICK_ACTIONS.map((a) => (
