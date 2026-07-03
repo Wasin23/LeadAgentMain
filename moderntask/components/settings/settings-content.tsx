@@ -7,7 +7,7 @@ import {
   User, Palette, Bell, Mail, LayoutGrid,
   CheckCircle2, XCircle, Plus, Trash2, Loader2, RefreshCw,
   Building2, Database, Link2Off, CreditCard,
-  Reply, Eye, Calendar, CheckCheck, Inbox, AlertTriangle, Brain
+  Reply, Eye, Calendar, CheckCheck, Inbox, AlertTriangle, Brain, Star
 } from "lucide-react"
 import { format, formatDistanceToNow } from "date-fns"
 import { Card } from "@/components/ui/card"
@@ -25,7 +25,7 @@ import { PresetsContent } from "@/components/agents/presets-content"
 import { CRM_CONFIGS, type CrmConfig } from "@/lib/crm-configs"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-type Tab = "profile" | "appearance" | "notifications" | "company-profile" | "email" | "crm" | "presets" | "billing" | "memory"
+type Tab = "profile" | "appearance" | "notifications" | "company-profile" | "email" | "crm" | "presets" | "billing" | "memory" | "leads"
 
 interface EmailAccount { email: string; connectedAt: string; profilePicture?: string; isActive: boolean }
 
@@ -100,6 +100,7 @@ const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: "company-profile", label: "Company Profile", icon: Building2 },
   { id: "email",           label: "Outreach",        icon: Mail },
   { id: "memory",          label: "Memory",          icon: Brain },
+  { id: "leads",           label: "Leads",           icon: Star },
   { id: "billing",         label: "Billing",         icon: CreditCard },
   // "crm" (CRM Connection) moved to Leads → CRM tab; "presets" moved to Prospecting → Agent Setup & Presets.
   // Tab views below are kept (reachable via direct ?tab=crm/?tab=presets link) but no longer shown in the tab bar.
@@ -136,6 +137,10 @@ export function SettingsContent() {
     leadResponseAlerts: true,
     errorAlerts: true,
   })
+
+  // ── Lead timeline research ────────────────────────────────────────────────
+  const [timelineResearchCriteria, setTimelineResearchCriteria] = useState('')
+  const [savingLeadSettings, setSavingLeadSettings] = useState(false)
 
   // ── Email connections ─────────────────────────────────────────────────────
   const [gmailAccounts, setGmailAccounts] = useState<EmailAccount[]>([])
@@ -361,6 +366,7 @@ export function SettingsContent() {
           if (s.preferences.notifPrefs)       setNotifPrefs(prev => ({ ...prev, ...s.preferences.notifPrefs }))
           if (s.preferences.defaultEmailSource) setDefaultEmailSource(s.preferences.defaultEmailSource)
           if (typeof s.preferences.defaultRebumpEnabled === "boolean") setDefaultRebumpEnabled(s.preferences.defaultRebumpEnabled)
+          if (s.preferences.timelineResearchCriteria) setTimelineResearchCriteria(s.preferences.timelineResearchCriteria)
         }
         if (s?.emailSettings) {
           setCustomDomain(s.emailSettings.customDomain || "")
@@ -1985,6 +1991,78 @@ export function SettingsContent() {
             </div>
           )
         })()}
+
+        {/* ── Leads ────────────────────────────────────────────────────────── */}
+        {tab === "leads" && (
+          <Card className="p-6 space-y-6">
+            <div>
+              <h3 className="font-semibold text-lg mb-1">Lead Timeline Research</h3>
+              <p className="text-sm text-muted-foreground">
+                When you star a lead, Meridian continuously crawls the web for news and signals about that person and company.
+                Pages are scraped with Puppeteer, filtered by recency, then scored by AI before anything appears in their timeline.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20 px-4 py-3 space-y-1">
+              <div className="flex items-center gap-2 text-sm font-medium text-amber-800 dark:text-amber-300">
+                <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                What starring a lead does
+              </div>
+              <ul className="text-xs text-amber-700 dark:text-amber-400 space-y-1 pl-6 list-disc">
+                <li>Adds the lead to your personal favorites list for quick filtering</li>
+                <li>Queues them for continuous background research — news, funding rounds, hiring signals, leadership changes</li>
+                <li>Each research pass crawls real web pages (no API cost), dates them, and only sends recent content to AI for scoring</li>
+                <li>High-scoring findings (≥6/10) appear as a visual timeline in the lead&apos;s detail panel</li>
+              </ul>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm font-medium">Relevance scoring criteria</Label>
+                {timelineResearchCriteria.trim() && (
+                  <button
+                    onClick={() => setTimelineResearchCriteria('')}
+                    className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+                  >
+                    Reset to default
+                  </button>
+                )}
+              </div>
+
+              <div className="rounded-lg border border-border bg-muted/40 px-3 py-2.5 space-y-1.5">
+                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide">
+                  {timelineResearchCriteria.trim() ? 'Default (replaced by your criteria below)' : 'Default — active now'}
+                </p>
+                <ul className="text-xs text-muted-foreground space-y-0.5">
+                  <li><span className="text-foreground/70 font-medium">8–10</span> · Strong buying signal — funding round, hiring surge, new initiative, expansion, expressed pain point</li>
+                  <li><span className="text-foreground/70 font-medium">6–7</span> · Useful context — leadership change, market shift, product launch, company growth</li>
+                  <li><span className="text-foreground/70 font-medium">0–5</span> · Not useful — generic content, unrelated topic, or no actionable insight (never stored)</li>
+                </ul>
+              </div>
+
+              <textarea
+                className="w-full min-h-[96px] px-3 py-2 text-sm rounded-md border border-input bg-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                placeholder={`Override the default — describe in plain English what signals matter to you. e.g. "I care most about companies that just raised a Series A or B, are hiring engineers, or announced a new product. Leadership changes at VP+ are also useful."`}
+                value={timelineResearchCriteria}
+                onChange={e => setTimelineResearchCriteria(e.target.value.slice(0, 800))}
+              />
+              <p className="text-xs text-muted-foreground">{timelineResearchCriteria.length}/800</p>
+            </div>
+
+            <Button
+              onClick={async () => {
+                setSavingLeadSettings(true)
+                await savePrefs({ timelineResearchCriteria: timelineResearchCriteria.slice(0, 800) })
+                toast({ title: 'Lead research settings saved', duration: 2000 })
+                setSavingLeadSettings(false)
+              }}
+              disabled={savingLeadSettings}
+            >
+              {savingLeadSettings && <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />}
+              Save
+            </Button>
+          </Card>
+        )}
 
         {/* ── Billing ──────────────────────────────────────────────────────── */}
         {tab === "billing" && <BillingTab />}

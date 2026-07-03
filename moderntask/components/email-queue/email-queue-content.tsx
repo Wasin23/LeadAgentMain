@@ -1706,15 +1706,22 @@ function QueuedList({ agentId, agentMap, fontSize, setFontSize, onCountChange, a
 }
 
 // ── daily cap widget ──────────────────────────────────────────────────────────
+interface CapAccount { email: string; provider: 'gmail' | 'outlook'; isActive: boolean; index: number }
+interface CapData {
+  accounts: CapAccount[]
+  activeAccount: CapAccount | null
+  sentToday: number
+  perAccountCap: number
+  totalCap: number
+  remaining: number
+  perAccountRemaining: number
+}
+
 function DailyCapWidget() {
-  const [data, setData] = useState<{
-    fromEmail: string | null
-    sentToday: number
-    perAccountCap: number
-    totalCap: number
-    remaining: number
-    perAccountRemaining: number
-  } | null>(null)
+  const [data, setData] = useState<CapData | null>(null)
+  const [open, setOpen]   = useState(false)
+  const [switching, setSwitching] = useState(false)
+  const dropRef = useRef<HTMLDivElement>(null)
 
   const load = useCallback(async () => {
     try {
@@ -1723,29 +1730,92 @@ function DailyCapWidget() {
     } catch {}
   }, [])
 
+  useEffect(() => { load(); const iv = setInterval(load, 30000); return () => clearInterval(iv) }, [load])
+
   useEffect(() => {
-    load()
-    const iv = setInterval(load, 30000)
-    return () => clearInterval(iv)
-  }, [load])
+    if (!open) return
+    const handle = (e: MouseEvent) => {
+      if (dropRef.current && !dropRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [open])
 
   if (!data) return null
 
-  const pct = Math.min(100, (data.sentToday / data.totalCap) * 100)
-  const near = data.sentToday >= data.totalCap * 0.8
-  const hit  = data.sentToday >= data.totalCap
+  const near = data.sentToday >= data.perAccountCap * 0.8
+  const hit  = data.sentToday >= data.perAccountCap
+  const displayEmail = data.activeAccount?.email || 'Mailgun (default)'
+  const displayProvider = data.activeAccount?.provider || null
+  const hasAccounts = data.accounts.length > 0
+
+  const switchAccount = async (acc: CapAccount) => {
+    setSwitching(true)
+    try {
+      const endpoint = acc.provider === 'gmail'
+        ? '/api/auth/gmail/set-active'
+        : '/api/auth/outlook/set-active'
+      await api.post(endpoint, { accountIndex: acc.index })
+      await load()
+    } catch {} finally {
+      setSwitching(false)
+      setOpen(false)
+    }
+  }
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-muted/30 text-xs">
-      <Mail className="w-3 h-3 text-muted-foreground shrink-0" />
-      <span className="text-muted-foreground truncate max-w-[160px]">
-        {data.fromEmail || 'Mailgun (default)'}
-      </span>
-      <ArrowLeftRight className="w-3 h-3 text-muted-foreground shrink-0" />
-      <span className={cn('font-semibold tabular-nums', hit ? 'text-destructive' : near ? 'text-yellow-500' : 'text-foreground')}>
-        {data.sentToday}<span className="font-normal text-muted-foreground">/{data.totalCap}</span>
-      </span>
-      <span className="text-muted-foreground">today</span>
+    <div className="relative" ref={dropRef}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        disabled={!hasAccounts}
+        className={cn(
+          'flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs transition-colors',
+          hasAccounts ? 'border-border bg-muted/30 hover:bg-muted/60 cursor-pointer' : 'border-border bg-muted/20 cursor-default'
+        )}
+      >
+        <Mail className="w-3 h-3 text-muted-foreground shrink-0" />
+        <span className="text-muted-foreground truncate max-w-[140px]">
+          {displayProvider && <span className="capitalize mr-1">{displayProvider}:</span>}
+          {displayEmail}
+        </span>
+        <ArrowLeftRight className="w-3 h-3 text-muted-foreground shrink-0" />
+        <span className={cn('font-semibold tabular-nums shrink-0', hit ? 'text-destructive' : near ? 'text-yellow-500' : 'text-foreground')}>
+          {data.sentToday}<span className="font-normal text-muted-foreground">/{data.perAccountCap}</span>
+        </span>
+        {hasAccounts && <ChevronRight className={cn('w-3 h-3 text-muted-foreground shrink-0 transition-transform', open && 'rotate-90')} />}
+      </button>
+
+      {open && hasAccounts && (
+        <div className="absolute top-full left-0 mt-1 z-50 w-64 rounded-xl border border-border bg-popover shadow-lg overflow-hidden">
+          <div className="px-3 pt-2.5 pb-1">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Switch sending account</p>
+          </div>
+          <div className="py-1">
+            {data.accounts.map((acc) => (
+              <button
+                key={`${acc.provider}-${acc.index}`}
+                disabled={switching}
+                onClick={() => switchAccount(acc)}
+                className={cn(
+                  'w-full flex items-center gap-2.5 px-3 py-2 text-xs text-left transition-colors hover:bg-muted/60',
+                  acc.isActive && 'bg-primary/5'
+                )}
+              >
+                <div className={cn(
+                  'w-1.5 h-1.5 rounded-full shrink-0',
+                  acc.isActive ? 'bg-green-500' : 'bg-muted-foreground/30'
+                )} />
+                <span className="flex-1 truncate text-foreground">{acc.email}</span>
+                <span className="text-[10px] text-muted-foreground capitalize shrink-0">{acc.provider}</span>
+                {acc.isActive && <CheckCircle2 className="w-3 h-3 text-green-500 shrink-0" />}
+              </button>
+            ))}
+          </div>
+          <div className="border-t border-border px-3 py-2">
+            <p className="text-[10px] text-muted-foreground">{data.sentToday}/{data.totalCap} total sent today</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

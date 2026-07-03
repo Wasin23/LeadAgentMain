@@ -16,11 +16,29 @@ async function handleOpenTracking(trackingId, userAgent, ip, res) {
   console.log('🌐 [TRACKING PIXEL] User Agent:', userAgent);
   console.log('📍 [TRACKING PIXEL] IP:', ip);
   console.log('═══════════════════════════════════════════════════════════════');
-  
+
   // Log to DynamoDB for AWS-based tracking
   try {
     const userId = trackingId.split('_')[0].replace('tracking-', '');
     const agentId = trackingId.split('_')[1];
+
+    // ── Owner vs Lead IP classification ──────────────────────────────────
+    // Compare opener IP against the user's own known IPs so we don't
+    // pollute lead profiles with the user opening their own sent emails.
+    let openerType = 'unknown';
+    try {
+      const userSettings = await awsManager.getUserSettings(userId);
+      const knownOwnerIps = (userSettings?.knownOwnerIps || []).map(e => e.ip);
+      if (knownOwnerIps.includes(ip)) {
+        openerType = 'owner';
+        console.log(`🏠 [IP CLASSIFICATION] IP ${ip} is a known owner IP — tagging as owner open`);
+      } else {
+        openerType = 'lead';
+        console.log(`👤 [IP CLASSIFICATION] IP ${ip} is a new IP — tagging as lead open`);
+      }
+    } catch (ipErr) {
+      console.error('[IP CLASSIFICATION] Error checking owner IPs:', ipErr.message);
+    }
     
     console.log('👤 [TRACKING] Extracted userId:', userId);
     console.log('🤖 [TRACKING] Extracted agentId:', agentId);
@@ -76,23 +94,34 @@ async function handleOpenTracking(trackingId, userAgent, ip, res) {
     console.log('🎯 Classification:', isProxyHit ? '🟢 PRIMARY INBOX (<10s)' : '📧 PROMOTIONAL/MANUAL (>10s)');
     console.log('═══════════════════════════════════════════════════════════════');
     
+    // Helper: log an open/proxy event and — when it's a confirmed lead open — write
+    // the IP back onto the sent email record for future website-visit matching.
+    const logAndMaybeStoreLeadIp = async (eventType) => {
+      await awsManager.logEmailTracking(userId, agentId, trackingId, {
+        eventType,
+        ipAddress: ip,
+        userAgent,
+        timestamp: new Date().toISOString(),
+        timeSinceSent,
+        openerType,
+      });
+      // Only store lead IP for real opens (not proxy) from non-owner IPs
+      if (eventType === 'open' && openerType === 'lead' && agentId && agentId !== 'null') {
+        awsQueue.updateSentEmailLeadIp(userId, agentId, trackingId, ip).catch(() => {});
+      }
+    };
+
     if (!hasProxyHit && !hasBeenOpenedBefore) {
       if (isProxyHit) {
-        console.log(`🟢 [TRACKING] PRIMARY INBOX - Recording proxy hit`);
-        await awsManager.logEmailTracking(userId, agentId, trackingId, {
-          eventType: 'proxy',
-          ipAddress: ip,
-          userAgent: userAgent,
-          timestamp: new Date().toISOString(),
-          timeSinceSent: timeSinceSent
-        });
-        
+        console.log(`🟢 [TRACKING] PRIMARY INBOX - Recording proxy hit (openerType: ${openerType})`);
+        await logAndMaybeStoreLeadIp('proxy');
         try {
           const { broadcastAIResponse } = await import('./outreach.js');
           broadcastAIResponse(userId, {
             type: 'email_primary_inbox',
             trackingId,
             agentId,
+            openerType,
             timestamp: new Date().toISOString()
           });
           console.log('📡 [TRACKING] Broadcasted primary inbox event via SSE');
@@ -100,21 +129,15 @@ async function handleOpenTracking(trackingId, userAgent, ip, res) {
           console.error('❌ [TRACKING] Error broadcasting:', broadcastErr.message);
         }
       } else {
-        console.log(`📧 [TRACKING] REAL OPEN - Recording open event`);
-        await awsManager.logEmailTracking(userId, agentId, trackingId, {
-          eventType: 'open',
-          ipAddress: ip,
-          userAgent: userAgent,
-          timestamp: new Date().toISOString(),
-          timeSinceSent: timeSinceSent
-        });
-        
+        console.log(`📧 [TRACKING] REAL OPEN - Recording open event (openerType: ${openerType})`);
+        await logAndMaybeStoreLeadIp('open');
         try {
           const { broadcastAIResponse } = await import('./outreach.js');
           broadcastAIResponse(userId, {
             type: 'email_opened',
             trackingId,
             agentId,
+            openerType,
             timestamp: new Date().toISOString()
           });
           console.log('📡 [TRACKING] Broadcasted email opened event via SSE');
@@ -123,21 +146,15 @@ async function handleOpenTracking(trackingId, userAgent, ip, res) {
         }
       }
     } else if (hasProxyHit && !hasBeenOpenedBefore) {
-      console.log(`📧 [TRACKING] Second hit after proxy - REAL USER OPEN`);
-      await awsManager.logEmailTracking(userId, agentId, trackingId, {
-        eventType: 'open',
-        ipAddress: ip,
-        userAgent: userAgent,
-        timestamp: new Date().toISOString(),
-        timeSinceSent: timeSinceSent
-      });
-      
+      console.log(`📧 [TRACKING] Second hit after proxy - REAL USER OPEN (openerType: ${openerType})`);
+      await logAndMaybeStoreLeadIp('open');
       try {
         const { broadcastAIResponse } = await import('./outreach.js');
         broadcastAIResponse(userId, {
           type: 'email_opened',
           trackingId,
           agentId,
+          openerType,
           timestamp: new Date().toISOString()
         });
         console.log('📡 [TRACKING] Broadcasted email opened event via SSE');

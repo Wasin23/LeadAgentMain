@@ -1475,7 +1475,7 @@ function computeSlotDate(index, schedule) {
   return localTimeToUTC(fY, fMo, fD, schedH, schedM, tz);
 }
 
-// GET /daily-cap-status — how many emails sent today (user-wide) vs the 250/day cap
+// GET /daily-cap-status — connected sending accounts + how many sent today vs caps
 router.get('/daily-cap-status', async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -1484,20 +1484,36 @@ router.get('/daily-cap-status', async (req, res) => {
     const { QueryCommand } = await import('@aws-sdk/lib-dynamodb');
     const awsQueue = getAWSEmailQueue();
 
-    // Get user's timezone and fromEmail
     const userSettings = await awsManager.getUserSettings(userId);
     const timezone = userSettings?.timezone || 'America/New_York';
-    const fromEmail = userSettings?.emailSettings?.fromEmail || null;
 
-    // Today's date string in user's timezone (YYYY-MM-DD)
+    // Build list of connected sending accounts
+    const gmailAccounts = (userSettings?.gmailAccounts || []).map((acc, i) => ({
+      email: acc.email,
+      provider: 'gmail',
+      isActive: !!acc.isActive,
+      index: i,
+    }));
+    const outlookAccounts = (userSettings?.outlookAccounts || []).map((acc, i) => ({
+      email: acc.email,
+      provider: 'outlook',
+      isActive: false, // Outlook doesn't have per-account isActive; first is default
+      index: i,
+    }));
+    // Mark first Outlook account active if no Gmail active account
+    if (outlookAccounts.length > 0 && !gmailAccounts.some(a => a.isActive)) {
+      outlookAccounts[0].isActive = true;
+    }
+
+    const connectedAccounts = [...gmailAccounts, ...outlookAccounts];
+
+    // Today's date string in user's timezone
     const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(new Date());
     const skPrefix = `SENT#${todayStr}`;
 
-    // Get all agents for this user
+    // Count sent today across all agents
     const agents = await awsManager.getUserAgents(userId);
     const agentIds = (agents || []).map(a => a.agentId).filter(Boolean);
-
-    // Count today's sent emails across all agents in parallel
     const counts = await Promise.all(
       agentIds.map(agentId =>
         awsQueue.dynamodb.send(new QueryCommand({
@@ -1511,14 +1527,16 @@ router.get('/daily-cap-status', async (req, res) => {
         })).then(r => r.Count || 0).catch(() => 0)
       )
     );
-
     const sentToday = counts.reduce((sum, c) => sum + c, 0);
+
     const PER_ACCOUNT_CAP = 50;
     const TOTAL_CAP = 250;
+    const activeAccount = connectedAccounts.find(a => a.isActive) || null;
 
     res.json({
       success: true,
-      fromEmail,
+      accounts: connectedAccounts,
+      activeAccount,
       sentToday,
       perAccountCap: PER_ACCOUNT_CAP,
       totalCap: TOTAL_CAP,

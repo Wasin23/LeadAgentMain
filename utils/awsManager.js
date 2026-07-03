@@ -223,6 +223,98 @@ class AWSManager {
     }
   }
 
+  // ── Starred Leads & Timeline ──────────────────────────────────────────────
+
+  async getStarredLeads(userId) {
+    const settings = await this.getUserSettings(userId);
+    return settings?.starredLeads || [];
+  }
+
+  async starLead(userId, leadInfo) {
+    try {
+      const settings = await this.getUserSettings(userId) || {};
+      const starred = settings.starredLeads || [];
+      if (starred.find(l => l.leadId === leadInfo.leadId)) return;
+      starred.unshift({ ...leadInfo, starredAt: new Date().toISOString() });
+      await this.saveUserSettings(userId, { ...settings, starredLeads: starred });
+    } catch (err) {
+      console.error('[STARRED LEADS] Error starring lead:', err.message);
+    }
+  }
+
+  async unstarLead(userId, leadId) {
+    try {
+      const settings = await this.getUserSettings(userId) || {};
+      const starred = (settings.starredLeads || []).filter(l => l.leadId !== leadId);
+      await this.saveUserSettings(userId, { ...settings, starredLeads: starred });
+    } catch (err) {
+      console.error('[STARRED LEADS] Error unstarring lead:', err.message);
+    }
+  }
+
+  /**
+   * Store a timeline entry for a starred lead.
+   * Uses the emailTracking table with PK USER#{userId}#TIMELINE#{leadId}
+   */
+  async logLeadTimelineEntry(userId, leadId, entry) {
+    try {
+      const timestamp = new Date().toISOString();
+      const entryId = `${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+      await this.dynamodb.send(new PutCommand({
+        TableName: this.tables.emailTracking,
+        Item: {
+          PK: `USER#${userId}#TIMELINE#${leadId}`,
+          SK: `ENTRY#${timestamp}#${entryId}`,
+          userId,
+          leadId,
+          entryId,
+          timestamp,
+          ...entry,
+        },
+      }));
+    } catch (err) {
+      console.error('[LEAD TIMELINE] Error logging entry:', err.message);
+    }
+  }
+
+  async getLeadTimeline(userId, leadId, limit = 50) {
+    try {
+      const result = await this.dynamodb.send(new QueryCommand({
+        TableName: this.tables.emailTracking,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+        ExpressionAttributeValues: {
+          ':pk': `USER#${userId}#TIMELINE#${leadId}`,
+          ':prefix': 'ENTRY#',
+        },
+        ScanIndexForward: false, // newest first
+        Limit: limit,
+      }));
+      return result.Items || [];
+    } catch (err) {
+      console.error('[LEAD TIMELINE] Error fetching timeline:', err.message);
+      return [];
+    }
+  }
+
+  /**
+   * Record a user's own IP address for distinguishing owner opens from lead opens.
+   * Keeps a rolling deduplicated list (max 50) in userSettings.knownOwnerIps.
+   */
+  async recordOwnerIp(userId, ip) {
+    try {
+      if (!ip || ip === '::1' || ip === '127.0.0.1') return; // skip localhost
+      const settings = await this.getUserSettings(userId);
+      const existing = settings?.knownOwnerIps || [];
+      // Deduplicate: update seenAt if IP already known, else prepend
+      const withoutThis = existing.filter(e => e.ip !== ip);
+      const updated = [{ ip, seenAt: new Date().toISOString() }, ...withoutThis].slice(0, 50);
+      await this.saveUserSettings(userId, { ...settings, knownOwnerIps: updated });
+    } catch (err) {
+      // Non-fatal — never block a request for this
+      console.error('[OWNER IP] Error recording owner IP:', err.message);
+    }
+  }
+
   // ==================
   // USER MANAGEMENT METHODS
   // ==================

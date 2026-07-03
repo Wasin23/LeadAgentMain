@@ -1028,6 +1028,32 @@ class AWSEmailQueue {
   }
 
   /**
+   * Store a confirmed lead opener IP on a sent email record.
+   * Searches SENT# items across all agents for the given trackingId, then patches leadOpenerIp.
+   */
+  async updateSentEmailLeadIp(userId, agentId, trackingId, ip) {
+    try {
+      const pk = this._getPK(userId, agentId);
+      const response = await this.dynamodb.send(new QueryCommand({
+        TableName: this.tableName,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :prefix)',
+        FilterExpression: 'trackingId = :tid',
+        ExpressionAttributeValues: { ':pk': pk, ':prefix': 'SENT#', ':tid': trackingId },
+      }));
+      const item = response.Items?.[0];
+      if (!item) return;
+      await this.dynamodb.send(new UpdateCommand({
+        TableName: this.tableName,
+        Key: { PK: item.PK, SK: item.SK },
+        UpdateExpression: 'SET leadOpenerIp = :ip, leadOpenerIpAt = :at',
+        ExpressionAttributeValues: { ':ip': ip, ':at': new Date().toISOString() },
+      }));
+    } catch (err) {
+      console.error('[AWS EMAIL QUEUE] Failed to write leadOpenerIp:', err.message);
+    }
+  }
+
+  /**
    * Delete a queued email (reject)
    */
   async deleteQueuedEmail(userId, agentId, emailId) {

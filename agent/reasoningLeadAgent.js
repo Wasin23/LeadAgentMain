@@ -9188,6 +9188,24 @@ export function getUserActiveAgents(userId) {
 }
 
 /**
+ * Returns true if any agent instance for this user is currently in an active cycle.
+ */
+export function isAnyCycleRunning(userId) {
+  for (const [key, agent] of userAgents.entries()) {
+    if (key.startsWith(`${userId}_`) && agent.isRunning) return true;
+  }
+  return false;
+}
+
+/**
+ * Returns true if the specific agent for this user is currently in an active cycle.
+ */
+export function isAgentCycleRunning(userId, agentId) {
+  const agent = userAgents.get(`${userId}_${agentId}`);
+  return agent?.isRunning ?? false;
+}
+
+/**
  * Get all active agents across all users (for system-wide polling)
  */
 export function getAllActiveAgents() {

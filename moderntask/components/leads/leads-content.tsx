@@ -7,6 +7,7 @@ import {
   CheckCircle2, Search, Building2, ExternalLink, X,
   ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight,
   Linkedin, Newspaper, Globe, FileText, Mail, Info, AlertTriangle, ArrowUpDown, Check,
+  Star, Clock, Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -30,10 +31,23 @@ interface LeadRecord {
   agentName?: string
   company: string
   contactName: string
+  email?: string
   status: 'queued' | 'sent'
   subject?: string
   body?: string
   aiReport?: AIReport
+  starred?: boolean
+}
+
+interface TimelineEntry {
+  entryId: string
+  headline: string
+  snippet: string
+  url: string
+  relevanceScore: number
+  reason: string
+  type: string
+  foundAt: string
 }
 
 // Strips the compliance footer (company branding + unsubscribe link) from a body for
@@ -55,6 +69,7 @@ function extractLead(e: Record<string, unknown>, status: 'queued' | 'sent', agen
     agentName: agentId ? agentNameById.get(agentId) : undefined,
     company: aiReport?.companyName || (leadDetails.companyName as string) || (e.leadCompany as string) || '',
     contactName: aiReport?.contactName || (personInfo.fullName as string) || (personInfo.name as string) || (e.leadName as string) || (e.recipientName as string) || '',
+    email: (emailData.finalRecipient as string) || (e.to as string) || '',
     status,
     subject: (emailData.finalSubject as string) || (e.subject as string),
     body: stripFooter((emailData.finalBody as string) || (e.body as string) || ''),
@@ -128,10 +143,14 @@ const CONFIDENCE_RANK: Record<string, number> = { high: 3, medium: 2, low: 1 }
 export function LeadsContent() {
   const [leads, setLeads] = useState<LeadRecord[]>([])
   const [loading, setLoading] = useState(true)
+  const [starredIds, setStarredIds] = useState<Set<string>>(new Set())
+  const [starringId, setStarringId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [detailTab, setDetailTab] = useState<'research' | 'sources' | 'draft'>('research')
+  const [detailTab, setDetailTab] = useState<'research' | 'sources' | 'draft' | 'timeline'>('research')
+  const [timeline, setTimeline] = useState<TimelineEntry[]>([])
+  const [timelineLoading, setTimelineLoading] = useState(false)
   const [sortKey, setSortKey] = useState<SortKey>('score-desc')
   const [sortOpen, setSortOpen] = useState(false)
   const pageSize = 10
@@ -139,14 +158,18 @@ export function LeadsContent() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [agentsRes, queueRes, sentRes] = await Promise.allSettled([
+      const [agentsRes, queueRes, sentRes, starredRes] = await Promise.allSettled([
         api.get('/api/auth/agents'),
         api.get('/api/email-queue/queue', { params: { agentId: 'all', limit: 500 } }),
         api.get('/api/email-queue/sent', { params: { agentId: 'all', limit: 500 } }),
+        api.get('/api/leads/starred'),
       ])
       const agentNameById = new Map<string, string>()
       if (agentsRes.status === 'fulfilled') {
         for (const a of (agentsRes.value.data?.agents ?? [])) agentNameById.set(a.agentId, a.name)
+      }
+      if (starredRes.status === 'fulfilled') {
+        setStarredIds(new Set((starredRes.value.data?.starred ?? []).map((s: { leadId: string }) => s.leadId)))
       }
       const queue = queueRes.status === 'fulfilled' ? (queueRes.value.data?.emails ?? queueRes.value.data?.queue ?? queueRes.value.data ?? []) : []
       const sent = sentRes.status === 'fulfilled' ? (sentRes.value.data?.emails ?? sentRes.value.data ?? []) : []
@@ -161,6 +184,39 @@ export function LeadsContent() {
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  const toggleStar = async (lead: LeadRecord, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setStarringId(lead.id)
+    const isStarred = starredIds.has(lead.id)
+    try {
+      if (isStarred) {
+        await api.delete(`/api/leads/star/${lead.id}`)
+        setStarredIds(prev => { const s = new Set(prev); s.delete(lead.id); return s })
+      } else {
+        await api.post('/api/leads/star', {
+          leadId: lead.id,
+          email: lead.email,
+          name: lead.contactName,
+          company: lead.company,
+          agentId: lead.agentId,
+        })
+        setStarredIds(prev => new Set([...prev, lead.id]))
+      }
+    } catch {}
+    setStarringId(null)
+  }
+
+  const loadTimeline = useCallback(async (leadId: string) => {
+    setTimelineLoading(true)
+    setTimeline([])
+    try {
+      const r = await api.get(`/api/leads/${leadId}/timeline`)
+      setTimeline(r.data?.timeline ?? [])
+    } catch {} finally {
+      setTimelineLoading(false)
+    }
+  }, [])
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim()
@@ -213,9 +269,16 @@ export function LeadsContent() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
-        <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-        Select a lead to view its research report, sources, and outreach draft.
+      <div className="flex items-start gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
+        <Info className="mt-0.5 h-4 w-4 shrink-0" />
+        <span>
+          Select a lead to view its research report, sources, and outreach draft.{' '}
+          <span className="inline-flex items-center gap-1">
+            <Star className="inline w-3 h-3 text-amber-400 fill-amber-400" />
+            <span>Star a lead</span>
+          </span>
+          {' '}to add it to your favorites and start automatic background research — Meridian will continuously scan the web for news, funding signals, and hiring activity and surface findings in a live timeline.
+        </span>
       </div>
 
       <div className="grid grid-cols-1 @5xl:grid-cols-[1fr_380px] gap-4 items-start">
@@ -268,6 +331,7 @@ export function LeadsContent() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-[11px] uppercase tracking-wide text-muted-foreground border-b border-border bg-surface/40">
+                    <th className="py-2 px-2 w-8"></th>
                     <th className="py-2 px-3 font-medium">Company</th>
                     <th className="py-2 px-3 font-medium">Fit Score</th>
                     <th className="py-2 px-3 font-medium">Confidence</th>
@@ -285,9 +349,21 @@ export function LeadsContent() {
                         selectedId === l.id && 'bg-success-soft ring-1 ring-inset ring-success',
                       )}
                     >
+                      <td className="py-2.5 px-2 w-8">
+                        <button
+                          onClick={e => toggleStar(l, e)}
+                          disabled={starringId === l.id}
+                          className="flex items-center justify-center rounded-md p-1 hover:bg-accent disabled:opacity-50"
+                        >
+                          <Star
+                            className={cn('w-3.5 h-3.5 transition-colors', starredIds.has(l.id) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground')}
+                          />
+                        </button>
+                      </td>
                       <td className="py-2.5 px-3">
                         <p className="font-medium truncate max-w-[180px]">{l.company || '—'}</p>
                         <p className="text-xs text-muted-foreground truncate max-w-[180px]">{l.contactName}</p>
+                        {l.email && <p className="text-[11px] text-muted-foreground/70 truncate max-w-[180px]">{l.email}</p>}
                       </td>
                       <td className="py-2.5 px-3">
                         <div className="flex items-center gap-2">
@@ -344,16 +420,24 @@ export function LeadsContent() {
             </div>
 
             <div className="flex items-center gap-5 border-b border-border mb-3">
-              {(['research', 'sources', 'draft'] as const).map(t => (
+              {(['research', 'sources', 'draft', 'timeline'] as const).map(t => (
                 <button
                   key={t}
-                  onClick={() => setDetailTab(t)}
+                  onClick={() => {
+                    setDetailTab(t)
+                    if (t === 'timeline' && selected) loadTimeline(selected.id)
+                  }}
                   className={cn(
                     'relative pb-2.5 text-sm font-medium capitalize',
                     detailTab === t ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
                   )}
                 >
-                  {t === 'draft' ? 'Outreach Draft' : t}
+                  {t === 'draft' ? 'Outreach Draft' : t === 'timeline' ? (
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5" />Timeline
+                      {starredIds.has(selected?.id ?? '') && <Star className="w-3 h-3 text-amber-400 fill-amber-400" />}
+                    </span>
+                  ) : t}
                   {detailTab === t && <span className="absolute inset-x-0 -bottom-px h-[2px] rounded-full bg-primary" />}
                 </button>
               ))}
@@ -444,6 +528,122 @@ export function LeadsContent() {
                 )}
               </div>
             )}
+
+            {detailTab === 'timeline' && (() => {
+              const isStarred = starredIds.has(selected.id)
+              const chronological = [...timeline].reverse() // oldest → newest
+              const DAY_PX = 100
+
+              function formatRelative(iso: string) {
+                const d = new Date(iso)
+                const now = Date.now()
+                const diff = now - d.getTime()
+                const days = Math.floor(diff / 86400000)
+                if (days === 0) return 'Today'
+                if (days === 1) return 'Yesterday'
+                if (days < 30) return `${days}d ago`
+                const months = Math.floor(days / 30)
+                return months === 1 ? '1 mo ago' : `${months} mo ago`
+              }
+
+              return (
+                <div>
+                  {!isStarred && (
+                    <div className="mb-3 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
+                      <Star className="w-3.5 h-3.5 shrink-0" />
+                      Star this lead to start building a research timeline automatically.
+                    </div>
+                  )}
+                  {timelineLoading ? (
+                    <div className="flex items-center justify-center py-8 gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="w-4 h-4 animate-spin" /> Loading timeline…
+                    </div>
+                  ) : (
+                    <div className="overflow-y-auto max-h-[480px] pr-1">
+                      <div className="relative">
+                        {/* Continuous vertical line */}
+                        <div className="absolute left-[15px] top-8 bottom-4 w-[2px] bg-border rounded-full" />
+
+                        {/* Lead Found anchor */}
+                        <div className="relative flex gap-4 items-start">
+                          <div className="relative z-10 shrink-0 w-8 h-8 rounded-full border-2 border-primary bg-primary/10 flex items-center justify-center">
+                            <Star className="w-3.5 h-3.5 text-primary fill-primary" />
+                          </div>
+                          <div className="pt-1 pb-2">
+                            <p className="text-sm font-semibold text-foreground">Lead Starred</p>
+                            <p className="text-[11px] text-muted-foreground">Timeline research active</p>
+                          </div>
+                        </div>
+
+                        {chronological.length === 0 ? (
+                          <div style={{ marginTop: 60 }} className="relative flex gap-4 items-center">
+                            <div className="relative z-10 shrink-0 w-8 h-8 rounded-full border-2 border-dashed border-border bg-background flex items-center justify-center">
+                              <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {isStarred ? 'No entries yet — research runs every 20 min.' : 'No timeline entries.'}
+                            </p>
+                          </div>
+                        ) : (
+                          chronological.map((entry, i) => {
+                            const prevDate = i === 0
+                              ? new Date(entry.foundAt) // Lead Found node sits above; first entry gets 80px fixed gap
+                              : new Date(chronological[i - 1].foundAt)
+                            const msGap = i === 0 ? 0 : new Date(entry.foundAt).getTime() - prevDate.getTime()
+                            const days = msGap / 86400000
+                            const marginTop = i === 0 ? 80 : Math.max(60, Math.round(days * DAY_PX))
+                            const showGapLabel = i > 0 && days >= 1
+
+                            return (
+                              <div key={entry.entryId} style={{ marginTop }} className="relative flex gap-4 items-start">
+                                {/* Gap label on the line */}
+                                {showGapLabel && (
+                                  <div
+                                    className="absolute left-[16px] text-[10px] text-muted-foreground/60 tabular-nums leading-none"
+                                    style={{ top: -(marginTop / 2) - 6, transform: 'translateX(4px)' }}
+                                  >
+                                    {Math.round(days)}d
+                                  </div>
+                                )}
+                                {/* Node circle — click to open source */}
+                                <a
+                                  href={entry.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  title={entry.url}
+                                  className={cn(
+                                    'group relative z-10 shrink-0 w-8 h-8 rounded-full border-2 flex items-center justify-center text-[11px] font-bold tabular-nums transition-opacity hover:opacity-70',
+                                    entry.relevanceScore >= 8
+                                      ? 'border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                                      : 'border-amber-400 bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400',
+                                  )}
+                                >
+                                  <span className="group-hover:hidden">{entry.relevanceScore}</span>
+                                  <ExternalLink className="hidden group-hover:block w-3 h-3" />
+                                </a>
+                                {/* Content card */}
+                                <div className="flex-1 min-w-0 rounded-lg border border-border bg-muted/30 p-2.5 space-y-1 -mt-0.5">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <p className="text-xs font-semibold leading-snug flex-1">{entry.headline}</p>
+                                    <span className="shrink-0 text-[10px] text-muted-foreground whitespace-nowrap">{formatRelative(entry.foundAt)}</span>
+                                  </div>
+                                  {entry.snippet && <p className="text-[11px] text-muted-foreground line-clamp-2">{entry.snippet}</p>}
+                                  {entry.reason && <p className="text-[11px] text-muted-foreground/70 italic">{entry.reason}</p>}
+                                  <a href={entry.url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-primary transition-colors truncate">
+                                    <ExternalLink className="w-2.5 h-2.5 shrink-0" />
+                                    <span className="truncate">{(() => { try { return new URL(entry.url).hostname.replace('www.', '') } catch { return entry.url } })()}</span>
+                                  </a>
+                                </div>
+                              </div>
+                            )
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
           </div>
         ) : (
           <div className="rounded-2xl border border-border bg-card p-8 flex items-center justify-center text-sm text-muted-foreground text-center">

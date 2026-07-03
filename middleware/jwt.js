@@ -1,6 +1,11 @@
 // JWT Authentication Middleware
 import jwt from 'jsonwebtoken';
 import { trackUserActivity } from './activityTracker.js';
+import AWSManager from '../utils/awsManager.js';
+
+const _awsManager = new AWSManager();
+// userId#ip → last recorded timestamp; throttles to once per hour per pair
+const _ownerIpCache = new Map();
 
 /**
  * Middleware to authenticate JWT tokens and populate req.user
@@ -59,7 +64,18 @@ export function authenticateToken(req, res, next) {
     trackUserActivity(req, res, () => {}).catch(error => {
       console.error('[JWT] Error in activity tracking:', error);
     });
-    
+
+    // Record user's own IP (throttled to once/hour per user+IP pair) for owner-vs-lead open detection
+    const ip = req.ip || req.connection?.remoteAddress;
+    if (ip && req.user?.userId) {
+      const cacheKey = `${req.user.userId}#${ip}`;
+      const lastSeen = _ownerIpCache.get(cacheKey) || 0;
+      if (Date.now() - lastSeen > 3600000) {
+        _ownerIpCache.set(cacheKey, Date.now());
+        _awsManager.recordOwnerIp(req.user.userId, ip).catch(() => {});
+      }
+    }
+
     // Continue to next middleware/route handler
     next();
   } catch (error) {

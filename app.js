@@ -23,6 +23,8 @@ import { startGracePeriodChecker } from './utils/gracePeriodChecker.js';
 import { startBillingCron } from './utils/billingCron.js';
 import { startMetricsCron } from './utils/agentMetricsCron.js';
 import { startEmailScheduler } from './utils/emailScheduler.js';
+import leadsRoutes from './routes/leads.js';
+import { startLeadTimelineProcessor } from './utils/leadTimelineProcessor.js';
 
 // Load and validate configuration
 const config = getConfig();
@@ -704,6 +706,7 @@ app.use('/api/billing', billingRoutes); // Billing and payment management
 
 app.use('/api/outreach', outreachRoutes); // Outreach dashboard stats and conversations
 app.use('/api/help', helpRoutes); // Help chat AI assistant
+app.use('/api/leads', leadsRoutes); // Starred leads + timeline research
 app.use('/api/chat-lab', chatLabRoutes); // Chat Lab — sessions, prompts, RAG knowledge base
 app.use('/api/meet',     meetRoutes);    // MQL Chat — public lead-facing chat (no auth)
 
@@ -794,6 +797,9 @@ const server = app.listen(PORT, async () => {
   } catch (error) {
     console.error('⚠️ [REBUMP] Failed to start rebump checker:', error.message);
   }
+
+  // Start lead timeline processor (runs every 20 min for users with starred leads)
+  startLeadTimelineProcessor();
   
   // Initialize Gmail watches for all users on startup
   try {
