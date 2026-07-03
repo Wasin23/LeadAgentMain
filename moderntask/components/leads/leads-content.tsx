@@ -459,7 +459,7 @@ export function LeadsContent() {
               <button onClick={() => setSelectedId(null)}><X className="w-4 h-4 text-muted-foreground" /></button>
             </div>
 
-            <div className="flex items-center gap-5 border-b border-border mb-3 overflow-x-auto whitespace-nowrap [scrollbar-width:thin]">
+            <div className="flex items-center gap-4 border-b border-border mb-3 whitespace-nowrap">
               {(['research', 'sources', 'draft', 'timeline'] as const).map(t => (
                 <button
                   key={t}
@@ -468,14 +468,14 @@ export function LeadsContent() {
                     if (t === 'timeline' && selected) loadTimeline(selected.id)
                   }}
                   className={cn(
-                    'relative shrink-0 pb-2.5 text-sm font-medium capitalize',
+                    'relative shrink-0 pb-2 text-xs font-medium capitalize',
                     detailTab === t ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
                   )}
                 >
                   {t === 'draft' ? 'Outreach Draft' : t === 'timeline' ? (
                     <span className="flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5" />Timeline
-                      {starredIds.has(selected?.id ?? '') && <Star className="w-3 h-3 text-amber-400 fill-amber-400" />}
+                      <Clock className="w-3 h-3" />Timeline
+                      {starredIds.has(selected?.id ?? '') && <Star className="w-2.5 h-2.5 text-amber-400 fill-amber-400" />}
                     </span>
                   ) : t}
                   {detailTab === t && <span className="absolute inset-x-0 -bottom-px h-[2px] rounded-full bg-primary" />}

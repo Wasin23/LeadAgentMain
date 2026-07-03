@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { findRecentPages } from '../tools/puppeteerSearch.js';
 import AWSManager from './awsManager.js';
-import { isAgentCycleRunning } from '../agent/reasoningLeadAgent.js';
+import { getAgentCycleState } from '../agent/reasoningLeadAgent.js';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 const awsManager = new AWSManager();
@@ -33,7 +33,14 @@ async function researchLead(userId, lead, userSettings) {
     userSettings?.companyProfile?.coreOffering ||
     userSettings?.companyProfile?.companyName ||
     '';
-  const customCriteria = (userSettings?.preferences?.timelineResearchCriteria || '').trim();
+  // Scoring criteria is per-agent: set in the agent's settings page under Starred Lead Research
+  let customCriteria = '';
+  if (agentId) {
+    try {
+      const agentSettings = await awsManager.getLeadAgentSettings(userId, agentId);
+      customCriteria = (agentSettings?.timelineResearchCriteria || '').trim();
+    } catch {}
+  }
 
   // Hard gate: only surface content published AFTER this lead was starred
   const newerThan = starredAt ? new Date(starredAt) : new Date(Date.now() - 30 * 24 * 3600000); // fallback: 30 days ago
@@ -113,7 +120,14 @@ ${itemList}`;
   }
 
   // Double-gate: enforce score >= 6 even if Haiku ignored the instruction
-  const relevant = scored.filter(s => typeof s.score === 'number' && s.score >= 6);
+  let relevant = scored.filter(s => typeof s.score === 'number' && s.score >= 6);
+
+  // Never store the same source twice for a lead (re-research next cycle finds the same pages)
+  try {
+    const existing = await awsManager.getLeadTimeline(userId, leadId, 100);
+    const knownUrls = new Set((existing || []).map(e => e.url));
+    relevant = relevant.filter(item => !knownUrls.has(item.url));
+  } catch {}
 
   for (const item of relevant) {
     const source = toScore.find(r => r.link === item.url);
@@ -147,6 +161,14 @@ ${itemList}`;
   return stored;
 }
 
+/**
+ * One tick for one user. Runs while the lead's agent is TURNED ON but WAITING between
+ * cycles. Each starred lead is researched at most once per agent cycle — the checkoff
+ * lives in leadTimelineCursor.researchedInCycle ({ leadId: cycleCount }) and naturally
+ * resets when the next cycle bumps cycleCount.
+ *
+ * Returns true if a lead was researched (caller uses this to back off when idle).
+ */
 export async function processLeadTimeline(userId) {
   try {
     const settings = await awsManager.getUserSettings(userId);
@@ -154,43 +176,62 @@ export async function processLeadTimeline(userId) {
 
     if (starredLeads.length === 0) {
       activeTimelineUsers.delete(userId);
-      return;
+      return false;
     }
 
-    const cursor = settings?.leadTimelineCursor || { currentIndex: 0 };
-    const idx = ((cursor.currentIndex || 0) % starredLeads.length + starredLeads.length) % starredLeads.length;
-    const lead = starredLeads[idx];
+    const cursor = settings?.leadTimelineCursor || {};
+    const researched = cursor.researchedInCycle || {};
+    const start = ((cursor.currentIndex || 0) % starredLeads.length + starredLeads.length) % starredLeads.length;
 
-    // Skip if this lead's specific agent is mid-cycle — other agents' leads still proceed
-    if (lead.agentId && isAgentCycleRunning(userId, lead.agentId)) {
-      console.log(`[LEAD TIMELINE] Skipping ${lead.name} @ ${lead.company} — agent ${lead.agentId} is cycling`);
-      // Advance cursor so next tick tries the next lead (possibly from a different agent)
-      const freshSettings = await awsManager.getUserSettings(userId);
-      await awsManager.saveUserSettings(userId, {
-        ...freshSettings,
-        leadTimelineCursor: {
-          currentIndex: (idx + 1) % starredLeads.length,
-          lastProcessedAt: freshSettings?.leadTimelineCursor?.lastProcessedAt,
-          lastProcessedLeadId: freshSettings?.leadTimelineCursor?.lastProcessedLeadId,
-        },
-      });
-      return;
+    // Walk the list from the cursor and pick the first eligible lead
+    let pick = null;
+    let pickIdx = -1;
+    let pickCycle = 0;
+    for (let i = 0; i < starredLeads.length; i++) {
+      const idx = (start + i) % starredLeads.length;
+      const lead = starredLeads[idx];
+      if (!lead.agentId) continue; // no agent to tie research to
+
+      const state = getAgentCycleState(userId, lead.agentId);
+      if (!state.isOn) continue;       // agent turned off — no research for its leads
+      if (state.isMidCycle) continue;  // cycle executing right now — wait for the gap
+      if (researched[lead.leadId] === state.cycleCount) continue; // already done this cycle
+
+      pick = lead;
+      pickIdx = idx;
+      pickCycle = state.cycleCount;
+      break;
     }
 
-    await researchLead(userId, lead, settings);
+    if (!pick) return false; // nothing eligible — no research, no settings write
 
-    // Advance cursor regardless of result so we don't re-hammer a stuck lead
+    await researchLead(userId, pick, settings);
+
+    // Check the lead off for this cycle and advance the cursor. Prune checkoffs for
+    // unstarred leads so the map can't grow unbounded.
     const freshSettings = await awsManager.getUserSettings(userId);
+    const freshStarred = freshSettings?.starredLeads || [];
+    const starredIds = new Set(freshStarred.map(l => l.leadId));
+    const prevChecked = freshSettings?.leadTimelineCursor?.researchedInCycle || {};
+    const nextChecked = {};
+    for (const [id, cyc] of Object.entries(prevChecked)) {
+      if (starredIds.has(id)) nextChecked[id] = cyc;
+    }
+    nextChecked[pick.leadId] = pickCycle;
+
     await awsManager.saveUserSettings(userId, {
       ...freshSettings,
       leadTimelineCursor: {
-        currentIndex: (idx + 1) % starredLeads.length,
+        currentIndex: (pickIdx + 1) % Math.max(1, freshStarred.length),
+        researchedInCycle: nextChecked,
         lastProcessedAt: new Date().toISOString(),
-        lastProcessedLeadId: lead.leadId,
+        lastProcessedLeadId: pick.leadId,
       },
     });
+    return true;
   } catch (err) {
     console.error(`[LEAD TIMELINE] Error for user ${userId}:`, err.message);
+    return false;
   }
 }
 
@@ -205,18 +246,17 @@ export function startLeadTimelineProcessor() {
       const users = Array.from(activeTimelineUsers);
 
       if (users.length === 0) {
-        await sleep(15000); // idle — no starred leads anywhere, check again in 15s
+        await sleep(15000); // idle — no starred leads anywhere
         continue;
       }
 
-      // Each user is independent — process them in parallel
-      // Each user runs in parallel — per-agent cycle checks happen inside processLeadTimeline
-      await Promise.allSettled(
-        users.map(async userId => {
-          await processLeadTimeline(userId);
-          await sleep(6000);
-        })
-      );
+      // Users run in parallel; within a user everything is sequential
+      const results = await Promise.allSettled(users.map(userId => processLeadTimeline(userId)));
+      const didWork = results.some(r => r.status === 'fulfilled' && r.value === true);
+
+      // Back off when nothing was eligible (agents off, mid-cycle, or all checked off);
+      // keep a short gap between rounds while there is real work
+      await sleep(didWork ? 6000 : 30000);
     }
   }
 
@@ -226,5 +266,5 @@ export function startLeadTimelineProcessor() {
     setTimeout(startLeadTimelineProcessor, 30000);
   });
 
-  console.log('✅ [LEAD TIMELINE] Processor started (continuous, cycle-aware)');
+  console.log('✅ [LEAD TIMELINE] Processor started (runs between cycles, once per lead per cycle)');
 }

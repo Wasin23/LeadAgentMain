@@ -75,6 +75,7 @@ interface AgentSettings {
   geographicSettings: { targetLocations: string[]; excludedLocations: string[]; leadLimit: number; timezone: string; };
   concurrencyLevel: number;
   researchFocus: { focusAreas: string[]; researchDepth: string; includeCompanyNews: boolean; includePersonalInfo: boolean; includeSocialMedia: boolean; };
+  timelineResearchCriteria?: string;
   emailBuilder: {
     emailTemplate: string; customPrompt: string; emailResponsePrompt: string;
     tone: string; length: string; maxWords: number | null; callToAction: string; personalization: string;
@@ -111,6 +112,7 @@ const defaultSettings: AgentSettings = {
   geographicSettings: { targetLocations: ['United States'], excludedLocations: [], leadLimit: 50, timezone: 'America/New_York' },
   concurrencyLevel: 1,
   researchFocus: { focusAreas: [], researchDepth: 'standard', includeCompanyNews: true, includePersonalInfo: false, includeSocialMedia: false },
+  timelineResearchCriteria: '',
   emailBuilder: { emailTemplate: 'professional', customPrompt: '', emailResponsePrompt: '', tone: 'professional', length: 'medium', maxWords: null, callToAction: 'meeting', personalization: 'high', ccEmails: '', bccEmails: '', enableAutoResponse: false, rebumpIntervalDays: 3, useCustomSignature: false, signatureName: '', signatureTitle: '', useGmail: false, useOutlook: false, useLinkedIn: false, templates: [], useTemplates: false, smartRebump: false, rebumpLinkedinScrape: true, includeChatLink: false, chatLinkInstructions: '' }
 };
 
@@ -580,6 +582,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
             includePersonalInfo: u.includePersonalInfo ?? u.researchFocus?.includePersonalInfo ?? false,
             includeSocialMedia: u.includeSocialMedia ?? u.researchFocus?.includeSocialMedia ?? false,
           },
+          timelineResearchCriteria: (typeof s.timelineResearchCriteria === 'string' ? s.timelineResearchCriteria : '') || (typeof u.timelineResearchCriteria === 'string' ? u.timelineResearchCriteria : '') || '',
           emailBuilder: {
             emailTemplate: e.emailTemplate || e.emailBuilder?.emailTemplate || 'professional',
             customPrompt: e.customPrompt || e.emailBuilder?.customPrompt || '',
@@ -1054,6 +1057,40 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                   Reset to auto-generated
                 </button>
               )}
+            </div>
+          </Section>
+
+          {/* Starred Lead Timeline Research */}
+          <Section
+            title="Starred Lead Research"
+            description="How this agent scores news found for starred leads between cycles"
+            badge={settings.timelineResearchCriteria?.trim() ? 'custom criteria' : undefined}
+          >
+            <div className="space-y-3 mt-4">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                When you star one of this agent&apos;s leads, Meridian crawls the web for news about them between cycles
+                and scores each finding 0-10 before adding it to the lead&apos;s timeline. By default, funding rounds,
+                hiring surges, expansions, and pain points score 8-10; leadership changes and product launches score 6-7;
+                anything below 6 is discarded. Write your own criteria below to replace that default for this agent.
+              </p>
+              <div className="flex items-center justify-between">
+                <Label>Relevance scoring criteria</Label>
+                {settings.timelineResearchCriteria?.trim() && (
+                  <button
+                    onClick={() => setSettings(p => ({ ...p, timelineResearchCriteria: '' }))}
+                    className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+                  >
+                    Reset to default
+                  </button>
+                )}
+              </div>
+              <textarea
+                className="w-full min-h-[90px] px-3 py-2 text-sm rounded-md border border-input bg-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                placeholder={`e.g. "I care most about companies that just raised a Series A or B, are hiring engineers, or announced a new product. Leadership changes at VP+ are also useful."`}
+                value={settings.timelineResearchCriteria || ''}
+                onChange={e => setSettings(p => ({ ...p, timelineResearchCriteria: e.target.value.slice(0, 800) }))}
+              />
+              <p className="text-xs text-muted-foreground">{(settings.timelineResearchCriteria || '').length}/800</p>
             </div>
           </Section>
 

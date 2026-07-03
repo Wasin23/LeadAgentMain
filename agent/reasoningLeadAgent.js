@@ -7812,6 +7812,14 @@ Target Positions:`;
         };
       }
 
+      // If a cycle from a previous run is still winding down after stop(), wait for it —
+      // otherwise its runLoop tail and this new one both schedule cycles (duplicate-cycle bug)
+      if (this._cyclePromise) {
+        console.log('⏳ [REASONING AGENT] Waiting for previous cycle to wind down before starting...');
+        await this._cyclePromise.catch(() => {});
+      }
+      this.runGeneration = (this.runGeneration || 0) + 1;
+
       // Set custom interval if provided
       if (minutes) {
         this.customInterval = minutes * 60 * 1000; // Convert to milliseconds
@@ -8026,10 +8034,12 @@ Target Positions:`;
    */
   async stop() {
     try {
-      
+
       // Force stop the agent
       this.isRunning = false;
-      
+      // Invalidate any in-flight run loop so it can't reschedule after this stop
+      this.runGeneration = (this.runGeneration || 0) + 1;
+
       // Clear any running timers
       if (this.cycleTimer) {
         clearTimeout(this.cycleTimer);
@@ -8667,10 +8677,14 @@ Target Positions:`;
   // Main reasoning loop
   async runLoop() {
     if (!this.isRunning) return;
+    // Capture generation so a stop→start while this cycle is in flight kills this loop
+    // instead of leaving two loops running (the duplicate-cycle bug).
+    const gen = this.runGeneration || 0;
 
     let cycleResult;
     try {
-      cycleResult = await this.executeReasoningCycle();
+      this._cyclePromise = this.executeReasoningCycle();
+      cycleResult = await this._cyclePromise;
     } catch (error) {
       console.error('❌ [REASONING AGENT] Cycle error:', error);
       this.emit('progress', {
@@ -8679,6 +8693,14 @@ Target Positions:`;
         timestamp: new Date().toISOString(),
         level: 'error'
       });
+    } finally {
+      this._cyclePromise = null;
+    }
+
+    // A stop (or stop→start) happened while this cycle was executing — this loop is stale
+    if (gen !== (this.runGeneration || 0)) {
+      console.log('🛑 [REASONING AGENT] Stale run loop detected after stop/start — exiting without rescheduling');
+      return;
     }
 
     // Schedule next cycle AFTER current cycle completes (so countdown shows immediately)
@@ -9203,6 +9225,19 @@ export function isAnyCycleRunning(userId) {
 export function isAgentCycleRunning(userId, agentId) {
   const agent = userAgents.get(`${userId}_${agentId}`);
   return agent?.isRunning ?? false;
+}
+
+/**
+ * Full cycle state for the timeline processor:
+ * - isOn: agent has been started (isRunning stays true while waiting between cycles)
+ * - isMidCycle: a cycle is executing right now (nextRunTime is only in the future while waiting)
+ * - cycleCount: increments at the start of each cycle; used to check off per-cycle work
+ */
+export function getAgentCycleState(userId, agentId) {
+  const agent = userAgents.get(`${userId}_${agentId}`);
+  if (!agent || !agent.isRunning) return { isOn: false, isMidCycle: false, cycleCount: 0 };
+  const waiting = agent.nextRunTime && new Date(agent.nextRunTime).getTime() > Date.now();
+  return { isOn: true, isMidCycle: !waiting, cycleCount: agent.cycleCount || 0 };
 }
 
 /**
