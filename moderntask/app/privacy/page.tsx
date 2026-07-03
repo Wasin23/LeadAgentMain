@@ -16,7 +16,7 @@ export default function PrivacyPolicyPage() {
             </Link>
           </Button>
           <h1 className="text-4xl font-bold text-foreground mb-2">Privacy Policy</h1>
-          <p className="text-muted-foreground">Last updated: November 19, 2025</p>
+          <p className="text-muted-foreground">Last updated: July 3, 2026</p>
         </div>
 
         {/* Content card */}
@@ -47,6 +47,10 @@ export default function PrivacyPolicyPage() {
               <div>
                 <h3 className="font-semibold text-foreground mb-1.5">Email Communications</h3>
                 <p>We track email opens, clicks, and replies to provide analytics and improve your outreach campaigns.</p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground mb-1.5">Campaign Outcome Records</h3>
+                <p>For each email sent through the platform, we retain a record of the message as sent, the context at send time (recipient attributes sourced from data providers, send timing, sending account state), and the outcomes attributed to it (delivery, engagement events, and reply content with its classification). Raw reply text is stored to support re-classification and accuracy audits.</p>
               </div>
               <div>
                 <h3 className="font-semibold text-foreground mb-1.5">Usage Data</h3>
@@ -103,6 +107,32 @@ export default function PrivacyPolicyPage() {
             <p className="text-muted-foreground">
               We retain your data for as long as your account is active or as needed to provide services. You can request deletion of your account and associated data at any time through your account settings. Some data may be retained for legal or legitimate business purposes even after deletion.
             </p>
+          </section>
+
+          <section>
+            <h2 className="text-xl font-semibold text-foreground mb-3">6a. GDPR: Recipient Personal Data</h2>
+            <div className="space-y-4 text-muted-foreground">
+              <div>
+                <h3 className="font-semibold text-foreground mb-1.5">Lawful Basis</h3>
+                <p>Where outreach recipients are located in the EU/EEA/UK, Meridian processes recipient personal data (business contact details, professional attributes, and campaign outcome history) on the basis of legitimate interest in business-to-business communication, acting as a processor on behalf of our customers, who are the data controllers for their outreach.</p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground mb-1.5">Retention</h3>
+                <p>Campaign outcome records are retained for the life of the customer account plus a wind-down period of up to 90 days after account deletion, except where a longer retention period is required by law. De-identified statistical aggregates, which contain no personal data, may be retained indefinitely.</p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground mb-1.5">Erasure</h3>
+                <p>Recipients may request erasure of their personal data at any time via the unsubscribe link in any email or by contacting us directly. Erasure requests are honored across all data stores, including our append-only event log, using a tombstone process: the recipient's identifying data is masked from all downstream systems immediately, and physically removed from storage during the next scheduled log compaction.</p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground mb-1.5">No Psychological Profiling</h3>
+                <p>Meridian does not build or infer personality, psychological, or behavioral profiles of individual recipients. Our analytics operate on message characteristics and professional context (industry, role, company attributes), never on inferred traits of the person.</p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground mb-1.5">Cross-Customer Learning</h3>
+                <p>Statistical patterns derived from campaign outcomes are pooled across customers in de-identified, feature-level form to improve the platform for all customers. Recipient identities, email content, and customer campaign strategies never cross customer boundaries. See our Terms of Service, Section 9, for the full policy.</p>
+              </div>
+            </div>
           </section>
 
           <section>

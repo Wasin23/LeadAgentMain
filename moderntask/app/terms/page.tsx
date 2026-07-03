@@ -16,7 +16,7 @@ export default function TermsOfServicePage() {
             </Link>
           </Button>
           <h1 className="text-4xl font-bold text-foreground mb-2">Terms of Service</h1>
-          <p className="text-muted-foreground">Last updated: November 19, 2025</p>
+          <p className="text-muted-foreground">Last updated: July 3, 2026</p>
         </div>
 
         {/* Content card */}
@@ -151,10 +151,29 @@ export default function TermsOfServicePage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-foreground mb-3">9. Data Ownership</h2>
-            <p className="text-muted-foreground">
-              You retain ownership of your company data, lead lists, and email content. By using the Service, you grant us a limited license to process your data to provide the Service. We do not sell or share your data with third parties except as necessary to operate the platform (see Privacy Policy).
-            </p>
+            <h2 className="text-xl font-semibold text-foreground mb-3">9. Data Ownership and Platform Learning</h2>
+            <div className="space-y-4 text-muted-foreground">
+              <div>
+                <h3 className="font-semibold text-foreground mb-1.5">9.1 Your Data</h3>
+                <p>You retain ownership of your company data, lead lists, and email content. By using the Service, you grant us a limited license to process your data to provide the Service. We do not sell your data to third parties.</p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground mb-1.5">9.2 Campaign Outcome Data</h3>
+                <p>The Service records the outcome of each email sent through the platform: delivery status, engagement events, replies received, and the context in which the email was sent (such as recipient attributes, send timing, and message characteristics). This outcome data is retained as a permanent record and used to provide you with analytics, campaign insights, and performance reporting.</p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground mb-1.5">9.3 Platform Improvement and Model Training</h3>
+                <p>You agree that Meridian may use campaign and outcome data, in aggregated and de-identified form, to improve the platform and to train and improve the models that power the Service. Specifically: de-identified, feature-level campaign outcome data (for example, statistical patterns such as which message characteristics correlate with replies for a given audience segment) is pooled across customers and used to improve the models serving all customers.</p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground mb-1.5">9.4 What Never Crosses Customer Boundaries</h3>
+                <p>The following are never shared between customer accounts, never included in pooled model training, and never visible to any other customer: your verbatim email copy, your prospect and lead identities, your research data, and your campaign strategy or configuration. Cross-customer learning operates exclusively on derived, de-identified statistical features. What another customer receives from pooled learning is the equivalent of an aggregate industry benchmark, never your content or contacts.</p>
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground mb-1.5">9.5 Opt-Out</h3>
+                <p>Enterprise customers may opt out of contributing data to pooled learning by written request. Opted-out accounts run on platform-wide model defaults as they existed at the time of opt-out, plus learning from the customer's own data only. Opting out may reduce the quality of model-driven recommendations for your account.</p>
+              </div>
+            </div>
           </section>
 
           <section>
