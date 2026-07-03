@@ -597,6 +597,18 @@ router.post('/:id/approve', async (req, res) => {
       emailType: approvedEmail.metadata?.customEmail ? 'custom' : 'regular'
     });
     
+    // Final unsubscribe gate: the recipient may have unsubscribed while this email
+    // sat in the queue. Never send to an unsubscribed address.
+    const recipientUnsubscribed = await awsManager.isUnsubscribed(finalRecipient).catch(() => false);
+    if (recipientUnsubscribed) {
+      console.log(`🚫 [EMAIL QUEUE] Blocking send — ${finalRecipient} has unsubscribed`);
+      return res.status(409).json({
+        success: false,
+        error: `${finalRecipient} has unsubscribed and cannot be emailed.`,
+        unsubscribed: true,
+      });
+    }
+
     console.log('🎯 [EMAIL QUEUE] About to send email via leadEmail() with tracking enabled');
     console.log('🔑 [EMAIL QUEUE] userId:', userId);
     console.log('🔑 [EMAIL QUEUE] effectiveAgentId:', effectiveAgentId);
@@ -1044,13 +1056,14 @@ router.delete('/sent/clear', async (req, res) => {
     });
   } catch (error) {
     console.error('[EMAIL QUEUE API] Error clearing sent emails:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       error: 'Failed to clear sent emails',
-      details: error.message 
+      details: error.message
     });
   }
 });
+
 
 // Bulk edit/replace text in queued emails
 router.post('/bulk-edit', async (req, res) => {

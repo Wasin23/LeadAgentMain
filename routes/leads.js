@@ -51,15 +51,50 @@ router.delete('/star/:leadId', async (req, res) => {
   }
 });
 
-// Get all starred leads (includes the plan's starred-lead limit for the UI)
+// Get all starred leads (includes the plan's starred-lead limit and hidden ids for the UI)
 router.get('/starred', async (req, res) => {
   try {
-    const [user, starred] = await Promise.all([
+    const [user, starred, hidden] = await Promise.all([
       awsManager.getUserById(req.user.userId),
       awsManager.getStarredLeads(req.user.userId),
+      awsManager.getHiddenLeadIds(req.user.userId),
     ]);
     const planConfig = awsManager.getPlanConfig(user?.plan || 'free-trial');
-    res.json({ success: true, starred, limit: planConfig.maxStarredLeads ?? 3 });
+    res.json({ success: true, starred, hidden, limit: planConfig.maxStarredLeads ?? 3 });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Hide a lead from the Leads page (display-only; email records are untouched)
+router.post('/hide', async (req, res) => {
+  try {
+    const { leadId } = req.body;
+    if (!leadId) return res.status(400).json({ success: false, error: 'leadId required' });
+    await awsManager.hideLead(req.user.userId, leadId);
+    // A hidden lead shouldn't keep burning research; unstar it too
+    await awsManager.unstarLead(req.user.userId, leadId);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Batch-check which of the given emails have unsubscribed (for lead list badges)
+router.post('/check-unsubscribed', async (req, res) => {
+  try {
+    const emails = [...new Set((req.body?.emails || [])
+      .filter((e) => typeof e === 'string' && e.includes('@'))
+      .map((e) => e.toLowerCase().trim()))].slice(0, 500);
+
+    const unsubscribed = [];
+    // Chunked so a big list doesn't fire 500 parallel DynamoDB queries at once
+    for (let i = 0; i < emails.length; i += 25) {
+      const chunk = emails.slice(i, i + 25);
+      const results = await Promise.all(chunk.map(e => awsManager.isUnsubscribed(e).catch(() => false)));
+      results.forEach((isUnsub, j) => { if (isUnsub) unsubscribed.push(chunk[j]); });
+    }
+    res.json({ success: true, unsubscribed });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

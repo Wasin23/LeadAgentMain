@@ -262,6 +262,30 @@ class AWSManager {
   }
 
   /**
+   * Hide a lead from the Leads page. Display-only: the underlying queued/sent email
+   * records are untouched. Rolling list capped at 1000 ids.
+   */
+  async hideLead(userId, leadId) {
+    try {
+      const settings = await this.getUserSettings(userId) || {};
+      const hidden = (settings.hiddenLeadIds || []).filter(id => id !== leadId);
+      hidden.unshift(leadId);
+      await this.saveUserSettings(userId, { ...settings, hiddenLeadIds: hidden.slice(0, 1000) });
+    } catch (err) {
+      console.error('[HIDDEN LEADS] Error hiding lead:', err.message);
+    }
+  }
+
+  async getHiddenLeadIds(userId) {
+    try {
+      const settings = await this.getUserSettings(userId);
+      return settings?.hiddenLeadIds || [];
+    } catch {
+      return [];
+    }
+  }
+
+  /**
    * Store a timeline entry for a starred lead.
    * Uses the emailTracking table with PK USER#{userId}#TIMELINE#{leadId}
    */

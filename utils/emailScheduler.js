@@ -304,6 +304,18 @@ class EmailScheduler {
         return;
       }
 
+      // Final unsubscribe gate: the recipient may have unsubscribed after this send
+      // was scheduled. Pull it out of the send flow instead of emailing them.
+      const recipientUnsubscribed = await this.awsManager.isUnsubscribed(finalRecipient).catch(() => false);
+      if (recipientUnsubscribed) {
+        console.log(`🚫 [EMAIL SCHEDULER] Skipping ${emailId} — ${finalRecipient} has unsubscribed`);
+        await this.awsEmailQueue.updateEmailStatus(userId, agentId, emailId, 'QUEUED', 'QUEUED', {
+          scheduledAt: null,
+          unsubscribed: true,
+        }).catch(() => {});
+        return;
+      }
+
       const personInfo = approvedEmail.leadDetails?.personInfo || null;
 
       // Fetch CC / BCC / senderName / companyBranding from agent settings

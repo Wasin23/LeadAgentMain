@@ -7,7 +7,7 @@ import {
   CheckCircle2, Search, Building2, ExternalLink, X,
   ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight,
   Linkedin, Newspaper, Globe, FileText, Mail, Info, AlertTriangle, ArrowUpDown, Check,
-  Star, Clock, Loader2, Copy,
+  Star, Clock, Loader2, Copy, Trash2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
@@ -38,6 +38,7 @@ interface LeadRecord {
   body?: string
   aiReport?: AIReport
   starred?: boolean
+  createdAt: number
 }
 
 interface TimelineEntry {
@@ -75,6 +76,7 @@ function extractLead(e: Record<string, unknown>, status: 'queued' | 'sent', agen
     subject: (emailData.finalSubject as string) || (e.subject as string),
     body: stripFooter((emailData.finalBody as string) || (e.body as string) || ''),
     aiReport,
+    createdAt: new Date((e.sentAt as string) || (e.createdAt as string) || (e.timestamp as string) || 0).getTime(),
   }
 }
 
@@ -147,9 +149,12 @@ export function CopyChip({ text, title = 'Copy' }: { text: string; title?: strin
   )
 }
 
-type SortKey = 'score-desc' | 'score-asc' | 'confidence-desc' | 'confidence-asc' | 'status' | 'assigned' | 'alpha'
+type SortKey = 'score-desc' | 'score-asc' | 'confidence-desc' | 'confidence-asc' | 'status' | 'assigned' | 'alpha' | 'newest' | 'oldest' | 'starred'
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: 'newest', label: 'Newest first' },
+  { key: 'oldest', label: 'Oldest first' },
+  { key: 'starred', label: 'Starred first' },
   { key: 'score-desc', label: 'Fit Score (High → Low)' },
   { key: 'score-asc', label: 'Fit Score (Low → High)' },
   { key: 'confidence-desc', label: 'Confidence (High → Low)' },
@@ -177,6 +182,7 @@ export function LeadsContent() {
   const [sortOpen, setSortOpen] = useState(false)
   const [showBanner, setShowBanner] = useState(true)
   const [starLimit, setStarLimit] = useState<number | null>(null)
+  const [unsubscribedEmails, setUnsubscribedEmails] = useState<Set<string>>(new Set())
   const { toast } = useToast()
   const pageSize = 10
 
@@ -197,17 +203,27 @@ export function LeadsContent() {
       if (agentsRes.status === 'fulfilled') {
         for (const a of (agentsRes.value.data?.agents ?? [])) agentNameById.set(a.agentId, a.name)
       }
+      let hiddenIds = new Set<string>()
       if (starredRes.status === 'fulfilled') {
         setStarredIds(new Set((starredRes.value.data?.starred ?? []).map((s: { leadId: string }) => s.leadId)))
         if (typeof starredRes.value.data?.limit === 'number') setStarLimit(starredRes.value.data.limit)
+        hiddenIds = new Set((starredRes.value.data?.hidden ?? []) as string[])
       }
       const queue = queueRes.status === 'fulfilled' ? (queueRes.value.data?.emails ?? queueRes.value.data?.queue ?? queueRes.value.data ?? []) : []
       const sent = sentRes.status === 'fulfilled' ? (sentRes.value.data?.emails ?? sentRes.value.data ?? []) : []
       const merged = [
         ...(Array.isArray(queue) ? queue : []).map((e: Record<string, unknown>) => extractLead(e, 'queued', agentNameById)),
         ...(Array.isArray(sent) ? sent : []).map((e: Record<string, unknown>) => extractLead(e, 'sent', agentNameById)),
-      ].filter(l => l.aiReport)
+      ].filter(l => l.aiReport && !hiddenIds.has(l.id))
       setLeads(merged)
+
+      // Flag leads whose email has unsubscribed (badge + banner)
+      const emails = [...new Set(merged.map(l => l.email).filter(Boolean))]
+      if (emails.length > 0) {
+        api.post('/api/leads/check-unsubscribed', { emails })
+          .then(r => setUnsubscribedEmails(new Set((r.data?.unsubscribed ?? []).map((e: string) => e.toLowerCase()))))
+          .catch(() => {})
+      }
     } finally {
       setLoading(false)
     }
@@ -240,6 +256,26 @@ export function LeadsContent() {
       }
     }
     setStarringId(null)
+  }
+
+  const [deleting, setDeleting] = useState(false)
+
+  // Removes the lead from this page only. Queued/sent email records and outreach
+  // history are untouched — this just hides it here (and unstars it).
+  const deleteLead = async (lead: LeadRecord) => {
+    if (!window.confirm(`Remove ${lead.contactName || lead.company || 'this lead'} from the Leads page? Emails and outreach history are not affected.`)) return
+    setDeleting(true)
+    try {
+      await api.post('/api/leads/hide', { leadId: lead.id })
+      setStarredIds(prev => { const s = new Set(prev); s.delete(lead.id); return s })
+      setLeads(prev => prev.filter(l => l.id !== lead.id))
+      if (selectedId === lead.id) setSelectedId(null)
+      toast({ title: 'Lead removed from list', duration: 2000 })
+    } catch (err: any) {
+      toast({ title: 'Failed to remove lead', description: err?.response?.data?.error, variant: 'destructive', duration: 3000 })
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const loadTimeline = useCallback(async (leadId: string) => {
@@ -276,9 +312,21 @@ export function LeadsContent() {
         arr.sort((a, b) => (a.agentName ?? '').localeCompare(b.agentName ?? '')); break
       case 'alpha':
         arr.sort((a, b) => (a.company ?? '').localeCompare(b.company ?? '')); break
+      case 'newest':
+        arr.sort((a, b) => b.createdAt - a.createdAt); break
+      case 'oldest':
+        arr.sort((a, b) => a.createdAt - b.createdAt); break
+      case 'starred':
+        // Starred leads first (newest starred at top), then everything else by recency
+        arr.sort((a, b) => {
+          const sa = starredIds.has(a.id) ? 1 : 0
+          const sb = starredIds.has(b.id) ? 1 : 0
+          if (sa !== sb) return sb - sa
+          return b.createdAt - a.createdAt
+        }); break
     }
     return arr
-  }, [filtered, sortKey])
+  }, [filtered, sortKey, starredIds])
 
   const counts = useMemo(() => {
     let qualified = 0, research = 0, rejected = 0
@@ -414,7 +462,12 @@ export function LeadsContent() {
                         </button>
                       </td>
                       <td className="py-2.5 px-3">
-                        <p className="font-medium truncate max-w-[180px]">{l.company || '-'}</p>
+                        <div className="flex items-center gap-1.5 max-w-[200px]">
+                          <p className="font-medium truncate">{l.company || '-'}</p>
+                          {l.email && unsubscribedEmails.has(l.email.toLowerCase()) && (
+                            <span className="shrink-0 rounded px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide bg-destructive/10 text-destructive">Unsubscribed</span>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground truncate max-w-[180px]">{l.contactName}</p>
                         {l.email && (
                           <span className="flex items-center gap-1 max-w-[180px]">
@@ -474,8 +527,30 @@ export function LeadsContent() {
                   <p className="text-xs text-muted-foreground truncate">{selected.contactName}</p>
                 </div>
               </div>
-              <button onClick={() => setSelectedId(null)}><X className="w-4 h-4 text-muted-foreground" /></button>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={() => deleteLead(selected)}
+                  disabled={deleting}
+                  title="Delete lead"
+                  className="rounded-md p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                >
+                  {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                </button>
+                <button onClick={() => setSelectedId(null)} className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
+
+            {selected.email && unsubscribedEmails.has(selected.email.toLowerCase()) && (
+              <div className="mb-3 flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2">
+                <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-destructive" />
+                <div className="text-xs text-destructive">
+                  <p className="font-semibold">This contact has unsubscribed.</p>
+                  <p className="text-destructive/80">No new emails or follow-ups will be sent to {selected.email}. Any queued or scheduled sends are blocked automatically.</p>
+                </div>
+              </div>
+            )}
 
             <div className="flex items-center gap-4 border-b border-border mb-3 whitespace-nowrap">
               {(['research', 'sources', 'draft', 'timeline'] as const).map(t => (
