@@ -203,7 +203,7 @@ async function searchApollo(query, limit = 10) {
       return [];
     }
     
-    console.log(`[APOLLO] Using API key from environment variable (${apolloApiKey.substring(0, 10)}...)`);
+    console.log(`[APOLLO] Using API key from environment variable`);
     const apolloKeySource = 'environment variable';
     
     console.log(`[APOLLO] API Key source: ${apolloKeySource}`);
@@ -485,7 +485,7 @@ export async function deepResearch(query, options = {}) {
   if (!openAIApiKey) {
     console.warn('[DEEP RESEARCH] No OpenAI API key available in environment variables - text processing will be disabled');
   } else {
-    console.log(`[DEEP RESEARCH] Using OpenAI API key from environment variable (${openAIApiKey.substring(0, 10)}...)`);
+    console.log(`[DEEP RESEARCH] Using OpenAI API key from environment variable`);
     console.log(`[DEEP RESEARCH] OpenAI API Key source: environment variable`);
   }
   

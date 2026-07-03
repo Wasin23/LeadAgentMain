@@ -340,6 +340,10 @@ try {
 
 const app = express();
 
+// Behind Render's reverse proxy: trust the first proxy hop so req.ip reflects the
+// real client (rate limiting and owner-IP tracking both depend on this).
+app.set('trust proxy', 1);
+
 // Security Configuration
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -513,7 +517,9 @@ app.get('/health', (req, res) => {
   res.json(healthCheck);
 });
 
-app.get('/api/metrics', (req, res) => {
+// Process internals (memory, CPU, versions) are operator data — auth required.
+// This route registers before the global JWT gate, so it carries its own guard.
+app.get('/api/metrics', authenticateToken, (req, res) => {
   const metrics = {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
@@ -523,7 +529,7 @@ app.get('/api/metrics', (req, res) => {
     nodeVersion: process.version,
     platform: process.platform
   };
-  
+
   res.json(metrics);
 });
 
@@ -540,28 +546,29 @@ app.use('/api/auth/outlook', outlookAuthRoutes);
 // LinkedIn OAuth routes (callback must be public — Unipile redirects without JWT)
 app.use('/api/auth/linkedin', linkedinAuthRoutes);
 
-// Public endpoints that don't require authentication (for emails)
+// Public endpoints that don't require authentication.
+// Every entry needs a reason a stranger on the internet must be able to reach it.
+// NOTE: /api/email-queue/counts, /api/metrics, /api/session, and /api/auth/test were
+// removed from this list (2026-07) — counts was double-protected by router-level auth
+// anyway, metrics exposed process internals publicly, session had no handler, and the
+// auth test endpoint served no production purpose.
 const publicEmailEndpoints = [
-  '/r/',           // Tracking pixels
-  '/c/',           // Click tracking  
-  '/api/unsubscribe', // Unsubscribe links
-  '/api/email-queue/counts', // Queue counts (may be accessed by email clients)
+  '/r/',           // Tracking pixels (opened by recipients' email clients)
+  '/c/',           // Click tracking (clicked by recipients)
+  '/api/unsubscribe', // Unsubscribe links in sent emails (legally required to work without login)
   '/api/gmail-pubsub', // Google Gmail Pub/Sub push notifications
   '/api/auth/outlook/webhook', // Microsoft Graph change notifications
   '/webhooks',     // Mailgun/email webhooks
   '/api/webhooks', // Email response webhooks
-  '/api/tracking', // Desktop tracking
-  '/health',       // Health checks
+  '/api/tracking', // Tracking events from recipients
+  '/health',       // Health checks (Render)
   '/ready',        // Readiness checks
-  '/api/metrics',  // Public metrics
-  '/api/session',  // Session info
   '/api/auth/login', // Login endpoint
   '/api/auth/register', // Registration endpoint
   '/api/auth/waitlist', // Contact form — no auth required
   '/api/auth/forgot-password', // Password reset request
   '/api/auth/verify-reset-token', // Password reset token check
   '/api/auth/reset-password', // Password reset
-  '/api/auth/test', // Auth test endpoint
   '/api/auth/google/authorize', // Google OAuth authorize
   '/api/auth/google/callback', // Google OAuth callback
   '/api/calendar/oauth-callback', // Google OAuth callback

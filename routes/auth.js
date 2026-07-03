@@ -12,15 +12,27 @@ import {
   generatePasswordResetToken,
   resetPassword,
   getUserByEmail,
-  verifyPasswordResetToken
+  verifyPasswordResetToken,
+  changeUserPassword
 } from '../lib/userManager.js';
 import { sendPasswordResetEmail } from '../tools/emailMailgun.js';
 import { generateToken, authenticateToken } from '../middleware/jwt.js';
 import { cancelScheduledFollowUps } from '../utils/rebumpChecker.js';
 import { google } from 'googleapis';
 import crypto from 'crypto';
+import rateLimit from 'express-rate-limit';
 
 const router = express.Router();
+
+// Brute-force / credential-stuffing guard on credential endpoints.
+// 20 attempts per IP per 15 minutes is generous for humans, hostile to scripts.
+const credentialLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many attempts. Try again in a few minutes.' },
+});
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 const GOOGLE_REDIRECT_URI = process.env.GOOGLE_SIGNIN_REDIRECT_URI || 'https://meridian-kdew.onrender.com/api/auth/google/callback';
@@ -181,7 +193,7 @@ router.get('/google/callback', async (req, res) => {
 });
 
 // User registration
-router.post('/register', async (req, res) => {
+router.post('/register', credentialLimiter, async (req, res) => {
   console.log('[AUTH] Registration request received');
   console.log('[AUTH] Request body:', { username: req.body.username, email: req.body.email, hasPassword: !!req.body.password });
   
@@ -230,7 +242,7 @@ router.post('/register', async (req, res) => {
 });
 
 // User login
-router.post('/login', async (req, res) => {
+router.post('/login', credentialLimiter, async (req, res) => {
   console.log('[AUTH] Login request received');
   console.log('[AUTH] Request body:', { username: req.body.username, hasPassword: !!req.body.password });
   
@@ -787,7 +799,7 @@ router.post('/settings/lead-contact-settings/companyBranding', authenticateToken
 });
 
 // Password reset - request reset token
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', credentialLimiter, async (req, res) => {
   try {
     const { email } = req.body;
     
@@ -813,7 +825,7 @@ router.post('/forgot-password', async (req, res) => {
 });
 
 // Verify reset token (for real-time validation)
-router.post('/verify-reset-token', async (req, res) => {
+router.post('/verify-reset-token', credentialLimiter, async (req, res) => {
   try {
     const { token } = req.body;
     
@@ -842,7 +854,7 @@ router.post('/verify-reset-token', async (req, res) => {
 });
 
 // Password reset - verify token and reset password
-router.post('/reset-password', async (req, res) => {
+router.post('/reset-password', credentialLimiter, async (req, res) => {
   try {
     const { token, newPassword } = req.body;
     
@@ -884,46 +896,21 @@ router.post('/change-password', authenticateToken, async (req, res) => {
       });
     }
 
-    // Get user data to verify current password
-    const users = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'lib/data/users.json'), 'utf8'));
-    const user = users.find(u => u.userId === userId);
-    
-    if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'User not found' 
-      });
-    }
+    await changeUserPassword(userId, currentPassword, newPassword);
 
-    // Verify current password using the same hash comparison as login
-    const bcrypt = await import('bcrypt');
-    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
-    
-    if (!isCurrentPasswordValid) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Current password is incorrect' 
-      });
-    }
+    console.log(`[AUTH] Password changed successfully for user: ${userId}`);
 
-    // Hash new password
-    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
-    
-    // Update password in users.json
-    user.password = hashedNewPassword;
-    fs.writeFileSync(path.join(process.cwd(), 'lib/data/users.json'), JSON.stringify(users, null, 2));
-    
-    console.log(`[AUTH] Password changed successfully for user: ${user.username}`);
-    
-    res.json({ 
-      success: true, 
-      message: 'Password changed successfully' 
+    res.json({
+      success: true,
+      message: 'Password changed successfully'
     });
   } catch (error) {
     console.error('[AUTH] Change password error:', error.message);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error during password change' 
+    const status = error.message === 'Current password is incorrect' ? 401
+      : error.message === 'User not found' ? 404 : 500;
+    res.status(status).json({
+      success: false,
+      message: status === 500 ? 'Server error during password change' : error.message
     });
   }
 });

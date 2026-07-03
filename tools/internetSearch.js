@@ -13,7 +13,7 @@ const SERPER_API_URL = 'https://google.serper.dev/search';
  * @returns {Promise<object>} - The search results from Serper.dev
  */
 export async function internetSearch(query) {
-  console.log(`[SERPER] Using environment variable API key (${SERPER_API_KEY ? SERPER_API_KEY.substring(0, 10) + '...' : 'NOT SET'}) for query: ${query}`);
+  console.log(`[SERPER] API key ${SERPER_API_KEY ? 'present' : 'NOT SET'} - query: ${query}`);
   return internetSearchWithKey(query, SERPER_API_KEY);
 }
 
@@ -30,7 +30,7 @@ export async function internetSearchWithKey(query, apiKey) {
   }
   if (!query) throw new Error('Query is required');
 
-  console.log(`[SERPER] Using provided API key (${apiKey.substring(0, 10)}...) for query: ${query}`);
+  console.log(`[SERPER] Using provided API key for query: ${query}`);
 
   try {
     console.log('[SERPER] Searching:', query);

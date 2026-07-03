@@ -1049,7 +1049,7 @@ async function searchApollo(query, limit = 5, userId = null, leadContactSettings
     throw new Error('Apollo API key not found in user settings or environment');
   }
 
-  console.log(`🔑 [Apollo] API Key check: Present (${apiKey.substring(0, 10)}...)`);
+  console.log(`🔑 [Apollo] API Key check: Present`);
   
   // EXPERIMENTAL: Extract target positions from YOUR settings structure (not nested contactCriteria)
   const rawPositions = leadContactSettings?.targetPositions || [];

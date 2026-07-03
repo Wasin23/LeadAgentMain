@@ -1036,7 +1036,7 @@ ${userPersonality}
     throw new Error('No OpenAI API key available. Please set OPENAI_API_KEY environment variable.');
   }
   
-  console.log(`[LANGCHAIN AGENT] Using OpenAI API key from environment variable (${apiKey.substring(0, 10)}...)`);
+  console.log(`[LANGCHAIN AGENT] Using OpenAI API key from environment variable`);
   const keySource = 'environment variable';
   
   console.log(`[LANGCHAIN AGENT] OpenAI API Key source: ${keySource}`);
