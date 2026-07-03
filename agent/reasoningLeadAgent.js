@@ -4686,14 +4686,11 @@ Write the email now. First sentence must be specific to this company.`;
       });
 
       const createEmail = () => this.withEmailGenerationSlot(() =>
-        this.mistral.chat.completions.create({
-          model: 'mistral-medium-latest',
-          max_tokens: 300,
-          // 0.9 produced incoherent logical leaps (inventing needs from headcount etc.);
-          // 0.6 keeps voice variety while holding the argument together
-          temperature: 0.6,
+        this.anthropic.messages.create({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 400,
+          system: claudeSystemPrompt,
           messages: [
-            { role: 'system', content: claudeSystemPrompt },
             { role: 'user', content: claudeUserPrompt }
           ]
         })
@@ -4704,7 +4701,7 @@ Write the email now. First sentence must be specific to this company.`;
         emailResponse = await createEmail();
       } catch (error) {
         if (error?.status === 429) {
-          console.warn('⚠️ [EMAIL BUILDER] Mistral rate limit hit, retrying after cooldown');
+          console.warn('⚠️ [EMAIL BUILDER] Haiku rate limit hit, retrying after cooldown');
           await this.waitForRetryAfter(error.headers, 15000);
           emailResponse = await createEmail();
         } else {
@@ -4712,14 +4709,14 @@ Write the email now. First sentence must be specific to this company.`;
         }
       }
 
-      const emailContent = emailResponse.choices[0].message.content
+      const emailContent = (emailResponse.content?.[0]?.text || '')
         .replace(/\u2014/g, ' - ')  // em dash
         .replace(/\u2013/g, ' - ')  // en dash
         .replace(/\*\*/g, '');      // bold markdown
 
       // Log API usage
-      const claudeInputTokens = emailResponse.usage?.prompt_tokens || 0;
-      const claudeOutputTokens = emailResponse.usage?.completion_tokens || 0;
+      const claudeInputTokens = emailResponse.usage?.input_tokens || 0;
+      const claudeOutputTokens = emailResponse.usage?.output_tokens || 0;
       console.log(
         `📊 [EMAIL PROMPT ACTUAL] ${contactName} @ ${companyName} | ` +
         `actualInput=${claudeInputTokens} actualOutput=${claudeOutputTokens} | ` +
@@ -4728,17 +4725,17 @@ Write the email now. First sentence must be specific to this company.`;
       await this.awsManager.logApiUsage({
         userId: this.userId,
         agentId: this.agentId,
-        service: 'mistral',
+        service: 'anthropic',
         operation: 'email_generation',
         usage: claudeInputTokens + claudeOutputTokens,
         metadata: {
-          model: 'mistral-medium-latest',
+          model: 'claude-haiku-4-5-20251001',
           prompt_tokens: claudeInputTokens,
           completion_tokens: claudeOutputTokens,
           companyName: companyName,
           leadName: contactName
         }
-      }).catch(err => console.error('Failed to log Mistral usage:', err));
+      }).catch(err => console.error('Failed to log Haiku usage:', err));
       
       // Extract body from AI response
       let body;
