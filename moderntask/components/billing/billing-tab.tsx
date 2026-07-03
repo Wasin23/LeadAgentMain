@@ -11,6 +11,7 @@ import { fetchDisplayedCreditData } from "@/lib/credit-balance"
 import { useToast } from "@/hooks/use-toast"
 import { CreditPurchaseModal } from "./credit-purchase-modal"
 import { PaymentHistorySection } from "./payment-history-section"
+import { CreditConsumptionChart } from "./credit-consumption-chart"
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "")
 
@@ -792,6 +793,11 @@ function BillingTabInner() {
               <span className="text-xs font-medium">Add a new card</span>
             </button>
           </div>
+        </section>
+
+        {/* ── Credit Consumption ── */}
+        <section>
+          <CreditConsumptionChart />
         </section>
 
         {/* ── Payment History ── */}

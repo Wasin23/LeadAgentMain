@@ -13,7 +13,7 @@ import { CSS } from "@dnd-kit/utilities"
 import { GripVertical, X, Settings2, Check } from "lucide-react"
 
 import {
-  EmailActivityCard, DeliveryHealthCard,
+  EmailActivityCard,
   type EmailTimePoint,
 } from "@/components/dashboard/home-charts"
 import { TeamCollaboration, type AgentActivityItem } from "@/components/dashboard/team-collaboration"
@@ -25,7 +25,7 @@ export type HomeSectionId =
   | "performance"
 
 const SECTION_META: Record<HomeSectionId, { label: string; span: 1 | 2 }> = {
-  "performance":        { label: "Performance & Analytics", span: 2 },
+  "performance":        { label: "Delivery", span: 2 },
 }
 
 const DEFAULT_ORDER: HomeSectionId[] = [
@@ -157,7 +157,7 @@ export function HomeSections({
 
   function renderContent(id: HomeSectionId) {
     switch (id) {
-      case "performance": return <AnalyticsContent onExportReady={setExportState} />
+      case "performance": return <AnalyticsContent onExportReady={setExportState} healthSent={sent} healthBounced={bounced} healthOpened={opened} />
     }
   }
 
@@ -178,10 +178,9 @@ export function HomeSections({
         </div>
       </div>
 
-      {/* Agent status + delivery health - below the hero row */}
-      <div className="grid grid-cols-1 gap-4 md:gap-5 @5xl:grid-cols-2">
+      {/* Agent status - below the hero row (delivery health lives inside the Delivery section now) */}
+      <div className="grid grid-cols-1 gap-4 md:gap-5">
         <TeamCollaboration agents={agentActivity} />
-        <DeliveryHealthCard sent={sent} bounced={bounced} opened={opened} />
       </div>
 
       {/* Add pills - always shown when editing and sections are hidden */}

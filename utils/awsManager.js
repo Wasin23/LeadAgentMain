@@ -67,6 +67,7 @@ class AWSManager {
         canPurchaseMore: false,
         maxAgents: 1,
         maxConcurrency: 3,
+        maxStarredLeads: 3,
         description: 'Try Meridian with 250 free credits'
       },
       // current plan names
@@ -78,6 +79,7 @@ class AWSManager {
         creditPackages: [1000, 2000, 5000],
         maxAgents: 2,
         maxConcurrency: 4,
+        maxStarredLeads: 20,
         description: 'For solo outreach'
       },
       'team': {
@@ -88,6 +90,7 @@ class AWSManager {
         creditPackages: [1000, 5000, 10000],
         maxAgents: 6,
         maxConcurrency: 8,
+        maxStarredLeads: 50,
         description: 'For small teams'
       },
       'agency': {
@@ -98,6 +101,7 @@ class AWSManager {
         creditPackages: [5000, 10000, 20000],
         maxAgents: 15,
         maxConcurrency: 12,
+        maxStarredLeads: 100,
         description: 'For agencies and growing businesses'
       },
       // legacy plan names — kept so existing users are unaffected
@@ -109,6 +113,7 @@ class AWSManager {
         creditPackages: [1000, 2000, 5000],
         maxAgents: 3,
         maxConcurrency: 5,
+        maxStarredLeads: 20,
         description: 'Get started with outreach on a budget'
       },
       'starter': {
@@ -119,6 +124,7 @@ class AWSManager {
         creditPackages: [1000, 5000, 10000],
         maxAgents: 5,
         maxConcurrency: 10,
+        maxStarredLeads: 50,
         description: 'Perfect for small teams and solo entrepreneurs'
       },
       'professional': {
@@ -129,6 +135,7 @@ class AWSManager {
         creditPackages: [5000, 10000, 20000],
         maxAgents: 10,
         maxConcurrency: 20,
+        maxStarredLeads: 100,
         description: 'Ideal for growing businesses and agencies'
       },
       'enterprise': {
@@ -139,6 +146,7 @@ class AWSManager {
         creditPackages: [10000, 25000, 50000],
         maxAgents: 30,
         maxConcurrency: 30,
+        maxStarredLeads: 100,
         description: 'Unlimited scale for large organizations'
       },
       'developer': {
@@ -149,6 +157,7 @@ class AWSManager {
         creditPackages: [],
         maxAgents: 999,
         maxConcurrency: 999,
+        maxStarredLeads: 999,
         description: 'Internal developer account — all limits lifted'
       }
     };

@@ -2,11 +2,12 @@
 
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Bell, Coins, CheckCircle2, Link2Off, Bot, Cpu, ArrowRight, Info } from "lucide-react"
+import { Coins, CheckCircle2, Link2Off, Bot, Cpu, ArrowRight, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { MobileNav } from "./mobile-nav"
+import { NotificationsDropdown } from "./notifications-dropdown"
 import { GlobalSearch, type GlobalSearchProps } from "./global-search"
 import { HomeActions } from "./home-actions"
 import { useGettingStarted } from "./use-getting-started"
@@ -109,7 +110,6 @@ export function Header({
   const { user } = useAuth()
   const router = useRouter()
   const [credits, setCredits] = useState<number>(creditsProp ?? 0)
-  const [notifCount, setNotifCount] = useState<number>(notifProp ?? 0)
   const [profileName, setProfileName]       = useState<string>("")
   const [profileEmail, setProfileEmail]     = useState<string>("")
   const [profilePicture, setProfilePicture] = useState<string>("")
@@ -127,7 +127,6 @@ export function Header({
 
   // Sync explicit props
   useEffect(() => { if (creditsProp !== undefined) setCredits(creditsProp) }, [creditsProp])
-  useEffect(() => { if (notifProp   !== undefined) setNotifCount(notifProp)  }, [notifProp])
 
   // Self-fetch fresh profile, credits, notif count when not provided by parent
   useEffect(() => {
@@ -145,12 +144,6 @@ export function Header({
         const creditData = await fetchDisplayedCreditData()
         setCredits(creditData.balance)
       })()
-    }
-
-    if (notifProp === undefined) {
-      api.get("/api/notifications/count").then(r => {
-        setNotifCount(r.data?.unreadCount ?? 0)
-      }).catch(() => {})
     }
 
     api.get("/api/crm/status").then(r => {
@@ -294,23 +287,8 @@ export function Header({
             </Popover>
           )}
 
-          {/* Notifications bell */}
-          <Button
-            variant="ghost"
-            size="icon"
-            title="Notifications"
-            onClick={() => router.push('/notifications')}
-            className="relative hover:bg-secondary transition-all duration-300 hover:scale-110 h-8 w-8"
-          >
-            <Bell className="w-4 h-4" />
-            {notifCount > 0 ? (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-0.5 bg-destructive text-destructive-foreground text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
-                {notifCount > 99 ? "99+" : notifCount}
-              </span>
-            ) : (
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-destructive rounded-full animate-pulse" />
-            )}
-          </Button>
+          {/* Notifications dropdown */}
+          <NotificationsDropdown />
 
           <div className="flex items-center gap-2 pl-2 md:pl-3 border-l border-border">
             <Link href="/settings" className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">

@@ -34,8 +34,13 @@ interface Props {
 export function HomeActions({ checklist, isPaidPlan = false, mode }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  const [dismissed, setDismissed] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const steps = [...BASE_STEPS, isPaidPlan ? PAID_PLAN_LAST_STEP : FREE_PLAN_LAST_STEP]
+
+  useEffect(() => {
+    try { if (localStorage.getItem("gettingStartedDismissed")) setDismissed(true) } catch {}
+  }, [])
 
   useEffect(() => {
     function handler(e: MouseEvent) {
@@ -79,7 +84,7 @@ export function HomeActions({ checklist, isPaidPlan = false, mode }: Props) {
   }
 
   if (mode === "get-started") {
-    if (checklist && allDone) return <PersonalChecklist />
+    if ((checklist && allDone) || dismissed) return <PersonalChecklist />
 
     return (
       <div ref={ref} className="relative">
@@ -139,6 +144,18 @@ export function HomeActions({ checklist, isPaidPlan = false, mode }: Props) {
                   </button>
                 )
               })}
+            </div>
+            <div className="border-t border-border px-4 py-2">
+              <button
+                onClick={() => {
+                  setDismissed(true)
+                  setOpen(false)
+                  try { localStorage.setItem("gettingStartedDismissed", "1") } catch {}
+                }}
+                className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Mark as complete and hide
+              </button>
             </div>
           </div>
         )}

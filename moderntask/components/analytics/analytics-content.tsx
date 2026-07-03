@@ -1,6 +1,6 @@
 'use client'
 
-import { Coins, ShieldCheck } from 'lucide-react'
+import { ShieldCheck } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 import api from '@/lib/api'
 import { fetchDisplayedCreditData } from '@/lib/credit-balance'
@@ -10,46 +10,10 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { InfoTooltip } from '@/components/ui/info-tooltip'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Calendar } from '@/components/ui/calendar'
-import { CalendarIcon } from 'lucide-react'
-import type { DateRange } from 'react-day-picker'
 
 // ── static data ──────────────────────────────────────────────────────────────
-type CreditGranularity = 'day' | 'week' | 'month' | 'custom'
-
-function buildDailyCredits(emails: any[], days = 90) {
-  const now = new Date()
-  return Array.from({ length: days }, (_, rev) => {
-    const daysAgo = days - 1 - rev
-    const d = new Date(now)
-    d.setDate(d.getDate() - daysAgo)
-    const rawDate = d.toLocaleDateString('en-CA')
-    const label   = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    const credits = emails.filter(e => {
-      const t = new Date(e.sentAt || e.createdAt || e.timestamp || 0)
-      return t.toLocaleDateString('en-CA') === rawDate
-    }).length
-    return { month: label, rawDate, Credits: credits }
-  })
-}
-
-function buildWeeklyCredits(emails: any[], weeks = 12) {
-  const now = new Date()
-  return Array.from({ length: weeks }, (_, rev) => {
-    const weeksAgo = weeks - 1 - rev
-    const end = new Date(now)
-    end.setDate(end.getDate() - weeksAgo * 7)
-    const start = new Date(end)
-    start.setDate(start.getDate() - 7)
-    const label = `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
-    const credits = emails.filter(e => {
-      const t = new Date(e.sentAt || e.createdAt || e.timestamp || 0)
-      return t >= start && t < end
-    }).length
-    return { month: label, Credits: credits }
-  })
-}
+// (Credit consumption chart moved to Settings → Billing: components/billing/credit-consumption-chart.tsx.
+//  monthlyCredits is still built here because the CSV export includes it.)
 
 function buildMonthlyCredits(emails: any[]) {
   const now = new Date()
@@ -101,21 +65,6 @@ function buildDomainStats(emails: any[], limit = 10) {
     })
 }
 
-// ── custom tooltip ────────────────────────────────────────────────────────────
-function ChartTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null
-  return (
-    <div className="bg-popover border border-border rounded-lg px-3 py-2 shadow-xl text-xs z-50">
-      <p className="font-semibold text-foreground mb-1">{label}</p>
-      {payload.map((p: any) => (
-        <p key={p.name} style={{ color: p.color }} className="flex gap-1.5">
-          <span>{p.name}:</span><span className="font-bold">{p.value}</span>
-        </p>
-      ))}
-    </div>
-  )
-}
-
 // ── helpers ───────────────────────────────────────────────────────────────────
 type Range = 'day' | 'week' | 'month'
 
@@ -155,18 +104,18 @@ const RANGE: Range = 'week'
 
 export interface ExportState { run: () => void; loading: boolean }
 
-export function AnalyticsContent({ onExportReady }: { onExportReady?: (state: ExportState) => void } = {}) {
+export function AnalyticsContent({ onExportReady, healthSent = 0, healthBounced = 0, healthOpened = 0 }: {
+  onExportReady?: (state: ExportState) => void
+  healthSent?: number
+  healthBounced?: number
+  healthOpened?: number
+} = {}) {
   const [agents, setAgents] = useState<any[]>([])
   const [totals, setTotals] = useState({ queued: 0, sent: 0, replied: 0, replyRate: '0' })
   const [allSentEmails, setAllSentEmails] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [emailTimeSeries, setEmailTimeSeries] = useState<any[]>([])
-  const [dailyCredits, setDailyCredits] = useState<any[]>([])
-  const [weeklyCredits, setWeeklyCredits] = useState<any[]>([])
   const [monthlyCredits, setMonthlyCredits] = useState<any[]>([])
-  const [creditGranularity, setCreditGranularity] = useState<CreditGranularity>('day')
-  const [creditCustomRange, setCreditCustomRange] = useState<DateRange | undefined>()
-  const [creditPickerOpen, setCreditPickerOpen] = useState(false)
   const [creditBalance, setCreditBalance] = useState<number | null>(null)
   const [domainStats, setDomainStats] = useState<any[]>([])
   const loadData = useCallback(async () => {
@@ -219,27 +168,9 @@ export function AnalyticsContent({ onExportReady }: { onExportReady?: (state: Ex
   useEffect(() => { loadData() }, [loadData])
   useEffect(() => {
     setEmailTimeSeries(buildTimeSeries(allSentEmails, RANGE))
-    setDailyCredits(buildDailyCredits(allSentEmails))
-    setWeeklyCredits(buildWeeklyCredits(allSentEmails))
     setMonthlyCredits(buildMonthlyCredits(allSentEmails))
     setDomainStats(buildDomainStats(allSentEmails))
   }, [allSentEmails])
-
-  const creditMinDate = dailyCredits.length > 0 ? new Date(dailyCredits[0].rawDate) : undefined
-  const creditSeries =
-    creditGranularity === 'week'  ? weeklyCredits :
-    creditGranularity === 'month' ? monthlyCredits :
-    creditGranularity === 'custom'
-      ? (creditCustomRange?.from && creditCustomRange?.to
-          ? dailyCredits.filter(p => {
-              const d = new Date(p.rawDate)
-              return d >= creditCustomRange.from! && d <= creditCustomRange.to!
-            })
-          : [])
-      : dailyCredits.slice(-30)
-
-  const creditMaxTick = Math.max(10, Math.ceil(Math.max(0, ...creditSeries.map((p: any) => p.Credits ?? 0)) / 10) * 10)
-  const creditTicks = Array.from({ length: creditMaxTick / 10 + 1 }, (_, i) => i * 10)
 
   const exportReport = useCallback(() => {
     const rows: string[] = []
@@ -315,103 +246,17 @@ export function AnalyticsContent({ onExportReady }: { onExportReady?: (state: Ex
     onExportReady?.({ run: exportReport, loading })
   }, [exportReport, loading, onExportReady])
 
+  const healthOpenRate    = healthSent > 0 ? ((healthOpened  / healthSent) * 100).toFixed(1) : '-'
+  const healthBounceRateN = healthSent > 0 ? (healthBounced / healthSent) * 100 : 0
+  const healthBounceRate  = healthSent > 0 ? healthBounceRateN.toFixed(1) : '-'
+  const isHealthy         = healthSent === 0 || healthBounceRateN <= 5
+
   return (
     <div className="space-y-4">
 
-      {/* Section header */}
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="font-display text-lg text-foreground">Performance &amp; Analytics</h3>
-      </div>
+      {/* Delivery: health strip + per-sender stats, one card */}
+      <div className="grid grid-cols-1 gap-4">
 
-      {/* monthly credit + domain success stats */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
-        <div className="rounded-2xl border border-border bg-card p-5">
-          <div className="flex items-start justify-between gap-3 mb-4">
-            <div className="flex items-center gap-2">
-              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-warning-soft">
-                <Coins className="h-4 w-4 text-warning-soft-foreground" strokeWidth={1.75} />
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <h4 className="font-display text-base text-foreground">Credit Consumption</h4>
-                  <InfoTooltip text="Credits consumed (1 credit ≈ 1 sent email) over the selected period" />
-                </div>
-                {creditBalance !== null && (
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    Balance: <span className="font-semibold text-foreground">{creditBalance.toLocaleString()}</span> credits remaining
-                  </p>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-0.5 rounded-lg border border-border bg-surface p-0.5">
-              {(['day', 'week', 'month'] as CreditGranularity[]).map(g => (
-                <button
-                  key={g}
-                  onClick={() => setCreditGranularity(g)}
-                  className={`rounded-md px-2.5 py-1 text-[11px] font-medium capitalize transition-colors ${
-                    creditGranularity === g ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  {g}
-                </button>
-              ))}
-              <Popover open={creditPickerOpen} onOpenChange={setCreditPickerOpen}>
-                <PopoverTrigger asChild>
-                  <button
-                    onClick={() => setCreditGranularity('custom')}
-                    className={`flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors ${
-                      creditGranularity === 'custom' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    <CalendarIcon className="h-3 w-3" />
-                    {creditGranularity === 'custom' && creditCustomRange?.from && creditCustomRange?.to
-                      ? `${creditCustomRange.from.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${creditCustomRange.to.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
-                      : 'Custom'}
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-auto p-2">
-                  <Calendar
-                    mode="range"
-                    selected={creditCustomRange}
-                    onSelect={(range) => {
-                      setCreditCustomRange(range)
-                      setCreditGranularity('custom')
-                      if (range?.from && range?.to) setCreditPickerOpen(false)
-                    }}
-                    disabled={creditMinDate ? { before: creditMinDate } : undefined}
-                    numberOfMonths={2}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
-          <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={creditSeries} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
-              <defs>
-                <linearGradient id="gCredit" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="var(--brass)" stopOpacity={1}    />
-                  <stop offset="95%" stopColor="var(--brass)" stopOpacity={0.5} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" strokeOpacity={0.6} vertical={false} />
-              <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-              <YAxis
-                tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }}
-                tickLine={false}
-                axisLine={false}
-                width={28}
-                allowDecimals={false}
-                domain={[0, creditMaxTick]}
-                ticks={creditTicks}
-              />
-              <Tooltip content={<ChartTooltip />} />
-              <Bar dataKey="Credits" fill="url(#gCredit)" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Domain success rate + open rate */}
         <div className="rounded-2xl border border-border bg-card p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -419,11 +264,32 @@ export function AnalyticsContent({ onExportReady }: { onExportReady?: (state: Ex
                 <ShieldCheck className="h-4 w-4 text-success-soft-foreground" strokeWidth={1.75} />
               </div>
               <div className="flex items-center gap-1.5">
-                <h4 className="font-display text-base text-foreground">Sender Delivery Stats</h4>
+                <h4 className="font-display text-base text-foreground">Delivery</h4>
                 <InfoTooltip text="Success rate = delivered ÷ total · open rate = opened ÷ total" />
               </div>
             </div>
+            <span className={`flex items-center gap-1 text-[11px] font-medium ${isHealthy ? 'text-emerald-600' : 'text-amber-600'}`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${isHealthy ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+              {healthSent === 0 ? 'No data' : isHealthy ? 'Healthy' : 'Needs attention'}
+            </span>
           </div>
+
+          {healthSent > 0 && (
+            <div className="mb-4 grid grid-cols-3 gap-1.5">
+              <div className="rounded-lg bg-muted/50 px-1.5 py-1.5 text-center">
+                <p className="text-sm font-bold tabular-nums">{healthSent.toLocaleString()}</p>
+                <p className="text-[10px] text-muted-foreground">Sent</p>
+              </div>
+              <div className="rounded-lg bg-muted/50 px-1.5 py-1.5 text-center">
+                <p className="text-sm font-bold text-violet-500 tabular-nums">{healthOpenRate}%</p>
+                <p className="text-[10px] text-muted-foreground">Open rate</p>
+              </div>
+              <div className="rounded-lg bg-muted/50 px-1.5 py-1.5 text-center">
+                <p className="text-sm font-bold tabular-nums">{healthBounceRate}%</p>
+                <p className="text-[10px] text-muted-foreground">Bounce rate</p>
+              </div>
+            </div>
+          )}
           {loading
             ? <div className="h-[240px] rounded bg-muted/30 animate-pulse" />
             : domainStats.length === 0

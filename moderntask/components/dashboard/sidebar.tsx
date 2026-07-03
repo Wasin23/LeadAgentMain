@@ -128,6 +128,8 @@ function SortableNavItem({
 function SidebarInner() {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
   const [awaitingCount, setAwaitingCount] = useState(0)
+  const [runningAgents, setRunningAgents] = useState(0)
+  const [starredCount, setStarredCount]   = useState(0)
   const [navOrder, setNavOrder]       = useState<string[]>(STATIC_HREFS)
   const [editMode, setEditMode]       = useState(false)
   const pathname    = usePathname()
@@ -135,10 +137,24 @@ function SidebarInner() {
   const search      = searchParams.toString() ? `?${searchParams.toString()}` : ""
 
   useEffect(() => {
-    api.get("/api/email-queue/counts", { params: { agentId: "all" } }).then(r => {
-      setAwaitingCount(r.data?.queued ?? 0)
-    }).catch(() => {})
+    const fetchBadges = () => {
+      api.get("/api/email-queue/counts", { params: { agentId: "all" } }).then(r => {
+        setAwaitingCount(r.data?.queued ?? 0)
+      }).catch(() => {})
+      api.get("/api/auth/agents").then(r => {
+        const agents: any[] = r.data?.agents ?? []
+        setRunningAgents(agents.filter(a => a.isRunning || a.isActive).length)
+      }).catch(() => {})
+      api.get("/api/leads/starred").then(r => {
+        setStarredCount((r.data?.starred ?? []).length)
+      }).catch(() => {})
+    }
+    fetchBadges()
+    const t = setInterval(fetchBadges, 60000)
+    return () => clearInterval(t)
+  }, [])
 
+  useEffect(() => {
     try {
       const saved = localStorage.getItem("sidebar-nav-order")
       if (saved) {
@@ -162,12 +178,16 @@ function SidebarInner() {
     localStorage.setItem("sidebar-nav-order", JSON.stringify(newOrder))
   }
 
-  // Build item map; inject the awaiting-review badge count onto Outreach
+  // Build item map; inject live badge counts per section
+  const badgeByHref: Record<string, number> = {
+    "/outreach":    awaitingCount, // emails awaiting review
+    "/prospecting": runningAgents, // agents currently running
+    "/leads":       starredCount,  // starred leads under research
+  }
   const itemByHref: Record<string, NavItem> = {}
   for (const item of staticItems) {
-    itemByHref[item.href] = item.href === "/outreach" && awaitingCount > 0
-      ? { ...item, badge: String(awaitingCount) }
-      : item
+    const n = badgeByHref[item.href] ?? 0
+    itemByHref[item.href] = n > 0 ? { ...item, badge: String(n) } : item
   }
 
   const orderedMenuItems = navOrder
@@ -285,7 +305,7 @@ function NavEntry({ item, pathname, search = "", hovered, setHovered, depth = 0 
         }
         <span className="truncate">{item.label}</span>
         {item.badge && (
-          <span className="ml-auto bg-primary text-primary-foreground text-[10px] font-semibold px-1.5 py-0.5 rounded-full animate-pulse">
+          <span className="ml-auto bg-primary text-primary-foreground text-[10px] font-semibold px-1.5 py-0.5 rounded-full">
             {item.badge}
           </span>
         )}

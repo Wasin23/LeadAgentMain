@@ -10,6 +10,7 @@ import {
   Star, Clock, Loader2, Copy,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useToast } from '@/hooks/use-toast'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
 interface AIReport {
@@ -175,6 +176,8 @@ export function LeadsContent() {
   const [sortKey, setSortKey] = useState<SortKey>('score-desc')
   const [sortOpen, setSortOpen] = useState(false)
   const [showBanner, setShowBanner] = useState(true)
+  const [starLimit, setStarLimit] = useState<number | null>(null)
+  const { toast } = useToast()
   const pageSize = 10
 
   useEffect(() => {
@@ -196,6 +199,7 @@ export function LeadsContent() {
       }
       if (starredRes.status === 'fulfilled') {
         setStarredIds(new Set((starredRes.value.data?.starred ?? []).map((s: { leadId: string }) => s.leadId)))
+        if (typeof starredRes.value.data?.limit === 'number') setStarLimit(starredRes.value.data.limit)
       }
       const queue = queueRes.status === 'fulfilled' ? (queueRes.value.data?.emails ?? queueRes.value.data?.queue ?? queueRes.value.data ?? []) : []
       const sent = sentRes.status === 'fulfilled' ? (sentRes.value.data?.emails ?? sentRes.value.data ?? []) : []
@@ -229,7 +233,12 @@ export function LeadsContent() {
         })
         setStarredIds(prev => new Set([...prev, lead.id]))
       }
-    } catch {}
+    } catch (err: any) {
+      const msg = err?.response?.data?.error
+      if (err?.response?.status === 403 && msg) {
+        toast({ title: 'Starred lead limit reached', description: msg, variant: 'destructive', duration: 4000 })
+      }
+    }
     setStarringId(null)
   }
 
@@ -325,6 +334,15 @@ export function LeadsContent() {
               <span><span className="font-semibold text-success">{counts.qualified}</span> Qualified</span>
               <span className="text-muted-foreground/50">/</span>
               <span><span className="font-semibold text-foreground/70">{counts.research + counts.rejected}</span> Unqualified</span>
+              {starLimit !== null && (
+                <>
+                  <span className="text-border">|</span>
+                  <span className="flex items-center gap-1" title={`Starred leads: ${starredIds.size} of ${starLimit} allowed on your plan`}>
+                    <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                    <span className={cn('tabular-nums font-semibold', starredIds.size >= starLimit ? 'text-destructive' : 'text-foreground')}>{starredIds.size}/{starLimit}</span>
+                  </span>
+                </>
+              )}
             </div>
             <div className="relative max-w-xs flex-1">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />

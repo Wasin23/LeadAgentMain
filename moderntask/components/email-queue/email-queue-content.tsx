@@ -20,9 +20,9 @@ import { cn } from '@/lib/utils'
 import { CopyChip } from '@/components/leads/leads-content'
 
 // ── types ─────────────────────────────────────────────────────────────────────
-interface Agent { agentId: string; name: string; personality?: { avatar?: string }; settings?: { sendingSchedule?: SendingSchedule; emailBuilder?: { smartRebump?: boolean } } }
+export interface Agent { agentId: string; name: string; personality?: { avatar?: string }; settings?: { sendingSchedule?: SendingSchedule; emailBuilder?: { smartRebump?: boolean } } }
 
-interface SendingSchedule {
+export interface SendingSchedule {
   activeDays:  number[]  // 0=Sun … 6=Sat
   sendTime:    string    // "HH:MM" e.g. "09:00"
   dailyLimit:  number
@@ -362,7 +362,7 @@ function ScheduledBatchesModal({ onClose, onChanged }: { onClose: () => void; on
   )
 }
 
-function AgentScheduleCard({ agent, onSaved }: { agent: Agent; onSaved?: (s: SendingSchedule) => void }) {
+export function AgentScheduleCard({ agent, onSaved }: { agent: Agent; onSaved?: (s: SendingSchedule) => void }) {
   const { toast } = useToast()
   const initial = { ...DEFAULT_SCHEDULE, ...agent.settings?.sendingSchedule }
   const [sched, setSched]     = useState<SendingSchedule>(initial)
@@ -386,7 +386,7 @@ function AgentScheduleCard({ agent, onSaved }: { agent: Agent; onSaved?: (s: Sen
   const save = async () => {
     setSaving(true)
     try {
-      const scheduleToSave = { ...sched, dailyLimit: parseInt(limitStr) || 0 }
+      const scheduleToSave = { ...sched, dailyLimit: Math.min(50, Math.max(1, parseInt(limitStr) || 1)) }
       
       await api.put(`/api/auth/agents/${agent.agentId}/settings`, {
         ...agent.settings,
@@ -467,14 +467,20 @@ function AgentScheduleCard({ agent, onSaved }: { agent: Agent; onSaved?: (s: Sen
             </div>
           </div>
           <div className="space-y-1">
-            <label className="text-[11px] font-medium text-muted-foreground">Daily Limit</label>
-            <input
-              type="number" min={1} max={500}
-              className="w-full h-8 rounded-md border border-input bg-background px-3 text-xs focus:outline-none"
-              value={limitStr}
-              onChange={e => setLimitStr(e.target.value)}
-              onBlur={e => { if (e.target.value === '') setLimitStr('') }}
-            />
+            <label className="text-[11px] font-medium text-muted-foreground">Daily Limit <span className="text-muted-foreground/60">(max 50)</span></label>
+            <div className="relative">
+              <input
+                type="number" min={1} max={50}
+                className="w-full h-8 rounded-md border border-input bg-background px-3 pr-9 text-xs focus:outline-none"
+                value={limitStr}
+                onChange={e => {
+                  const v = e.target.value
+                  if (v === '') { setLimitStr(''); return }
+                  setLimitStr(String(Math.min(50, Math.max(1, parseInt(v) || 1))))
+                }}
+              />
+              <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground tabular-nums">/50</span>
+            </div>
           </div>
         </div>
         {/* timezone + save */}
@@ -884,8 +890,7 @@ function EmailRow({ email, agentMap, selected, onSelect, fontSize, actions, onEd
         </div>
         {expanded && body && (
           <div className="relative mt-2 rounded-lg bg-muted/40 border border-border">
-            <div className="absolute right-2 top-2 z-10 flex items-center gap-1 rounded-md bg-background/80 backdrop-blur-sm border border-border px-1.5 py-1">
-              {to && <CopyChip text={to} title="Copy recipient email" />}
+            <div className="absolute right-2 top-2 z-10 flex items-center rounded-md bg-background/80 backdrop-blur-sm border border-border px-1.5 py-1">
               <CopyChip text={body} title="Copy email content" />
             </div>
             <div className="p-3 text-muted-foreground whitespace-pre-wrap leading-relaxed max-h-72 overflow-y-auto" style={{ fontSize }}>
@@ -1964,17 +1969,36 @@ export function EmailQueueContent() {
         </div>
 
         {showSchedule && (
-          <div className="mb-5 pb-5 border-b border-border space-y-3">
-            {selectedAgent === 'all' ? (
-              <p className="text-xs text-muted-foreground py-2">
-                Select an agent from the dropdown above to configure its sending schedule.
-              </p>
-            ) : (
-              (() => {
-                const agent = agents.find(a => a.agentId === selectedAgent)
-                return agent ? <AgentScheduleCard agent={agent} onSaved={s => { setSavedSchedule(s); refreshBatchCount() }} /> : null
-              })()
-            )}
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowSchedule(false)}>
+            <div className="w-full max-w-md" onClick={e => e.stopPropagation()}>
+              <div className="relative">
+                <button
+                  onClick={() => setShowSchedule(false)}
+                  className="absolute right-3 top-3 z-10 rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  title="Close"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                {selectedAgent === 'all' ? (
+                  <Card className="p-5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Calendar className="w-4 h-4 text-primary" />
+                      <h2 className="text-sm font-semibold">Sending Schedule</h2>
+                    </div>
+                    <p className="text-xs text-muted-foreground py-2">
+                      Select an agent from the dropdown above to configure its sending schedule.
+                    </p>
+                  </Card>
+                ) : (
+                  (() => {
+                    const agent = agents.find(a => a.agentId === selectedAgent)
+                    return agent
+                      ? <AgentScheduleCard agent={agent} onSaved={s => { setSavedSchedule(s); refreshBatchCount(); setShowSchedule(false) }} />
+                      : null
+                  })()
+                )}
+              </div>
+            </div>
           </div>
         )}
         <QueuedList
