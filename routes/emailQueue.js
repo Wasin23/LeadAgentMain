@@ -1475,6 +1475,62 @@ function computeSlotDate(index, schedule) {
   return localTimeToUTC(fY, fMo, fD, schedH, schedM, tz);
 }
 
+// GET /daily-cap-status — how many emails sent today (user-wide) vs the 250/day cap
+router.get('/daily-cap-status', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const awsManager = new AWSManager();
+    const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+    const { QueryCommand } = await import('@aws-sdk/lib-dynamodb');
+    const awsQueue = getAWSEmailQueue();
+
+    // Get user's timezone and fromEmail
+    const userSettings = await awsManager.getUserSettings(userId);
+    const timezone = userSettings?.timezone || 'America/New_York';
+    const fromEmail = userSettings?.emailSettings?.fromEmail || null;
+
+    // Today's date string in user's timezone (YYYY-MM-DD)
+    const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(new Date());
+    const skPrefix = `SENT#${todayStr}`;
+
+    // Get all agents for this user
+    const agents = await awsManager.getUserAgents(userId);
+    const agentIds = (agents || []).map(a => a.agentId).filter(Boolean);
+
+    // Count today's sent emails across all agents in parallel
+    const counts = await Promise.all(
+      agentIds.map(agentId =>
+        awsQueue.dynamodb.send(new QueryCommand({
+          TableName: awsQueue.tableName,
+          KeyConditionExpression: 'PK = :pk AND begins_with(SK, :skPrefix)',
+          ExpressionAttributeValues: {
+            ':pk': `${userId}#${agentId}`,
+            ':skPrefix': skPrefix,
+          },
+          Select: 'COUNT',
+        })).then(r => r.Count || 0).catch(() => 0)
+      )
+    );
+
+    const sentToday = counts.reduce((sum, c) => sum + c, 0);
+    const PER_ACCOUNT_CAP = 50;
+    const TOTAL_CAP = 250;
+
+    res.json({
+      success: true,
+      fromEmail,
+      sentToday,
+      perAccountCap: PER_ACCOUNT_CAP,
+      totalCap: TOTAL_CAP,
+      remaining: Math.max(0, TOTAL_CAP - sentToday),
+      perAccountRemaining: Math.max(0, PER_ACCOUNT_CAP - sentToday),
+    });
+  } catch (error) {
+    console.error('[EMAIL QUEUE] Error getting daily cap status:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // GET /scheduled-batches — server-computed send schedule grouped by time slot
 router.get('/scheduled-batches', async (req, res) => {
   try {

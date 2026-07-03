@@ -14,6 +14,7 @@ import {
   ChevronRight, ChevronsRight, X, CalendarClock, Calendar,
   Settings2, Save, Search, FileText, ExternalLink,
   MoreHorizontal, Wrench, Loader2, Sparkles, Trash2, ListChecks,
+  ArrowLeftRight, Mail,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -1704,6 +1705,51 @@ function QueuedList({ agentId, agentMap, fontSize, setFontSize, onCountChange, a
   )
 }
 
+// ── daily cap widget ──────────────────────────────────────────────────────────
+function DailyCapWidget() {
+  const [data, setData] = useState<{
+    fromEmail: string | null
+    sentToday: number
+    perAccountCap: number
+    totalCap: number
+    remaining: number
+    perAccountRemaining: number
+  } | null>(null)
+
+  const load = useCallback(async () => {
+    try {
+      const r = await api.get('/api/email-queue/daily-cap-status')
+      if (r.data.success) setData(r.data)
+    } catch {}
+  }, [])
+
+  useEffect(() => {
+    load()
+    const iv = setInterval(load, 30000)
+    return () => clearInterval(iv)
+  }, [load])
+
+  if (!data) return null
+
+  const pct = Math.min(100, (data.sentToday / data.totalCap) * 100)
+  const near = data.sentToday >= data.totalCap * 0.8
+  const hit  = data.sentToday >= data.totalCap
+
+  return (
+    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-muted/30 text-xs">
+      <Mail className="w-3 h-3 text-muted-foreground shrink-0" />
+      <span className="text-muted-foreground truncate max-w-[160px]">
+        {data.fromEmail || 'Mailgun (default)'}
+      </span>
+      <ArrowLeftRight className="w-3 h-3 text-muted-foreground shrink-0" />
+      <span className={cn('font-semibold tabular-nums', hit ? 'text-destructive' : near ? 'text-yellow-500' : 'text-foreground')}>
+        {data.sentToday}<span className="font-normal text-muted-foreground">/{data.totalCap}</span>
+      </span>
+      <span className="text-muted-foreground">today</span>
+    </div>
+  )
+}
+
 // ── main export ───────────────────────────────────────────────────────────────
 export function EmailQueueContent() {
   const { toast } = useToast()
@@ -1819,6 +1865,7 @@ export function EmailQueueContent() {
               </button>
             </span>
           )}
+          <DailyCapWidget />
           <div className="ml-auto flex items-center gap-2">
             {batchCount > 0 && (
               <button
