@@ -1587,7 +1587,10 @@ IMPORTANT RULES:
               agentId: this.agentId
             };
             
-            await this.awsManager.addContactedLead(this.userId, leadInfo);
+            await this.awsManager.addContactedLead(this.userId, leadInfo, {
+              keyword: this.memory.currentCycle.currentLead?._searchKeyword,
+              position: this.memory.currentCycle.currentLead?._searchPosition
+            });
           } catch (trackingError) {
             console.error('❌ [CONTACT TRACKING] Failed to add failed lead to database:', trackingError);
           }
@@ -2245,9 +2248,11 @@ SCORING — score independent sub-factors on their own merits. Do not pick a
 final score yourself; it is computed from your factors.
 
 - roleFit (0-30): how well their title matches the target role. 30 = exact match, 15 = adjacent role, 0 = unrelated.
-- industryFit (0-25): 25 = exact target industry, 12 = adjacent/plausible, 0 = unrelated.
-- sizeFit (0-15): 15 = squarely in target company-size range, 5 = near the edge, 0 = well outside or unknown.
 - clearDisqualifier (true/false): true only if a specific disqualifier from the list is actually confirmed present.
+
+(Industry fit and company size fit are NOT scored by you — they're computed
+directly from Apollo's structured data against the campaign's target range/list,
+since that's a lookup, not a judgment call. Do not include those fields.)
 
 Recommend SKIP only if clearDisqualifier is true. Otherwise RESEARCH — this is a
 cheap early filter, not the final qualification; weak evidence should still pass
@@ -2256,8 +2261,6 @@ through to full research rather than being skipped here.
 Respond in JSON format:
 {
   "roleFit": 0-30,
-  "industryFit": 0-25,
-  "sizeFit": 0-15,
   "clearDisqualifier": true/false,
   "reason": "brief explanation"
 }`;
@@ -2272,19 +2275,53 @@ Respond in JSON format:
 
       const raw = JSON.parse(response.choices[0].message.content);
 
+      // ── HARDCODED FACTORS (structured Apollo data, not model-judged) ──────
+      const userSettingsForPreQual = this.memory.userSettings || {};
+      const preQualSizeMin = userSettingsForPreQual.companySizeMin ?? userSettingsForPreQual.companyCriteria?.companySizeMin;
+      const preQualSizeMax = userSettingsForPreQual.companySizeMax ?? userSettingsForPreQual.companyCriteria?.companySizeMax;
+      const preQualTargetIndustries = userSettingsForPreQual.companyIndustries || userSettingsForPreQual.companyCriteria?.companyIndustries || [];
+      const preQualEmployeeCount = Number(leadData?.organization?.estimated_num_employees);
+      const preQualLeadIndustry = (leadData?.organization?.industry || '').toLowerCase().trim();
+
+      let sizeFit = 8; // neutral default (out of 15) when range or employee count is unknown
+      let preQualSizeMismatchNote = null;
+      if (Number.isFinite(preQualEmployeeCount) && (preQualSizeMin || preQualSizeMax)) {
+        const min = preQualSizeMin || 0;
+        const max = preQualSizeMax || Infinity;
+        if (preQualEmployeeCount >= min && preQualEmployeeCount <= max) {
+          sizeFit = 15;
+        } else {
+          // Apollo's employee-count filter already narrows search to this range, but
+          // its self-reported headcounts are approximate — never zero out on size alone.
+          const distance = preQualEmployeeCount < min ? min - preQualEmployeeCount : preQualEmployeeCount - max;
+          const rangeSpan = Math.max(1, max === Infinity ? min : max - min);
+          sizeFit = Math.max(3, Math.round(15 - (distance / rangeSpan) * 15));
+          preQualSizeMismatchNote = `Company reports ${preQualEmployeeCount} employees, outside the target ${min}-${max === Infinity ? '∞' : max} range`;
+        }
+      }
+
+      let industryFit = 12; // neutral default (out of 25) when no target industries configured or industry unknown
+      if (preQualTargetIndustries.length > 0 && preQualLeadIndustry) {
+        const exactMatch = preQualTargetIndustries.some(ind => ind.toLowerCase().trim() === preQualLeadIndustry);
+        const partialMatch = !exactMatch && preQualTargetIndustries.some(ind => {
+          const t = ind.toLowerCase().trim();
+          return preQualLeadIndustry.includes(t) || t.includes(preQualLeadIndustry);
+        });
+        industryFit = exactMatch ? 25 : partialMatch ? 15 : 0;
+      }
+
       // ── DETERMINISTIC SCORE COMPUTATION ──────────────────────────────────
       // Replaces the old single-holistic-score prompt (which clustered around
       // ~70) plus a single flat -30 "no insights" penalty — the only real point
-      // adjustment that existed anywhere in qualification. Now: 3 model-scored
-      // factors + 1 code-computed research-depth factor (real count, not
-      // self-reported), so scores actually vary lead to lead.
+      // adjustment that existed anywhere in qualification. Now: model-scored
+      // roleFit + hardcoded industry/size fit (from Apollo data) + a
+      // code-computed research-depth factor (real count, not self-reported),
+      // so scores actually vary lead to lead.
       const totalWebpageInsights = researchData?.searches
         ?.flatMap(s => s.webpageInsights || [])
         ?.length || 0;
 
       const roleFit = Math.max(0, Math.min(30, Number(raw.roleFit) || 0));
-      const industryFit = Math.max(0, Math.min(25, Number(raw.industryFit) || 0));
-      const sizeFit = Math.max(0, Math.min(15, Number(raw.sizeFit) || 0));
       const researchDepthPoints = totalWebpageInsights >= 5 ? 30
         : totalWebpageInsights >= 3 ? 22
         : totalWebpageInsights >= 1 ? 12
@@ -2295,14 +2332,15 @@ Respond in JSON format:
       if (clearDisqualifier) score = Math.min(score, 15);
 
       const recommendation = clearDisqualifier ? 'SKIP' : 'RESEARCH';
+      const preQualReason = [raw.reason || '', preQualSizeMismatchNote].filter(Boolean).join(' ');
       const result = {
         score,
         recommendation,
-        reason: raw.reason || '',
-        scoreBreakdown: { roleFit, industryFit, sizeFit, researchDepthPoints, webpageInsights: totalWebpageInsights, clearDisqualifier },
+        reason: preQualReason,
+        scoreBreakdown: { roleFit, industryFit, sizeFit, researchDepthPoints, webpageInsights: totalWebpageInsights, clearDisqualifier, sizeMismatchNote: preQualSizeMismatchNote },
       };
 
-      console.log(`[PRE-QUALIFY SCORE] ${personName} @ ${companyName}: ${score}/100 (role=${roleFit}/30 industry=${industryFit}/25 size=${sizeFit}/15 researchDepth=${researchDepthPoints}/30[${totalWebpageInsights} insights]${clearDisqualifier ? ' DISQUALIFIED' : ''})`);
+      console.log(`[PRE-QUALIFY SCORE] ${personName} @ ${companyName}: ${score}/100 (role=${roleFit}/30 industry=${industryFit}/25 size=${sizeFit}/15${preQualSizeMismatchNote ? ` [${preQualSizeMismatchNote}]` : ''} researchDepth=${researchDepthPoints}/30[${totalWebpageInsights} insights]${clearDisqualifier ? ' DISQUALIFIED' : ''})`);
 
       // Log API usage
       if (response.usage) {
@@ -2444,11 +2482,54 @@ Respond in JSON format:
       }
       
       const criteria = this.campaignPlan.qualificationCriteria;
-      
+
+      // ── HARDCODED FACTORS — computed from structured data, never asked of the model ──
+      // companySizeFit and industryFit are direct comparisons against Apollo's own
+      // structured fields. Asking an LLM to "rate" a number-range comparison or a
+      // fixed-taxonomy lookup only introduces drift (the same lead could score
+      // differently run to run) for zero benefit — there's no judgment involved.
+      const userSettingsForCriteria = this.memory.userSettings || {};
+      const sizeMin = userSettingsForCriteria.companySizeMin ?? userSettingsForCriteria.companyCriteria?.companySizeMin;
+      const sizeMax = userSettingsForCriteria.companySizeMax ?? userSettingsForCriteria.companyCriteria?.companySizeMax;
+      const targetIndustriesForScoring = userSettingsForCriteria.companyIndustries || userSettingsForCriteria.companyCriteria?.companyIndustries || [];
+      const employeeCount = Number(leadData?.organization?.estimated_num_employees);
+      const leadIndustry = (leadData?.organization?.industry || '').toLowerCase().trim();
+
+      let companySizeFit = 2; // neutral default when range or employee count is unknown
+      let sizeMismatchNote = null;
+      if (Number.isFinite(employeeCount) && (sizeMin || sizeMax)) {
+        const min = sizeMin || 0;
+        const max = sizeMax || Infinity;
+        if (employeeCount >= min && employeeCount <= max) {
+          companySizeFit = 5;
+        } else {
+          // Apollo's own employee-count filter already narrows search to this range,
+          // but Apollo's self-reported headcounts are approximate — a lead can still
+          // slip through outside the true range. Penalize distance but never to zero;
+          // a size miss alone shouldn't tank an otherwise-strong lead.
+          const distance = employeeCount < min ? min - employeeCount : employeeCount - max;
+          const rangeSpan = Math.max(1, max === Infinity ? min : max - min);
+          companySizeFit = Math.max(1, Math.round(5 - (distance / rangeSpan) * 5));
+          sizeMismatchNote = `Company reports ${employeeCount} employees, outside the target ${min}-${max === Infinity ? '∞' : max} range`;
+        }
+      }
+
+      let industryFit = 5; // neutral default when no target industries configured or industry unknown
+      if (targetIndustriesForScoring.length > 0 && leadIndustry) {
+        const exactMatch = targetIndustriesForScoring.some(ind => ind.toLowerCase().trim() === leadIndustry);
+        const partialMatch = !exactMatch && targetIndustriesForScoring.some(ind => {
+          const t = ind.toLowerCase().trim();
+          return leadIndustry.includes(t) || t.includes(leadIndustry);
+        });
+        industryFit = exactMatch ? 10 : partialMatch ? 6 : 0;
+      }
+
+      console.log(`[QUALIFY HARDCODED] ${personName} @ ${companyName}: companySizeFit=${companySizeFit}/5 (${employeeCount || 'unknown'} employees, target ${sizeMin || '?'}-${sizeMax || '?'}) | industryFit=${industryFit}/10 ("${leadIndustry || 'unknown'}" vs [${targetIndustriesForScoring.join(', ')}])`);
+
       // Extract research insights with citations
       let researchSummary = 'No research data available';
       let allCitedFacts = [];
-      
+
       if (researchData?.citedFacts && researchData.citedFacts.length > 0) {
         allCitedFacts = researchData.citedFacts;
         researchSummary = allCitedFacts
@@ -2460,7 +2541,7 @@ Respond in JSON format:
           .map(r => r.snippet)
           .join(' ');
       }
-      
+
       const prompt = `You are an expert lead qualification analyst. Evaluate this lead using TIERED QUALIFICATION.
 
 LEAD PROFILE:
@@ -2508,11 +2589,9 @@ FACTOR 2 — titleRoleFit (0-15): How precisely does their actual title/role mat
 the ideal buyer persona? 15 = exact role match. 8-10 = adjacent/related role.
 0-4 = tenuous or unclear fit.
 
-FACTOR 3 — industryFit (0-10): 10 = exact target industry. 5-7 = adjacent
-industry, plausible use case. 0-2 = unrelated industry.
-
-FACTOR 4 — companySizeFit (0-5): 5 = squarely in target size range. 2-3 = near
-the edge of range. 0 = well outside target range or unknown.
+(Industry fit and company size fit are NOT scored by you — they're computed
+directly from Apollo's structured data against the campaign's target range/list,
+since that's a lookup, not a judgment call. Do not include those fields.)
 
 FACTOR 5 — timingSignal (0 or 10): Award 10 ONLY if research found a specific,
 cited timing signal (funding, hiring surge, leadership change, expansion,
@@ -2625,8 +2704,6 @@ Respond in JSON:
 {
   "mustHaveVerified": ["exact text of each mustHave criterion you actually verified"],
   "titleRoleFit": 0-15,
-  "industryFit": 0-10,
-  "companySizeFit": 0-5,
   "timingSignal": 0 or 10,
   "painSignal": 0 or 7,
   "initiativeSignal": 0 or 6,
@@ -2675,8 +2752,7 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
         : 18; // no mustHave configured — neutral credit, doesn't block QUALIFIED
 
       const titleRoleFit = Math.max(0, Math.min(15, Number(result.titleRoleFit) || 0));
-      const industryFit = Math.max(0, Math.min(10, Number(result.industryFit) || 0));
-      const companySizeFit = Math.max(0, Math.min(5, Number(result.companySizeFit) || 0));
+      // industryFit/companySizeFit are computed earlier from structured Apollo data, not model output
 
       const citedFactCount = Array.isArray(result.citedEvidence) ? result.citedEvidence.length : 0;
       const factCountPoints = citedFactCount >= 8 ? 20
@@ -2712,7 +2788,7 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
         mustHave: { points: mustHavePoints, max: 22, verified: result.mustHaveVerified || [], total: mustHaveTotal },
         titleRoleFit: { points: titleRoleFit, max: 15 },
         industryFit: { points: industryFit, max: 10 },
-        companySizeFit: { points: companySizeFit, max: 5 },
+        companySizeFit: { points: companySizeFit, max: 5, note: sizeMismatchNote },
         researchDepth: { points: factCountPoints, max: 20, citedFacts: citedFactCount },
         timingSignal: { points: timingSignal, max: 10, present: timingSignal > 0 },
         painSignal: { points: painSignal, max: 7, present: painSignal > 0 },
@@ -2723,7 +2799,10 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
         total: computedScore,
       };
 
-      console.log(`[QUALIFY SCORE] ${personName} @ ${companyName}: ${computedScore}/100 (mustHave=${mustHavePoints}/22 title=${titleRoleFit}/15 industry=${industryFit}/10 size=${companySizeFit}/5 facts=${factCountPoints}/20[${citedFactCount}] timing=${timingSignal} pain=${painSignal} initiative=${initiativeSignal} urgency=${urgencySignal}${disqualifierHit ? ' DISQUALIFIED' : ''}) -> ${computedTier}`);
+      const weaknesses = Array.isArray(result.weaknesses) ? [...result.weaknesses] : [];
+      if (sizeMismatchNote) weaknesses.push(sizeMismatchNote);
+
+      console.log(`[QUALIFY SCORE] ${personName} @ ${companyName}: ${computedScore}/100 (mustHave=${mustHavePoints}/22 title=${titleRoleFit}/15 industry=${industryFit}/10 size=${companySizeFit}/5${sizeMismatchNote ? ` [${sizeMismatchNote}]` : ''} facts=${factCountPoints}/20[${citedFactCount}] timing=${timingSignal} pain=${painSignal} initiative=${initiativeSignal} urgency=${urgencySignal}${disqualifierHit ? ' DISQUALIFIED' : ''}) -> ${computedTier}`);
 
       // Log API usage
       if (response.usage) {
@@ -2786,8 +2865,8 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
         // Full reasoning
         reasoning: result.reasoning,
         keyStrengths: result.keyStrengths || [],
-        weaknesses: result.weaknesses || [],
-        
+        weaknesses: weaknesses,
+
         // Metadata
         evaluatedAt: new Date().toISOString(),
         companyName: companyName,
@@ -2814,7 +2893,7 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
         result.reasoning || null,
         `Strategy: ${aiReport.emailStrategy}`,
         result.keyStrengths?.length > 0 ? `Strengths: ${result.keyStrengths.join(', ')}` : null,
-        result.weaknesses?.length > 0 ? `Concerns: ${result.weaknesses.join(', ')}` : null,
+        weaknesses.length > 0 ? `Concerns: ${weaknesses.join(', ')}` : null,
         `Evidence: ${aiReport.citedEvidence.length} cited facts from ${aiReport.totalSources} sources`
       ].filter(Boolean).join(' • ');
 
@@ -2830,14 +2909,11 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
           researchQuality: aiReport.researchQuality,
           reasoning: result.reasoning,
           strengths: result.keyStrengths,
-          weaknesses: result.weaknesses,
+          weaknesses: weaknesses,
           emailStrategy: aiReport.emailStrategy,
           citedEvidence: aiReport.citedEvidence.length
         }
       );
-      
-      if (result.weaknesses?.length > 0) {
-      }
       
       console.log('[QUALIFY] ── OUTPUT ──────────────────────────────────────');
       console.log(`[QUALIFY] tier: ${computedTier} | score: ${computedScore}/100 | qualified: ${computedTier !== 'REJECT'} | confidence: ${computedConfidence}`);
@@ -2853,7 +2929,7 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
         researchQuality: aiReport.researchQuality,
         requiresReview: computedTier === 'SHOTGUN' || computedConfidence === 'LOW',
         keyStrengths: result.keyStrengths || [],
-        weaknesses: result.weaknesses || [],
+        weaknesses: weaknesses,
         aiReport: aiReport // Include full AI report for email builder and UI
       };
 
@@ -5651,7 +5727,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
           try {
             const sourceResult = await activeSource.search(sourceParams, sourceApiKey);
             // Tag every lead with the source that found it
-            const taggedLeads = (sourceResult.leads || []).map(l => ({ ...l, _leadSource: activeSource.id }));
+            const taggedLeads = (sourceResult.leads || []).map(l => ({ ...l, _leadSource: activeSource.id, _searchKeyword: selectedKeyword, _searchPosition: targetPosition }));
             // Fall through to the shared deduplication + tracking logic below
             // by returning an enrichedLeads-compatible object
             return await this._processSearchResults(
@@ -5764,7 +5840,9 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
           country: lead.country,
           linkedin_url: lead.linkedin_url,
           has_email: true,
-          _leadSource: 'apollo' // Tag with source so all downstream code knows where this lead came from
+          _leadSource: 'apollo', // Tag with source so all downstream code knows where this lead came from
+          _searchKeyword: selectedKeyword,
+          _searchPosition: targetPosition
         }));
 
 
@@ -5814,8 +5892,8 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
           }
         });
         
-        const deduplicationResult = await this.awsManager.checkForDuplicateContacts(this.userId, enrichedLeads);
-        
+        const deduplicationResult = await this.awsManager.checkForDuplicateContacts(this.userId, enrichedLeads, { keyword: selectedKeyword, position: targetPosition });
+
         if (deduplicationResult.success) {
           let { newLeads, duplicateLeads, summary } = deduplicationResult;
 
@@ -6141,7 +6219,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       data: { phase: 'deduplication_start', totalLeads: enrichedLeads.length }
     });
 
-    const deduplicationResult = await this.awsManager.checkForDuplicateContacts(this.userId, enrichedLeads);
+    const deduplicationResult = await this.awsManager.checkForDuplicateContacts(this.userId, enrichedLeads, { keyword: selectedKeyword, position: targetPosition });
     if (!deduplicationResult.success) {
       return { found: enrichedLeads.length, leads: enrichedLeads, query: parameters.query, parameters };
     }
@@ -7478,10 +7556,13 @@ Target Positions:`;
           }
         });
         
-        const trackingResult = await this.awsManager.addContactedLead(this.userId, leadInfo);
-        
+        const trackingResult = await this.awsManager.addContactedLead(this.userId, leadInfo, {
+          keyword: leadData._searchKeyword,
+          position: leadData._searchPosition
+        });
+
         if (trackingResult.success) {
-          
+
           // Emit SSE success for contact tracking
           this.emit('progress', {
             id: this.generateUniqueId(),

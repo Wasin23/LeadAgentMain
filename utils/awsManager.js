@@ -1460,13 +1460,19 @@ class AWSManager {
    * @param {string} leadInfo.company - Lead's company name
    * @param {string} leadInfo.title - Lead's job title (optional)
    */
-  async addContactedLead(userId, leadInfo) {
+  async addContactedLead(userId, leadInfo, searchCombo = null) {
     try {
       console.log('📝 [AWS] Adding contacted lead:', leadInfo.name, 'at', leadInfo.company);
 
-      // Create a unique contact ID combining userId, name and company (user-specific deduplication)
-      const contactId = `${userId}_${leadInfo.name.toLowerCase().replace(/\s+/g, '_')}_${leadInfo.company.toLowerCase().replace(/\s+/g, '_')}`;
-      
+      // Scoped to the keyword+position combo that found this lead — mirrors the key
+      // built in checkForDuplicateContacts so the same lead can still be found again
+      // under a different search combo/campaign. Falls back to the unscoped key when
+      // no combo is given (e.g. CRM-sourced contacts, which aren't keyword-driven).
+      const comboSuffix = searchCombo?.keyword && searchCombo?.position
+        ? `_${searchCombo.keyword.toLowerCase().replace(/\s+/g, '_')}_${searchCombo.position.toLowerCase().replace(/\s+/g, '_')}`
+        : '';
+      const contactId = `${userId}_${leadInfo.name.toLowerCase().replace(/\s+/g, '_')}_${leadInfo.company.toLowerCase().replace(/\s+/g, '_')}${comboSuffix}`;
+
       const contactData = {
         contactKey: contactId, // Use contactKey as the primary key (includes userId)
         userId: userId,
@@ -1474,6 +1480,8 @@ class AWSManager {
         email: leadInfo.email.toLowerCase(),
         company: leadInfo.company,
         title: leadInfo.title || 'Unknown',
+        searchKeyword: searchCombo?.keyword || null,
+        searchPosition: searchCombo?.position || null,
         contactedAt: new Date().toISOString(),
         ttl: Math.floor(Date.now() / 1000) + (365 * 24 * 60 * 60) // Expire after 1 year
       };
@@ -1531,9 +1539,15 @@ class AWSManager {
    * Check if leads have already been contacted OR unsubscribed
    * @param {string} userId - User ID to check contacts for
    * @param {array} leads - Array of lead objects to check
+   * @param {object} [searchCombo] - { keyword, position } the search was run under.
+   *   The "already contacted" check is scoped to this combo (see addContactedLead) —
+   *   a person contacted via one keyword/position pairing can still surface for a
+   *   different campaign/search searching different terms, just not be re-matched
+   *   under the exact combo that already found them. Unsubscribe checks below are
+   *   NOT scoped — those stay permanent and account-wide regardless of search terms.
    * @returns {object} - Object with newLeads, duplicateLeads, and unsubscribedLeads arrays
    */
-  async checkForDuplicateContacts(userId, leads) {
+  async checkForDuplicateContacts(userId, leads, searchCombo = null) {
     try {
       console.log('🔍 [AWS] Checking', leads.length, 'leads for duplicates and unsubscribes...');
 
@@ -1581,10 +1595,15 @@ class AWSManager {
           }
         }
 
-        // STEP 2: Check if already contacted (user-level, not agent-specific)
-        // Use userId + name + company as unique identifier (ALL agents for this user share this list)
-        const contactId = `${userId}_${lead.name.toLowerCase().replace(/\s+/g, '_')}_${companyName.toLowerCase().replace(/\s+/g, '_')}`;
-        
+        // STEP 2: Check if already contacted under this same search combo (keyword+position).
+        // Scoped per combo so a contacted lead can still surface under a different
+        // campaign/search, just not get re-matched by the exact terms that already found
+        // them. Falls back to the unscoped key when no combo is given (e.g. manual adds).
+        const comboSuffix = searchCombo?.keyword && searchCombo?.position
+          ? `_${searchCombo.keyword.toLowerCase().replace(/\s+/g, '_')}_${searchCombo.position.toLowerCase().replace(/\s+/g, '_')}`
+          : '';
+        const contactId = `${userId}_${lead.name.toLowerCase().replace(/\s+/g, '_')}_${companyName.toLowerCase().replace(/\s+/g, '_')}${comboSuffix}`;
+
         const command = new GetCommand({
           TableName: this.tables.contactedLeads,
           Key: { 
