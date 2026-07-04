@@ -564,7 +564,23 @@ IMPORTANT RULES:
 - searchStrategy: Extract keywords FROM the campaign instructions about what prospects to find
 - qualificationCriteria: Based on campaign instructions, what makes a prospect qualified
 - emailMessaging: Use YOUR COMPANY CONTEXT to craft value props (not prospect's business)
-- Return ONLY valid JSON, no other text.`;
+- Return ONLY valid JSON, no other text.
+
+qualificationCriteria.mustHave RULES (important — this field is graded against real web
+research later, so how you phrase it determines whether it can ever be verified):
+- Do NOT restate industry, job title, or company size as mustHave items — those are already
+  scored separately from structured company/contact data. A mustHave that just re-describes
+  "the right kind of company/person" can never be confirmed from a scraped webpage, and will
+  score as unverified for every single lead regardless of quality — that's a scoring bug, not
+  a strict standard.
+- Only include items that are concrete and independently checkable from public research: a
+  specific product/technology they use, a specific business activity they perform, a specific
+  event or status (e.g. "recently raised funding", "operates multiple locations", "sells
+  direct to consumers"), or a specific stated need/pain point category.
+- If the campaign instructions don't give you anything concretely checkable beyond
+  industry/role/size, return an EMPTY mustHave array. That is the correct output in that case,
+  not a failure — it means qualification should rely on industry/role fit instead of a
+  can't-be-verified checklist.`;
 
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
@@ -1380,7 +1396,7 @@ IMPORTANT RULES:
         if (actionResult?.success) {
           if (actionResult.recommendation === 'SKIP') {
             // Pre-qualification failed — increment streak and maybe rotate keyword
-            console.log(`[SKIP] Pre-qualification failed (score: ${actionResult.score}/100), skipping lead`);
+            console.log(`[SKIP] Pre-qualification failed: ${actionResult.reason || 'no reason given'}`);
             this._rotateKeywordOnDisq();
             this.memory.currentCycle.currentLead = null;
             
@@ -2189,7 +2205,6 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
       if (!this.campaignPlan || !this.campaignPlan.qualificationCriteria) {
         return {
           success: true,
-          score: 70,
           recommendation: 'RESEARCH',
           reason: 'No specific criteria configured, proceeding to detailed qualification'
         };
@@ -2310,13 +2325,13 @@ Respond in JSON format:
         industryFit = exactMatch ? 25 : partialMatch ? 15 : 0;
       }
 
-      // ── DETERMINISTIC SCORE COMPUTATION ──────────────────────────────────
-      // Replaces the old single-holistic-score prompt (which clustered around
-      // ~70) plus a single flat -30 "no insights" penalty — the only real point
-      // adjustment that existed anywhere in qualification. Now: model-scored
-      // roleFit + hardcoded industry/size fit (from Apollo data) + a
-      // code-computed research-depth factor (real count, not self-reported),
-      // so scores actually vary lead to lead.
+      // ── ACCEPT/REJECT DECISION (no score surfaced) ─────────────────────────
+      // This is a cheap early filter, not the real qualification — qualifyLead
+      // does the actual scoring. Showing a number here just invited people to
+      // read it as "the" lead score when it's really 3 minor systems (model
+      // roleFit judgment + hardcoded industry/size lookups + a research-depth
+      // heuristic) voting on a plain accept/reject. So: combine them internally
+      // to make the call, but only ever return RESEARCH or SKIP + why.
       const totalWebpageInsights = researchData?.searches
         ?.flatMap(s => s.webpageInsights || [])
         ?.length || 0;
@@ -2327,20 +2342,20 @@ Respond in JSON format:
         : totalWebpageInsights >= 1 ? 12
         : 0;
 
-      let score = Math.max(0, Math.min(100, roleFit + industryFit + sizeFit + researchDepthPoints));
+      const compositeSignal = Math.max(0, Math.min(100, roleFit + industryFit + sizeFit + researchDepthPoints));
       const clearDisqualifier = raw.clearDisqualifier === true;
-      if (clearDisqualifier) score = Math.min(score, 15);
+      // Low bar on purpose — this stage should only catch clear disqualifiers or
+      // leads with essentially no signal on any axis. Everything else passes
+      // through to full qualification, which is where the real bar lives.
+      const NO_SIGNAL_THRESHOLD = 25;
+      const recommendation = (clearDisqualifier || compositeSignal < NO_SIGNAL_THRESHOLD) ? 'SKIP' : 'RESEARCH';
+      const skipReason = clearDisqualifier
+        ? (raw.reason || 'Disqualifying criterion confirmed present')
+        : recommendation === 'SKIP'
+          ? [raw.reason || 'No meaningful fit signal on role, industry, size, or research', preQualSizeMismatchNote].filter(Boolean).join(' ')
+          : [raw.reason || '', preQualSizeMismatchNote].filter(Boolean).join(' ');
 
-      const recommendation = clearDisqualifier ? 'SKIP' : 'RESEARCH';
-      const preQualReason = [raw.reason || '', preQualSizeMismatchNote].filter(Boolean).join(' ');
-      const result = {
-        score,
-        recommendation,
-        reason: preQualReason,
-        scoreBreakdown: { roleFit, industryFit, sizeFit, researchDepthPoints, webpageInsights: totalWebpageInsights, clearDisqualifier, sizeMismatchNote: preQualSizeMismatchNote },
-      };
-
-      console.log(`[PRE-QUALIFY SCORE] ${personName} @ ${companyName}: ${score}/100 (role=${roleFit}/30 industry=${industryFit}/25 size=${sizeFit}/15${preQualSizeMismatchNote ? ` [${preQualSizeMismatchNote}]` : ''} researchDepth=${researchDepthPoints}/30[${totalWebpageInsights} insights]${clearDisqualifier ? ' DISQUALIFIED' : ''})`);
+      console.log(`[PRE-QUALIFY] ${personName} @ ${companyName}: ${recommendation} (internal signal ${compositeSignal}/100 — role=${roleFit}/30 industry=${industryFit}/25 size=${sizeFit}/15${preQualSizeMismatchNote ? ` [${preQualSizeMismatchNote}]` : ''} researchDepth=${researchDepthPoints}/30[${totalWebpageInsights} insights]${clearDisqualifier ? ' DISQUALIFIED' : ''})`);
 
       // Log API usage
       if (response.usage) {
@@ -2354,8 +2369,7 @@ Respond in JSON format:
             model: 'gpt-4o-mini',
             prompt_tokens: response.usage.prompt_tokens,
             completion_tokens: response.usage.completion_tokens,
-            score: result.score,
-            recommendation: result.recommendation
+            recommendation
           }
         }).catch(err => console.error('Failed to log OpenAI usage:', err));
         // Accumulate for per-lead refund tracking
@@ -2363,66 +2377,23 @@ Respond in JSON format:
           this.memory.currentLeadCost += response.usage.total_tokens * this.awsManager.apiCosts.openaiMini;
         }
       }
-      
-      // Calculate confidence based on how well research answered our questions
-      let confidence = 'HIGH'; // Default
-      let criteriaVerified = 0;
-      let criteriaMissing = 0;
-      
-      // Check if we verified the must-have criteria with research
-      if (criteria.mustHave && criteria.mustHave.length > 0) {
-        const researchText = researchSummary.toLowerCase();
-        criteria.mustHave.forEach(requirement => {
-          const keywords = requirement.toLowerCase().split(' ').filter(w => w.length > 3);
-          const found = keywords.some(kw => researchText.includes(kw));
-          if (found) {
-            criteriaVerified++;
-          } else {
-            criteriaMissing++;
-          }
-        });
-        
-        // Calculate confidence
-        const verificationRate = criteriaVerified / criteria.mustHave.length;
-        if (verificationRate >= 0.8) {
-          confidence = 'HIGH';
-        } else if (verificationRate >= 0.5) {
-          confidence = 'MEDIUM';
-        } else {
-          confidence = 'LOW';
-        }
-      }
-      
-      // Emit activity log
-      const emoji = result.recommendation === 'SKIP' ? '❌' : '✅';
-      const confidenceEmoji = confidence === 'HIGH' ? '🟢' : confidence === 'MEDIUM' ? '🟡' : '🔴';
-      
-      this.logOperation('Lead Qualification', 
-        `Pre-screen: ${personName} at ${companyName} — ${result.recommendation === 'SKIP' ? 'Skipped' : 'Passed'} (${result.score}/100) - ${result.reason}`, 
-        result.recommendation === 'SKIP' ? 'warning' : (confidence === 'LOW' ? 'warning' : 'completed'),
-        { 
-          score: result.score,
-          tier: result.recommendation === 'SKIP' ? 'SKIP' : 'PASS',
+
+      this.logOperation('Lead Qualification',
+        `Pre-screen: ${personName} at ${companyName} — ${recommendation === 'SKIP' ? 'Skipped' : 'Passed'} — ${skipReason}`,
+        recommendation === 'SKIP' ? 'warning' : 'completed',
+        {
+          recommendation,
           company: companyName,
-          confidence: confidence,
-          reasoning: result.reason,
-          criteriaVerified: criteriaVerified,
-          criteriaMissing: criteriaMissing
+          reasoning: skipReason
         }
       );
-      
-      
+
       console.log('[PRE-QUALIFY] ── OUTPUT ─────────────────────────────────');
-      console.log(`[PRE-QUALIFY] score: ${result.score}/100 | recommendation: ${result.recommendation} | reason: ${result.reason}`);
+      console.log(`[PRE-QUALIFY] recommendation: ${recommendation} | reason: ${skipReason}`);
       return {
         success: true,
-        score: result.score,
-        scoreBreakdown: result.scoreBreakdown,
-        recommendation: result.recommendation,
-        reason: result.reason,
-        confidence: confidence,
-        criteriaVerified: criteriaVerified,
-        criteriaMissing: criteriaMissing
+        recommendation,
+        reason: skipReason
       };
 
     } catch (error) {
@@ -2430,7 +2401,6 @@ Respond in JSON format:
       // On error, don't block the lead - proceed with research
       return {
         success: true,
-        score: 50,
         recommendation: 'RESEARCH',
         reason: 'Pre-qualification error, proceeding with research'
       };
@@ -2581,9 +2551,17 @@ inflate another. It is normal and expected for factors to disagree (e.g.
 strong title fit but zero timing signal).
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-FACTOR 1 — mustHaveMatch (max 22 pts): For each mustHave criterion, mark it
-verified only if research or profile data actually confirms it — not "plausible."
-Report the list of which specific criteria you verified.
+FACTOR 1 — mustHaveMatch (max 22 pts): For EACH mustHave criterion, classify it into
+exactly one of these four states — do not just say verified/not-verified:
+- "confirmed" — research or profile data explicitly states this is true.
+- "likely" — no explicit statement, but everything you found is consistent with it
+  being true and nothing contradicts it (absence of evidence is not evidence of
+  absence — most companies don't narrate every fact about themselves online).
+- "unknown" — genuinely no signal either way; you can't reasonably guess.
+- "contradicted" — research or profile data actively indicates this is FALSE.
+Report one entry per mustHave criterion with its exact text and the state you assigned.
+Most real leads will land mostly on "likely"/"unknown", not "confirmed" — that's expected,
+not a sign you're being too generous.
 
 FACTOR 2 — titleRoleFit (0-15): How precisely does their actual title/role match
 the ideal buyer persona? 15 = exact role match. 8-10 = adjacent/related role.
@@ -2696,13 +2674,15 @@ BAD BUYER MOTIVATIONS:
 "They use legacy systems." (Not tied to current urgency)
 
 IF YOU CANNOT ARTICULATE A SPECIFIC, EVIDENCE-BASED BUYER MOTIVATION:
-→ If they MEET the mustHave criteria (right title/industry/size) → still QUALIFIED, just note "no specific timing signal found"
-→ If they DO NOT meet mustHave criteria AND you can't find buyer motivation → SHOTGUN or REJECT
+→ If mustHave criteria are mostly "confirmed"/"likely" (right title/industry/size) → still QUALIFIED, just note "no specific timing signal found"
+→ If mustHave criteria are mostly "contradicted" AND you can't find buyer motivation → SHOTGUN or REJECT
 → Inability to find timing signals online is NOT the same as "no motivation exists" — QUALIFIED leads get emailed anyway
 
 Respond in JSON:
 {
-  "mustHaveVerified": ["exact text of each mustHave criterion you actually verified"],
+  "mustHaveStatus": [
+    {"criterion": "exact text of the mustHave criterion", "status": "confirmed" | "likely" | "unknown" | "contradicted"}
+  ],
   "titleRoleFit": 0-15,
   "timingSignal": 0 or 10,
   "painSignal": 0 or 7,
@@ -2745,10 +2725,28 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
       // arithmetic to do. citedEvidence.length (factCount) is pulled from the
       // model's own evidence array rather than self-reported, since that's the
       // one factor we can verify against real output instead of trusting a claim.
-      const mustHaveTotal = criteria.mustHave?.length || 0;
-      const mustHaveVerifiedCount = Array.isArray(result.mustHaveVerified) ? result.mustHaveVerified.length : 0;
+      // mustHave is graded per-criterion on a 4-state confidence scale rather than
+      // binary verified/not — "confirmed" requires explicit evidence, but "likely"
+      // (consistent with everything found, nothing contradicts it) still earns most
+      // of the credit. Absence of evidence isn't evidence of absence; only a
+      // "contradicted" criterion should actually cost points.
+      const MUST_HAVE_STATUS_WEIGHT = { confirmed: 1, likely: 0.75, unknown: 0.4, contradicted: 0 };
+      const mustHaveCriteriaList = criteria.mustHave || [];
+      const mustHaveTotal = mustHaveCriteriaList.length;
+      const mustHaveStatuses = Array.isArray(result.mustHaveStatus) ? result.mustHaveStatus : [];
+      // Match each configured criterion to the model's reported status by text (not by
+      // array position/length) — a criterion the model forgot to report defaults to
+      // "unknown" rather than 0, since a missed report isn't evidence of contradiction.
+      const mustHaveResolved = mustHaveCriteriaList.map(c => {
+        const norm = c.toLowerCase().trim();
+        const match = mustHaveStatuses.find(entry => entry?.criterion?.toLowerCase().trim() === norm);
+        return { criterion: c, status: match?.status || 'unknown' };
+      });
       const mustHavePoints = mustHaveTotal > 0
-        ? Math.round((Math.min(mustHaveVerifiedCount, mustHaveTotal) / mustHaveTotal) * 22)
+        ? Math.round(
+            (mustHaveResolved.reduce((sum, entry) => sum + (MUST_HAVE_STATUS_WEIGHT[entry.status] ?? 0.4), 0)
+              / mustHaveTotal) * 22
+          )
         : 18; // no mustHave configured — neutral credit, doesn't block QUALIFIED
 
       const titleRoleFit = Math.max(0, Math.min(15, Number(result.titleRoleFit) || 0));
@@ -2785,7 +2783,7 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
         : 'LOW';
 
       const scoreBreakdown = {
-        mustHave: { points: mustHavePoints, max: 22, verified: result.mustHaveVerified || [], total: mustHaveTotal },
+        mustHave: { points: mustHavePoints, max: 22, statuses: mustHaveResolved, total: mustHaveTotal },
         titleRoleFit: { points: titleRoleFit, max: 15 },
         industryFit: { points: industryFit, max: 10 },
         companySizeFit: { points: companySizeFit, max: 5, note: sizeMismatchNote },
@@ -2802,7 +2800,8 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
       const weaknesses = Array.isArray(result.weaknesses) ? [...result.weaknesses] : [];
       if (sizeMismatchNote) weaknesses.push(sizeMismatchNote);
 
-      console.log(`[QUALIFY SCORE] ${personName} @ ${companyName}: ${computedScore}/100 (mustHave=${mustHavePoints}/22 title=${titleRoleFit}/15 industry=${industryFit}/10 size=${companySizeFit}/5${sizeMismatchNote ? ` [${sizeMismatchNote}]` : ''} facts=${factCountPoints}/20[${citedFactCount}] timing=${timingSignal} pain=${painSignal} initiative=${initiativeSignal} urgency=${urgencySignal}${disqualifierHit ? ' DISQUALIFIED' : ''}) -> ${computedTier}`);
+      const mustHaveSummary = mustHaveResolved.map(e => `${e.criterion}:${e.status}`).join(', ');
+      console.log(`[QUALIFY SCORE] ${personName} @ ${companyName}: ${computedScore}/100 (mustHave=${mustHavePoints}/22[${mustHaveSummary}] title=${titleRoleFit}/15 industry=${industryFit}/10 size=${companySizeFit}/5${sizeMismatchNote ? ` [${sizeMismatchNote}]` : ''} facts=${factCountPoints}/20[${citedFactCount}] timing=${timingSignal} pain=${painSignal} initiative=${initiativeSignal} urgency=${urgencySignal}${disqualifierHit ? ' DISQUALIFIED' : ''}) -> ${computedTier}`);
 
       // Log API usage
       if (response.usage) {
