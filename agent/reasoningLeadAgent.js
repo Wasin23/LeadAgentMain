@@ -2241,18 +2241,24 @@ ${criteria.disqualifiers?.map(d => `- ${d}`).join('\n') || '- None specified'}
 
 IMPORTANT: Even if you cannot find evidence of the must-have criteria, the lead may still be worth pursuing. Absence of evidence is not evidence of absence. Only recommend SKIP if you find clear disqualifiers or the company is completely unrelated to the target criteria.
 
-Give a score 0-100:
-- 80-100: Strong evidence of criteria match
-- 50-79: Limited evidence but good fit (e.g., right industry, position, size)
-- 20-49: Weak fit, missing key evidence but not disqualified
-- 0-19: Clear disqualifier or completely wrong target
+SCORING — score independent sub-factors on their own merits. Do not pick a
+final score yourself; it is computed from your factors.
 
-Recommend RESEARCH unless score < 20 (clear disqualifier found).
+- roleFit (0-30): how well their title matches the target role. 30 = exact match, 15 = adjacent role, 0 = unrelated.
+- industryFit (0-25): 25 = exact target industry, 12 = adjacent/plausible, 0 = unrelated.
+- sizeFit (0-15): 15 = squarely in target company-size range, 5 = near the edge, 0 = well outside or unknown.
+- clearDisqualifier (true/false): true only if a specific disqualifier from the list is actually confirmed present.
+
+Recommend SKIP only if clearDisqualifier is true. Otherwise RESEARCH — this is a
+cheap early filter, not the final qualification; weak evidence should still pass
+through to full research rather than being skipped here.
 
 Respond in JSON format:
 {
-  "score": 0-100,
-  "recommendation": "SKIP" or "RESEARCH",
+  "roleFit": 0-30,
+  "industryFit": 0-25,
+  "sizeFit": 0-15,
+  "clearDisqualifier": true/false,
   "reason": "brief explanation"
 }`;
 
@@ -2264,20 +2270,40 @@ Respond in JSON format:
         temperature: 0.3
       });
 
-      let result = JSON.parse(response.choices[0].message.content);
-      
-      // Penalize score if 0 insights were extracted (webpage fetch/analysis failures)
+      const raw = JSON.parse(response.choices[0].message.content);
+
+      // ── DETERMINISTIC SCORE COMPUTATION ──────────────────────────────────
+      // Replaces the old single-holistic-score prompt (which clustered around
+      // ~70) plus a single flat -30 "no insights" penalty — the only real point
+      // adjustment that existed anywhere in qualification. Now: 3 model-scored
+      // factors + 1 code-computed research-depth factor (real count, not
+      // self-reported), so scores actually vary lead to lead.
       const totalWebpageInsights = researchData?.searches
         ?.flatMap(s => s.webpageInsights || [])
         ?.length || 0;
-      
-      if (totalWebpageInsights === 0) {
-        const penalty = 30;
-        const originalScore = result.score;
-        result.score = Math.max(0, result.score - penalty);
-        result.reason += ` (Note: Limited research data available - ${penalty} point penalty applied)`;
-      }
-      
+
+      const roleFit = Math.max(0, Math.min(30, Number(raw.roleFit) || 0));
+      const industryFit = Math.max(0, Math.min(25, Number(raw.industryFit) || 0));
+      const sizeFit = Math.max(0, Math.min(15, Number(raw.sizeFit) || 0));
+      const researchDepthPoints = totalWebpageInsights >= 5 ? 30
+        : totalWebpageInsights >= 3 ? 22
+        : totalWebpageInsights >= 1 ? 12
+        : 0;
+
+      let score = Math.max(0, Math.min(100, roleFit + industryFit + sizeFit + researchDepthPoints));
+      const clearDisqualifier = raw.clearDisqualifier === true;
+      if (clearDisqualifier) score = Math.min(score, 15);
+
+      const recommendation = clearDisqualifier ? 'SKIP' : 'RESEARCH';
+      const result = {
+        score,
+        recommendation,
+        reason: raw.reason || '',
+        scoreBreakdown: { roleFit, industryFit, sizeFit, researchDepthPoints, webpageInsights: totalWebpageInsights, clearDisqualifier },
+      };
+
+      console.log(`[PRE-QUALIFY SCORE] ${personName} @ ${companyName}: ${score}/100 (role=${roleFit}/30 industry=${industryFit}/25 size=${sizeFit}/15 researchDepth=${researchDepthPoints}/30[${totalWebpageInsights} insights]${clearDisqualifier ? ' DISQUALIFIED' : ''})`);
+
       // Log API usage
       if (response.usage) {
         await this.awsManager.logApiUsage({
@@ -2353,6 +2379,7 @@ Respond in JSON format:
       return {
         success: true,
         score: result.score,
+        scoreBreakdown: result.scoreBreakdown,
         recommendation: result.recommendation,
         reason: result.reason,
         confidence: confidence,
@@ -2465,56 +2492,55 @@ Must Have (required): ${criteria.mustHave?.join(', ') || 'None'}
 Nice to Have (bonus points): ${criteria.niceToHave?.join(', ') || 'None'}
 Disqualifiers (instant reject): ${criteria.disqualifiers?.join(', ') || 'None'}
 
-TIERED EVALUATION SYSTEM:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SCORING — you do NOT pick a final score or tier. You score independent
+sub-factors; the platform sums them and derives the tier deterministically.
+Score each factor on its own merits — do not let one factor's strength
+inflate another. It is normal and expected for factors to disagree (e.g.
+strong title fit but zero timing signal).
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-TIER 1: HIGHLY_QUALIFIED (Score 80-100)
-- Confirmed criteria match PLUS strong, specific buyer motivation with urgency/timeline
-- All must-have criteria verified with research evidence
-- Multiple specific facts from research confirm fit (5+ facts)
-- Clear reason WHY they would buy NOW (funding, job posts, initiative, leadership change, etc.)
-- Ready for deeply personalized email with cited research
-- Example: Independent hotel owner, 50 rooms, uses legacy PMS, just posted about seeking upgrade solutions, budget allocated Q1 2026
+FACTOR 1 — mustHaveMatch (max 22 pts): For each mustHave criterion, mark it
+verified only if research or profile data actually confirms it — not "plausible."
+Report the list of which specific criteria you verified.
 
-TIER 2: QUALIFIED (Score 60-79)
-TWO paths to QUALIFIED:
-  PATH A — Research-confirmed: Decent buyer motivation with some evidence + most must-have criteria met (2-4 facts)
-  PATH B — Criteria-confirmed: Right title + right industry + right company size + no disqualifiers, even if research found no specific timing signal. The absence of a buying signal is NOT a disqualifier.
-- Ready for moderate personalization (use what research found, even if limited)
-- Example: CTO at a mid-size SaaS company in the right industry, meets all mustHave, research found general company info but no specific initiative
+FACTOR 2 — titleRoleFit (0-15): How precisely does their actual title/role match
+the ideal buyer persona? 15 = exact role match. 8-10 = adjacent/related role.
+0-4 = tenuous or unclear fit.
 
-TIER 3: SHOTGUN (Score 40-59)
-TWO paths to SHOTGUN:
-  PATH A — Speculative fit: neighboring/adjacent industry, plausible but not confirmed use case, title only partially matches mustHave
-  PATH B — Criteria met but research returned nothing useful: right title + right industry BUT research found 0-1 real facts (company is too small, no web presence, no verifiable info). Criteria alone without any research substance = SHOTGUN.
-- Send generic template
-- Example: Director at a company that SHOULD be a good fit but research returned only LinkedIn and a homepage with no substance
+FACTOR 3 — industryFit (0-10): 10 = exact target industry. 5-7 = adjacent
+industry, plausible use case. 0-2 = unrelated industry.
 
-TIER 4: REJECT (Score 0-39)
-- Hard disqualifier found (meets disqualifiers list) OR
-- Completely wrong industry/role with zero plausible use case OR
-- Research confirms they explicitly do not need this product
-- Do NOT send email
-- Example: Chain hotel employee (when targeting independent owners), government agency (when targeting SaaS companies)
+FACTOR 4 — companySizeFit (0-5): 5 = squarely in target size range. 2-3 = near
+the edge of range. 0 = well outside target range or unknown.
 
-YOUR TASK:
-1. Check for disqualifiers FIRST (instant REJECT if found)
-2. Check mustHave criteria — criteria match is REQUIRED for QUALIFIED or above; without it you cannot exceed SHOTGUN
-3. Assess research quality — count how many real, cited facts you have about this specific company/person
-4. Assign tier using the HOW CRITERIA AND RESEARCH INTERACT rules above: criteria + 2+ facts = QUALIFIED, criteria + strong signal + 5+ facts = HIGHLY_QUALIFIED, criteria + 0-1 facts = SHOTGUN
+FACTOR 5 — timingSignal (0 or 10): Award 10 ONLY if research found a specific,
+cited timing signal (funding, hiring surge, leadership change, expansion,
+fiscal timing). Otherwise 0. Do not award partial credit for "might have timing."
 
-🎯 HOW CRITERIA AND RESEARCH INTERACT:
-- Confirmed mustHave criteria + 2+ research facts about this company → QUALIFIED (60-79)
-- Confirmed mustHave criteria + strong timing signal + 5+ cited facts → HIGHLY_QUALIFIED (80+)
-- Confirmed mustHave criteria + 0-1 research facts (no web presence / nothing useful found) → SHOTGUN (40-59)
-- Speculative/adjacent fit regardless of research → SHOTGUN (40-59)
-- Hard disqualifier OR completely wrong industry → REJECT (≤35)
+FACTOR 6 — painSignal (0 or 7): Award 7 ONLY if research found a specific,
+cited pain point or challenge this person/company is dealing with. Otherwise 0.
 
-Research quality is the tiebreaker between SHOTGUN and QUALIFIED when criteria are confirmed. If you could not find meaningful information about this person or company, that is a real limitation — assign SHOTGUN.
+FACTOR 7 — initiativeSignal (0 or 6): Award 6 ONLY if research found evidence
+they are already actively looking at solutions in this space (RFP, project
+announcement, relevant job posting, procurement page). Otherwise 0.
 
-CONFIDENCE LEVEL LOGIC:
-- HIGH confidence: Strong buyer motivation + 5+ cited facts + clear urgency/timeline → HIGHLY_QUALIFIED
-- MEDIUM confidence: Criteria confirmed (title/industry/size) + 2-4 cited facts OR decent motivation even without timing signal → QUALIFIED
-- LOW confidence: Speculative/adjacent fit, limited evidence, mustHave unverifiable → SHOTGUN
+FACTOR 8 — urgencySignal (0 or 5): Award 5 ONLY if research found a specific
+reason this is time-sensitive (deadline, competitive pressure, compliance
+pressure). Otherwise 0.
+
+disqualifierHit: true if any disqualifier from the list is confirmed present —
+this overrides the computed score down to REJECT range regardless of other factors.
+
+Factors 5-8 require a REAL cited fact, not inference. If research found nothing
+on a given signal, score it 0 — do not round up to "probably." Leads with zero
+timing/pain/initiative/urgency signals but strong criteria match should still
+land in QUALIFIED territory on criteria + fact-count alone; that is by design
+(absence of a buying signal is not a disqualifier).
+
+TIER BANDS (computed from your factor scores, for your own calibration only —
+do not output a tier or score field):
+80-100 HIGHLY_QUALIFIED · 60-79 QUALIFIED · 40-59 SHOTGUN · 0-39 REJECT
 
 REASONING REQUIREMENTS:
 - Be SPECIFIC: Reference actual facts found in research (names, numbers, technologies, initiatives)
@@ -2597,18 +2623,23 @@ IF YOU CANNOT ARTICULATE A SPECIFIC, EVIDENCE-BASED BUYER MOTIVATION:
 
 Respond in JSON:
 {
-  "tier": "HIGHLY_QUALIFIED" | "QUALIFIED" | "SHOTGUN" | "REJECT",
-  "score": 0-100,
-  "qualified": true/false (false only if REJECT),
+  "mustHaveVerified": ["exact text of each mustHave criterion you actually verified"],
+  "titleRoleFit": 0-15,
+  "industryFit": 0-10,
+  "companySizeFit": 0-5,
+  "timingSignal": 0 or 10,
+  "painSignal": 0 or 7,
+  "initiativeSignal": 0 or 6,
+  "urgencySignal": 0 or 5,
+  "disqualifierHit": true/false,
+  "disqualifierReason": "which disqualifier matched, or empty string",
   "reasoning": "detailed explanation with specific facts, numbers, and evidence (3-5 sentences minimum)",
   "buyerMotivation": "specific, evidence-based explanation of WHY this person would buy from us RIGHT NOW (required - 2-4 sentences with concrete reasoning)",
   "keyStrengths": ["specific strength with actual evidence/data"],
   "weaknesses": ["specific concerns with reasoning"],
-  "confidence": "HIGH" | "MEDIUM" | "LOW",
   "citedEvidence": [
     {"fact": "specific fact from research", "source": "source title or domain", "supportsMatch": true/false}
   ],
-  "emailStrategy": "deep personalization" | "moderate personalization" | "generic template" | "do not send",
   "emailHooks": [
     "Specific, concrete fact from research that could open an email — e.g. 'Baanyan is actively hiring across 3 new verticals and posted 12 engineering roles in January'",
     "A second specific hook — a tension, milestone, or problem derived from the research",
@@ -2628,9 +2659,72 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
       });
 
       const result = JSON.parse(response.choices[0].message.content);
-      
-      // Log tier assignment
-      
+
+      // ── DETERMINISTIC SCORE COMPUTATION ──────────────────────────────────
+      // The model no longer picks a final score or tier — it scores 8 independent
+      // sub-factors, and the score is a genuine sum computed here. This replaces
+      // the old "pick a tier, then eyeball a number in that tier's range" flow,
+      // which clustered nearly all leads at 45/65/85 since the model had no real
+      // arithmetic to do. citedEvidence.length (factCount) is pulled from the
+      // model's own evidence array rather than self-reported, since that's the
+      // one factor we can verify against real output instead of trusting a claim.
+      const mustHaveTotal = criteria.mustHave?.length || 0;
+      const mustHaveVerifiedCount = Array.isArray(result.mustHaveVerified) ? result.mustHaveVerified.length : 0;
+      const mustHavePoints = mustHaveTotal > 0
+        ? Math.round((Math.min(mustHaveVerifiedCount, mustHaveTotal) / mustHaveTotal) * 22)
+        : 18; // no mustHave configured — neutral credit, doesn't block QUALIFIED
+
+      const titleRoleFit = Math.max(0, Math.min(15, Number(result.titleRoleFit) || 0));
+      const industryFit = Math.max(0, Math.min(10, Number(result.industryFit) || 0));
+      const companySizeFit = Math.max(0, Math.min(5, Number(result.companySizeFit) || 0));
+
+      const citedFactCount = Array.isArray(result.citedEvidence) ? result.citedEvidence.length : 0;
+      const factCountPoints = citedFactCount >= 8 ? 20
+        : citedFactCount >= 5 ? 17
+        : citedFactCount >= 3 ? 12
+        : citedFactCount >= 1 ? 6
+        : 0;
+
+      const timingSignal = Number(result.timingSignal) > 0 ? 10 : 0;
+      const painSignal = Number(result.painSignal) > 0 ? 7 : 0;
+      const initiativeSignal = Number(result.initiativeSignal) > 0 ? 6 : 0;
+      const urgencySignal = Number(result.urgencySignal) > 0 ? 5 : 0;
+
+      let computedScore = mustHavePoints + titleRoleFit + industryFit + companySizeFit
+        + factCountPoints + timingSignal + painSignal + initiativeSignal + urgencySignal;
+      computedScore = Math.max(0, Math.min(100, Math.round(computedScore)));
+
+      const disqualifierHit = result.disqualifierHit === true;
+      if (disqualifierHit) {
+        computedScore = Math.min(computedScore, 30);
+      }
+
+      const computedTier = computedScore >= 80 ? 'HIGHLY_QUALIFIED'
+        : computedScore >= 60 ? 'QUALIFIED'
+        : computedScore >= 40 ? 'SHOTGUN'
+        : 'REJECT';
+
+      const computedConfidence = computedScore >= 80 ? 'HIGH'
+        : computedScore >= 55 ? 'MEDIUM'
+        : 'LOW';
+
+      const scoreBreakdown = {
+        mustHave: { points: mustHavePoints, max: 22, verified: result.mustHaveVerified || [], total: mustHaveTotal },
+        titleRoleFit: { points: titleRoleFit, max: 15 },
+        industryFit: { points: industryFit, max: 10 },
+        companySizeFit: { points: companySizeFit, max: 5 },
+        researchDepth: { points: factCountPoints, max: 20, citedFacts: citedFactCount },
+        timingSignal: { points: timingSignal, max: 10, present: timingSignal > 0 },
+        painSignal: { points: painSignal, max: 7, present: painSignal > 0 },
+        initiativeSignal: { points: initiativeSignal, max: 6, present: initiativeSignal > 0 },
+        urgencySignal: { points: urgencySignal, max: 5, present: urgencySignal > 0 },
+        disqualifierHit,
+        disqualifierReason: result.disqualifierReason || null,
+        total: computedScore,
+      };
+
+      console.log(`[QUALIFY SCORE] ${personName} @ ${companyName}: ${computedScore}/100 (mustHave=${mustHavePoints}/22 title=${titleRoleFit}/15 industry=${industryFit}/10 size=${companySizeFit}/5 facts=${factCountPoints}/20[${citedFactCount}] timing=${timingSignal} pain=${painSignal} initiative=${initiativeSignal} urgency=${urgencySignal}${disqualifierHit ? ' DISQUALIFIED' : ''}) -> ${computedTier}`);
+
       // Log API usage
       if (response.usage) {
         await this.awsManager.logApiUsage({
@@ -2643,9 +2737,9 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
             model: 'gpt-4o-mini',
             prompt_tokens: response.usage.prompt_tokens,
             completion_tokens: response.usage.completion_tokens,
-            score: result.score,
-            tier: result.tier,
-            qualified: result.qualified
+            score: computedScore,
+            tier: computedTier,
+            qualified: computedTier !== 'REJECT'
           }
         }).catch(err => console.error('Failed to log OpenAI usage:', err));
         // Accumulate for per-lead refund tracking
@@ -2653,25 +2747,31 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
           this.memory.currentLeadCost += response.usage.total_tokens * this.awsManager.apiCosts.openaiMini;
         }
       }
-      
+
       // Build comprehensive AI Report
       const aiReport = {
-        tier: result.tier || 'UNKNOWN',
-        score: result.score || 0,
-        confidence: result.confidence || 'UNKNOWN',
-        qualified: result.qualified !== false,
-        
+        tier: computedTier,
+        score: computedScore,
+        scoreBreakdown,
+        confidence: computedConfidence,
+        qualified: computedTier !== 'REJECT',
+
         // Tier description for UI
         tierDescription: {
           'HIGHLY_QUALIFIED': 'Perfect match - Deep personalization with verified facts',
           'QUALIFIED': 'Good match - Moderate personalization',
           'SHOTGUN': 'Generic match - Template email only',
           'REJECT': 'Not a fit - Do not send'
-        }[result.tier] || 'Unknown tier',
-        
+        }[computedTier] || 'Unknown tier',
+
         // Email strategy guidance
-        emailStrategy: result.emailStrategy || 'generic template',
-        
+        emailStrategy: {
+          'HIGHLY_QUALIFIED': 'deep personalization',
+          'QUALIFIED': 'moderate personalization',
+          'SHOTGUN': 'generic template',
+          'REJECT': 'do not send'
+        }[computedTier],
+
         // Buyer-side motivation (CRITICAL for email generation)
         buyerMotivation: result.buyerMotivation || 'Not articulated',
         emailHooks: result.emailHooks || [],
@@ -2705,32 +2805,33 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
         'SHOTGUN': '🎯',
         'REJECT': '❌'
       };
-      const emoji = tierEmojis[result.tier] || '❓';
-      const confidenceEmoji = result.confidence === 'HIGH' ? '🟢' : result.confidence === 'MEDIUM' ? '🟡' : '🔴';
-      
+      const emoji = tierEmojis[computedTier] || '❓';
+      const confidenceEmoji = computedConfidence === 'HIGH' ? '🟢' : computedConfidence === 'MEDIUM' ? '🟡' : '🔴';
+
       // Build detailed summary with AI's full reasoning
       const detailsSummary = [
-        `Tier: ${result.tier} (${result.score}/100) — ${result.confidence} confidence`,
+        `Tier: ${computedTier} (${computedScore}/100) — ${computedConfidence} confidence`,
         result.reasoning || null,
-        `Strategy: ${result.emailStrategy}`,
+        `Strategy: ${aiReport.emailStrategy}`,
         result.keyStrengths?.length > 0 ? `Strengths: ${result.keyStrengths.join(', ')}` : null,
         result.weaknesses?.length > 0 ? `Concerns: ${result.weaknesses.join(', ')}` : null,
         `Evidence: ${aiReport.citedEvidence.length} cited facts from ${aiReport.totalSources} sources`
       ].filter(Boolean).join(' • ');
-      
-      this.logOperation('Lead Qualification', 
-        `${personName} at ${companyName} — ${detailsSummary}`, 
-        result.qualified ? 'completed' : 'warning',
-        { 
-          tier: result.tier,
-          score: result.score,
+
+      this.logOperation('Lead Qualification',
+        `${personName} at ${companyName} — ${detailsSummary}`,
+        computedTier !== 'REJECT' ? 'completed' : 'warning',
+        {
+          tier: computedTier,
+          score: computedScore,
+          scoreBreakdown,
           company: companyName,
-          confidence: result.confidence,
+          confidence: computedConfidence,
           researchQuality: aiReport.researchQuality,
           reasoning: result.reasoning,
           strengths: result.keyStrengths,
           weaknesses: result.weaknesses,
-          emailStrategy: result.emailStrategy,
+          emailStrategy: aiReport.emailStrategy,
           citedEvidence: aiReport.citedEvidence.length
         }
       );
@@ -2739,17 +2840,18 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
       }
       
       console.log('[QUALIFY] ── OUTPUT ──────────────────────────────────────');
-      console.log(`[QUALIFY] tier: ${result.tier} | score: ${result.score}/100 | qualified: ${result.tier !== 'REJECT'} | confidence: ${result.confidence}`);
+      console.log(`[QUALIFY] tier: ${computedTier} | score: ${computedScore}/100 | qualified: ${computedTier !== 'REJECT'} | confidence: ${computedConfidence}`);
       console.log(`[QUALIFY] citedEvidence: ${aiReport.citedEvidence.length} | researchQuality: ${aiReport.researchQuality} | reasoning: ${result.reasoning?.substring(0, 120)}`);
       return {
         success: true,
-        qualified: result.tier !== 'REJECT', // derive from tier — don't trust GPT's boolean
-        tier: result.tier,
-        score: result.score,
+        qualified: computedTier !== 'REJECT',
+        tier: computedTier,
+        score: computedScore,
+        scoreBreakdown,
         reasoning: result.reasoning,
-        confidence: result.confidence,
+        confidence: computedConfidence,
         researchQuality: aiReport.researchQuality,
-        requiresReview: result.tier === 'SHOTGUN' || result.confidence === 'LOW',
+        requiresReview: computedTier === 'SHOTGUN' || computedConfidence === 'LOW',
         keyStrengths: result.keyStrengths || [],
         weaknesses: result.weaknesses || [],
         aiReport: aiReport // Include full AI report for email builder and UI
