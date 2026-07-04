@@ -72,39 +72,48 @@ class AWSManager {
         maxStarredLeads: 3,
         description: 'Try Meridian with 250 free credits'
       },
-      // current plan names
+      // current plan names — leadAllowance/emailAllowance are marketing-facing counts
+      // (1 fully-researched lead = 1 initial email + 3 follow-ups = 4 sends).
+      // Backed by initialCredits, which already covers the allowance with headroom
+      // left over for chat, extra research, and other credit-metered features.
       'solo': {
         name: 'Solo',
-        initialCredits: 1100,
+        initialCredits: 750,
         maxCredits: 10000,
         canPurchaseMore: true,
         creditPackages: [1000, 2000, 5000],
         maxAgents: 2,
         maxConcurrency: 4,
         maxStarredLeads: 20,
-        description: 'For solo outreach'
+        leadAllowance: 750,
+        emailAllowance: 3000, // 750 leads x (1 main + 3 follow-ups)
+        description: '750 fully researched & tracked leads, 3,000 emails'
       },
       'team': {
         name: 'Team',
-        initialCredits: 2800,
+        initialCredits: 2100,
         maxCredits: 30000,
         canPurchaseMore: true,
         creditPackages: [1000, 5000, 10000],
         maxAgents: 6,
         maxConcurrency: 8,
         maxStarredLeads: 50,
-        description: 'For small teams'
+        leadAllowance: 2000,
+        emailAllowance: 8000, // 2000 leads x (1 main + 3 follow-ups)
+        description: '2,000 fully researched & tracked leads, 8,000 emails'
       },
       'agency': {
         name: 'Agency',
-        initialCredits: 5500,
+        initialCredits: 4200,
         maxCredits: 80000,
         canPurchaseMore: true,
         creditPackages: [5000, 10000, 20000],
         maxAgents: 15,
         maxConcurrency: 12,
         maxStarredLeads: 100,
-        description: 'For agencies and growing businesses'
+        leadAllowance: 4000,
+        emailAllowance: 16000, // 4000 leads x (1 main + 3 follow-ups)
+        description: '4,000 fully researched & tracked leads, 16,000 emails'
       },
       // legacy plan names — kept so existing users are unaffected
       'basic': {

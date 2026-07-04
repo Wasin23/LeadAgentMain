@@ -88,6 +88,8 @@ interface PlanStatusResponse {
     name?: string
     maxAgents?: number
     maxConcurrency?: number
+    leadAllowance?: number
+    emailAllowance?: number
   }
 }
 
@@ -177,6 +179,8 @@ export function Header({
   const planName = planStatus?.plan?.name || 'Plan'
   const maxAgents = planStatus?.plan?.maxAgents ?? 0
   const maxConcurrency = planStatus?.plan?.maxConcurrency ?? 0
+  const leadAllowance = planStatus?.plan?.leadAllowance
+  const emailAllowance = planStatus?.plan?.emailAllowance
   const tierRows = [
     { name: 'Free Trial', agents: 1, speed: 3 },
     { name: 'Basic', agents: 3, speed: 5 },
@@ -247,6 +251,23 @@ export function Header({
                 </div>
 
                 <div className="space-y-4 px-4 py-4">
+                  {(leadAllowance || emailAllowance) && (
+                    <div className="grid grid-cols-2 gap-2">
+                      {leadAllowance && (
+                        <div className="rounded-lg border border-border bg-background p-3">
+                          <p className="text-lg font-bold tabular-nums text-foreground">{leadAllowance.toLocaleString()}</p>
+                          <p className="text-[11px] text-muted-foreground">Fully researched & tracked leads</p>
+                        </div>
+                      )}
+                      {emailAllowance && (
+                        <div className="rounded-lg border border-border bg-background p-3">
+                          <p className="text-lg font-bold tabular-nums text-foreground">{emailAllowance.toLocaleString()}</p>
+                          <p className="text-[11px] text-muted-foreground">Emails (1 main + 3 follow-ups per lead)</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 gap-2">
                     <div className="rounded-lg border border-border bg-background p-3">
                       <div className="flex items-center gap-2 mb-1.5">

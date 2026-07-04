@@ -17,6 +17,7 @@ interface PricingTier {
   name: string
   price: number
   credits: number
+  leads: number
   bonus?: number
   popular?: boolean
   emails: number
@@ -48,42 +49,46 @@ export function CreditPurchaseModal({
       id: "solo",
       name: "Solo",
       price: 100,
-      credits: 1100,
-      emails: 2025,
-      features: ["1,100 credits included", "~2,025 emails", "2 agents", "4x speed"],
+      credits: 750,
+      leads: 750,
+      emails: 3000,
+      features: ["750 fully researched & tracked leads", "3,000 emails (1 main + 3 follow-ups)", "2 agents", "4x speed"],
     },
     {
       id: "team",
       name: "Team",
       price: 250,
-      credits: 2800,
-      emails: 5065,
+      credits: 2100,
+      leads: 2000,
+      emails: 8000,
       popular: true,
-      features: ["2,800 credits included", "~5,065 emails", "6 agents", "8x speed"],
+      features: ["2,000 fully researched & tracked leads", "8,000 emails (1 main + 3 follow-ups)", "6 agents", "8x speed"],
     },
     {
       id: "agency",
       name: "Agency",
       price: 500,
-      credits: 5500,
-      emails: 10135,
-      features: ["5,500 credits included", "~10,135 emails", "15 agents", "12x speed"],
+      credits: 4200,
+      leads: 4000,
+      emails: 16000,
+      features: ["4,000 fully researched & tracked leads", "16,000 emails (1 main + 3 follow-ups)", "15 agents", "12x speed"],
     },
     {
       id: "enterprise",
       name: "Enterprise",
       price: 0,
       credits: 0,
+      leads: 0,
       emails: 0,
-      features: ["Custom credit volume", "Custom email volume", "Up to 30 agents", "Up to 30x speed"],
+      features: ["Custom lead volume", "Custom email volume", "Up to 30 agents", "Up to 30x speed"],
     },
   ]
 
   const topupOptions: TopupOption[] = [
-    { id: "mini",   name: "Mini Top-up",   price: 10,  credits: 100  },
-    { id: "small",  name: "Small Top-up",  price: 50,  credits: 550  },
-    { id: "medium", name: "Medium Top-up", price: 100, credits: 1150, popular: true },
-    { id: "bulk",   name: "Bulk Top-up",   price: 250, credits: 3000 },
+    { id: "mini",   name: "Mini Top-up",   price: 10,  credits: 65   },
+    { id: "small",  name: "Small Top-up",  price: 50,  credits: 340  },
+    { id: "medium", name: "Medium Top-up", price: 100, credits: 700, popular: true },
+    { id: "bulk",   name: "Bulk Top-up",   price: 250, credits: 1850 },
   ]
 
   useEffect(() => {
@@ -114,7 +119,7 @@ export function CreditPurchaseModal({
             planType: selectedOption.id,
           })
         : await api.post("/api/plans/purchase-credits", {
-            creditAmount: selectedOption.credits,
+            tierId: selectedOption.id,
           })
       if (data.success) {
         onSuccess()
@@ -215,12 +220,12 @@ export function CreditPurchaseModal({
                           {tier.id === "enterprise" ? (
                             <>
                               <div className="text-2xl font-bold">-</div>
-                              <div className="text-sm text-muted-foreground">credits</div>
+                              <div className="text-sm text-muted-foreground">leads</div>
                             </>
                           ) : (
                             <>
-                              <div className="text-3xl font-bold">{tier.credits.toLocaleString()}</div>
-                              <div className="text-sm text-muted-foreground">credits · ~{tier.emails.toLocaleString()} emails</div>
+                              <div className="text-3xl font-bold">{tier.leads.toLocaleString()}</div>
+                              <div className="text-sm text-muted-foreground">researched leads · {tier.emails.toLocaleString()} emails</div>
                             </>
                           )}
                         </div>

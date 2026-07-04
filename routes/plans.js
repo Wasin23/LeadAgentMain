@@ -21,6 +21,19 @@ const PLAN_PRICES_CENTS = {
   professional: 100000,  // $1,000
 };
 
+// Top-up tiers — priced above every plan's per-credit rate (~$0.119-0.133) so a
+// customer is never better off buying repeated top-ups instead of upgrading.
+// Server is the source of truth; the frontend must send a tierId, never a raw
+// dollar amount or credit count (previously the route trusted a client-computed
+// creditAmount and charged creditAmount * $0.10 regardless of advertised tier —
+// that overcharged customers relative to the discounted price shown on screen).
+const TOPUP_TIERS = {
+  mini:   { priceCents: 1000,  credits: 65 },   // $10  -> $0.1538/credit
+  small:  { priceCents: 5000,  credits: 340 },  // $50  -> $0.1471/credit
+  medium: { priceCents: 10000, credits: 700 },  // $100 -> $0.1429/credit
+  bulk:   { priceCents: 25000, credits: 1850 }, // $250 -> $0.1351/credit
+};
+
 // Get user's current plan and credit status
 router.get('/status', authenticateToken, async (req, res) => {
   try {
@@ -155,11 +168,13 @@ router.post('/upgrade', authenticateToken, async (req, res) => {
 router.post('/purchase-credits', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
-    const { creditAmount } = req.body;
+    const { tierId } = req.body;
 
-    if (!creditAmount || creditAmount <= 0) {
-      return res.status(400).json({ success: false, error: 'Valid credit amount is required' });
+    const tier = TOPUP_TIERS[tierId];
+    if (!tier) {
+      return res.status(400).json({ success: false, error: `Invalid top-up tier: ${tierId}` });
     }
+    const { priceCents: amountCents, credits: creditAmount } = tier;
 
     // Require a saved payment method
     const [user, userSettings] = await Promise.all([
@@ -193,9 +208,6 @@ router.post('/purchase-credits', authenticateToken, async (req, res) => {
       });
     }
 
-    // $0.10 per credit = 10 cents per credit
-    const amountCents = Math.round(creditAmount * 10);
-
     // Charge via Stripe before touching the DB
     let paymentIntent;
     try {
@@ -206,8 +218,8 @@ router.post('/purchase-credits', authenticateToken, async (req, res) => {
         payment_method: paymentMethodId,
         off_session: true,
         confirm: true,
-        description: `Meridian ${creditAmount} credit top-up`,
-        metadata: { userId, creditAmount: String(creditAmount) },
+        description: `Meridian ${creditAmount} credit top-up (${tierId})`,
+        metadata: { userId, tierId, creditAmount: String(creditAmount) },
       });
     } catch (stripeErr) {
       console.error('[CREDITS] Stripe charge failed:', stripeErr.message);

@@ -258,17 +258,17 @@ Hi ${firstName},
       return null;
     }
 
-    // Charge credits based on actual token usage × 1.2x platform margin
+    // Follow-ups are not charged against the user's credit balance — logged at cost:0
+    // for internal cost visibility only (see docs/accounting.md).
     const promptTokens = response.usage?.prompt_tokens || 0;
     const completionTokens = response.usage?.completion_tokens || 0;
-    const mistralCost = (promptTokens * MISTRAL_INPUT_COST_PER_TOKEN) + (completionTokens * MISTRAL_OUTPUT_COST_PER_TOKEN);
     await awsManager.logApiUsage({
       userId,
       agentId,
       service: 'mistral',
       operation: 'smart_followup_generation',
       usage: response.usage?.total_tokens || 0,
-      cost: mistralCost,
+      cost: 0,
       metadata: {
         model: 'mistral-medium-latest',
         step: stepNumber,
