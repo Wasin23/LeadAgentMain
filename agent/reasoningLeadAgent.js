@@ -989,11 +989,13 @@ IMPORTANT RULES:
         console.error('Failed to broadcast cycle completion:', err);
       }
       
-      // Get current total API usage from summary table and log it
+      // Get current total API usage from summary table and log it.
+      // NOTE: this is the user's LIFETIME cumulative API cost across all agents and
+      // all sessions — not the cost of this cycle.
       const apiUsage = await this.awsManager.getUserApiUsageSummary(this.userId);
       if (apiUsage.success && apiUsage.stats) {
         const totalCost = Object.values(apiUsage.stats).reduce((sum, service) => sum + (service.cost || 0), 0);
-        console.log(`💰 [CYCLE COST] Total API cost after cycle #${this.cycleCount}: $${totalCost.toFixed(4)}`);
+        console.log(`💰 [LIFETIME API COST] User total across all agents/cycles (after cycle #${this.cycleCount}): $${totalCost.toFixed(4)}`);
       }
     } catch (error) {
       console.error('❌ [CYCLE LOG] Failed to log cycle completion:', error);
@@ -5664,14 +5666,18 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         }));
 
 
-      // Log Apollo search usage
+      // Log Apollo search usage. Apollo people-search API calls don't consume Apollo
+      // credits — only email enrichments/unlocks do — so searches bill at 0.
+      // (Matches tools/leadResearch.js. Previously billed per result, which charged
+      // users a full enrichment credit for every search including duplicate hits.)
       await this.awsManager.logApiUsage({
         userId: this.userId,
         agentId: this.agentId,
         service: 'apollo',
         operation: 'search',
-        usage: rawLeads.length, // Number of results returned
+        usage: 0,
         metadata: {
+          resultsReturned: rawLeads.length,
           industries: parameters.industries || userSettings.targetIndustries,
           location: parameters.location || userSettings.targetLocations?.[0],
           positions: parameters.positions || userSettings.targetPositions,

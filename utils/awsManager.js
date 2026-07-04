@@ -47,12 +47,14 @@ class AWSManager {
     
     // API Cost rates (with 1.5x multiplier for platform margin) — updated
     this.apiCosts = {
-      apollo: 0.025 * 1.5, // $0.025 per email enrichment (Apollo $150/6000 plan) with platform margin
+      apollo: 0.034722 * 1.2, // real contract: $7500/yr for 216,000 credits = $0.034722/credit, 1.2x platform margin
       openai: (0.005 / 1000) * 1.5,     // GPT-4o with platform margin
       openaiMini: (0.0002 / 1000) * 1.5, // GPT-4o-mini with platform margin
       anthropic: (0.005 / 1000) * 1.5, // fallback blended rate
       anthropicInput: (3 / 1000000) * 1.5, // Claude Sonnet input tokens with platform margin
       anthropicOutput: (15 / 1000000) * 1.5, // Claude Sonnet output tokens with platform margin
+      haikuInput: (1 / 1000000) * 1.5, // Claude Haiku 4.5 input tokens with platform margin
+      haikuOutput: (5 / 1000000) * 1.5, // Claude Haiku 4.5 output tokens with platform margin
       mailgun: 0.0008 * 1.5, // per email with platform margin
       zerobounce: 0.005 * 1.5, // per validation with platform margin
       serper: 0.001 * 1.5 // per search query with platform margin
@@ -1755,9 +1757,12 @@ class AWSManager {
         } else if (service === 'anthropic') {
           const promptTokens = metadata?.prompt_tokens || 0;
           const completionTokens = metadata?.completion_tokens || 0;
+          const isHaiku = (metadata?.model || '').includes('haiku');
 
           if (promptTokens || completionTokens) {
-            cost = (promptTokens * this.apiCosts.anthropicInput) + (completionTokens * this.apiCosts.anthropicOutput);
+            cost = isHaiku
+              ? (promptTokens * this.apiCosts.haikuInput) + (completionTokens * this.apiCosts.haikuOutput)
+              : (promptTokens * this.apiCosts.anthropicInput) + (completionTokens * this.apiCosts.anthropicOutput);
           } else {
             cost = usage * this.apiCosts.anthropic;
           }
