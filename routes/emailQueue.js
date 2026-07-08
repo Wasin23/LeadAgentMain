@@ -599,7 +599,7 @@ router.post('/:id/approve', async (req, res) => {
     
     // Final unsubscribe gate: the recipient may have unsubscribed while this email
     // sat in the queue. Never send to an unsubscribed address.
-    const recipientUnsubscribed = await awsManager.isUnsubscribed(finalRecipient).catch(() => false);
+    const recipientUnsubscribed = await new AWSManager().isUnsubscribed(finalRecipient).catch(() => false);
     if (recipientUnsubscribed) {
       console.log(`🚫 [EMAIL QUEUE] Blocking send — ${finalRecipient} has unsubscribed`);
       return res.status(409).json({
