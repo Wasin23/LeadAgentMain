@@ -10,7 +10,9 @@ export class ZillizLeadMemory {
     constructor() {
         this.client = null;
         this.collectionName = 'lead_agent_memory';
+        this.rubricCollectionName = 'lead_qualification_rubrics';
         this.initialized = false;
+        this.rubricInitialized = false;
         this.openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     }
 
@@ -36,6 +38,280 @@ export class ZillizLeadMemory {
         } catch (error) {
             console.error('❌ [ZILLIZ MEMORY] Initialization failed:', error);
             throw error;
+        }
+    }
+
+    /**
+     * Separate lazy-init path for the qualification-rubric collection — most agents
+     * never need it (only combos without a cached rubric trigger this), so it isn't
+     * created/loaded on every agent startup like the main memory collection.
+     */
+    async initializeRubrics() {
+        if (this.rubricInitialized) return;
+        try {
+            if (!this.client) {
+                this.client = new MilvusClient({
+                    address: process.env.ZILLIZ_ENDPOINT,
+                    token: process.env.ZILLIZ_TOKEN
+                });
+            }
+
+            const collections = await this.client.listCollections();
+            const collectionExists = collections.data.some(col => col.name === this.rubricCollectionName);
+
+            if (!collectionExists) {
+                await this.createRubricCollection();
+            } else {
+                console.log('ℹ️  [ZILLIZ RUBRIC] Collection already exists, skipping creation');
+            }
+
+            this.rubricInitialized = true;
+            console.log('🧠 [ZILLIZ RUBRIC] Qualification rubric memory initialized');
+        } catch (error) {
+            console.error('❌ [ZILLIZ RUBRIC] Initialization failed:', error);
+            throw error;
+        }
+    }
+
+    async createRubricCollection() {
+        console.log('📊 [ZILLIZ RUBRIC] Creating lead_qualification_rubrics collection...');
+
+        const schema = [
+            {
+                name: 'id',
+                data_type: DataType.Int64,
+                is_primary_key: true,
+                autoID: true
+            },
+            {
+                name: 'user_id',
+                data_type: DataType.VarChar,
+                max_length: 100,
+                description: 'User ID'
+            },
+            {
+                name: 'agent_id',
+                data_type: DataType.VarChar,
+                max_length: 100,
+                description: 'Agent ID that generated this rubric'
+            },
+            {
+                name: 'keyword',
+                data_type: DataType.VarChar,
+                max_length: 100
+            },
+            {
+                name: 'position',
+                data_type: DataType.VarChar,
+                max_length: 100
+            },
+            {
+                name: 'search_combo',
+                data_type: DataType.VarChar,
+                max_length: 200,
+                description: 'keyword#position — same key convention as lead_agent_memory'
+            },
+            {
+                name: 'rubric_json',
+                data_type: DataType.VarChar,
+                max_length: 30000,
+                description: 'JSON-encoded { criteria: [{criterion, weight, justification}], ... }'
+            },
+            {
+                name: 'rubric_version',
+                data_type: DataType.Int64,
+                description: 'Incremented every time this combo\'s rubric is regenerated'
+            },
+            {
+                name: 'generated_at',
+                data_type: DataType.Int64
+            },
+            {
+                name: 'source_instructions_hash',
+                data_type: DataType.VarChar,
+                max_length: 100,
+                description: 'Hash of campaign specialInstructions used to build this rubric — regenerate when this changes'
+            },
+            {
+                name: 'embedding',
+                data_type: DataType.FloatVector,
+                dim: 1536,
+                description: 'Embedding of the ICP/product description this rubric was built for — enables future cross-campaign rubric reuse'
+            }
+        ];
+
+        await this.client.createCollection({
+            collection_name: this.rubricCollectionName,
+            schema: schema,
+            index_params: {
+                field_name: 'embedding',
+                metric_type: 'COSINE',
+                index_type: 'AUTOINDEX'
+            }
+        });
+
+        console.log('✅ [ZILLIZ RUBRIC] Collection created successfully');
+    }
+
+    /**
+     * Fetch the stored qualification rubric for a user+combo, if one exists.
+     * Returns null (not an error) when no rubric has been built yet — callers use
+     * that as the trigger to run rubric generation before any lead search.
+     */
+    async getRubric(userId, keyword, position) {
+        try {
+            await this.initializeRubrics();
+
+            try {
+                await this.client.loadCollection({ collection_name: this.rubricCollectionName });
+            } catch (loadError) {
+                if (!loadError.message?.includes('already loaded')) {
+                    console.log('⚠️  [ZILLIZ RUBRIC] Load warning:', loadError.message);
+                }
+            }
+
+            const searchCombo = `${keyword.toLowerCase()}#${position.toLowerCase()}`;
+            const results = await this.client.query({
+                collection_name: this.rubricCollectionName,
+                filter: `user_id == "${userId}" && search_combo == "${searchCombo}"`,
+                output_fields: ['rubric_json', 'rubric_version', 'generated_at', 'source_instructions_hash'],
+                limit: 1
+            });
+
+            if (!results.data || results.data.length === 0) {
+                console.log(`🔍 [ZILLIZ RUBRIC] No rubric found for combo="${searchCombo}"`);
+                return null;
+            }
+
+            const record = results.data[0];
+            const parsed = JSON.parse(record.rubric_json);
+            console.log(`🔍 [ZILLIZ RUBRIC] Loaded rubric for combo="${searchCombo}" — v${record.rubric_version}, ${parsed.criteria?.length || 0} criteria`);
+            return {
+                ...parsed,
+                version: record.rubric_version,
+                generatedAt: record.generated_at,
+                sourceInstructionsHash: record.source_instructions_hash
+            };
+        } catch (error) {
+            console.error('❌ [ZILLIZ RUBRIC] getRubric failed:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Store (or replace) the qualification rubric for a user+combo. Always deletes
+     * any prior record for this exact combo first — a combo has exactly one active
+     * rubric at a time, versioned via rubric_version for outcome-attribution later.
+     */
+    async storeRubric(userId, agentId, keyword, position, rubric, sourceInstructionsHash, icpDescription = '') {
+        try {
+            await this.initializeRubrics();
+
+            const searchCombo = `${keyword.toLowerCase()}#${position.toLowerCase()}`;
+
+            const existing = await this.client.query({
+                collection_name: this.rubricCollectionName,
+                filter: `user_id == "${userId}" && search_combo == "${searchCombo}"`,
+                output_fields: ['id', 'rubric_version'],
+                limit: 1
+            });
+
+            const nextVersion = (existing.data && existing.data.length > 0)
+                ? (parseInt(existing.data[0].rubric_version) || 0) + 1
+                : 1;
+
+            if (existing.data && existing.data.length > 0) {
+                console.log(`🗑️ [ZILLIZ RUBRIC] Replacing existing rubric for combo="${searchCombo}" (v${existing.data[0].rubric_version} → v${nextVersion})`);
+                await this.client.delete({
+                    collection_name: this.rubricCollectionName,
+                    filter: `id == ${existing.data[0].id}`
+                });
+            }
+
+            const embedding = await this.generateEmbedding(keyword, position, { icpDescription });
+
+            await this.client.insert({
+                collection_name: this.rubricCollectionName,
+                data: [{
+                    user_id: userId,
+                    agent_id: agentId,
+                    keyword: keyword.toLowerCase(),
+                    position: position,
+                    search_combo: searchCombo,
+                    rubric_json: JSON.stringify(rubric),
+                    rubric_version: nextVersion,
+                    generated_at: Date.now(),
+                    source_instructions_hash: sourceInstructionsHash || '',
+                    embedding: embedding
+                }]
+            });
+
+            await this.client.flush({ collection_names: [this.rubricCollectionName] });
+
+            console.log(`✅ [ZILLIZ RUBRIC] Stored rubric v${nextVersion} for combo="${searchCombo}": ${rubric.criteria?.length || 0} criteria`);
+            return { success: true, version: nextVersion };
+        } catch (error) {
+            console.error('❌ [ZILLIZ RUBRIC] storeRubric failed:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    /**
+     * List all rubrics for a user (for the settings UI — one row per combo).
+     */
+    async listRubrics(userId) {
+        try {
+            await this.initializeRubrics();
+
+            try {
+                await this.client.loadCollection({ collection_name: this.rubricCollectionName });
+            } catch (loadError) {
+                if (!loadError.message?.includes('already loaded')) {
+                    console.log('⚠️  [ZILLIZ RUBRIC] Load warning:', loadError.message);
+                }
+            }
+
+            const results = await this.client.query({
+                collection_name: this.rubricCollectionName,
+                filter: `user_id == "${userId}"`,
+                output_fields: ['keyword', 'position', 'search_combo', 'rubric_json', 'rubric_version', 'generated_at'],
+                limit: 1000
+            });
+
+            return {
+                success: true,
+                rubrics: (results.data || []).map(r => ({
+                    keyword: r.keyword,
+                    position: r.position,
+                    searchCombo: r.search_combo,
+                    version: r.rubric_version,
+                    generatedAt: r.generated_at,
+                    ...JSON.parse(r.rubric_json)
+                }))
+            };
+        } catch (error) {
+            console.error('❌ [ZILLIZ RUBRIC] listRubrics failed:', error);
+            return { success: false, error: error.message, rubrics: [] };
+        }
+    }
+
+    /**
+     * Delete the stored rubric for a combo — used by the settings "reset to
+     * auto-generated" action, which forces regeneration on the next search.
+     */
+    async deleteRubric(userId, keyword, position) {
+        try {
+            await this.initializeRubrics();
+            const searchCombo = `${keyword.toLowerCase()}#${position.toLowerCase()}`;
+            const result = await this.client.delete({
+                collection_name: this.rubricCollectionName,
+                filter: `user_id == "${userId}" && search_combo == "${searchCombo}"`
+            });
+            console.log(`🗑️ [ZILLIZ RUBRIC] Deleted rubric for combo="${searchCombo}"`);
+            return { success: true, deletedCount: result.delete_cnt || 0 };
+        } catch (error) {
+            console.error('❌ [ZILLIZ RUBRIC] deleteRubric failed:', error);
+            return { success: false, error: error.message };
         }
     }
 

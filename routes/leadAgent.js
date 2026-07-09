@@ -704,6 +704,84 @@ router.post('/settings/reset', async (req, res) => {
   }
 });
 
+// === QUALIFICATION RUBRICS (per keyword+position combo) ===
+
+// List all AI-generated qualification rubrics for this user, for the settings UI's
+// "Who and what we want out of this person and this industry" section.
+router.get('/rubrics', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const result = await leadMemory.listRubrics(userId);
+    if (!result.success) {
+      return res.status(500).json({ success: false, error: result.error });
+    }
+    res.json({ success: true, rubrics: result.rubrics });
+  } catch (error) {
+    console.error('[RUBRICS] Error listing rubrics:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Update a rubric's criteria/weights (user edits, once unlocked in the UI). Keeps
+// the same sourceInstructionsHash as the existing record so the edit is treated as
+// current — it won't get silently overwritten by the auto-regeneration gate unless
+// the underlying campaign instructions actually change.
+router.put('/rubrics/update', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { agentId = 'reasoning-lead-agent', keyword, position, criteria } = req.body || {};
+
+    if (!keyword || !position || !Array.isArray(criteria)) {
+      return res.status(400).json({ success: false, error: 'keyword, position, and criteria[] are required' });
+    }
+
+    const existing = await leadMemory.getRubric(userId, keyword, position);
+    const sourceInstructionsHash = existing?.sourceInstructionsHash || '';
+
+    // weight is a raw signed log-likelihood-ratio (see qualifyLead()'s scoring
+    // model) — NOT a share of 100. No normalization here; only validate it's a
+    // finite number so a bad client payload can't inject NaN into the score.
+    const cleanedCriteria = criteria.map(c => ({
+      criterion: c.criterion || '',
+      weight: Number.isFinite(Number(c.weight)) ? Number(c.weight) : 0,
+      justification: c.justification || ''
+    }));
+
+    const rubric = { criteria: cleanedCriteria, icpSummary: existing?.icpSummary || '' };
+    const stored = await leadMemory.storeRubric(userId, agentId, keyword, position, rubric, sourceInstructionsHash, rubric.icpSummary);
+
+    if (!stored.success) {
+      return res.status(500).json({ success: false, error: stored.error });
+    }
+    res.json({ success: true, version: stored.version, criteria: cleanedCriteria });
+  } catch (error) {
+    console.error('[RUBRICS] Error updating rubric:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Reset a rubric to auto-generated — deletes the stored record; the next lead
+// search for this combo will trigger fresh grounded research to rebuild it.
+router.post('/rubrics/reset', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { keyword, position } = req.body || {};
+
+    if (!keyword || !position) {
+      return res.status(400).json({ success: false, error: 'keyword and position are required' });
+    }
+
+    const result = await leadMemory.deleteRubric(userId, keyword, position);
+    if (!result.success) {
+      return res.status(500).json({ success: false, error: result.error });
+    }
+    res.json({ success: true, message: 'Rubric reset — will be rebuilt via research on the next search for this combo' });
+  } catch (error) {
+    console.error('[RUBRICS] Error resetting rubric:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Test calendar integration
 router.post('/calendar/test', async (req, res) => {
   try {

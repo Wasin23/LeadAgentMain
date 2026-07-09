@@ -28,6 +28,21 @@ import { getAvailableSources, getSourceById } from '../utils/leadSourceRegistry.
 import MergeManager from '../utils/mergeManager.js';
 import fs from 'fs/promises';
 import path from 'path';
+import crypto from 'crypto';
+
+// Synthetic bootstrap population for qualification-score percentile ranking
+// (see qualifyLead() and awsManager.getQualificationScoreHistory/appendQualificationScore).
+// A brand-new account has no trailing score history yet, so percentile rank against
+// an empty set is undefined — these are 13 representative raw-probability values
+// (p0/p5/p10/p25/p40/p50/p60/p75/p80/p90/p95/p99/p100) from a ~20k-sample simulation
+// of the qualifyLead() scoring formula across plausible input ranges. They're a fixed
+// prior population, not real data — as an account's own real trailing scores
+// accumulate (capped at 300), they increasingly dominate the reference population and
+// this bootstrap set's influence shrinks proportionally. Simulation-tuned, not fit —
+// same caveat as every other constant in qualifyLead()'s scoring model.
+const QUALIFICATION_SCORE_BOOTSTRAP = [
+  0.0005, 0.0065, 0.0098, 0.0187, 0.0289, 0.0377, 0.049, 0.0747, 0.0879, 0.1345, 0.1914, 0.3291, 0.8181
+];
 
 // ======================
 // MONITORING INTEGRATION
@@ -66,7 +81,15 @@ class ReasoningLeadAgent extends EventEmitter {
     this.emailGenerationInFlight = 0;
     this.emailGenerationWaiters = [];
     this.emailGenerationConcurrency = 1;
-    
+    // Mutex for the leads JSON file's read-modify-write cycle (loadLeadsDatabase →
+    // mutate → saveLeadsDatabase). drainQueueConcurrently runs up to 10 concurrent
+    // workers, each calling addLeadToDatabase — without this, two workers can both
+    // read the file before either writes, and the second write silently clobbers
+    // the first worker's lead. Same hand-rolled counting-semaphore shape as
+    // withEmailGenerationSlot above, concurrency fixed at 1 (a real mutex).
+    this.leadsDbWriteInFlight = 0;
+    this.leadsDbWriteWaiters = [];
+
     // Initialize user-specific file paths and agent-specific email queue
     const userCode = this.userId ? this.userId.substring(0, 8) : 'default';
     this.leadsFile = path.join(process.cwd(), 'agent', `reasoning_leads_${userCode}.json`);
@@ -292,6 +315,21 @@ class ReasoningLeadAgent extends EventEmitter {
     } finally {
       this.emailGenerationInFlight = Math.max(0, this.emailGenerationInFlight - 1);
       const next = this.emailGenerationWaiters.shift();
+      if (next) next();
+    }
+  }
+
+  async withLeadsDbLock(task) {
+    while (this.leadsDbWriteInFlight >= 1) {
+      await new Promise(resolve => this.leadsDbWriteWaiters.push(resolve));
+    }
+
+    this.leadsDbWriteInFlight++;
+    try {
+      return await task();
+    } finally {
+      this.leadsDbWriteInFlight = Math.max(0, this.leadsDbWriteInFlight - 1);
+      const next = this.leadsDbWriteWaiters.shift();
       if (next) next();
     }
   }
@@ -2179,8 +2217,234 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
     }
   }
 
+  // === QUALIFICATION RUBRIC (per-combo, built once via grounded research) ===
+
+  _hashString(str) {
+    return crypto.createHash('sha256').update(str || '').digest('hex').slice(0, 16);
+  }
+
+  /**
+   * Gate that runs before lead_search for a combo: is there already a rubric for
+   * this keyword+position, built under the current campaign instructions? If not,
+   * build one now. This is a per-combo, one-time cost — not run per lead.
+   */
+  async getOrBuildRubric(keyword, position) {
+    const specialInstructions = this.campaignPlan?.specialInstructions || this.memory.userSettings?.specialInstructions || '';
+    const sourceInstructionsHash = this._hashString(specialInstructions);
+
+    const cached = await this.leadMemory.getRubric(this.userId, keyword, position);
+    if (cached && cached.sourceInstructionsHash === sourceInstructionsHash) {
+      console.log(`[RUBRIC] Using cached rubric v${cached.version} for "${keyword}" + "${position}" (${cached.criteria?.length || 0} criteria)`);
+      return cached;
+    }
+
+    if (cached && cached.sourceInstructionsHash !== sourceInstructionsHash) {
+      console.log(`[RUBRIC] Cached rubric v${cached.version} for "${keyword}" + "${position}" is stale (campaign instructions changed) — regenerating`);
+    } else {
+      console.log(`[RUBRIC] No rubric found for "${keyword}" + "${position}" — building one before any lead search runs for this combo`);
+    }
+
+    return await this.buildQualificationRubric(keyword, position, sourceInstructionsHash, specialInstructions);
+  }
+
+  /**
+   * Cheap follow-up query picker for the rubric research loop — given what's been
+   * found so far, decide the single most useful next search, or NONE to stop.
+   * Mirrors "keep searching until something concrete" instead of one-shot search.
+   */
+  async _refineRubricQuery(keyword, position, productDescription, priorFindings) {
+    try {
+      const priorQueries = priorFindings.map(f => f.query).join('; ');
+      const priorSnippetSample = priorFindings.flatMap(f => f.snippets).slice(0, 8).join('\n');
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [{
+          role: 'user',
+          content: `We're researching what makes a good buyer of "${productDescription}" among ${position}s in the ${keyword} industry.
+Already searched: ${priorQueries || 'nothing yet'}
+Findings so far:
+${priorSnippetSample || 'none'}
+
+What's the single most useful NEXT search query to fill a real gap in this research? Respond with ONLY the query text, or the word NONE if the findings so far are already sufficient to build a good rubric.`
+        }],
+        max_tokens: 60,
+        temperature: 0.4
+      });
+      const text = response.choices[0].message.content.trim();
+      if (!text || /^none$/i.test(text)) return null;
+      return text.replace(/^["']|["']$/g, '');
+    } catch (err) {
+      console.warn('[RUBRIC BUILD] Query refinement failed, stopping research:', err.message);
+      return null;
+    }
+  }
+
+  /**
+   * Build a weighted, ordered qualification rubric for a keyword+position combo via
+   * grounded web research, using Claude Sonnet 5 with adaptive thinking to synthesize
+   * it. This becomes the actual qualifier for every lead found under this combo —
+   * industry/title/size stay separately hardcoded (pure structured-data lookups);
+   * this rubric covers everything else that's genuinely a judgment call: buying
+   * signals, pain indicators, stage markers, role nuances specific to this segment.
+   */
+  async buildQualificationRubric(keyword, position, sourceInstructionsHash, specialInstructions) {
+    const emailSettings = this.memory.emailSettings || {};
+    const companyBranding = emailSettings.companyBranding || {};
+    const productDescription = [
+      companyBranding.primaryService,
+      companyBranding.coreOffering,
+      companyBranding.keyAdvantages
+    ].filter(Boolean).join(' | ') || 'Unknown product';
+
+    console.log(`[RUBRIC BUILD] ── START ─────────────────────────────────────`);
+    console.log(`[RUBRIC BUILD] combo="${keyword}#${position}" | product: ${productDescription.slice(0, 120)}`);
+
+    // ── Iterative grounded research loop ──────────────────────────────
+    const MAX_RESEARCH_ROUNDS = 4;
+    const researchFindings = [];
+    const triedQueries = new Set();
+
+    const seedQueries = [
+      `who buys ${keyword} ${position} products services decision criteria`,
+      `${keyword} industry ${position} buying signals pain points 2025 2026`,
+      `what makes a good ${position} prospect in ${keyword} industry`,
+    ];
+
+    for (let round = 0; round < MAX_RESEARCH_ROUNDS; round++) {
+      const query = round < seedQueries.length
+        ? seedQueries[round]
+        : await this._refineRubricQuery(keyword, position, productDescription, researchFindings);
+
+      if (!query || triedQueries.has(query)) {
+        console.log(`[RUBRIC BUILD] Round ${round + 1}: no new query to try, stopping research`);
+        break;
+      }
+      triedQueries.add(query);
+
+      console.log(`[RUBRIC BUILD] Round ${round + 1}/${MAX_RESEARCH_ROUNDS}: searching "${query}"`);
+      let results;
+      try {
+        results = await internetSearch(query);
+      } catch (err) {
+        console.warn(`[RUBRIC BUILD] Round ${round + 1} search failed: ${err.message}`);
+        continue;
+      }
+
+      const organic = results?.organic || [];
+      const snippets = organic.slice(0, 6).map(r => `${r.title}: ${r.snippet}`).filter(Boolean);
+      console.log(`[RUBRIC BUILD] Round ${round + 1}: got ${snippets.length} usable snippets`);
+      researchFindings.push({ query, snippets });
+
+      const totalSnippets = researchFindings.reduce((n, f) => n + f.snippets.length, 0);
+      if (totalSnippets >= 12 && round >= 1) {
+        console.log(`[RUBRIC BUILD] Enough grounded material (${totalSnippets} snippets across ${round + 1} rounds) — stopping research early`);
+        break;
+      }
+    }
+
+    // ── Synthesize the weighted, ordered rubric ───────────────────────
+    const researchSummary = researchFindings
+      .map(f => `Query: "${f.query}"\n${f.snippets.map(s => `- ${s}`).join('\n')}`)
+      .join('\n\n');
+
+    const prompt = `You are building a lead-qualification rubric for a sales campaign, grounded in real market research.
+
+PRODUCT BEING SOLD:
+${productDescription}
+
+CAMPAIGN INSTRUCTIONS:
+${specialInstructions || 'None given — infer from product context.'}
+
+TARGET SEGMENT: ${position} in the "${keyword}" industry
+
+RESEARCH FINDINGS (from live web search on this segment):
+${researchSummary || 'No usable search results came back — rely on general domain knowledge, but note that explicitly in your criteria justifications.'}
+
+TASK:
+Based on the product, the campaign instructions, and the research above, determine what ACTUALLY predicts a good buyer in this specific segment. You decide how many criteria matter — do not force a fixed count. Typically 10-20, but use however many are genuinely distinct and non-redundant. Fewer, sharper criteria beat padding the list.
+
+For each criterion:
+- A specific, independently checkable signal — NOT a vague restatement of "right industry" or "right title" (those are already handled separately by structured-data lookups elsewhere in the system). This rubric is for everything else that's genuinely a judgment call: buying signals, pain indicators, company-stage markers, role-specific nuances, initiative signals, timing signals — anything actually predictive for THIS segment and THIS product.
+- A likelihoodRatio: if this criterion were confirmed TRUE of a lead, how many times more (or less) likely is that lead to actually convert into a customer, compared to an average lead in this segment with no distinguishing evidence? This is not a vague "importance" score — it's a concrete multiplicative estimate. Examples: a criterion so decisive that confirming it roughly doubles conversion likelihood → 2.0. One that's mildly suggestive → 1.3. One that's actively a bad sign if true (without being an outright disqualifier) → 0.6. A criterion you're unsure moves the needle much either way → close to 1.0 (do not pad the list with these — cut them instead). Numbers below 1.0 are valid and expected for criteria that are negative-but-not-disqualifying signals.
+- A one-sentence justification citing what you found in research, or general domain reasoning if research was thin.
+
+CRITICAL: Order the list from MOST logically important/predictive to LEAST — put the criteria that most reliably separate a real buyer from a non-buyer first (largest distance from 1.0x, either direction), progressively less decisive signals later. This ordering is itself part of your output and will be reviewed.
+
+Respond in JSON:
+{
+  "criteria": [
+    {"criterion": "specific checkable signal", "likelihoodRatio": number, "justification": "why this matters, grounded in research or reasoning"}
+  ],
+  "icpSummary": "1-2 sentence description of the ideal buyer profile this rubric targets"
+}`;
+
+    console.log(`[RUBRIC BUILD] Synthesizing with Claude Sonnet 5 (adaptive thinking)...`);
+
+    const response = await this.anthropic.messages.create({
+      model: 'claude-sonnet-5',
+      max_tokens: 4000,
+      thinking: { type: 'adaptive' },
+      messages: [{ role: 'user', content: prompt }]
+    });
+
+    const textBlock = response.content.find(b => b.type === 'text');
+    let raw;
+    try {
+      raw = JSON.parse((textBlock?.text || '{}').trim().replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/i, ''));
+    } catch (parseErr) {
+      console.error('[RUBRIC BUILD] Failed to parse rubric JSON, using empty rubric:', parseErr.message);
+      raw = { criteria: [], icpSummary: '' };
+    }
+
+    // weight is stored as a raw signed log-likelihood-ratio (ln of the model's
+    // likelihoodRatio estimate) — NOT normalized to sum to any total. See
+    // qualifyLead()'s scoring model: these get summed with correlation-shrinkage,
+    // not averaged, so normalizing here would corrupt the units before they're
+    // even used. A ratio of 1.0 (no effect) becomes ln(1)=0, contributing nothing.
+    const rawCriteria = Array.isArray(raw.criteria) ? raw.criteria : [];
+    const criteria = rawCriteria.map(c => {
+      const ratio = Math.max(0.05, Number(c.likelihoodRatio) || 1); // guard against 0/negative before ln()
+      return {
+        criterion: c.criterion || '',
+        weight: Math.round(Math.log(ratio) * 1000) / 1000,
+        justification: c.justification || ''
+      };
+    });
+
+    console.log(`[RUBRIC BUILD] Generated ${criteria.length} criteria (ordered most→least important):`);
+    criteria.forEach((c, i) => console.log(`[RUBRIC BUILD]   ${i + 1}. [LLR ${c.weight >= 0 ? '+' : ''}${c.weight}] ${c.criterion} — ${c.justification}`));
+
+    if (response.usage) {
+      await this.awsManager.logApiUsage({
+        userId: this.userId,
+        agentId: this.agentId,
+        service: 'anthropic',
+        operation: 'rubric_generation',
+        usage: (response.usage.input_tokens || 0) + (response.usage.output_tokens || 0),
+        metadata: {
+          model: 'claude-sonnet-5',
+          prompt_tokens: response.usage.input_tokens,
+          completion_tokens: response.usage.output_tokens,
+          criteriaCount: criteria.length,
+          searchRounds: researchFindings.length
+        }
+      }).catch(err => console.error('Failed to log Anthropic usage:', err));
+    }
+
+    const rubric = { criteria, icpSummary: raw.icpSummary || '' };
+
+    const stored = await this.leadMemory.storeRubric(
+      this.userId, this.agentId, keyword, position, rubric, sourceInstructionsHash, rubric.icpSummary
+    );
+
+    console.log(`[RUBRIC BUILD] Stored as v${stored.version} for "${keyword}" + "${position}"`);
+    console.log(`[RUBRIC BUILD] ── END ───────────────────────────────────────`);
+
+    return { ...rubric, version: stored.version, generatedAt: Date.now(), sourceInstructionsHash };
+  }
+
   // === QUALIFICATION TOOLS ===
-  
+
   /**
    * Pre-qualify lead - Quick check AFTER Serper research
    * Uses research data + campaign plan for fast filtering (saves money on email unlock)
@@ -2295,12 +2559,20 @@ Respond in JSON format:
       const preQualSizeMin = userSettingsForPreQual.companySizeMin ?? userSettingsForPreQual.companyCriteria?.companySizeMin;
       const preQualSizeMax = userSettingsForPreQual.companySizeMax ?? userSettingsForPreQual.companyCriteria?.companySizeMax;
       const preQualTargetIndustries = userSettingsForPreQual.companyIndustries || userSettingsForPreQual.companyCriteria?.companyIndustries || [];
-      const preQualEmployeeCount = Number(leadData?.organization?.estimated_num_employees);
-      const preQualLeadIndustry = (leadData?.organization?.industry || '').toLowerCase().trim();
+      // Apollo's FREE search response doesn't include real organization.industry /
+      // estimated_num_employees — only has_X teaser flags. Real values only arrive after
+      // paid enrichment (unlockEmail), which runs after this stage. See the matching
+      // comment in qualifyLead for the full explanation.
+      const preQualEmployeeCountRaw = leadData?.organization?.estimated_num_employees;
+      const preQualEmployeeCount = Number(preQualEmployeeCountRaw);
+      const preQualHasRealSizeData = Number.isFinite(preQualEmployeeCount);
+      const preQualIndustryRaw = leadData?.organization?.industry;
+      const preQualHasRealIndustryData = typeof preQualIndustryRaw === 'string' && preQualIndustryRaw.trim().length > 0;
+      const preQualLeadIndustry = (preQualIndustryRaw || '').toLowerCase().trim();
 
-      let sizeFit = 8; // neutral default (out of 15) when range or employee count is unknown
+      let sizeFit;
       let preQualSizeMismatchNote = null;
-      if (Number.isFinite(preQualEmployeeCount) && (preQualSizeMin || preQualSizeMax)) {
+      if (preQualHasRealSizeData && (preQualSizeMin || preQualSizeMax)) {
         const min = preQualSizeMin || 0;
         const max = preQualSizeMax || Infinity;
         if (preQualEmployeeCount >= min && preQualEmployeeCount <= max) {
@@ -2313,16 +2585,31 @@ Respond in JSON format:
           sizeFit = Math.max(3, Math.round(15 - (distance / rangeSpan) * 15));
           preQualSizeMismatchNote = `Company reports ${preQualEmployeeCount} employees, outside the target ${min}-${max === Infinity ? '∞' : max} range`;
         }
+      } else if (preQualSizeMin || preQualSizeMax) {
+        sizeFit = 11; // no real headcount yet — credit the Apollo search-time size filter
+      } else {
+        sizeFit = 8; // no size criteria configured at all — genuinely neutral
       }
 
-      let industryFit = 12; // neutral default (out of 25) when no target industries configured or industry unknown
-      if (preQualTargetIndustries.length > 0 && preQualLeadIndustry) {
+      let industryFit;
+      if (preQualHasRealIndustryData && preQualTargetIndustries.length > 0) {
         const exactMatch = preQualTargetIndustries.some(ind => ind.toLowerCase().trim() === preQualLeadIndustry);
         const partialMatch = !exactMatch && preQualTargetIndustries.some(ind => {
           const t = ind.toLowerCase().trim();
           return preQualLeadIndustry.includes(t) || t.includes(preQualLeadIndustry);
         });
         industryFit = exactMatch ? 25 : partialMatch ? 15 : 0;
+      } else if (preQualTargetIndustries.length > 0) {
+        // No real industry value yet — credit based on whether the search keyword that
+        // surfaced this lead matches one of the configured target industries.
+        const searchKeyword = (leadData?._searchKeyword || '').toLowerCase().trim();
+        const keywordMatchesTarget = searchKeyword && preQualTargetIndustries.some(ind => {
+          const t = ind.toLowerCase().trim();
+          return searchKeyword === t || searchKeyword.includes(t) || t.includes(searchKeyword);
+        });
+        industryFit = keywordMatchesTarget ? 20 : 12;
+      } else {
+        industryFit = 12; // no industry criteria configured at all — genuinely neutral
       }
 
       // ── ACCEPT/REJECT DECISION (no score surfaced) ─────────────────────────
@@ -2453,6 +2740,39 @@ Respond in JSON format:
       
       const criteria = this.campaignPlan.qualificationCriteria;
 
+      // ── QUALIFICATION RUBRIC — the AI-generated, per-combo weighted criteria set
+      // built by getOrBuildRubric() before this lead was ever searched (see
+      // leadSearch()'s rubric gate). This is now the primary qualifier — it
+      // subsumes what used to be a fixed mustHave list plus separate
+      // timing/pain/initiative/urgency factors, since the rubric's own generation
+      // prompt already asks for exactly those signal types, tailored per segment.
+      // Falls back to the raw configured mustHave list (equal-weighted) only if no
+      // rubric is available yet — e.g. CRM-sourced leads with no search combo, or
+      // the gate failing — so qualification never blocks on a missing rubric.
+      let rubric = null;
+      if (leadData?._searchKeyword && leadData?._searchPosition) {
+        rubric = await this.leadMemory.getRubric(this.userId, leadData._searchKeyword, leadData._searchPosition).catch(() => null);
+      }
+      if (!rubric || !Array.isArray(rubric.criteria) || rubric.criteria.length === 0) {
+        const fallbackList = criteria.mustHave || [];
+        // weight is a raw LLR (see buildQualificationRubric) — user-configured
+        // mustHave items get a moderately strong positive prior (ln(2.5)≈0.92,
+        // "roughly 2.5x more likely to convert if true") since the user explicitly
+        // flagged them as required, not just nice-to-have.
+        const FALLBACK_MUST_HAVE_LLR = Math.log(2.5);
+        rubric = {
+          criteria: fallbackList.map(c => ({
+            criterion: c,
+            weight: FALLBACK_MUST_HAVE_LLR,
+            justification: 'Fallback: no AI-generated rubric available for this combo yet'
+          })),
+          version: null
+        };
+        console.log(`[QUALIFY RUBRIC] No stored rubric for "${leadData?._searchKeyword || 'n/a'}#${leadData?._searchPosition || 'n/a'}" — using fallback mustHave list (${rubric.criteria.length} items)`);
+      } else {
+        console.log(`[QUALIFY RUBRIC] Using rubric v${rubric.version} for "${leadData._searchKeyword}#${leadData._searchPosition}" (${rubric.criteria.length} criteria)`);
+      }
+
       // ── HARDCODED FACTORS — computed from structured data, never asked of the model ──
       // companySizeFit and industryFit are direct comparisons against Apollo's own
       // structured fields. Asking an LLM to "rate" a number-range comparison or a
@@ -2462,12 +2782,26 @@ Respond in JSON format:
       const sizeMin = userSettingsForCriteria.companySizeMin ?? userSettingsForCriteria.companyCriteria?.companySizeMin;
       const sizeMax = userSettingsForCriteria.companySizeMax ?? userSettingsForCriteria.companyCriteria?.companySizeMax;
       const targetIndustriesForScoring = userSettingsForCriteria.companyIndustries || userSettingsForCriteria.companyCriteria?.companyIndustries || [];
-      const employeeCount = Number(leadData?.organization?.estimated_num_employees);
-      const leadIndustry = (leadData?.organization?.industry || '').toLowerCase().trim();
+      // Apollo's FREE search response (mixed_people/api_search, used at lead-search time)
+      // does NOT return real organization.industry / estimated_num_employees — only
+      // has_industry/has_employee_count boolean teaser flags. Real values only arrive
+      // after paid enrichment in unlockEmail(), which runs AFTER qualification. So these
+      // fields are reliably empty here, not merely "sometimes unknown" — treating that as
+      // a flat neutral penalty (as a prior version of this code did) tanked nearly every
+      // lead's score by the same fixed amount regardless of true fit. Correct baseline
+      // when the value is genuinely absent: trust that Apollo's own search-time filters
+      // (q_organization_keyword_tags for industry, organization_num_employees_ranges for
+      // size — see leadSearch()) already selected for the right ballpark.
+      const employeeCountRaw = leadData?.organization?.estimated_num_employees;
+      const employeeCount = Number(employeeCountRaw);
+      const hasRealSizeData = Number.isFinite(employeeCount);
+      const industryRaw = leadData?.organization?.industry;
+      const hasRealIndustryData = typeof industryRaw === 'string' && industryRaw.trim().length > 0;
+      const leadIndustry = (industryRaw || '').toLowerCase().trim();
 
-      let companySizeFit = 2; // neutral default when range or employee count is unknown
+      let companySizeFit;
       let sizeMismatchNote = null;
-      if (Number.isFinite(employeeCount) && (sizeMin || sizeMax)) {
+      if (hasRealSizeData && (sizeMin || sizeMax)) {
         const min = sizeMin || 0;
         const max = sizeMax || Infinity;
         if (employeeCount >= min && employeeCount <= max) {
@@ -2482,19 +2816,36 @@ Respond in JSON format:
           companySizeFit = Math.max(1, Math.round(5 - (distance / rangeSpan) * 5));
           sizeMismatchNote = `Company reports ${employeeCount} employees, outside the target ${min}-${max === Infinity ? '∞' : max} range`;
         }
+      } else if (sizeMin || sizeMax) {
+        // No real headcount visible yet — credit the Apollo search-time size filter.
+        companySizeFit = 4;
+      } else {
+        companySizeFit = 3; // no size criteria configured at all — genuinely neutral
       }
 
-      let industryFit = 5; // neutral default when no target industries configured or industry unknown
-      if (targetIndustriesForScoring.length > 0 && leadIndustry) {
+      let industryFit;
+      if (hasRealIndustryData && targetIndustriesForScoring.length > 0) {
         const exactMatch = targetIndustriesForScoring.some(ind => ind.toLowerCase().trim() === leadIndustry);
         const partialMatch = !exactMatch && targetIndustriesForScoring.some(ind => {
           const t = ind.toLowerCase().trim();
           return leadIndustry.includes(t) || t.includes(leadIndustry);
         });
         industryFit = exactMatch ? 10 : partialMatch ? 6 : 0;
+      } else if (targetIndustriesForScoring.length > 0) {
+        // No real industry value visible yet — credit based on whether the search
+        // keyword that surfaced this lead (Apollo's q_organization_keyword_tags) is
+        // itself one of the configured target industries.
+        const searchKeyword = (leadData?._searchKeyword || '').toLowerCase().trim();
+        const keywordMatchesTarget = searchKeyword && targetIndustriesForScoring.some(ind => {
+          const t = ind.toLowerCase().trim();
+          return searchKeyword === t || searchKeyword.includes(t) || t.includes(searchKeyword);
+        });
+        industryFit = keywordMatchesTarget ? 8 : 5;
+      } else {
+        industryFit = 5; // no industry criteria configured at all — genuinely neutral
       }
 
-      console.log(`[QUALIFY HARDCODED] ${personName} @ ${companyName}: companySizeFit=${companySizeFit}/5 (${employeeCount || 'unknown'} employees, target ${sizeMin || '?'}-${sizeMax || '?'}) | industryFit=${industryFit}/10 ("${leadIndustry || 'unknown'}" vs [${targetIndustriesForScoring.join(', ')}])`);
+      console.log(`[QUALIFY HARDCODED] ${personName} @ ${companyName}: companySizeFit=${companySizeFit}/5 (${hasRealSizeData ? employeeCount + ' employees' : 'unknown, search-filter credit'}, target ${sizeMin || '?'}-${sizeMax || '?'}) | industryFit=${industryFit}/10 (${hasRealIndustryData ? `"${leadIndustry}"` : `unknown, keyword="${leadData?._searchKeyword || 'n/a'}"`} vs [${targetIndustriesForScoring.join(', ')}])`);
 
       // Extract research insights with citations
       let researchSummary = 'No research data available';
@@ -2551,17 +2902,24 @@ inflate another. It is normal and expected for factors to disagree (e.g.
 strong title fit but zero timing signal).
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-FACTOR 1 — mustHaveMatch (max 22 pts): For EACH mustHave criterion, classify it into
-exactly one of these four states — do not just say verified/not-verified:
+FACTOR 1 — rubricMatch (max 50 pts, split across the criteria below by their listed
+weight): this segment's qualification rubric was built from real market research
+specifically for "${leadData?._searchKeyword || 'this industry'}" + "${leadData?._searchPosition || 'this role'}".
+It already covers buying signals, pain points, timing, initiative, and role nuance —
+you are NOT separately scoring timing/pain/initiative/urgency, they're folded into
+these criteria. For EACH criterion below, classify it into exactly one of four states:
 - "confirmed" — research or profile data explicitly states this is true.
 - "likely" — no explicit statement, but everything you found is consistent with it
   being true and nothing contradicts it (absence of evidence is not evidence of
   absence — most companies don't narrate every fact about themselves online).
 - "unknown" — genuinely no signal either way; you can't reasonably guess.
 - "contradicted" — research or profile data actively indicates this is FALSE.
-Report one entry per mustHave criterion with its exact text and the state you assigned.
-Most real leads will land mostly on "likely"/"unknown", not "confirmed" — that's expected,
-not a sign you're being too generous.
+Report one entry per criterion with its exact text and the state you assigned.
+Most real leads will land mostly on "likely"/"unknown", not "confirmed" — that's
+expected, not a sign you're being too generous.
+
+RUBRIC CRITERIA (ordered most → least important; weight = relative points, out of 100):
+${rubric.criteria.map((c, i) => `${i + 1}. [weight ${c.weight}] ${c.criterion}${c.justification ? ` — ${c.justification}` : ''}`).join('\n') || 'None configured.'}
 
 FACTOR 2 — titleRoleFit (0-15): How precisely does their actual title/role match
 the ideal buyer persona? 15 = exact role match. 8-10 = adjacent/related role.
@@ -2571,29 +2929,12 @@ the ideal buyer persona? 15 = exact role match. 8-10 = adjacent/related role.
 directly from Apollo's structured data against the campaign's target range/list,
 since that's a lookup, not a judgment call. Do not include those fields.)
 
-FACTOR 5 — timingSignal (0 or 10): Award 10 ONLY if research found a specific,
-cited timing signal (funding, hiring surge, leadership change, expansion,
-fiscal timing). Otherwise 0. Do not award partial credit for "might have timing."
-
-FACTOR 6 — painSignal (0 or 7): Award 7 ONLY if research found a specific,
-cited pain point or challenge this person/company is dealing with. Otherwise 0.
-
-FACTOR 7 — initiativeSignal (0 or 6): Award 6 ONLY if research found evidence
-they are already actively looking at solutions in this space (RFP, project
-announcement, relevant job posting, procurement page). Otherwise 0.
-
-FACTOR 8 — urgencySignal (0 or 5): Award 5 ONLY if research found a specific
-reason this is time-sensitive (deadline, competitive pressure, compliance
-pressure). Otherwise 0.
-
 disqualifierHit: true if any disqualifier from the list is confirmed present —
 this overrides the computed score down to REJECT range regardless of other factors.
 
-Factors 5-8 require a REAL cited fact, not inference. If research found nothing
-on a given signal, score it 0 — do not round up to "probably." Leads with zero
-timing/pain/initiative/urgency signals but strong criteria match should still
-land in QUALIFIED territory on criteria + fact-count alone; that is by design
-(absence of a buying signal is not a disqualifier).
+Leads with weak rubric signal but strong title/industry/size fit and good research
+depth can still land in SHOTGUN territory — that's fine, that's what the tier is
+for (absence of a strong buying signal is not a disqualifier).
 
 TIER BANDS (computed from your factor scores, for your own calibration only —
 do not output a tier or score field):
@@ -2674,20 +3015,16 @@ BAD BUYER MOTIVATIONS:
 "They use legacy systems." (Not tied to current urgency)
 
 IF YOU CANNOT ARTICULATE A SPECIFIC, EVIDENCE-BASED BUYER MOTIVATION:
-→ If mustHave criteria are mostly "confirmed"/"likely" (right title/industry/size) → still QUALIFIED, just note "no specific timing signal found"
-→ If mustHave criteria are mostly "contradicted" AND you can't find buyer motivation → SHOTGUN or REJECT
-→ Inability to find timing signals online is NOT the same as "no motivation exists" — QUALIFIED leads get emailed anyway
+→ If rubric criteria are mostly "confirmed"/"likely" → still QUALIFIED, just note "no specific timing signal found"
+→ If rubric criteria are mostly "contradicted" AND you can't find buyer motivation → SHOTGUN or REJECT
+→ Inability to find signals online is NOT the same as "no motivation exists" — QUALIFIED leads get emailed anyway
 
 Respond in JSON:
 {
-  "mustHaveStatus": [
-    {"criterion": "exact text of the mustHave criterion", "status": "confirmed" | "likely" | "unknown" | "contradicted"}
+  "rubricStatus": [
+    {"criterion": "exact text of the rubric criterion", "status": "confirmed" | "likely" | "unknown" | "contradicted"}
   ],
   "titleRoleFit": 0-15,
-  "timingSignal": 0 or 10,
-  "painSignal": 0 or 7,
-  "initiativeSignal": 0 or 6,
-  "urgencySignal": 0 or 5,
   "disqualifierHit": true/false,
   "disqualifierReason": "which disqualifier matched, or empty string",
   "reasoning": "detailed explanation with specific facts, numbers, and evidence (3-5 sentences minimum)",
@@ -2717,81 +3054,158 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
 
       const result = JSON.parse(response.choices[0].message.content);
 
-      // ── DETERMINISTIC SCORE COMPUTATION ──────────────────────────────────
-      // The model no longer picks a final score or tier — it scores 8 independent
-      // sub-factors, and the score is a genuine sum computed here. This replaces
-      // the old "pick a tier, then eyeball a number in that tier's range" flow,
-      // which clustered nearly all leads at 45/65/85 since the model had no real
-      // arithmetic to do. citedEvidence.length (factCount) is pulled from the
-      // model's own evidence array rather than self-reported, since that's the
-      // one factor we can verify against real output instead of trusting a claim.
-      // mustHave is graded per-criterion on a 4-state confidence scale rather than
-      // binary verified/not — "confirmed" requires explicit evidence, but "likely"
-      // (consistent with everything found, nothing contradicts it) still earns most
-      // of the credit. Absence of evidence isn't evidence of absence; only a
-      // "contradicted" criterion should actually cost points.
-      const MUST_HAVE_STATUS_WEIGHT = { confirmed: 1, likely: 0.75, unknown: 0.4, contradicted: 0 };
-      const mustHaveCriteriaList = criteria.mustHave || [];
-      const mustHaveTotal = mustHaveCriteriaList.length;
-      const mustHaveStatuses = Array.isArray(result.mustHaveStatus) ? result.mustHaveStatus : [];
-      // Match each configured criterion to the model's reported status by text (not by
-      // array position/length) — a criterion the model forgot to report defaults to
-      // "unknown" rather than 0, since a missed report isn't evidence of contradiction.
-      const mustHaveResolved = mustHaveCriteriaList.map(c => {
-        const norm = c.toLowerCase().trim();
-        const match = mustHaveStatuses.find(entry => entry?.criterion?.toLowerCase().trim() === norm);
-        return { criterion: c, status: match?.status || 'unknown' };
+      // ── DETERMINISTIC SCORE COMPUTATION — additive log-odds model ──────────
+      // Score is P(this lead converts) built the way logistic regression actually
+      // works: an intercept (base rate) plus independent evidence contributions
+      // in log-odds space, summed unnormalized, squashed through a sigmoid at the
+      // very end. This replaced an earlier version that computed a normalized
+      // weighted AVERAGE (Σ weight/totalWeight × confidence × budget) — a
+      // different functional family from logistic regression entirely, which
+      // meant (a) adding a new rubric criterion diluted every other criterion's
+      // contribution instead of adding independent evidence, and (b) the priors
+      // couldn't be used to anchor a future real logistic refit on reply outcomes
+      // (see docs/meridian-outcome-data-layer-spec §4/§4.5) because they weren't
+      // in compatible units. This version's rubric weights ARE log-likelihood-
+      // ratios, so a future ridge-anchored refit on real reply data can use them
+      // directly as regularization targets — same coefficients, same algebra.
+      // ── Simulation-tuned priors, not laws ──────────────────────────────────
+      // Every constant below (base rate, max swings, ρ) was hand-set and sanity-
+      // checked against a ~20k-sample synthetic population, not fit to real data.
+      // The refit in docs/meridian-outcome-data-layer-spec §4.5 is ridge-anchored
+      // to these exact weights (that decision is recorded there, not left implicit)
+      // — meaning these ARE the prior mean for a Bayesian logistic regression once
+      // real reply data exists, not just plausible-looking numbers.
+      const sigmoid = x => 1 / (1 + Math.exp(-x));
+
+      // Intercept: assumed cold-outreach base conversion rate — the log-odds of a
+      // lead with zero distinguishing evidence. No clamping anywhere in this model;
+      // sigmoid already bounds the output in (0,1), and letting a lead with genuinely
+      // overwhelming evidence reach 70-80%+ is correct, not a bug to rescale away.
+      const COLD_OUTREACH_BASE_RATE = 0.03;
+      const INTERCEPT_LOGIT = Math.log(COLD_OUTREACH_BASE_RATE / (1 - COLD_OUTREACH_BASE_RATE));
+
+      // Rubric: each criterion's weight is a signed LLR (positive = evidence
+      // for, negative = evidence against, unnormalized — see buildQualificationRubric).
+      // Status scales how much of that LLR actually applies: "confirmed" gets the
+      // full contribution, "likely" a damped fraction, "unknown" contributes
+      // NOTHING (correct Bayesian treatment — absence of evidence is not evidence
+      // of absence, so it should not move the estimate at all, not just move it
+      // less), "contradicted" applies the LLR with its sign flipped.
+      const RUBRIC_STATUS_MULTIPLIER = { confirmed: 1, likely: 0.65, unknown: 0, contradicted: -1 };
+      const rubricCriteriaList = rubric.criteria || [];
+      const rubricStatuses = Array.isArray(result.rubricStatus) ? result.rubricStatus : [];
+      // Match each rubric criterion to the model's reported status by text (not array
+      // position/length) — a criterion the model forgot to report defaults to "unknown"
+      // (zero contribution), not treated as contradicted.
+      const rubricResolved = rubricCriteriaList.map(c => {
+        const norm = (c.criterion || '').toLowerCase().trim();
+        const match = rubricStatuses.find(entry => entry?.criterion?.toLowerCase().trim() === norm);
+        const status = match?.status || 'unknown';
+        const llr = Number(c.weight) || 0;
+        const contribution = llr * (RUBRIC_STATUS_MULTIPLIER[status] ?? 0);
+        return { criterion: c.criterion, weight: llr, justification: c.justification, status, contribution };
       });
-      const mustHavePoints = mustHaveTotal > 0
-        ? Math.round(
-            (mustHaveResolved.reduce((sum, entry) => sum + (MUST_HAVE_STATUS_WEIGHT[entry.status] ?? 0.4), 0)
-              / mustHaveTotal) * 22
-          )
-        : 18; // no mustHave configured — neutral credit, doesn't block QUALIFIED
+      // Correlation-shrinkage instead of a hard cap. A rubric's criteria are not
+      // independent evidence — several often fire together because they're
+      // downstream of the same underlying fact (e.g. "raised funding" and "hiring
+      // surge" both light up from one funding announcement). The design-effect
+      // correction from survey statistics (Σ ÷ √(1+(k-1)ρ), ρ = assumed average
+      // pairwise correlation) says k correlated signals carry roughly √k worth of
+      // independent evidence — diminishing returns on the Nth confirmed criterion
+      // without a hard wall where it suddenly counts for zero. ρ is one
+      // interpretable constant (vs. an arbitrary magnitude cap) and is itself
+      // estimable later from real data (correlation of criterion hits across leads).
+      const RUBRIC_CRITERIA_CORRELATION = 0.3;
+      const rubricLogitRaw = rubricResolved.reduce((sum, e) => sum + e.contribution, 0);
+      // k is the count of criteria that actually contributed (confirmed/likely/
+      // contradicted), NOT the rubric's total size — an "unknown" already
+      // contributes zero to the numerator per the Bayesian treatment above, so it
+      // must not also inflate the shrinkage denominator, which would silently
+      // penalize it a second time. Using total rubric size here was a real bug:
+      // it coupled score to rubric verbosity (a 12-criterion rubric would shrink
+      // every lead's evidence harder than a 5-criterion rubric on identical
+      // findings) and double-penalized thin research (no evidence AND over-shrunk
+      // evidence) — exactly the "absence of evidence is not evidence of absence"
+      // mistake this scoring model was built to avoid everywhere else.
+      const k = rubricResolved.filter(e => e.contribution !== 0).length;
+      const rubricLogit = k > 0 ? rubricLogitRaw / Math.sqrt(1 + (k - 1) * RUBRIC_CRITERIA_CORRELATION) : 0;
 
       const titleRoleFit = Math.max(0, Math.min(15, Number(result.titleRoleFit) || 0));
       // industryFit/companySizeFit are computed earlier from structured Apollo data, not model output
 
+      // title/industry/size ARE genuine fit-probability estimates (e.g. titleRoleFit=0
+      // means the model concluded "tenuous fit," real negative evidence), so they get
+      // a logit-shaped contribution — but as a bounded LINEAR map from fraction to a
+      // fixed max swing, not logit(fraction)×scale. The latter explodes near 0/1 (a
+      // clamped fraction of 0.98 alone gives logit≈3.9, dwarfing the intercept and
+      // saturating the score on nearly every lead) — this is a straightforward,
+      // stable, monotonic stand-in with the same shape (0 at the neutral midpoint,
+      // symmetric at the extremes) without the blowup.
+      const fractionToLogit = (fraction, maxSwing) => (Math.max(0, Math.min(1, fraction)) - 0.5) * 2 * maxSwing;
+      const TITLE_MAX_SWING = 0.7, INDUSTRY_MAX_SWING = 0.5, SIZE_MAX_SWING = 0.3;
+      const titleLogit = fractionToLogit(titleRoleFit / 15, TITLE_MAX_SWING);
+      const industryLogit = fractionToLogit(industryFit / 10, INDUSTRY_MAX_SWING);
+      const sizeLogit = fractionToLogit(companySizeFit / 5, SIZE_MAX_SWING);
+
+      // Research depth is a DIFFERENT kind of quantity from the factors above —
+      // zero cited facts means "we don't know much," not "this is a bad lead."
+      // A logit-shaped transform would punish thin research as if it were negative
+      // evidence, which is exactly the "absence of evidence is not evidence of
+      // absence" mistake this whole scoring rework was built to avoid elsewhere.
+      // So it's a simple bounded additive bonus starting at zero, not a logit term.
       const citedFactCount = Array.isArray(result.citedEvidence) ? result.citedEvidence.length : 0;
-      const factCountPoints = citedFactCount >= 8 ? 20
-        : citedFactCount >= 5 ? 17
-        : citedFactCount >= 3 ? 12
-        : citedFactCount >= 1 ? 6
-        : 0;
+      const FACT_BONUS_MAX = 0.5;
+      const factBonus = Math.min(FACT_BONUS_MAX, citedFactCount * (FACT_BONUS_MAX / 8));
 
-      const timingSignal = Number(result.timingSignal) > 0 ? 10 : 0;
-      const painSignal = Number(result.painSignal) > 0 ? 7 : 0;
-      const initiativeSignal = Number(result.initiativeSignal) > 0 ? 6 : 0;
-      const urgencySignal = Number(result.urgencySignal) > 0 ? 5 : 0;
+      const totalLogit = INTERCEPT_LOGIT + rubricLogit + titleLogit + industryLogit + sizeLogit + factBonus;
+      const rawProbability = sigmoid(totalLogit); // the calibrated truth — stored, feeds §4.5's refit. Never shown directly.
 
-      let computedScore = mustHavePoints + titleRoleFit + industryFit + companySizeFit
-        + factCountPoints + timingSignal + painSignal + initiativeSignal + urgencySignal;
-      computedScore = Math.max(0, Math.min(100, Math.round(computedScore)));
+      // Operational 0-100 score: percentile rank against this account's own
+      // trailing qualification scores, NOT a rescale of rawProbability. Cold-
+      // outreach base rates mean the median lead is genuinely a low percentage —
+      // rescaling that to "look like" a familiar 0-100 spread would corrupt the
+      // probability itself to make the display prettier. Percentile rank instead:
+      // reps prioritize by rank, and this IS rank, computed honestly. It also
+      // self-adapts if the distribution shifts (new client, new vertical, a
+      // rubric regeneration) instead of leaving a threshold calibrated for a
+      // distribution that no longer exists.
+      const trailingScores = await this.awsManager.getQualificationScoreHistory(this.userId).catch(() => []);
+      const referencePopulation = [...QUALIFICATION_SCORE_BOOTSTRAP, ...trailingScores];
+      const percentileRank = Math.round(
+        (referencePopulation.filter(p => p <= rawProbability).length / referencePopulation.length) * 100
+      );
+      // Fire-and-forget — doesn't block this lead's result, just grows next lead's reference population.
+      this.awsManager.appendQualificationScore(this.userId, rawProbability).catch(() => {});
+
+      let computedScore = percentileRank;
 
       const disqualifierHit = result.disqualifierHit === true;
       if (disqualifierHit) {
         computedScore = Math.min(computedScore, 30);
       }
 
-      const computedTier = computedScore >= 80 ? 'HIGHLY_QUALIFIED'
-        : computedScore >= 60 ? 'QUALIFIED'
+      // Percentile-based tier bands — self-adapt with the distribution instead of
+      // fixed point thresholds inherited from a different scoring system. Exact
+      // cutoffs (90/70/40) are still hand-set placeholders; the mechanism is what
+      // matters (auto-adapts on refit/regeneration), not these specific numbers.
+      const computedTier = computedScore >= 90 ? 'HIGHLY_QUALIFIED'
+        : computedScore >= 70 ? 'QUALIFIED'
         : computedScore >= 40 ? 'SHOTGUN'
         : 'REJECT';
 
-      const computedConfidence = computedScore >= 80 ? 'HIGH'
-        : computedScore >= 55 ? 'MEDIUM'
+      const computedConfidence = computedScore >= 90 ? 'HIGH'
+        : computedScore >= 60 ? 'MEDIUM'
         : 'LOW';
 
       const scoreBreakdown = {
-        mustHave: { points: mustHavePoints, max: 22, statuses: mustHaveResolved, total: mustHaveTotal },
-        titleRoleFit: { points: titleRoleFit, max: 15 },
-        industryFit: { points: industryFit, max: 10 },
-        companySizeFit: { points: companySizeFit, max: 5, note: sizeMismatchNote },
-        researchDepth: { points: factCountPoints, max: 20, citedFacts: citedFactCount },
-        timingSignal: { points: timingSignal, max: 10, present: timingSignal > 0 },
-        painSignal: { points: painSignal, max: 7, present: painSignal > 0 },
-        initiativeSignal: { points: initiativeSignal, max: 6, present: initiativeSignal > 0 },
-        urgencySignal: { points: urgencySignal, max: 5, present: urgencySignal > 0 },
+        rawProbability, // honest P(conversion) estimate — kept for §4.5 calibration, not shown as the display score
+        percentileRank,
+        intercept: INTERCEPT_LOGIT,
+        rubric: { logit: rubricLogit, criteria: rubricResolved, rubricVersion: rubric.version || null },
+        titleRoleFit: { points: titleRoleFit, max: 15, logit: titleLogit },
+        industryFit: { points: industryFit, max: 10, logit: industryLogit },
+        companySizeFit: { points: companySizeFit, max: 5, logit: sizeLogit, note: sizeMismatchNote },
+        researchDepth: { citedFacts: citedFactCount, bonus: factBonus },
         disqualifierHit,
         disqualifierReason: result.disqualifierReason || null,
         total: computedScore,
@@ -2800,8 +3214,8 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
       const weaknesses = Array.isArray(result.weaknesses) ? [...result.weaknesses] : [];
       if (sizeMismatchNote) weaknesses.push(sizeMismatchNote);
 
-      const mustHaveSummary = mustHaveResolved.map(e => `${e.criterion}:${e.status}`).join(', ');
-      console.log(`[QUALIFY SCORE] ${personName} @ ${companyName}: ${computedScore}/100 (mustHave=${mustHavePoints}/22[${mustHaveSummary}] title=${titleRoleFit}/15 industry=${industryFit}/10 size=${companySizeFit}/5${sizeMismatchNote ? ` [${sizeMismatchNote}]` : ''} facts=${factCountPoints}/20[${citedFactCount}] timing=${timingSignal} pain=${painSignal} initiative=${initiativeSignal} urgency=${urgencySignal}${disqualifierHit ? ' DISQUALIFIED' : ''}) -> ${computedTier}`);
+      const rubricSummary = rubricResolved.map(e => `${e.criterion}:${e.status}(${e.contribution.toFixed(2)})`).join(', ');
+      console.log(`[QUALIFY SCORE] ${personName} @ ${companyName}: percentile=${computedScore}/100 rawP=${(rawProbability * 100).toFixed(1)}% (vs ${referencePopulation.length} trailing) logit=${totalLogit.toFixed(2)} [intercept=${INTERCEPT_LOGIT.toFixed(2)} rubric=${rubricLogit.toFixed(2)}[v${rubric.version ?? 'fallback'}: ${rubricSummary}] title=${titleLogit.toFixed(2)} industry=${industryLogit.toFixed(2)} size=${sizeLogit.toFixed(2)} facts=${factBonus.toFixed(2)}[${citedFactCount}]]${sizeMismatchNote ? ` [${sizeMismatchNote}]` : ''}${disqualifierHit ? ' DISQUALIFIED' : ''}) -> ${computedTier}`);
 
       // Log API usage
       if (response.usage) {
@@ -5565,7 +5979,22 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         }
         targetPosition = basePositions[0];
       }
-      
+
+      // ── QUALIFICATION RUBRIC GATE ──────────────────────────────────────
+      // Before any lead is searched for this combo, make sure a qualification
+      // rubric exists for it — build one via grounded research if not. Only
+      // matters when full qualification will actually run (campaignPlan +
+      // qualificationCriteria present); otherwise qualifyLead never reads a
+      // rubric and building one would be wasted research spend. This never
+      // affects preQualifyLead — that stays the fast, cheap gate untouched.
+      if (this.campaignPlan?.qualificationCriteria) {
+        try {
+          await this.getOrBuildRubric(selectedKeyword, targetPosition);
+        } catch (rubricErr) {
+          console.error(`[RUBRIC] Failed to get/build rubric for "${selectedKeyword}" + "${targetPosition}", proceeding without one:`, rubricErr.message);
+        }
+      }
+
       // STEP 5: Check search history for duplicates (30 day window)
       const historyCheck = await this.awsManager.checkSearchHistory(
         userSettings.userId,
@@ -7393,33 +7822,41 @@ Target Positions:`;
   }
 
   async addLeadToDatabase(leadData) {
-    try {
-      const db = await this.loadLeadsDatabase();
-      
-      // Add lead with timestamp and reasoning agent flag
-      const leadRecord = {
-        ...leadData,
-        id: `reasoning_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        source: 'reasoning_agent',
-        timestamp: new Date().toISOString(),
-        userId: this.userId
-      };
-      
-      db.allLeads.push(leadRecord);
-      
-      // Track company to avoid duplicates - check both formats
-      const companyName = leadData.company || leadData.organization?.name;
-      if (companyName && !db.emailedCompanies.includes(companyName)) {
-        db.emailedCompanies.push(companyName);
+    // Wrapped in a mutex: this is a read-JSON-file → mutate → write-JSON-file
+    // cycle, and drainQueueConcurrently runs up to 10 concurrent workers that can
+    // each call this. Without the lock, two workers can both load the file before
+    // either saves, and the second save silently drops the first worker's lead —
+    // intermittent, worse at higher concurrency, easy to misdiagnose as "Apollo
+    // sometimes doesn't return leads."
+    return this.withLeadsDbLock(async () => {
+      try {
+        const db = await this.loadLeadsDatabase();
+
+        // Add lead with timestamp and reasoning agent flag
+        const leadRecord = {
+          ...leadData,
+          id: `reasoning_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          source: 'reasoning_agent',
+          timestamp: new Date().toISOString(),
+          userId: this.userId
+        };
+
+        db.allLeads.push(leadRecord);
+
+        // Track company to avoid duplicates - check both formats
+        const companyName = leadData.company || leadData.organization?.name;
+        if (companyName && !db.emailedCompanies.includes(companyName)) {
+          db.emailedCompanies.push(companyName);
+        }
+
+        await this.saveLeadsDatabase(db);
+
+        return leadRecord;
+      } catch (error) {
+        console.error('❌ [DATABASE] Error adding lead:', error);
+        throw error;
       }
-      
-      await this.saveLeadsDatabase(db);
-      
-      return leadRecord;
-    } catch (error) {
-      console.error('❌ [DATABASE] Error adding lead:', error);
-      throw error;
-    }
+    });
   }
 
   async addToEmailQueue(leadData) {

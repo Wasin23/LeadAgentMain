@@ -428,6 +428,126 @@ function ToggleRow({ label, checked, onChange, description }: {
 }
 
 // ─────────────────────────────────────────────────────
+// Qualification Rubric — one card per keyword+position combo. Each rubric is
+// AI-generated via grounded research the first time that combo is searched (see
+// the pipeline gate in reasoningLeadAgent.js). This is the primary qualifier now
+// — mustHave/niceToHave above is a fallback used only until a combo has one.
+// ─────────────────────────────────────────────────────
+interface RubricCriterion { criterion: string; weight: number; justification?: string; }
+interface Rubric { keyword: string; position: string; searchCombo: string; version: number; generatedAt: number; criteria: RubricCriterion[]; icpSummary?: string; }
+
+function RubricCard({ rubric, unlocked, onSaved, onReset }: {
+  rubric: Rubric; unlocked: boolean;
+  onSaved: (combo: string, criteria: RubricCriterion[]) => void;
+  onReset: (keyword: string, position: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [criteria, setCriteria] = useState<RubricCriterion[]>(rubric.criteria);
+  const [saving, setSaving] = useState(false);
+  const [resetting, setResetting] = useState(false);
+  const dirty = JSON.stringify(criteria) !== JSON.stringify(rubric.criteria);
+
+  // weight is stored as a raw log-likelihood-ratio (matches qualifyLead()'s
+  // scoring model), but that's not intuitive to hand-edit — the UI shows/edits a
+  // "Nx more likely to convert" multiplier instead and converts via ln() on change.
+  const updateRatio = (idx: number, ratio: number) => {
+    const safeRatio = Math.max(0.05, ratio || 1);
+    setCriteria(prev => prev.map((c, i) => i === idx ? { ...c, weight: Math.log(safeRatio) } : c));
+  };
+  const updateText = (idx: number, criterion: string) => {
+    setCriteria(prev => prev.map((c, i) => i === idx ? { ...c, criterion } : c));
+  };
+  const removeCriterion = (idx: number) => {
+    setCriteria(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const res = await api.put('/api/lead-agent/rubrics/update', {
+        keyword: rubric.keyword, position: rubric.position, criteria,
+      });
+      if (res.data?.success) onSaved(rubric.searchCombo, res.data.criteria);
+    } catch {
+      alert('Failed to save rubric changes.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const reset = async () => {
+    if (!confirm(`Reset the rubric for "${rubric.keyword} / ${rubric.position}"? It will be rebuilt from scratch via research the next time this combo is searched.`)) return;
+    setResetting(true);
+    try {
+      await api.post('/api/lead-agent/rubrics/reset', { keyword: rubric.keyword, position: rubric.position });
+      onReset(rubric.keyword, rubric.position);
+    } catch {
+      alert('Failed to reset rubric.');
+    } finally {
+      setResetting(false);
+    }
+  };
+
+  return (
+    <div className="border border-border rounded-lg overflow-hidden">
+      <button type="button" onClick={() => setOpen(o => !o)} className="w-full px-4 py-3 flex items-center justify-between hover:bg-muted/30 transition-colors">
+        <div className="text-left">
+          <p className="text-sm font-medium text-foreground">{rubric.keyword} <span className="text-muted-foreground">/</span> {rubric.position}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{rubric.criteria.length} criteria · v{rubric.version} · {rubric.generatedAt ? new Date(rubric.generatedAt).toLocaleDateString() : 'unknown date'}</p>
+        </div>
+        {open ? <ChevronDown className="w-4 h-4 text-muted-foreground" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+      </button>
+      {open && (
+        <div className="px-4 pb-4 pt-1 border-t border-border space-y-2">
+          {rubric.icpSummary && <p className="text-xs text-muted-foreground italic mb-2">{rubric.icpSummary}</p>}
+          {criteria.map((c, i) => (
+            <div key={i} className={`flex items-start gap-2 rounded-md p-2 ${unlocked ? 'bg-muted/20' : ''}`}>
+              <span className="text-xs text-muted-foreground mt-2 w-5 shrink-0">{i + 1}.</span>
+              <div className="flex-1 space-y-1">
+                {unlocked ? (
+                  <Input value={c.criterion} onChange={e => updateText(i, e.target.value)} className="text-sm h-8" />
+                ) : (
+                  <p className="text-sm text-foreground">{c.criterion}</p>
+                )}
+                {c.justification && <p className="text-xs text-muted-foreground">{c.justification}</p>}
+              </div>
+              {unlocked ? (
+                <Input
+                  type="number" step="0.1" min="0.05" value={Math.round(Math.exp(c.weight) * 100) / 100}
+                  onChange={e => updateRatio(i, parseFloat(e.target.value))}
+                  className="w-20 h-8 text-sm text-right shrink-0"
+                />
+              ) : (
+                <span className="text-xs font-mono text-muted-foreground shrink-0 mt-2">{(Math.round(Math.exp(c.weight) * 100) / 100)}x</span>
+              )}
+              {unlocked && (
+                <button type="button" onClick={() => removeCriterion(i)} className="text-muted-foreground hover:text-destructive shrink-0 mt-2">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          ))}
+          {unlocked && (
+            <p className="text-xs text-muted-foreground">Each value is "how many times more likely to convert" if that criterion is confirmed true — 1.0x means no effect either way, below 1.0x is a negative-but-not-disqualifying signal.</p>
+          )}
+          <div className="flex items-center gap-3 pt-2">
+            {unlocked && (
+              <Button size="sm" onClick={save} disabled={!dirty || saving}>
+                {saving ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : null}
+                Save Changes
+              </Button>
+            )}
+            <button type="button" onClick={reset} disabled={resetting} className="text-xs text-gray-400 underline hover:text-gray-600 disabled:opacity-50">
+              {resetting ? 'Resetting…' : 'Reset to auto-generated'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────
 // Page
 // ─────────────────────────────────────────────────────
 export default function AgentSettingsPage({ params }: { params: Promise<{ agentId: string }> }) {
@@ -456,6 +576,9 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
   const [testEmailError, setTestEmailError] = useState<string | null>(null);
   const [swapLog, setSwapLog] = useState<{ removedAt: string; removed: string; added: string[]; reason: string }[]>([]);
   const [criteriaUnlocked, setCriteriaUnlocked] = useState(false);
+  const [rubrics, setRubrics] = useState<Rubric[]>([]);
+  const [loadingRubrics, setLoadingRubrics] = useState(false);
+  const [rubricsUnlocked, setRubricsUnlocked] = useState(false);
 
   const handleResetFromWebsite = async () => {
     if (!resetWebsiteUrl.trim()) return;
@@ -518,6 +641,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
   useEffect(() => {
     fetchSettings();
     fetchPresets();
+    fetchRubrics();
   }, [resolvedParams.agentId]);
 
   const fetchPresets = async () => {
@@ -526,6 +650,14 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
       const res = await api.get('/api/settings/presets');
       setPresets(res.data.presets || []);
     } catch { /* ignore */ } finally { setLoadingPresets(false); }
+  };
+
+  const fetchRubrics = async () => {
+    try {
+      setLoadingRubrics(true);
+      const res = await api.get('/api/lead-agent/rubrics');
+      setRubrics(res.data?.rubrics || []);
+    } catch { /* ignore — combos without a rubric yet just won't show a card */ } finally { setLoadingRubrics(false); }
   };
 
   const fetchSettings = async () => {
@@ -1058,6 +1190,46 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                 </button>
               )}
             </div>
+          </Section>
+
+          {/* Qualification Rubrics — the real per-segment qualifier, built via research */}
+          <Section
+            title="Who and what we want out of this person and this industry"
+            description="AI-built, per-industry scoring rubric — the actual qualifier for every lead found under each search combo."
+            badge={rubrics.length > 0 ? `${rubrics.length} combo${rubrics.length === 1 ? '' : 's'}` : undefined}
+          >
+            <div className="mb-3 flex items-start justify-between gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              <div className="flex items-start gap-2">
+                <span className="mt-0.5">⚠️</span>
+                <span>These rubrics are <strong>auto-generated from real research</strong> the first time each industry/role combo is searched, and are what actually qualifies a lead. Editing weights or criteria overrides what the agent decided on its own. Wrong values will break who the agent is allowed to find.</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRubricsUnlocked(v => !v)}
+                className={`ml-3 shrink-0 rounded px-2 py-1 text-xs font-medium transition-colors ${
+                  rubricsUnlocked ? 'bg-amber-600 text-white hover:bg-amber-700' : 'bg-white border border-amber-400 text-amber-700 hover:bg-amber-100'
+                }`}
+              >
+                {rubricsUnlocked ? <><Unlock className="inline w-3 h-3 mr-1" />Lock</> : <><Lock className="inline w-3 h-3 mr-1" />Unlock to edit</>}
+              </button>
+            </div>
+            {loadingRubrics ? (
+              <p className="text-sm text-muted-foreground">Loading rubrics…</p>
+            ) : rubrics.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No rubrics yet — one gets built automatically the first time this agent searches a new industry/role combo. Disqualifiers above still apply as a hard veto regardless of rubric scoring.</p>
+            ) : (
+              <div className="space-y-2 mt-2">
+                {rubrics.map(r => (
+                  <RubricCard
+                    key={r.searchCombo}
+                    rubric={r}
+                    unlocked={rubricsUnlocked}
+                    onSaved={(combo, criteria) => setRubrics(prev => prev.map(x => x.searchCombo === combo ? { ...x, criteria, version: x.version + 1 } : x))}
+                    onReset={(keyword, position) => setRubrics(prev => prev.filter(x => !(x.keyword === keyword && x.position === position)))}
+                  />
+                ))}
+              </div>
+            )}
           </Section>
 
           {/* Starred Lead Timeline Research */}

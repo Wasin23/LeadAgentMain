@@ -243,6 +243,39 @@ class AWSManager {
     }
   }
 
+  // ── Qualification score history (for percentile-rank gating) ───────────────
+  // qualifyLead() computes a real calibrated P(conversion) per lead, but that raw
+  // probability is not what should gate spend or display in the UI — cold-outreach
+  // base rates mean the median lead is genuinely a low percentage, and clamping/
+  // rescaling that number to "look like" the old 0-100 spread would corrupt the
+  // probability itself. Instead: gate on percentile rank against a trailing
+  // window of this account's own recent scores. Capped rolling list, piggybacks
+  // on userSettings rather than a dedicated table — 300 floats is negligible
+  // payload; a dedicated store would be more efficient at high write volume but
+  // this is a reasonable v1.
+
+  async getQualificationScoreHistory(userId) {
+    try {
+      const settings = await this.getUserSettings(userId);
+      return Array.isArray(settings?.qualificationScoreHistory) ? settings.qualificationScoreHistory : [];
+    } catch (error) {
+      console.error('❌ [AWS] Error getting qualification score history:', error);
+      return [];
+    }
+  }
+
+  async appendQualificationScore(userId, rawProbability) {
+    try {
+      const settings = await this.getUserSettings(userId) || {};
+      const history = Array.isArray(settings.qualificationScoreHistory) ? settings.qualificationScoreHistory : [];
+      history.push(rawProbability);
+      if (history.length > 300) history.splice(0, history.length - 300);
+      await this.saveUserSettings(userId, { ...settings, qualificationScoreHistory: history });
+    } catch (error) {
+      console.error('❌ [AWS] Error appending qualification score:', error);
+    }
+  }
+
   // ── Starred Leads & Timeline ──────────────────────────────────────────────
 
   async getStarredLeads(userId) {
