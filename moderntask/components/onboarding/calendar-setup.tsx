@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Check } from 'lucide-react'
 import api from '@/lib/api'
 
 interface Props {
@@ -149,7 +150,7 @@ export default function CalendarSetup({ onComplete }: Props) {
                   disabled={savingCalendly || !calendlyLink.trim() || calendlySaved}
                   className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-semibold text-sm hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
-                  {savingCalendly ? 'Saving...' : calendlySaved ? '✓ Saved' : 'Save Calendly Link'}
+                  {savingCalendly ? 'Saving...' : calendlySaved ? <span className="inline-flex items-center gap-1"><Check className="w-3.5 h-3.5" /> Saved</span> : 'Save Calendly Link'}
                 </button>
               </div>
             </div>
@@ -160,8 +161,8 @@ export default function CalendarSetup({ onComplete }: Props) {
             <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-5">
               <h3 className="font-semibold text-green-400 mb-2">Calendar Integration Active</h3>
               <ul className="space-y-1.5 text-sm text-green-300">
-                {calendarConnected && <li>✓ Google Calendar connected - meeting bookings will sync</li>}
-                {calendlySaved && <li>✓ Calendly link saved - agent will include it in outreach</li>}
+                {calendarConnected && <li className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 shrink-0" /> Google Calendar connected - meeting bookings will sync</li>}
+                {calendlySaved && <li className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 shrink-0" /> Calendly link saved - agent will include it in outreach</li>}
               </ul>
             </div>
           )}

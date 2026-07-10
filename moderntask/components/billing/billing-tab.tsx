@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { loadStripe } from "@stripe/stripe-js"
 import { Elements, CardElement, useStripe, useElements, PaymentRequestButtonElement } from "@stripe/react-stripe-js"
 import type { PaymentRequest } from "@stripe/stripe-js"
-import { X, Calendar, CreditCard, Plus, Loader2, Sparkles, ChevronDown, ChevronUp, TrendingDown, AlertTriangle, Gift, Lock, Users, RefreshCcw, XCircle } from "lucide-react"
+import { X, Calendar, CreditCard, Plus, Loader2, Sparkles, ChevronDown, ChevronUp, TrendingDown, AlertTriangle, Gift, Lock, Users, RefreshCcw, XCircle, Check } from "lucide-react"
 import api from "@/lib/api"
 import { fetchDisplayedCreditData } from "@/lib/credit-balance"
 import { useToast } from "@/hooks/use-toast"
@@ -776,7 +776,7 @@ function BillingTabInner() {
                   </div>
                   <div className="flex items-center gap-3 px-1 text-xs">
                     {pm.isDefault
-                      ? <span className="text-muted-foreground">✓ Default</span>
+                      ? <span className="text-muted-foreground inline-flex items-center gap-1"><Check className="w-3 h-3" /> Default</span>
                       : <button onClick={() => handleSetDefault(pm.id)} className="text-primary hover:underline font-medium">Make Default</button>
                     }
                     <span className="text-border select-none">|</span>

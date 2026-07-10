@@ -340,7 +340,7 @@ export default function AgentDashboardPage({ params }: { params: Promise<{ agent
             } else if (d.type === 'tracking_update' && ['reply', 'ai_response', 'manual'].includes(d.eventType)) {
               fetchAgentOutreach();
               if (d.eventType === 'reply') {
-                setStreamingResponses(prev => [{ id: `reply-${Date.now()}`, leadName: d.leadName || 'Unknown Lead', leadEmail: d.recipientEmail || '', content: `💬 Lead replied: "${d.messagePreview || d.subject || 'New message'}"`, status: 'replied', sentAt: new Date().toISOString(), type: 'tracking' }, ...prev].slice(0, 20));
+                setStreamingResponses(prev => [{ id: `reply-${Date.now()}`, leadName: d.leadName || 'Unknown Lead', leadEmail: d.recipientEmail || '', content: `Lead replied: "${d.messagePreview || d.subject || 'New message'}"`, status: 'replied', sentAt: new Date().toISOString(), type: 'tracking' }, ...prev].slice(0, 20));
               }
             }
           } catch { /* ignore */ }

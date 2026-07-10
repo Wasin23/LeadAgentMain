@@ -152,7 +152,7 @@ export function LeadChat() {
         <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-lg shrink-0 overflow-hidden">
           {session.agent.avatar && (session.agent.avatar.startsWith('/') || session.agent.avatar.startsWith('http'))
             ? <img src={session.agent.avatar} alt={session.agent.name} className="w-full h-full object-cover rounded-full" />
-            : <span>{session.agent.avatar || '🤖'}</span>
+            : <Bot className="w-5 h-5 text-indigo-400" />
           }
         </div>
         <div>

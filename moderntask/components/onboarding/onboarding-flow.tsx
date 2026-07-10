@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Check, X, CloudUpload, Loader2, Lock, XCircle } from 'lucide-react'
+import { Check, X, CloudUpload, Loader2, Lock, XCircle, Sparkles, AlertTriangle } from 'lucide-react'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import api from '@/lib/api'
@@ -553,8 +553,8 @@ export default function OnboardingFlow({ onComplete }: Props) {
 
           <button onClick={() => fileInputRef.current?.click()} disabled={fileUploading}
             className="w-full h-12 border-2 border-dashed border-gray-200 rounded-xl text-sm text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-40">
-            <CloudUpload size={16} />
-            {fileUploading ? 'Reading doc…' : uploadedFileName ? `✓ ${uploadedFileName}` : 'Upload a whitepaper, one-pager, or pitch deck'}
+            {uploadedFileName && !fileUploading ? <Check size={16} /> : <CloudUpload size={16} />}
+            {fileUploading ? 'Reading doc…' : uploadedFileName ? uploadedFileName : 'Upload a whitepaper, one-pager, or pitch deck'}
           </button>
           <input ref={fileInputRef} type="file" accept=".pdf,.txt,.doc,.docx,.md,.png,.jpg,.jpeg" onChange={handleFileUploadAndAdvance} className="hidden" />
         </div>
@@ -573,7 +573,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
         <div className="flex items-center gap-2 mb-6">
           <button onClick={() => setStep1Details(false)} className="text-gray-400 hover:text-gray-600 transition-colors">←</button>
           <h2 className="text-3xl font-bold text-gray-900">Your company</h2>
-          {(companyName || services) && <span className="ml-auto text-xs text-green-600 font-medium">Autofilled ✓</span>}
+          {(companyName || services) && <span className="ml-auto text-xs text-green-600 font-medium inline-flex items-center gap-1">Autofilled <Check className="w-3 h-3" /></span>}
         </div>
 
         <div className="space-y-4 mb-6">
@@ -646,7 +646,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
 
         <button onClick={autofillTargeting} disabled={autofilling}
           className="mb-5 text-sm text-green-700 hover:text-green-900 font-medium transition-colors flex items-center gap-1 disabled:opacity-50">
-          {autofilling ? 'Filling…' : '✦ Autofill from company profile'}
+          {autofilling ? 'Filling…' : <><Sparkles className="w-3.5 h-3.5" /> Autofill from company profile</>}
         </button>
 
         <div className="mb-4">
@@ -774,7 +774,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
               <div className="font-semibold text-sm text-gray-900">Gmail</div>
               <div className="text-xs text-gray-500">Send from your Google inbox</div>
             </div>
-            {gmailConnected && useGmail ? <span className="text-green-600 text-xs font-semibold">Active ✓</span>
+            {gmailConnected && useGmail ? <span className="text-green-600 text-xs font-semibold inline-flex items-center gap-1">Active <Check className="w-3 h-3" /></span>
               : gmailConnected ? <span className="text-gray-400 text-xs">Connected - click to activate</span>
               : <span className="text-gray-400 text-xs">Connect →</span>}
           </button>
@@ -786,7 +786,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
               <div className="font-semibold text-sm text-gray-900">Outlook</div>
               <div className="text-xs text-gray-500">Send from your Microsoft inbox</div>
             </div>
-            {outlookConnected && useOutlook ? <span className="text-green-600 text-xs font-semibold">Active ✓</span>
+            {outlookConnected && useOutlook ? <span className="text-green-600 text-xs font-semibold inline-flex items-center gap-1">Active <Check className="w-3 h-3" /></span>
               : outlookConnected ? <span className="text-gray-400 text-xs">Connected - click to activate</span>
               : <span className="text-gray-400 text-xs">Connect →</span>}
           </button>
@@ -798,7 +798,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
               <div className="font-semibold text-sm text-gray-900">Mailgun <span className="text-gray-400 font-normal text-xs">(default)</span></div>
               <div className="text-xs text-gray-500">Replies tracked via webhooks</div>
             </div>
-            {!useGmail && !useOutlook && <span className="text-gray-900 text-xs font-semibold">Active ✓</span>}
+            {!useGmail && !useOutlook && <span className="text-gray-900 text-xs font-semibold inline-flex items-center gap-1">Active <Check className="w-3 h-3" /></span>}
           </button>
 
           <button onClick={() => { if (!linkedinConnected) connectLinkedIn() }} disabled={linkedinConnected || linkedinConnecting}
@@ -808,7 +808,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
               <div className="font-semibold text-sm text-gray-900">LinkedIn <span className="text-gray-400 font-normal text-xs">optional</span></div>
               <div className="text-xs text-gray-500">InMail + connection requests for top-tier leads</div>
             </div>
-            {linkedinConnected ? <span className="text-green-700 text-xs font-semibold">Connected ✓</span>
+            {linkedinConnected ? <span className="text-green-700 text-xs font-semibold inline-flex items-center gap-1">Connected <Check className="w-3 h-3" /></span>
               : linkedinConnecting ? <span className="text-gray-400 text-xs">Connecting…</span>
               : <span className="text-gray-400 text-xs">Connect →</span>}
           </button>
@@ -992,8 +992,8 @@ export default function OnboardingFlow({ onComplete }: Props) {
         )}
 
         {selectedPlan === 'free-trial' && (
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl text-xs text-green-800">
-            ✓ No credit card required. 250 credits included. Upgrade anytime.
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl text-xs text-green-800 flex items-center gap-1.5">
+            <Check className="w-3.5 h-3.5 shrink-0" /> No credit card required. 250 credits included. Upgrade anytime.
           </div>
         )}
 
@@ -1022,7 +1022,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
               </span>
             </div>
             <p className="text-xs text-gray-400 mt-2">Plan cap: {planDetails.maxConcurrency}×</p>
-            {concurrencyLevel > 3 && <p className="text-xs text-red-600 mt-1">⚠ High concurrency uses more credits at once</p>}
+            {concurrencyLevel > 3 && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertTriangle className="w-3 h-3 shrink-0" /> High concurrency uses more credits at once</p>}
           </div>
 
           <div className="space-y-3">
@@ -1143,10 +1143,10 @@ export default function OnboardingFlow({ onComplete }: Props) {
 
           <ReviewRow label="Email" onEdit={() => editStep(4)}>
             <div className="text-xs text-gray-700 space-y-0.5">
-              {gmailConnected && useGmail ? <div className="text-green-700 font-medium">Gmail connected ✓</div>
-                : outlookConnected && useOutlook ? <div className="text-green-700 font-medium">Outlook connected ✓</div>
+              {gmailConnected && useGmail ? <div className="text-green-700 font-medium inline-flex items-center gap-1">Gmail connected <Check className="w-3 h-3" /></div>
+                : outlookConnected && useOutlook ? <div className="text-green-700 font-medium inline-flex items-center gap-1">Outlook connected <Check className="w-3 h-3" /></div>
                 : <div className="text-gray-500">Mailgun (default)</div>}
-              {linkedinConnected && <div className="text-green-700 font-medium">LinkedIn connected ✓</div>}
+              {linkedinConnected && <div className="text-green-700 font-medium inline-flex items-center gap-1">LinkedIn connected <Check className="w-3 h-3" /></div>}
             </div>
           </ReviewRow>
 
@@ -1168,7 +1168,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
 
           {crmConnected && (
             <ReviewRow label="CRM" onEdit={() => editStep(8)}>
-              <div className="text-sm text-green-700 font-medium">Connected ✓</div>
+              <div className="text-sm text-green-700 font-medium inline-flex items-center gap-1">Connected <Check className="w-3.5 h-3.5" /></div>
             </ReviewRow>
           )}
         </div>

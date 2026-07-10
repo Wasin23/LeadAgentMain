@@ -792,7 +792,7 @@ export function SettingsContent() {
                       } catch { toast({ title: "Failed to send reset email", variant: 'destructive', duration: 2500 }) }
                     }}
                   >
-                    {forgotSent ? "Reset email sent ✓" : "Forgot password?"}
+                    {forgotSent ? <span className="inline-flex items-center gap-1">Reset email sent <CheckCircle2 className="w-3.5 h-3.5" /></span> : "Forgot password?"}
                   </button>
                 </div>
               </div>
@@ -1852,20 +1852,20 @@ export function SettingsContent() {
                               </td>
                               <td className="px-4 py-3">
                                 {keyword.isExhausted ? (
-                                  <Badge variant="destructive" className="text-xs">
-                                    ✗ Exhausted
+                                  <Badge variant="destructive" className="text-xs gap-1">
+                                    <XCircle className="w-3 h-3" /> Exhausted
                                   </Badge>
                                 ) : keyword.cumulativeDuplicateRate > 20 ? (
-                                  <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-600 border-orange-500/20">
-                                    ⚠ High Dup
+                                  <Badge variant="outline" className="text-xs gap-1 bg-orange-500/10 text-orange-600 border-orange-500/20">
+                                    <AlertTriangle className="w-3 h-3" /> High Dup
                                   </Badge>
                                 ) : keyword.cumulativeDuplicateRate > 10 ? (
-                                  <Badge variant="outline" className="text-xs bg-yellow-500/10 text-yellow-600 border-yellow-500/20">
-                                    ~ Warning
+                                  <Badge variant="outline" className="text-xs gap-1 bg-yellow-500/10 text-yellow-600 border-yellow-500/20">
+                                    <AlertTriangle className="w-3 h-3" /> Warning
                                   </Badge>
                                 ) : (
-                                  <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-600 border-green-500/20">
-                                    ✓ Good
+                                  <Badge variant="secondary" className="text-xs gap-1 bg-green-500/10 text-green-600 border-green-500/20">
+                                    <CheckCircle2 className="w-3 h-3" /> Good
                                   </Badge>
                                 )}
                               </td>

@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { 
-  Building2, 
+import {
+  Building2,
   CheckCircle,
   CloudUpload,
   Globe,
-  X
+  X,
+  AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -420,7 +421,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                       <p className="text-gray-500 mb-4">Whitepaper, Pitch Deck, or Company Overview</p>
                     </div>
                     {uploadedFileName ? (
-                      <div className="text-sm text-blue-600 font-semibold">✓ {uploadedFileName}</div>
+                      <div className="text-sm text-blue-600 font-semibold flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5" /> {uploadedFileName}</div>
                     ) : (
                       <div className="text-sm text-gray-400">Click to choose file</div>
                     )}
@@ -501,7 +502,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                 {/* Warning Message */}
                 <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 mb-8">
                   <div className="flex items-start gap-4">
-                    <span className="text-3xl">⚠️</span>
+                    <AlertTriangle className="w-8 h-8 text-blue-600 shrink-0" />
                     <div>
                       <h3 className="text-lg font-bold text-blue-700 mb-2">Please Review Carefully!</h3>
                       <p className="text-gray-600">
@@ -608,7 +609,7 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                     disabled={isProcessing || !profile.termsAccepted}
                     className="px-10 py-4 text-lg font-bold text-white bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl hover:shadow-2xl hover:shadow-blue-500/30 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
-                    {isProcessing ? 'Saving...' : 'Save Profile ✓'}
+                    {isProcessing ? 'Saving...' : <span className="inline-flex items-center gap-1.5">Save Profile <CheckCircle className="w-4 h-4" /></span>}
                   </Button>
                 </div>
               </CardContent>
@@ -707,10 +708,10 @@ export default function CompanyProfileOnboarding({ onComplete }: CompanyProfileO
                       {currentQuestionIndex === questions.length - 1 ? (
                         isProcessing ? (
                           <span className="flex items-center gap-2">
-                            <div className="animate-pulse">✓</div> Saving...
+                            <CheckCircle className="w-4 h-4 animate-pulse" /> Saving...
                           </span>
                         ) : (
-                          '✓ Complete Setup'
+                          <span className="inline-flex items-center gap-1.5"><CheckCircle className="w-4 h-4" /> Complete Setup</span>
                         )
                       ) : (
                         'Next Question →'

@@ -276,8 +276,8 @@ export function CRMContent() {
                   ? `synced${result.crmIntegration ? ` to ${result.crmIntegration}` : " to CRM"}`
                   : "queued"
             setStatusLine(remainingActive > 0
-              ? `${name}: ${resultLabel} ✓  (${newCount}/${total}) · ${remainingActive} still in progress`
-              : `${name}: ${resultLabel} ✓  (${newCount}/${total})`)
+              ? `${name}: ${resultLabel} (${newCount}/${total}) · ${remainingActive} still in progress`
+              : `${name}: ${resultLabel} (${newCount}/${total})`)
             if (newCount >= total && remainingActive === 0) {
               // Auto-stop the agent - job is done
               api.post("/api/lead-agent/stop", { agentId: selectedAgentRef.current }).catch(() => {})
@@ -624,8 +624,8 @@ export function CRMContent() {
                         <GitMerge className="w-3 h-3" />Merge
                       </button>
                     )}
-                    <Badge variant="outline" className={`text-[9px] shrink-0 ${c.status === "queued" ? "border-emerald-400/50 text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
-                      {c.status === "queued" ? "✓ queued" : "fresh"}
+                    <Badge variant="outline" className={`text-[9px] shrink-0 gap-1 ${c.status === "queued" ? "border-emerald-400/50 text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
+                      {c.status === "queued" ? <><CheckCircle2 className="w-2.5 h-2.5" /> queued</> : "fresh"}
                     </Badge>
                   </div>
                 )

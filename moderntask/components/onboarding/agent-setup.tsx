@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Lightbulb, Check, Plus, AlertTriangle, AlertCircle, Reply, Eye, Calendar, XCircle, Mail, MessageSquare, CheckCircle2 } from 'lucide-react'
 import api from '@/lib/api'
 import GlobeBackground from '@/components/onboarding/globe-background'
 
@@ -681,7 +682,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                 placeholder="e.g., Enterprise Outreach Agent"
                 className="w-full px-5 py-4 rounded-xl text-lg border border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 bg-gray-50 text-gray-900 placeholder-gray-400 outline-none transition-all"
               />
-              <p className="text-gray-500 text-sm mt-2">💡 Tip: Use descriptive names like "SMB Campaign" or "Series A Startups"</p>
+              <p className="text-gray-500 text-sm mt-2 flex items-center gap-1.5"><Lightbulb className="w-3.5 h-3.5 shrink-0" /> Tip: Use descriptive names like "SMB Campaign" or "Series A Startups"</p>
             </div>
             <div className="flex justify-between">
               <button onClick={back} className="px-6 py-3 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl font-semibold transition-all">← Back</button>
@@ -767,8 +768,8 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                 <p className="text-xs text-gray-400 mt-1">Not in the list? Type it and press Enter to add.</p>
                 <div className="flex flex-wrap gap-2 mt-2 mb-2">
                   {['Technology', 'Healthcare', 'Finance', 'Retail', 'SaaS', 'E-commerce', 'Consulting'].map(ind => (
-                    <button key={ind} onClick={() => addIndustry(ind)} disabled={settings.industries.includes(ind)} className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${settings.industries.includes(ind) ? 'bg-purple-100 text-purple-400 cursor-default' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}>
-                      {settings.industries.includes(ind) ? '✓ ' : '+ '}{ind}
+                    <button key={ind} onClick={() => addIndustry(ind)} disabled={settings.industries.includes(ind)} className={`px-3 py-1 rounded-lg text-xs font-medium transition-all inline-flex items-center gap-1 ${settings.industries.includes(ind) ? 'bg-purple-100 text-purple-400 cursor-default' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}>
+                      {settings.industries.includes(ind) ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}{ind}
                     </button>
                   ))}
                 </div>
@@ -806,8 +807,8 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                 <p className="text-xs text-gray-400 mt-1">Not in the list? Type it and press Enter to add.</p>
                 <div className="flex flex-wrap gap-2 mt-2 mb-2">
                   {['CEO', 'CTO', 'VP of Sales', 'Head of Marketing', 'Director of Operations'].map(t => (
-                    <button key={t} onClick={() => addJob(t)} disabled={settings.jobTitles.includes(t)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${settings.jobTitles.includes(t) ? 'bg-blue-100 text-blue-400 cursor-default' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}>
-                      {settings.jobTitles.includes(t) ? '✓ ' : '+ '}{t}
+                    <button key={t} onClick={() => addJob(t)} disabled={settings.jobTitles.includes(t)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all inline-flex items-center gap-1 ${settings.jobTitles.includes(t) ? 'bg-blue-100 text-blue-400 cursor-default' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'}`}>
+                      {settings.jobTitles.includes(t) ? <Check className="w-3 h-3" /> : <Plus className="w-3 h-3" />}{t}
                     </button>
                   ))}
                 </div>
@@ -867,7 +868,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                 )}
                 <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-gray-700">
                   ~<span className="text-blue-600 font-bold">{settings.concurrencyLevel}×</span> faster research
-                  {settings.concurrencyLevel > 3 && <span className="ml-2 text-red-600">⚠ High API usage</span>}
+                  {settings.concurrencyLevel > 3 && <span className="ml-2 text-red-600 inline-flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> High API usage</span>}
                 </div>
                 <p className="mt-2 text-xs text-gray-500">Current plan cap: {planDetails.maxConcurrency}x concurrency. Upgrade to unlock up to {highestPlanLimits.maxConcurrency}x concurrency.</p>
                 <p className="mt-1 text-xs text-gray-500">Current plan also includes up to {planDetails.maxAgents} agent{planDetails.maxAgents === 1 ? '' : 's'}. Higher tiers go up to {highestPlanLimits.maxAgents} agents.</p>
@@ -1007,7 +1008,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                 placeholder="e.g., SaaS Executives, Tech Startups"
                 className="w-full px-5 py-4 rounded-xl text-lg border border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 bg-gray-50 text-gray-900 placeholder-gray-400 outline-none transition-all"
               />
-              <p className="text-gray-500 text-sm mt-2">💡 Tip: Use descriptive names like "Healthcare Decision Makers" or "SaaS CTOs"</p>
+              <p className="text-gray-500 text-sm mt-2 flex items-center gap-1.5"><Lightbulb className="w-3.5 h-3.5 shrink-0" /> Tip: Use descriptive names like "Healthcare Decision Makers" or "SaaS CTOs"</p>
             </div>
             <div className="flex justify-between">
               <button onClick={back} className="px-6 py-3 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl font-semibold transition-all">← Back</button>
@@ -1042,7 +1043,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                         disabled={gmailConnected && useGmail}
                         className={`px-4 py-2 text-sm rounded-lg font-medium transition-all ${gmailConnected ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:scale-105'}`}
                       >
-                        {gmailConnected ? (useGmail ? '✓ Selected' : 'Connected') : 'Connect Gmail'}
+                        {gmailConnected ? (useGmail ? <span className="inline-flex items-center gap-1"><Check className="w-3.5 h-3.5" /> Selected</span> : 'Connected') : 'Connect Gmail'}
                       </button>
                       {gmailConnected && !useGmail && (
                         <button onClick={() => { setUseGmail(true); setUseOutlook(false) }} className="px-4 py-2 text-sm rounded-lg bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-all">Set as Default</button>
@@ -1067,7 +1068,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                       disabled={outlookConnected && useOutlook}
                       className={`px-4 py-2 text-sm rounded-lg font-medium transition-all ${outlookConnected ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:scale-105'}`}
                     >
-                      {outlookConnected ? (useOutlook ? '✓ Selected' : 'Connected') : 'Connect Outlook'}
+                      {outlookConnected ? (useOutlook ? <span className="inline-flex items-center gap-1"><Check className="w-3.5 h-3.5" /> Selected</span> : 'Connected') : 'Connect Outlook'}
                     </button>
                     {outlookConnected && !useOutlook && (
                       <button onClick={() => { setUseOutlook(true); setUseGmail(false) }} className="px-4 py-2 text-sm rounded-lg bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-all">Set as Default</button>
@@ -1089,7 +1090,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                   disabled={!useGmail && !useOutlook}
                   className={`px-4 py-2 text-sm rounded-lg font-medium transition-all ${!useGmail && !useOutlook ? 'bg-green-500/20 text-green-400 border border-green-500/30 cursor-default' : 'bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:scale-105'}`}
                 >
-                  {!useGmail && !useOutlook ? '✓ Selected' : 'Use Mailgun'}
+                  {!useGmail && !useOutlook ? <span className="inline-flex items-center gap-1"><Check className="w-3.5 h-3.5" /> Selected</span> : 'Use Mailgun'}
                 </button>
               </div>
             </div>
@@ -1123,7 +1124,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                   disabled={linkedinConnected || linkedinConnecting}
                   className={`px-4 py-2 text-sm rounded-lg font-medium transition-all ${linkedinConnected ? 'bg-green-500/20 text-green-400 border border-green-500/30 cursor-default' : 'bg-gradient-to-r from-[#0A66C2] to-[#0077B5] text-white hover:scale-105'}`}
                 >
-                  {linkedinConnecting ? 'Connecting…' : linkedinConnected ? '✓ Connected' : 'Connect LinkedIn'}
+                  {linkedinConnecting ? 'Connecting…' : linkedinConnected ? <span className="inline-flex items-center gap-1"><Check className="w-3.5 h-3.5" /> Connected</span> : 'Connect LinkedIn'}
                 </button>
               </div>
             </div>
@@ -1149,14 +1150,14 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                 <p className="text-sm font-semibold text-gray-700 mb-3">You'll receive alerts for:</p>
                 <div className="grid grid-cols-1 gap-2">
                   {[
-                    { icon: '↩️', label: 'Replies', desc: 'When a lead replies to one of your emails' },
-                    { icon: '👁️', label: 'Email Opens', desc: 'When a lead opens an email you sent' },
-                    { icon: '📅', label: 'Meetings Booked', desc: 'When a calendar event is confirmed' },
-                    { icon: '❌', label: 'Failed Sends', desc: 'When an email bounces or fails to deliver' },
-                    { icon: '⚠️', label: 'Agent Issues', desc: 'When your agent encounters an error or warning' },
+                    { icon: Reply, label: 'Replies', desc: 'When a lead replies to one of your emails' },
+                    { icon: Eye, label: 'Email Opens', desc: 'When a lead opens an email you sent' },
+                    { icon: Calendar, label: 'Meetings Booked', desc: 'When a calendar event is confirmed' },
+                    { icon: XCircle, label: 'Failed Sends', desc: 'When an email bounces or fails to deliver' },
+                    { icon: AlertCircle, label: 'Agent Issues', desc: 'When your agent encounters an error or warning' },
                   ].map(item => (
                     <div key={item.label} className="flex items-start gap-3 px-4 py-3 rounded-xl bg-gray-50 border border-gray-100">
-                      <span className="text-lg leading-none mt-0.5">{item.icon}</span>
+                      <item.icon className="w-4 h-4 mt-0.5 text-gray-500 shrink-0" />
                       <div>
                         <p className="text-sm font-semibold text-gray-800">{item.label}</p>
                         <p className="text-xs text-gray-500">{item.desc}</p>
@@ -1255,7 +1256,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
               <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 mb-5">
                 <h3 className="font-bold text-gray-900 mb-2">Why connect a CRM?</h3>
                 <ul className="space-y-1.5 text-sm text-gray-600">
-                  {['Automatically sync researched leads', 'Keep your CRM up-to-date effortlessly', 'Research summaries attached as notes', 'Works with HubSpot, Salesforce, Pipedrive, Zoho & more'].map((f, i) => <li key={i}>✓ {f}</li>)}
+                  {['Automatically sync researched leads', 'Keep your CRM up-to-date effortlessly', 'Research summaries attached as notes', 'Works with HubSpot, Salesforce, Pipedrive, Zoho & more'].map((f, i) => <li key={i} className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 shrink-0" /> {f}</li>)}
                 </ul>
               </div>
 
@@ -1398,10 +1399,10 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
             <div className="bg-white/95 backdrop-blur-md border border-gray-200 rounded-2xl p-7 mb-6 shadow-sm">
               {selectedPlan === 'free-trial' ? (
                 <div className="bg-green-50 border-2 border-green-200 rounded-xl p-5">
-                  <h3 className="font-bold text-green-900 text-lg mb-2">✓ Free Trial Ready!</h3>
+                  <h3 className="font-bold text-green-900 text-lg mb-2 flex items-center gap-1.5"><CheckCircle2 className="w-5 h-5" /> Free Trial Ready!</h3>
                   <p className="text-sm text-green-800 mb-3">Start with 250 free credits. No credit card required.</p>
                   <ul className="space-y-1 text-sm text-green-800">
-                    {['No credit card required', '1 agent included', 'Up to 5x concurrency for testing', 'Upgrade anytime'].map((f, i) => <li key={i}>✓ {f}</li>)}
+                    {['No credit card required', '1 agent included', 'Up to 5x concurrency for testing', 'Upgrade anytime'].map((f, i) => <li key={i} className="flex items-center gap-1.5"><Check className="w-3.5 h-3.5 shrink-0" /> {f}</li>)}
                   </ul>
                   <p className="mt-3 text-xs text-green-700">Paid plans unlock up to {highestPlanLimits.maxAgents} agents and {highestPlanLimits.maxConcurrency}x concurrency.</p>
                 </div>
@@ -1531,8 +1532,8 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
               <div className="flex items-start justify-between gap-2">
                 <div>
                 <p className="text-sm text-gray-500 mb-1">Email Sending</p>
-                <p className="font-semibold text-gray-900">
-                  {useGmail ? '📧 Gmail (Primary inbox)' : useOutlook ? '📧 Outlook/Office 365' : '📧 Mailgun (Standard)'}
+                <p className="font-semibold text-gray-900 inline-flex items-center gap-1.5">
+                  <Mail className="w-4 h-4 shrink-0" /> {useGmail ? 'Gmail (Primary inbox)' : useOutlook ? 'Outlook/Office 365' : 'Mailgun (Standard)'}
                 </p>
                 {linkedinConnected && <p className="text-sm text-[#0A66C2] font-medium mt-0.5">+ LinkedIn outreach enabled</p>}
                 </div>
@@ -1546,10 +1547,10 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                   <p className="text-sm text-gray-500 mb-1">Notifications</p>
                   <div className="flex flex-wrap gap-2 mt-1">
                     <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${notifEmailEnabled ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-400'}`}>
-                      📧 Email {notifEmailEnabled ? 'on' : 'off'}
+                      <Mail className="w-3 h-3" /> Email {notifEmailEnabled ? 'on' : 'off'}
                     </span>
                     <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${notifSmsEnabled ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
-                      💬 SMS {notifSmsEnabled ? 'on' : 'off'}
+                      <MessageSquare className="w-3 h-3" /> SMS {notifSmsEnabled ? 'on' : 'off'}
                     </span>
                   </div>
                 </div>
@@ -1604,7 +1605,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                 <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6 animate-bounce">
                   <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                 </div>
-                <h2 className="text-4xl font-bold text-white mb-4">{agentName} Created! ✓</h2>
+                <h2 className="text-4xl font-bold text-white mb-4">{agentName} Created!</h2>
                 <p className="text-xl text-white/80">Redirecting to your dashboard...</p>
               </>
             ) : (

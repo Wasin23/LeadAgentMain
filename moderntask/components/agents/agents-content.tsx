@@ -125,7 +125,7 @@ function AgentCard({
 }) {
   const [showCopyMenu, setShowCopyMenu] = useState(false)
   const personalityType = agent.personality?.type ?? 'hunter'
-  const avatar = agent.personality?.avatar ?? '🤖'
+  const avatar = agent.personality?.avatar ?? null
   const personalityName = agent.personality?.name ?? personalityType
   const gradientClass = PERSONALITY_COLORS[personalityType] ?? PERSONALITY_COLORS.hunter
   const badgeClass = PERSONALITY_BADGE[personalityType] ?? PERSONALITY_BADGE.hunter
@@ -172,11 +172,11 @@ function AgentCard({
       {/* header row */}
       <div className="flex items-start gap-3 mb-4">
         <div className="text-2xl w-10 h-10 flex items-center justify-center rounded-xl bg-background/60 border border-border shrink-0 overflow-hidden">
-          {avatar.startsWith('/') || avatar.startsWith('http') ? (
+          {avatar && (avatar.startsWith('/') || avatar.startsWith('http')) ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={avatar} alt={personalityName} className="w-full h-full object-cover rounded-xl" />
           ) : (
-            avatar
+            <Bot className="w-5 h-5 text-muted-foreground" />
           )}
         </div>
         <div className="flex-1 min-w-0">

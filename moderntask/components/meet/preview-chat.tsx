@@ -87,7 +87,12 @@ export function PreviewChat() {
       {/* Header - identical to lead chat */}
       <div className="shrink-0 border-b border-gray-100 px-5 py-4 flex items-center gap-3">
         <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center text-lg shrink-0 overflow-hidden">
-          <span>{agent?.personality?.avatar || '🤖'}</span>
+          {agent?.personality?.avatar && (agent.personality.avatar.startsWith('/') || agent.personality.avatar.startsWith('http')) ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={agent.personality.avatar} alt={agent?.name || 'Agent'} className="w-full h-full object-cover" />
+          ) : (
+            <Bot className="w-5 h-5 text-indigo-400" />
+          )}
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-gray-900">{agent?.name || 'Agent'}</p>

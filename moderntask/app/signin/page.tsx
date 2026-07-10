@@ -212,7 +212,7 @@ export default function SignInPage() {
       })
       const data = await res.json()
       if (res.ok) {
-        setCodeValidation({ isValid: true, message: 'Valid reset code ✓', isChecking: false })
+        setCodeValidation({ isValid: true, message: 'Valid reset code', isChecking: false })
       } else {
         setCodeValidation({ isValid: false, message: data.error || 'Invalid reset code', isChecking: false })
       }
@@ -515,7 +515,9 @@ export default function SignInPage() {
                 />
                 {resetForm.code && codeValidation.message && (
                   <p className={`text-xs flex items-center gap-1 ${codeValidation.isValid ? 'text-green-600' : 'text-red-500'}`}>
-                    {codeValidation.isChecking && <Loader2 className="w-3 h-3 animate-spin" />}{codeValidation.message}
+                    {codeValidation.isChecking && <Loader2 className="w-3 h-3 animate-spin" />}
+                    {!codeValidation.isChecking && codeValidation.isValid && <CheckCircle className="w-3 h-3" />}
+                    {codeValidation.message}
                   </p>
                 )}
               </div>

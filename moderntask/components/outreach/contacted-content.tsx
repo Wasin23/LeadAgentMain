@@ -207,7 +207,7 @@ function SentRow({ email, onEditFollowUp, onScheduleFollowUp, onSendNow, onCance
     let label = ''
     if (done) {
       cls += 'text-green-400 border-green-500/30 bg-green-500/10'
-      label = `✓ ${rc}/${max} done`
+      label = `${rc}/${max} done`
     } else if (hasSent && hasFuture) {
       cls += 'text-purple-400 border-purple-500/30 bg-purple-500/10'
       label = `${rc}/${max} sent · next ${dateStr}`
@@ -429,7 +429,7 @@ function FollowUpRow({ email, onEditFollowUp, onCancelFollowUp, onRetryFollowUp 
                   </Badge>
                 )}
                 {rc >= max && (
-                  <Badge variant="outline" className="text-[9px] px-1.5 h-4 text-green-400 border-green-500/30 bg-green-500/10">✓ done</Badge>
+                  <Badge variant="outline" className="text-[9px] px-1.5 h-4 gap-1 text-green-400 border-green-500/30 bg-green-500/10"><Check className="w-2.5 h-2.5" /> done</Badge>
                 )}
                 {onRetryFollowUp && (
                   <button

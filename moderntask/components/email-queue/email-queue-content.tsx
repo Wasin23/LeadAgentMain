@@ -1517,9 +1517,9 @@ function QueuedList({ agentId, agentMap, fontSize, setFontSize, onCountChange, a
       }))
       
       if (scheduledAt) {
-        toast({ title: '✅ Email scheduled', description: new Date(scheduledAt).toLocaleString(), duration: 3000 })
+        toast({ title: 'Email scheduled', description: new Date(scheduledAt).toLocaleString(), duration: 3000 })
       } else {
-        toast({ title: '✅ Schedule cleared', duration: 2000 })
+        toast({ title: 'Schedule cleared', duration: 2000 })
       }
     } catch (err: any) { 
       toast({ 

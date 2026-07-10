@@ -1261,7 +1261,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
           >
             <div className="mb-3 flex items-start justify-between gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
               <div className="flex items-start gap-2">
-                <span className="mt-0.5">⚠️</span>
+                <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
                 <span>This rubric is <strong>auto-generated from real research</strong> the first time each industry/role combo is searched. Editing it overrides what the agent decided on its own. Wrong values will break who the agent is allowed to find.</span>
               </div>
               <button
@@ -1492,7 +1492,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                 />
                 {settings.emailBuilder.useGmail && (
                   <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                    <p className="text-sm text-blue-500 font-medium">✓ Emails will be sent from your connected Gmail account</p>
+                    <p className="text-sm text-blue-500 font-medium flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4" /> Emails will be sent from your connected Gmail account</p>
                     <p className="text-xs text-blue-500/70 mt-1">Make sure Gmail is connected in Settings → Outreach → Gmail Connection</p>
                   </div>
                 )}
@@ -1508,7 +1508,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                 />
                 {settings.emailBuilder.useOutlook && (
                   <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                    <p className="text-sm text-blue-500 font-medium">✓ Emails will be sent from your connected Outlook account</p>
+                    <p className="text-sm text-blue-500 font-medium flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4" /> Emails will be sent from your connected Outlook account</p>
                     <p className="text-xs text-blue-500/70 mt-1">Make sure Outlook is connected in Settings → Outreach → Outlook Connection</p>
                   </div>
                 )}
@@ -1524,7 +1524,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                 />
                 {settings.emailBuilder.useLinkedIn && (
                   <div className="p-3 bg-[#0A66C2]/10 border border-[#0A66C2]/20 rounded-lg">
-                    <p className="text-sm font-medium" style={{ color: '#0A66C2' }}>✓ LinkedIn outreach enabled for this agent</p>
+                    <p className="text-sm font-medium flex items-center gap-1.5" style={{ color: '#0A66C2' }}><CheckCircle2 className="w-4 h-4" /> LinkedIn outreach enabled for this agent</p>
                     <p className="text-xs mt-1" style={{ color: '#0A66C2', opacity: 0.7 }}>Make sure LinkedIn is connected in Settings → Outreach → Connect LinkedIn</p>
                   </div>
                 )}
