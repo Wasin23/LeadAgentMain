@@ -2229,16 +2229,29 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
    * build one now. This is a per-combo, one-time cost — not run per lead.
    */
   async getOrBuildRubric(keyword, position) {
-    const specialInstructions = this.campaignPlan?.specialInstructions || this.memory.userSettings?.specialInstructions || '';
+    // BUG (fixed): this used to read this.campaignPlan?.specialInstructions and
+    // this.memory.userSettings?.specialInstructions — neither field exists on
+    // either object (campaignPlan's shape is {searchStrategy, qualificationCriteria,
+    // researchFocus, emailMessaging}; the agent's flattened userSettings never
+    // carries specialInstructions either). Both were always undefined, so every
+    // rubric got hashed and built against an EMPTY instructions string. The real
+    // field is this.settings.specialInstructions — the same source campaignPlan
+    // itself is built from (see the campaign-plan-conversion call site).
+    const specialInstructions = this.settings?.specialInstructions || '';
     const sourceInstructionsHash = this._hashString(specialInstructions);
 
     const cached = await this.awsManager.getQualificationRubric(this.userId, keyword, position);
-    if (cached && cached.sourceInstructionsHash === sourceInstructionsHash) {
-      console.log(`[RUBRIC] Using cached rubric v${cached.version} for "${keyword}" + "${position}" (${cached.criteria?.length || 0} criteria)`);
+    // A cached rubric with zero criteria means a prior generation attempt failed
+    // silently (e.g. JSON parse failure) and got cached anyway — never treat that
+    // as usable just because the instructions hash matches; always retry it.
+    if (cached && cached.sourceInstructionsHash === sourceInstructionsHash && cached.criteria?.length > 0) {
+      console.log(`[RUBRIC] Using cached rubric v${cached.version} for "${keyword}" + "${position}" (${cached.criteria.length} criteria)`);
       return cached;
     }
 
-    if (cached && cached.sourceInstructionsHash !== sourceInstructionsHash) {
+    if (cached && cached.criteria?.length === 0) {
+      console.log(`[RUBRIC] Cached rubric v${cached.version} for "${keyword}" + "${position}" has ZERO criteria (prior generation failed) — rebuilding`);
+    } else if (cached && cached.sourceInstructionsHash !== sourceInstructionsHash) {
       console.log(`[RUBRIC] Cached rubric v${cached.version} for "${keyword}" + "${position}" is stale (campaign instructions changed) — regenerating`);
     } else {
       console.log(`[RUBRIC] No rubric found for "${keyword}" + "${position}" — building one before any lead search runs for this combo`);
@@ -2380,19 +2393,30 @@ Respond in JSON:
 
     console.log(`[RUBRIC BUILD] Synthesizing with Claude Sonnet 5 (adaptive thinking)...`);
 
+    // max_tokens must cover BOTH adaptive-thinking's reasoning tokens AND the final
+    // JSON output — they share the same budget. A 15-20 criterion rubric with
+    // justifications is itself 1500-3000+ tokens; 4000 total (the original value
+    // here) was frequently too tight once thinking ate into it, truncating the
+    // response mid-JSON and silently producing an empty-criteria rubric via the
+    // parse-failure fallback below. Bumped with headroom.
     const response = await this.anthropic.messages.create({
       model: 'claude-sonnet-5',
-      max_tokens: 4000,
+      max_tokens: 8000,
       thinking: { type: 'adaptive' },
       messages: [{ role: 'user', content: prompt }]
     });
+
+    if (response.stop_reason === 'max_tokens') {
+      console.error(`[RUBRIC BUILD] ⚠️ Response hit max_tokens — output was truncated, JSON parse will likely fail`);
+    }
 
     const textBlock = response.content.find(b => b.type === 'text');
     let raw;
     try {
       raw = JSON.parse((textBlock?.text || '{}').trim().replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```$/i, ''));
     } catch (parseErr) {
-      console.error('[RUBRIC BUILD] Failed to parse rubric JSON, using empty rubric:', parseErr.message);
+      console.error(`[RUBRIC BUILD] Failed to parse rubric JSON (stop_reason=${response.stop_reason}): ${parseErr.message}`);
+      console.error(`[RUBRIC BUILD] Raw text (last 500 chars): ...${(textBlock?.text || '').slice(-500)}`);
       raw = { criteria: [], icpSummary: '' };
     }
 

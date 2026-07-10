@@ -578,7 +578,6 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
   const [criteriaUnlocked, setCriteriaUnlocked] = useState(false);
   const [rubrics, setRubrics] = useState<Rubric[]>([]);
   const [loadingRubrics, setLoadingRubrics] = useState(false);
-  const [rubricsUnlocked, setRubricsUnlocked] = useState(false);
 
   const handleResetFromWebsite = async () => {
     if (!resetWebsiteUrl.trim()) return;
@@ -1138,12 +1137,20 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
             </div>
           </Section>
 
-          {/* Qualification Criteria */}
-          <Section title="Qualification Criteria" description="Advanced: controls how the agent scores and filters leads.">
+          {/* Qualification Criteria — meshed: AI-built per-industry rubric (the real
+              qualifier) plus the legacy Must Have / Nice to Have / Disqualifiers gate,
+              under one section, one lock, description only shown once expanded. */}
+          <Section
+            title="Qualification Criteria"
+            badge={rubrics.length > 0 ? `${rubrics.length} combo${rubrics.length === 1 ? '' : 's'}` : undefined}
+          >
+            <p className="text-sm text-muted-foreground mb-3">
+              Controls how the agent scores and filters leads. The AI-built rubric below is the actual qualifier — a per-industry scoring list built from real research the first time each combo is searched. Must Have / Nice to Have / Disqualifiers apply on top of it as an additional gate.
+            </p>
             <div className="mb-3 flex items-start justify-between gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
               <div className="flex items-start gap-2">
                 <span className="mt-0.5">⚠️</span>
-                <span>These criteria are <strong>auto-generated</strong> from your campaign instructions. Editing them overrides what the agent decides on its own. Wrong values will break who the agent is allowed to find.</span>
+                <span>These criteria are <strong>auto-generated</strong> — the rubric from real research, the rest from your campaign instructions. Editing them overrides what the agent decides on its own. Wrong values will break who the agent is allowed to find.</span>
               </div>
               <button
                 type="button"
@@ -1155,6 +1162,28 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                 {criteriaUnlocked ? <><Unlock className="inline w-3 h-3 mr-1" />Lock</> : <><Lock className="inline w-3 h-3 mr-1" />Unlock to edit</>}
               </button>
             </div>
+
+            <div className="mb-4">
+              <p className="text-sm font-medium text-foreground mb-2">Who and what we want out of this person and this industry</p>
+              {loadingRubrics ? (
+                <p className="text-sm text-muted-foreground">Loading rubrics…</p>
+              ) : rubrics.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No rubrics yet — one gets built automatically the first time this agent searches a new industry/role combo. Disqualifiers below still apply as a hard veto regardless of rubric scoring.</p>
+              ) : (
+                <div className="space-y-2">
+                  {rubrics.map(r => (
+                    <RubricCard
+                      key={r.searchCombo}
+                      rubric={r}
+                      unlocked={criteriaUnlocked}
+                      onSaved={(combo, criteria) => setRubrics(prev => prev.map(x => x.searchCombo === combo ? { ...x, criteria, version: x.version + 1 } : x))}
+                      onReset={(keyword, position) => setRubrics(prev => prev.filter(x => !(x.keyword === keyword && x.position === position)))}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className={`grid grid-cols-1 gap-4 mt-2 transition-opacity ${criteriaUnlocked ? 'opacity-100' : 'opacity-40 pointer-events-none select-none'}`}>
               <TagInput
                 label="Must Have (all required)"
@@ -1190,46 +1219,6 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                 </button>
               )}
             </div>
-          </Section>
-
-          {/* Qualification Rubrics — the real per-segment qualifier, built via research */}
-          <Section
-            title="Who and what we want out of this person and this industry"
-            description="AI-built, per-industry scoring rubric — the actual qualifier for every lead found under each search combo."
-            badge={rubrics.length > 0 ? `${rubrics.length} combo${rubrics.length === 1 ? '' : 's'}` : undefined}
-          >
-            <div className="mb-3 flex items-start justify-between gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-              <div className="flex items-start gap-2">
-                <span className="mt-0.5">⚠️</span>
-                <span>These rubrics are <strong>auto-generated from real research</strong> the first time each industry/role combo is searched, and are what actually qualifies a lead. Editing weights or criteria overrides what the agent decided on its own. Wrong values will break who the agent is allowed to find.</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setRubricsUnlocked(v => !v)}
-                className={`ml-3 shrink-0 rounded px-2 py-1 text-xs font-medium transition-colors ${
-                  rubricsUnlocked ? 'bg-amber-600 text-white hover:bg-amber-700' : 'bg-white border border-amber-400 text-amber-700 hover:bg-amber-100'
-                }`}
-              >
-                {rubricsUnlocked ? <><Unlock className="inline w-3 h-3 mr-1" />Lock</> : <><Lock className="inline w-3 h-3 mr-1" />Unlock to edit</>}
-              </button>
-            </div>
-            {loadingRubrics ? (
-              <p className="text-sm text-muted-foreground">Loading rubrics…</p>
-            ) : rubrics.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No rubrics yet — one gets built automatically the first time this agent searches a new industry/role combo. Disqualifiers above still apply as a hard veto regardless of rubric scoring.</p>
-            ) : (
-              <div className="space-y-2 mt-2">
-                {rubrics.map(r => (
-                  <RubricCard
-                    key={r.searchCombo}
-                    rubric={r}
-                    unlocked={rubricsUnlocked}
-                    onSaved={(combo, criteria) => setRubrics(prev => prev.map(x => x.searchCombo === combo ? { ...x, criteria, version: x.version + 1 } : x))}
-                    onReset={(keyword, position) => setRubrics(prev => prev.filter(x => !(x.keyword === keyword && x.position === position)))}
-                  />
-                ))}
-              </div>
-            )}
           </Section>
 
           {/* Starred Lead Timeline Research */}
