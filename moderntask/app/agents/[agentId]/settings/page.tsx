@@ -446,6 +446,9 @@ function RubricCard({ rubric, unlocked, onSaved, onReset }: {
   const [criteria, setCriteria] = useState<RubricCriterion[]>(rubric.criteria);
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const dirty = JSON.stringify(criteria) !== JSON.stringify(rubric.criteria);
 
   // weight is stored as a raw log-likelihood-ratio (matches qualifyLead()'s
@@ -464,30 +467,36 @@ function RubricCard({ rubric, unlocked, onSaved, onReset }: {
 
   const save = async () => {
     setSaving(true);
+    setSaveError(null);
     try {
       const res = await api.put('/api/lead-agent/rubrics/update', {
         keyword: rubric.keyword, position: rubric.position, criteria,
       });
-      if (res.data?.success) onSaved(rubric.searchCombo, res.data.criteria);
+      if (res.data?.success) {
+        onSaved(rubric.searchCombo, res.data.criteria);
+      } else {
+        setSaveError('Save failed on the server — changes were not applied.');
+      }
     } catch {
-      alert('Failed to save rubric changes.');
+      setSaveError('Failed to save rubric changes.');
     } finally {
       setSaving(false);
     }
   };
 
   const deleteRubric = async () => {
-    if (!confirm(`Delete the rubric for "${rubric.keyword} / ${rubric.position}"? It will be rebuilt from scratch via research the next time this combo is searched.`)) return;
     setResetting(true);
+    setDeleteError(null);
     try {
       const res = await api.post('/api/lead-agent/rubrics/reset', { keyword: rubric.keyword, position: rubric.position });
       if (res.data?.success === false) {
-        alert('Delete failed on the server — rubric was not removed.');
+        setDeleteError('Delete failed on the server — rubric was not removed.');
         return;
       }
+      setDeleteDialogOpen(false);
       onReset(rubric.keyword, rubric.position);
     } catch {
-      alert('Failed to delete rubric.');
+      setDeleteError('Failed to delete rubric.');
     } finally {
       setResetting(false);
     }
@@ -543,14 +552,33 @@ function RubricCard({ rubric, unlocked, onSaved, onReset }: {
               </Button>
             )}
             {unlocked && (
-              <Button size="sm" variant="destructive" onClick={deleteRubric} disabled={resetting}>
+              <Button size="sm" variant="destructive" onClick={() => { setDeleteError(null); setDeleteDialogOpen(true); }} disabled={resetting}>
                 {resetting ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <X className="w-3.5 h-3.5 mr-1.5" />}
                 Delete Rubric
               </Button>
             )}
           </div>
+          {saveError && <p className="text-xs text-destructive">{saveError}</p>}
         </div>
       )}
+      <Dialog open={deleteDialogOpen} onOpenChange={(v) => { setDeleteDialogOpen(v); if (!v) setDeleteError(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete rubric?</DialogTitle>
+            <DialogDescription>
+              This deletes the rubric for "{rubric.keyword} / {rubric.position}". It will be rebuilt from scratch via research the next time this combo is searched.
+            </DialogDescription>
+          </DialogHeader>
+          {deleteError && <p className="text-xs text-destructive">{deleteError}</p>}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={resetting}>Cancel</Button>
+            <Button type="button" variant="destructive" onClick={deleteRubric} disabled={resetting}>
+              {resetting ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : null}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -1136,10 +1164,10 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
               {!settings.agentDecideIndustries && (
                 <>
                   {swapLog.length > 0 && (
-                    <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 flex items-start gap-3">
-                      <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                    <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 flex items-start gap-3">
+                      <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-amber-600">Industries updated by agent</p>
+                        <p className="text-xs font-semibold text-red-600">Industries updated by agent</p>
                         <div className="mt-1 space-y-1">
                           {swapLog.map((entry, i) => (
                             <p key={i} className="text-xs text-muted-foreground">
@@ -1160,7 +1188,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                     placeholder="Search or type an industry…"
                     helpText="Not in the list? Type it and press Enter to add."
                   />
-                  <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 text-xs text-amber-700 dark:text-amber-400">
+                  <div className="rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2.5 text-xs text-red-700 dark:text-red-400">
                     <span className="font-semibold">Each industry is paired with each job title below during search.</span> Make sure the combinations make sense - e.g. &ldquo;Real Estate&rdquo; + &ldquo;Investor&rdquo; are almost never real Apollo titles and will return almost nothing. Use titles people actually put on their LinkedIn profiles at those companies.
                   </div>
                 </>
@@ -1231,7 +1259,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
             description="AI-built, per-industry scoring rubric — the actual qualifier for every lead found under each search combo."
             badge={rubrics.length > 0 ? `${rubrics.length} combo${rubrics.length === 1 ? '' : 's'}` : undefined}
           >
-            <div className="mb-3 flex items-start justify-between gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+            <div className="mb-3 flex items-start justify-between gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">
               <div className="flex items-start gap-2">
                 <span className="mt-0.5">⚠️</span>
                 <span>This rubric is <strong>auto-generated from real research</strong> the first time each industry/role combo is searched. Editing it overrides what the agent decided on its own. Wrong values will break who the agent is allowed to find.</span>
@@ -1240,7 +1268,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                 type="button"
                 onClick={handleUnlockCriteria}
                 className={`ml-3 shrink-0 rounded px-2 py-1 text-xs font-medium transition-colors ${
-                  criteriaUnlocked ? 'bg-amber-600 text-white hover:bg-amber-700' : 'bg-white border border-amber-400 text-amber-700 hover:bg-amber-100'
+                  criteriaUnlocked ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-white border border-red-400 text-red-700 hover:bg-red-100'
                 }`}
               >
                 {criteriaUnlocked ? <><Unlock className="inline w-3 h-3 mr-1" />Lock</> : <><Lock className="inline w-3 h-3 mr-1" />Unlock to edit</>}

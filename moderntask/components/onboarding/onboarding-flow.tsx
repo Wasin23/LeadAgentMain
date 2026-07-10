@@ -1022,7 +1022,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
               </span>
             </div>
             <p className="text-xs text-gray-400 mt-2">Plan cap: {planDetails.maxConcurrency}×</p>
-            {concurrencyLevel > 3 && <p className="text-xs text-amber-600 mt-1">⚠ High concurrency uses more credits at once</p>}
+            {concurrencyLevel > 3 && <p className="text-xs text-red-600 mt-1">⚠ High concurrency uses more credits at once</p>}
           </div>
 
           <div className="space-y-3">

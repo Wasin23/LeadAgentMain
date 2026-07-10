@@ -837,7 +837,7 @@ function BillingTabInner() {
             </div>
           </div>
           {!creditLoading && creditBalance < 100 && creditBalance >= 0 && (
-            <div className="mt-4 flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
+            <div className="mt-4 flex items-center gap-2 text-xs text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
               <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
               {creditBalance === 0 ? 'No credits remaining.' : `Low balance - ${creditBalance} credits left.`}
             </div>

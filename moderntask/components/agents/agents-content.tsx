@@ -615,7 +615,7 @@ function CreateAgentModal({ onClose, onCreated, atLimit = false }: { onClose: ()
             </div>
 
             {atAgentLimit && (
-              <div className="mt-3 rounded-lg border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+              <div className="mt-3 rounded-lg border border-red-400/30 bg-red-500/10 px-3 py-2 text-xs text-red-700 dark:text-red-300">
                 You are at your current agent limit. Upgrade your plan to create another agent.
               </div>
             )}

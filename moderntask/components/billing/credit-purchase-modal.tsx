@@ -328,8 +328,8 @@ export function CreditPurchaseModal({
           </div>
 
           {hasPaymentMethod === false && (
-            <div className="bg-amber-500/10 border border-amber-500/40 rounded-lg p-4 mb-5">
-              <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
+            <div className="bg-red-500/10 border border-red-500/40 rounded-lg p-4 mb-5">
+              <p className="text-sm text-red-600 dark:text-red-400 font-medium">
                 No payment method on file. Please add a card in <strong>Settings → Billing</strong> before purchasing.
               </p>
             </div>

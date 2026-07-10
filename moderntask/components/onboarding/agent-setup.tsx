@@ -867,7 +867,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                 )}
                 <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-gray-700">
                   ~<span className="text-blue-600 font-bold">{settings.concurrencyLevel}×</span> faster research
-                  {settings.concurrencyLevel > 3 && <span className="ml-2 text-amber-600">⚠ High API usage</span>}
+                  {settings.concurrencyLevel > 3 && <span className="ml-2 text-red-600">⚠ High API usage</span>}
                 </div>
                 <p className="mt-2 text-xs text-gray-500">Current plan cap: {planDetails.maxConcurrency}x concurrency. Upgrade to unlock up to {highestPlanLimits.maxConcurrency}x concurrency.</p>
                 <p className="mt-1 text-xs text-gray-500">Current plan also includes up to {planDetails.maxAgents} agent{planDetails.maxAgents === 1 ? '' : 's'}. Higher tiers go up to {highestPlanLimits.maxAgents} agents.</p>
