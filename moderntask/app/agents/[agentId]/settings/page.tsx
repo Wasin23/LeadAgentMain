@@ -1137,9 +1137,11 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
             </div>
           </Section>
 
-          {/* Qualification Criteria — meshed: AI-built per-industry rubric (the real
-              qualifier) plus the legacy Must Have / Nice to Have / Disqualifiers gate,
-              under one section with one lock. */}
+          {/* Qualification Criteria — the AI-built per-industry rubric is the actual
+              qualifier now. Must Have / Nice to Have / Disqualifiers editor removed —
+              redundant with the rubric and confusing side by side with it. Disqualifiers
+              still exist and apply as a hard veto, they're just auto-generated from
+              campaign instructions and not hand-edited here anymore. */}
           <Section
             title="Qualification Criteria"
             description="AI-built, per-industry scoring rubric — the actual qualifier for every lead found under each search combo."
@@ -1148,7 +1150,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
             <div className="mb-3 flex items-start justify-between gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
               <div className="flex items-start gap-2">
                 <span className="mt-0.5">⚠️</span>
-                <span>These criteria are <strong>auto-generated</strong> — the rubric from real research, the rest from your campaign instructions. Editing them overrides what the agent decides on its own. Wrong values will break who the agent is allowed to find.</span>
+                <span>This rubric is <strong>auto-generated from real research</strong> the first time each industry/role combo is searched. Editing it overrides what the agent decided on its own. Wrong values will break who the agent is allowed to find.</span>
               </div>
               <button
                 type="button"
@@ -1161,62 +1163,24 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
               </button>
             </div>
 
-            <div className="mb-4">
-              <p className="text-sm font-medium text-foreground mb-2">Who and what we want out of this person and this industry</p>
-              {loadingRubrics ? (
-                <p className="text-sm text-muted-foreground">Loading rubrics…</p>
-              ) : rubrics.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No rubrics yet — one gets built automatically the first time this agent searches a new industry/role combo. Disqualifiers below still apply as a hard veto regardless of rubric scoring.</p>
-              ) : (
-                <div className="space-y-2">
-                  {rubrics.map(r => (
-                    <RubricCard
-                      key={r.searchCombo}
-                      rubric={r}
-                      unlocked={criteriaUnlocked}
-                      onSaved={(combo, criteria) => setRubrics(prev => prev.map(x => x.searchCombo === combo ? { ...x, criteria, version: x.version + 1 } : x))}
-                      onReset={(keyword, position) => setRubrics(prev => prev.filter(x => !(x.keyword === keyword && x.position === position)))}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className={`grid grid-cols-1 gap-4 mt-2 transition-opacity ${criteriaUnlocked ? 'opacity-100' : 'opacity-40 pointer-events-none select-none'}`}>
-              <TagInput
-                label="Must Have (all required)"
-                tags={settings.qualificationCriteria?.mustHave ?? []}
-                onAdd={v => setSettings(p => ({ ...p, qualificationCriteria: { ...p.qualificationCriteria!, mustHave: [...(p.qualificationCriteria?.mustHave ?? []), v] } }))}
-                onRemove={v => setSettings(p => ({ ...p, qualificationCriteria: { ...p.qualificationCriteria!, mustHave: (p.qualificationCriteria?.mustHave ?? []).filter(x => x !== v) } }))}
-                placeholder="e.g. owns real estate"
-                helpText="Lead must match ALL of these to qualify"
-              />
-              <TagInput
-                label="Nice to Have (bonus points)"
-                tags={settings.qualificationCriteria?.niceToHave ?? []}
-                onAdd={v => setSettings(p => ({ ...p, qualificationCriteria: { ...p.qualificationCriteria!, niceToHave: [...(p.qualificationCriteria?.niceToHave ?? []), v] } }))}
-                onRemove={v => setSettings(p => ({ ...p, qualificationCriteria: { ...p.qualificationCriteria!, niceToHave: (p.qualificationCriteria?.niceToHave ?? []).filter(x => x !== v) } }))}
-                placeholder="e.g. recently raised funding"
-                helpText="Boosts score but not required"
-              />
-              <TagInput
-                label="Disqualifiers (instant reject)"
-                tags={settings.qualificationCriteria?.disqualifiers ?? []}
-                onAdd={v => setSettings(p => ({ ...p, qualificationCriteria: { ...p.qualificationCriteria!, disqualifiers: [...(p.qualificationCriteria?.disqualifiers ?? []), v] } }))}
-                onRemove={v => setSettings(p => ({ ...p, qualificationCriteria: { ...p.qualificationCriteria!, disqualifiers: (p.qualificationCriteria?.disqualifiers ?? []).filter(x => x !== v) } }))}
-                placeholder="e.g. government agency"
-                helpText="Any match here = immediate reject"
-              />
-              {((settings.qualificationCriteria?.mustHave?.length ?? 0) > 0 || (settings.qualificationCriteria?.disqualifiers?.length ?? 0) > 0) && (
-                <button
-                  type="button"
-                  className="text-xs text-gray-400 underline hover:text-gray-600 self-start"
-                  onClick={() => setSettings(p => ({ ...p, qualificationCriteria: { mustHave: [], niceToHave: [], disqualifiers: [] } }))}
-                >
-                  Reset to auto-generated
-                </button>
-              )}
-            </div>
+            <p className="text-sm font-medium text-foreground mb-2">Who and what we want out of this person and this industry</p>
+            {loadingRubrics ? (
+              <p className="text-sm text-muted-foreground">Loading rubrics…</p>
+            ) : rubrics.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No rubrics yet — one gets built automatically the first time this agent searches a new industry/role combo.</p>
+            ) : (
+              <div className="space-y-2">
+                {rubrics.map(r => (
+                  <RubricCard
+                    key={r.searchCombo}
+                    rubric={r}
+                    unlocked={criteriaUnlocked}
+                    onSaved={(combo, criteria) => setRubrics(prev => prev.map(x => x.searchCombo === combo ? { ...x, criteria, version: x.version + 1 } : x))}
+                    onReset={(keyword, position) => setRubrics(prev => prev.filter(x => !(x.keyword === keyword && x.position === position)))}
+                  />
+                ))}
+              </div>
+            )}
           </Section>
 
           {/* Starred Lead Timeline Research */}
