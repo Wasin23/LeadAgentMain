@@ -2232,7 +2232,7 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
     const specialInstructions = this.campaignPlan?.specialInstructions || this.memory.userSettings?.specialInstructions || '';
     const sourceInstructionsHash = this._hashString(specialInstructions);
 
-    const cached = await this.leadMemory.getRubric(this.userId, keyword, position);
+    const cached = await this.awsManager.getQualificationRubric(this.userId, keyword, position);
     if (cached && cached.sourceInstructionsHash === sourceInstructionsHash) {
       console.log(`[RUBRIC] Using cached rubric v${cached.version} for "${keyword}" + "${position}" (${cached.criteria?.length || 0} criteria)`);
       return cached;
@@ -2433,8 +2433,8 @@ Respond in JSON:
 
     const rubric = { criteria, icpSummary: raw.icpSummary || '' };
 
-    const stored = await this.leadMemory.storeRubric(
-      this.userId, this.agentId, keyword, position, rubric, sourceInstructionsHash, rubric.icpSummary
+    const stored = await this.awsManager.saveQualificationRubric(
+      this.userId, this.agentId, keyword, position, rubric, sourceInstructionsHash
     );
 
     console.log(`[RUBRIC BUILD] Stored as v${stored.version} for "${keyword}" + "${position}"`);
@@ -2751,7 +2751,7 @@ Respond in JSON format:
       // the gate failing — so qualification never blocks on a missing rubric.
       let rubric = null;
       if (leadData?._searchKeyword && leadData?._searchPosition) {
-        rubric = await this.leadMemory.getRubric(this.userId, leadData._searchKeyword, leadData._searchPosition).catch(() => null);
+        rubric = await this.awsManager.getQualificationRubric(this.userId, leadData._searchKeyword, leadData._searchPosition).catch(() => null);
       }
       if (!rubric || !Array.isArray(rubric.criteria) || rubric.criteria.length === 0) {
         const fallbackList = criteria.mustHave || [];

@@ -711,7 +711,7 @@ router.post('/settings/reset', async (req, res) => {
 router.get('/rubrics', async (req, res) => {
   try {
     const userId = req.user.userId;
-    const result = await leadMemory.listRubrics(userId);
+    const result = await awsManager.listQualificationRubrics(userId);
     if (!result.success) {
       return res.status(500).json({ success: false, error: result.error });
     }
@@ -735,7 +735,7 @@ router.put('/rubrics/update', async (req, res) => {
       return res.status(400).json({ success: false, error: 'keyword, position, and criteria[] are required' });
     }
 
-    const existing = await leadMemory.getRubric(userId, keyword, position);
+    const existing = await awsManager.getQualificationRubric(userId, keyword, position);
     const sourceInstructionsHash = existing?.sourceInstructionsHash || '';
 
     // weight is a raw signed log-likelihood-ratio (see qualifyLead()'s scoring
@@ -748,7 +748,7 @@ router.put('/rubrics/update', async (req, res) => {
     }));
 
     const rubric = { criteria: cleanedCriteria, icpSummary: existing?.icpSummary || '' };
-    const stored = await leadMemory.storeRubric(userId, agentId, keyword, position, rubric, sourceInstructionsHash, rubric.icpSummary);
+    const stored = await awsManager.saveQualificationRubric(userId, agentId, keyword, position, rubric, sourceInstructionsHash);
 
     if (!stored.success) {
       return res.status(500).json({ success: false, error: stored.error });
@@ -771,7 +771,7 @@ router.post('/rubrics/reset', async (req, res) => {
       return res.status(400).json({ success: false, error: 'keyword and position are required' });
     }
 
-    const result = await leadMemory.deleteRubric(userId, keyword, position);
+    const result = await awsManager.deleteQualificationRubric(userId, keyword, position);
     if (!result.success) {
       return res.status(500).json({ success: false, error: result.error });
     }

@@ -276,6 +276,83 @@ class AWSManager {
     }
   }
 
+  // ── Qualification rubrics (per keyword+position combo) ─────────────────────
+  // Originally stored in a dedicated Zilliz collection, but Zilliz plans here are
+  // capped at 5 collections total and that limit was already hit by other
+  // features (lead_agent_memory, industry facts, etc.) — collection creation
+  // failed outright in production. DynamoDB via userSettings has no such limit
+  // and is already the store for everything else on the account, so rubrics live
+  // there instead: keyed by search_combo (keyword#position, lowercased) inside a
+  // qualificationRubrics map, same JSON-blob-on-userSettings pattern as the score
+  // history above.
+
+  _rubricComboKey(keyword, position) {
+    return `${(keyword || '').toLowerCase().trim()}#${(position || '').toLowerCase().trim()}`;
+  }
+
+  async getQualificationRubric(userId, keyword, position) {
+    try {
+      const settings = await this.getUserSettings(userId);
+      const combo = this._rubricComboKey(keyword, position);
+      const rubric = settings?.qualificationRubrics?.[combo];
+      return rubric || null;
+    } catch (error) {
+      console.error('❌ [AWS] Error getting qualification rubric:', error);
+      return null;
+    }
+  }
+
+  async saveQualificationRubric(userId, agentId, keyword, position, rubric, sourceInstructionsHash) {
+    try {
+      const settings = await this.getUserSettings(userId) || {};
+      const combo = this._rubricComboKey(keyword, position);
+      const rubrics = { ...(settings.qualificationRubrics || {}) };
+      const existingVersion = rubrics[combo]?.version || 0;
+      const record = {
+        keyword: (keyword || '').toLowerCase(),
+        position,
+        searchCombo: combo,
+        agentId,
+        criteria: rubric.criteria || [],
+        icpSummary: rubric.icpSummary || '',
+        version: existingVersion + 1,
+        generatedAt: Date.now(),
+        sourceInstructionsHash: sourceInstructionsHash || ''
+      };
+      rubrics[combo] = record;
+      await this.saveUserSettings(userId, { ...settings, qualificationRubrics: rubrics });
+      return { success: true, version: record.version };
+    } catch (error) {
+      console.error('❌ [AWS] Error saving qualification rubric:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async listQualificationRubrics(userId) {
+    try {
+      const settings = await this.getUserSettings(userId);
+      const rubrics = settings?.qualificationRubrics || {};
+      return { success: true, rubrics: Object.values(rubrics) };
+    } catch (error) {
+      console.error('❌ [AWS] Error listing qualification rubrics:', error);
+      return { success: false, error: error.message, rubrics: [] };
+    }
+  }
+
+  async deleteQualificationRubric(userId, keyword, position) {
+    try {
+      const settings = await this.getUserSettings(userId) || {};
+      const combo = this._rubricComboKey(keyword, position);
+      const rubrics = { ...(settings.qualificationRubrics || {}) };
+      delete rubrics[combo];
+      await this.saveUserSettings(userId, { ...settings, qualificationRubrics: rubrics });
+      return { success: true };
+    } catch (error) {
+      console.error('❌ [AWS] Error deleting qualification rubric:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
   // ── Starred Leads & Timeline ──────────────────────────────────────────────
 
   async getStarredLeads(userId) {
