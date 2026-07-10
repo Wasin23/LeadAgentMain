@@ -353,6 +353,12 @@ const JUNK_KEYWORDS = new Set([
   'any company', 'all industries', 'all roles', 'any title', 'n/a', 'na', 'none', 'other',
 ]);
 
+// Friction against fat-fingering the qualification rubric open and editing it by
+// accident — NOT real access control (the underlying API routes are already
+// auth-gated per-user; this is a client-side prompt only). Change this string to
+// whatever passphrase you want.
+const QUALIFICATION_UNLOCK_PASSWORD = 'unlock';
+
 function TagInput({ label, tags, onAdd, onRemove, suggestions = [], placeholder, helpText }: {
   label: string; tags: string[]; onAdd: (tag: string) => void; onRemove: (tag: string) => void;
   suggestions?: string[]; placeholder: string; helpText?: string;
@@ -475,14 +481,18 @@ function RubricCard({ rubric, unlocked, onSaved, onReset }: {
     }
   };
 
-  const reset = async () => {
-    if (!confirm(`Reset the rubric for "${rubric.keyword} / ${rubric.position}"? It will be rebuilt from scratch via research the next time this combo is searched.`)) return;
+  const deleteRubric = async () => {
+    if (!confirm(`Delete the rubric for "${rubric.keyword} / ${rubric.position}"? It will be rebuilt from scratch via research the next time this combo is searched.`)) return;
     setResetting(true);
     try {
-      await api.post('/api/lead-agent/rubrics/reset', { keyword: rubric.keyword, position: rubric.position });
+      const res = await api.post('/api/lead-agent/rubrics/reset', { keyword: rubric.keyword, position: rubric.position });
+      if (res.data?.success === false) {
+        alert('Delete failed on the server — rubric was not removed.');
+        return;
+      }
       onReset(rubric.keyword, rubric.position);
     } catch {
-      alert('Failed to reset rubric.');
+      alert('Failed to delete rubric.');
     } finally {
       setResetting(false);
     }
@@ -537,9 +547,12 @@ function RubricCard({ rubric, unlocked, onSaved, onReset }: {
                 Save Changes
               </Button>
             )}
-            <button type="button" onClick={reset} disabled={resetting} className="text-xs text-gray-400 underline hover:text-gray-600 disabled:opacity-50">
-              {resetting ? 'Resetting…' : 'Reset to auto-generated'}
-            </button>
+            {unlocked && (
+              <Button size="sm" variant="destructive" onClick={deleteRubric} disabled={resetting}>
+                {resetting ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <X className="w-3.5 h-3.5 mr-1.5" />}
+                Delete Rubric
+              </Button>
+            )}
           </div>
         </div>
       )}
@@ -633,6 +646,20 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
       alert('Could not autofill - make sure your Company Profile is filled out in Settings.');
     } finally {
       setAutofilling(false);
+    }
+  };
+
+  const handleUnlockCriteria = () => {
+    if (criteriaUnlocked) {
+      setCriteriaUnlocked(false);
+      return;
+    }
+    const entered = window.prompt('Enter password to unlock qualification criteria for editing:');
+    if (entered === null) return; // cancelled
+    if (entered === QUALIFICATION_UNLOCK_PASSWORD) {
+      setCriteriaUnlocked(true);
+    } else {
+      alert('Incorrect password.');
     }
   };
 
@@ -1154,7 +1181,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
               </div>
               <button
                 type="button"
-                onClick={() => setCriteriaUnlocked(v => !v)}
+                onClick={handleUnlockCriteria}
                 className={`ml-3 shrink-0 rounded px-2 py-1 text-xs font-medium transition-colors ${
                   criteriaUnlocked ? 'bg-amber-600 text-white hover:bg-amber-700' : 'bg-white border border-amber-400 text-amber-700 hover:bg-amber-100'
                 }`}

@@ -303,11 +303,18 @@ class AWSManager {
   }
 
   async saveQualificationRubric(userId, agentId, keyword, position, rubric, sourceInstructionsHash) {
+    // Writes via UpdateCommand targeting the single map key, NOT the old
+    // get-whole-settings → mutate → put-whole-settings pattern. That pattern is a
+    // read-modify-write race: userSettings gets written constantly from unrelated
+    // paths (IP tracking, cycle state, score history, etc. — visible firing every
+    // few seconds in production logs), so a save here could read stale settings
+    // and get silently overwritten by the next unrelated write landing in between
+    // the read and the put. UpdateExpression on a single nested path is atomic —
+    // it can't be clobbered by a concurrent write to a different part of the item.
+    const combo = this._rubricComboKey(keyword, position);
     try {
-      const settings = await this.getUserSettings(userId) || {};
-      const combo = this._rubricComboKey(keyword, position);
-      const rubrics = { ...(settings.qualificationRubrics || {}) };
-      const existingVersion = rubrics[combo]?.version || 0;
+      const existing = await this.getQualificationRubric(userId, keyword, position);
+      const nextVersion = (existing?.version || 0) + 1;
       const record = {
         keyword: (keyword || '').toLowerCase(),
         position,
@@ -315,13 +322,34 @@ class AWSManager {
         agentId,
         criteria: rubric.criteria || [],
         icpSummary: rubric.icpSummary || '',
-        version: existingVersion + 1,
+        version: nextVersion,
         generatedAt: Date.now(),
         sourceInstructionsHash: sourceInstructionsHash || ''
       };
-      rubrics[combo] = record;
-      await this.saveUserSettings(userId, { ...settings, qualificationRubrics: rubrics });
-      return { success: true, version: record.version };
+      try {
+        await this.dynamodb.send(new UpdateCommand({
+          TableName: this.tables.userSettings,
+          Key: { userId },
+          UpdateExpression: 'SET qualificationRubrics.#combo = :record',
+          ExpressionAttributeNames: { '#combo': combo },
+          ExpressionAttributeValues: { ':record': record }
+        }));
+      } catch (updateError) {
+        // qualificationRubrics map doesn't exist yet on this account — DynamoDB
+        // can't traverse into a non-existent nested path, so initialize the whole
+        // map in one shot. Safe to overwrite (not merge) since it didn't exist.
+        if (updateError.name === 'ValidationException') {
+          await this.dynamodb.send(new UpdateCommand({
+            TableName: this.tables.userSettings,
+            Key: { userId },
+            UpdateExpression: 'SET qualificationRubrics = :map',
+            ExpressionAttributeValues: { ':map': { [combo]: record } }
+          }));
+        } else {
+          throw updateError;
+        }
+      }
+      return { success: true, version: nextVersion };
     } catch (error) {
       console.error('❌ [AWS] Error saving qualification rubric:', error);
       return { success: false, error: error.message };
@@ -340,14 +368,25 @@ class AWSManager {
   }
 
   async deleteQualificationRubric(userId, keyword, position) {
+    // Atomic REMOVE on the single map key — same race-avoidance reasoning as
+    // saveQualificationRubric above. This was the likely cause of "delete doesn't
+    // actually work": the old get-mutate-put could read settings, have an
+    // unrelated concurrent write land, then put back a payload that still
+    // contained the "deleted" rubric, undoing the delete without any error.
+    const combo = this._rubricComboKey(keyword, position);
     try {
-      const settings = await this.getUserSettings(userId) || {};
-      const combo = this._rubricComboKey(keyword, position);
-      const rubrics = { ...(settings.qualificationRubrics || {}) };
-      delete rubrics[combo];
-      await this.saveUserSettings(userId, { ...settings, qualificationRubrics: rubrics });
+      await this.dynamodb.send(new UpdateCommand({
+        TableName: this.tables.userSettings,
+        Key: { userId },
+        UpdateExpression: 'REMOVE qualificationRubrics.#combo',
+        ExpressionAttributeNames: { '#combo': combo }
+      }));
       return { success: true };
     } catch (error) {
+      // Map or item doesn't exist — nothing to delete, treat as success.
+      if (error.name === 'ValidationException') {
+        return { success: true };
+      }
       console.error('❌ [AWS] Error deleting qualification rubric:', error);
       return { success: false, error: error.message };
     }
