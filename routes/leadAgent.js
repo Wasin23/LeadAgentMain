@@ -6,6 +6,7 @@ import { checkPaymentStatus } from '../middleware/paymentStatus.js';
 import AWSManager from '../utils/awsManager.js';
 import { ZillizLeadMemory } from '../utils/zillizLeadMemory.js';
 import { QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { verifyPassword } from '../lib/userManager.js';
 
 const router = express.Router();
 
@@ -705,6 +706,30 @@ router.post('/settings/reset', async (req, res) => {
 });
 
 // === QUALIFICATION RUBRICS (per keyword+position combo) ===
+
+// Verify the CURRENT user's real account password — used to gate unlocking the
+// qualification-criteria editor in settings. Password verification has to happen
+// server-side (the hash is never sent to the client); this reuses the exact same
+// scrypt verifyPassword() used by /api/auth/login, so it's the same password the
+// user logs in with, not a separate one to remember.
+router.post('/verify-password', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { password } = req.body || {};
+    if (!password) {
+      return res.status(400).json({ success: false, error: 'Password required' });
+    }
+    const user = await awsManager.getUserById(userId);
+    if (!user?.passwordHash) {
+      return res.status(400).json({ success: false, error: 'No password set on this account' });
+    }
+    const valid = verifyPassword(password, user.passwordHash);
+    res.json({ success: valid });
+  } catch (error) {
+    console.error('[VERIFY PASSWORD] Error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 // List all AI-generated qualification rubrics for this user, for the settings UI's
 // "Who and what we want out of this person and this industry" section.

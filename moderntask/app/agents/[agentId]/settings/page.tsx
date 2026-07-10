@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
 // ─────────────────────────────────────────────────────
@@ -353,12 +354,6 @@ const JUNK_KEYWORDS = new Set([
   'any company', 'all industries', 'all roles', 'any title', 'n/a', 'na', 'none', 'other',
 ]);
 
-// Friction against fat-fingering the qualification rubric open and editing it by
-// accident — NOT real access control (the underlying API routes are already
-// auth-gated per-user; this is a client-side prompt only). Change this string to
-// whatever passphrase you want.
-const QUALIFICATION_UNLOCK_PASSWORD = 'unlock';
-
 function TagInput({ label, tags, onAdd, onRemove, suggestions = [], placeholder, helpText }: {
   label: string; tags: string[]; onAdd: (tag: string) => void; onRemove: (tag: string) => void;
   suggestions?: string[]; placeholder: string; helpText?: string;
@@ -561,6 +556,73 @@ function RubricCard({ rubric, unlocked, onSaved, onReset }: {
 }
 
 // ─────────────────────────────────────────────────────
+// Unlock-criteria password modal — friction against fat-fingering an edit to the
+// qualification rubric. Checks the user's REAL account password (the same one
+// used to log in) via a server-side check — a hash can't be verified from the
+// client, so this calls /api/lead-agent/verify-password, which reuses the exact
+// same scrypt verifyPassword() the login route uses.
+// ─────────────────────────────────────────────────────
+function UnlockCriteriaDialog({ open, onOpenChange, onUnlock }: {
+  open: boolean; onOpenChange: (open: boolean) => void; onUnlock: () => void;
+}) {
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState(false);
+  const [checking, setChecking] = useState(false);
+
+  const submit = async () => {
+    if (!password || checking) return;
+    setChecking(true);
+    setError(false);
+    try {
+      const res = await api.post('/api/lead-agent/verify-password', { password });
+      if (res.data?.success) {
+        onUnlock();
+        onOpenChange(false);
+        setPassword('');
+      } else {
+        setError(true);
+      }
+    } catch {
+      setError(true);
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) { setPassword(''); setError(false); } }}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Unlock Qualification Criteria</DialogTitle>
+          <DialogDescription>
+            Enter your account password to edit the AI-built rubric. Wrong values here will break who the agent is allowed to find.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-1.5">
+          <Input
+            type="password"
+            autoFocus
+            value={password}
+            onChange={e => { setPassword(e.target.value); setError(false); }}
+            onKeyDown={e => { if (e.key === 'Enter') submit(); }}
+            placeholder="Password"
+            disabled={checking}
+          />
+          {error && <p className="text-xs text-destructive">Incorrect password.</p>}
+        </div>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={checking}>Cancel</Button>
+          <Button type="button" onClick={submit} disabled={checking || !password}>
+            {checking ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : null}
+            Unlock
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─────────────────────────────────────────────────────
 // Page
 // ─────────────────────────────────────────────────────
 export default function AgentSettingsPage({ params }: { params: Promise<{ agentId: string }> }) {
@@ -589,6 +651,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
   const [testEmailError, setTestEmailError] = useState<string | null>(null);
   const [swapLog, setSwapLog] = useState<{ removedAt: string; removed: string; added: string[]; reason: string }[]>([]);
   const [criteriaUnlocked, setCriteriaUnlocked] = useState(false);
+  const [unlockDialogOpen, setUnlockDialogOpen] = useState(false);
   const [rubrics, setRubrics] = useState<Rubric[]>([]);
   const [loadingRubrics, setLoadingRubrics] = useState(false);
 
@@ -654,13 +717,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
       setCriteriaUnlocked(false);
       return;
     }
-    const entered = window.prompt('Enter password to unlock qualification criteria for editing:');
-    if (entered === null) return; // cancelled
-    if (entered === QUALIFICATION_UNLOCK_PASSWORD) {
-      setCriteriaUnlocked(true);
-    } else {
-      alert('Incorrect password.');
-    }
+    setUnlockDialogOpen(true);
   };
 
   // ── fetch ──
@@ -1209,6 +1266,12 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
               </div>
             )}
           </Section>
+
+          <UnlockCriteriaDialog
+            open={unlockDialogOpen}
+            onOpenChange={setUnlockDialogOpen}
+            onUnlock={() => setCriteriaUnlocked(true)}
+          />
 
           {/* Starred Lead Timeline Research */}
           <Section
