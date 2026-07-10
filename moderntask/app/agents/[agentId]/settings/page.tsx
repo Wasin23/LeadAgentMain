@@ -1139,14 +1139,12 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
 
           {/* Qualification Criteria — meshed: AI-built per-industry rubric (the real
               qualifier) plus the legacy Must Have / Nice to Have / Disqualifiers gate,
-              under one section, one lock, description only shown once expanded. */}
+              under one section with one lock. */}
           <Section
             title="Qualification Criteria"
+            description="AI-built, per-industry scoring rubric — the actual qualifier for every lead found under each search combo."
             badge={rubrics.length > 0 ? `${rubrics.length} combo${rubrics.length === 1 ? '' : 's'}` : undefined}
           >
-            <p className="text-sm text-muted-foreground mb-3">
-              Controls how the agent scores and filters leads. The AI-built rubric below is the actual qualifier — a per-industry scoring list built from real research the first time each combo is searched. Must Have / Nice to Have / Disqualifiers apply on top of it as an additional gate.
-            </p>
             <div className="mb-3 flex items-start justify-between gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
               <div className="flex items-start gap-2">
                 <span className="mt-0.5">⚠️</span>
