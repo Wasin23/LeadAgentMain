@@ -976,7 +976,7 @@ export function CRMContent() {
 function CrmStat({ label, value }: { label: string; value: number }) {
   return (
     <div className="min-w-0">
-      <p className="font-display text-lg leading-tight text-foreground">{value.toLocaleString()}</p>
+      <p className="font-mono text-lg leading-tight text-foreground">{value.toLocaleString()}</p>
       <p className="text-[10px] text-muted-foreground">{label}</p>
     </div>
   )

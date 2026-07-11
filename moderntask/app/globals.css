@@ -3,6 +3,15 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Fraunces' figures are hard to scan at small sizes — carve out digits/numeric
+   symbols into a plain system font wherever Fraunces is used, everywhere in
+   the app, without touching every call site. Letters still render in Fraunces. */
+@font-face {
+  font-family: 'Meridian Numerals';
+  src: local('Segoe UI'), local('Helvetica Neue'), local('Arial');
+  unicode-range: U+0024-002F, U+0030-0039, U+003A-003B;
+}
+
 :root {
   --radius: 0.875rem;
 
@@ -140,11 +149,11 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-fraunces), Georgia, serif;
-  --font-mono: var(--font-fraunces), Georgia, serif;
-  --font-heading: var(--font-fraunces), Georgia, serif;
+  --font-sans: 'Meridian Numerals', var(--font-fraunces), Georgia, serif;
+  --font-mono: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-heading: 'Meridian Numerals', var(--font-fraunces), Georgia, serif;
   --font-serif: var(--font-display);
-  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-display: 'Meridian Numerals', var(--font-fraunces), Georgia, serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);

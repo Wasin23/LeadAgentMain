@@ -377,7 +377,7 @@ export function LeadsContent() {
         <div className="min-w-0 rounded-2xl border border-border bg-card p-4">
           <div className="mb-3 flex items-center gap-3">
             <div className="flex shrink-0 items-center gap-2 text-[11px] text-muted-foreground">
-              <span><span className="font-display text-sm text-foreground">{counts.total}</span> Total Leads</span>
+              <span><span className="font-mono text-sm text-foreground">{counts.total}</span> Total Leads</span>
               <span className="text-border">|</span>
               <span><span className="font-semibold text-success">{counts.qualified}</span> Qualified</span>
               <span className="text-muted-foreground/50">/</span>
