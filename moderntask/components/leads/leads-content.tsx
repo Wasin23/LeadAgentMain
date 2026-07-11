@@ -80,13 +80,6 @@ function extractLead(e: Record<string, unknown>, status: 'queued' | 'sent', agen
   }
 }
 
-function tierBucket(tier?: string): 'qualified' | 'research' | 'rejected' | null {
-  if (tier === 'HIGHLY_QUALIFIED' || tier === 'QUALIFIED') return 'qualified'
-  if (tier === 'SHOTGUN') return 'research'
-  if (tier === 'REJECTED') return 'rejected'
-  return null
-}
-
 function sourceCategory(url: string): { label: string; icon: typeof Globe } {
   const lower = url.toLowerCase()
   if (lower.includes('linkedin.com')) return { label: 'LinkedIn', icon: Linkedin }
@@ -328,16 +321,7 @@ export function LeadsContent() {
     return arr
   }, [filtered, sortKey, starredIds])
 
-  const counts = useMemo(() => {
-    let qualified = 0, research = 0, rejected = 0
-    for (const l of leads) {
-      const b = tierBucket(l.aiReport?.tier)
-      if (b === 'qualified') qualified++
-      else if (b === 'research') research++
-      else if (b === 'rejected') rejected++
-    }
-    return { qualified, research, rejected, total: leads.length }
-  }, [leads])
+  const counts = useMemo(() => ({ total: leads.length }), [leads])
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize))
   const pageItems = sorted.slice((page - 1) * pageSize, page * pageSize)
@@ -378,10 +362,6 @@ export function LeadsContent() {
           <div className="mb-3 flex items-center gap-3">
             <div className="flex shrink-0 items-center gap-2 text-[11px] text-muted-foreground">
               <span><span className="font-mono text-sm text-foreground">{counts.total}</span> Total Leads</span>
-              <span className="text-border">|</span>
-              <span><span className="font-semibold text-success">{counts.qualified}</span> Qualified</span>
-              <span className="text-muted-foreground/50">/</span>
-              <span><span className="font-semibold text-foreground/70">{counts.research + counts.rejected}</span> Unqualified</span>
               {starLimit !== null && (
                 <>
                   <span className="text-border">|</span>

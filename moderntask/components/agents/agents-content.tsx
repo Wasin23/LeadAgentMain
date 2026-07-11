@@ -158,15 +158,21 @@ function AgentCard({
       gradientClass,
       isAuditor && 'opacity-60',
     )}>
-      {/* personality ribbon - bookmark-style banner hanging from the top-right corner */}
-      <div
-        className={cn(
-          'absolute top-0 right-5 z-10 px-3 pt-1.5 pb-2.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm',
-          ribbonClass,
-        )}
-        style={{ clipPath: 'polygon(0 0, 100% 0, 100% 78%, 50% 100%, 0 78%)' }}
-      >
-        {ribbonLabel}
+      {/* personality ribbon - bookmark-style banner hanging from the top-right corner.
+          The clipped shape and the text are separate layers: clip-path forces a
+          rasterized composite layer, which blurs any text drawn inside it, so the
+          label is rendered as an unclipped sibling on top instead. The wrapper has
+          no explicit size — it sizes to the (unclipped, in-flow) text underneath. */}
+      <div className="absolute top-0 right-5 z-10">
+        <div className="relative">
+          <div
+            className={cn('absolute inset-0 shadow-sm', ribbonClass)}
+            style={{ clipPath: 'polygon(0 0, 100% 0, 100% 78%, 50% 100%, 0 78%)' }}
+          />
+          <div className="relative px-3 pt-1.5 pb-2.5 text-[10px] font-bold uppercase tracking-wide text-white">
+            {ribbonLabel}
+          </div>
+        </div>
       </div>
 
       {/* header row */}
