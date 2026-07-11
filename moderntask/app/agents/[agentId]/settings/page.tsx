@@ -1240,14 +1240,17 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
               )}
               <div className="space-y-1.5">
                 <Label>Seniority Level</Label>
-                <select value={settings.contactCriteria.seniorityLevel} onChange={e => updateContact('seniorityLevel', e.target.value)}
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring">
-                  <option value="any">Any Level</option>
-                  <option value="entry">Entry Level</option>
-                  <option value="mid">Mid Level</option>
-                  <option value="senior">Senior Level</option>
-                  <option value="executive">Executive / C-Suite</option>
-                </select>
+                <div className="relative">
+                  <select value={settings.contactCriteria.seniorityLevel} onChange={e => updateContact('seniorityLevel', e.target.value)}
+                    className="flex h-9 w-full appearance-none rounded-md border border-input bg-background px-3 pr-8 py-1 text-sm text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring">
+                    <option value="any">Any Level</option>
+                    <option value="entry">Entry Level</option>
+                    <option value="mid">Mid Level</option>
+                    <option value="senior">Senior Level</option>
+                    <option value="executive">Executive / C-Suite</option>
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                </div>
               </div>
             </div>
           </Section>
@@ -1281,17 +1284,20 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
             <div className="space-y-1.5 mb-4">
               <Label>Evaluation mode</Label>
               <p className="text-xs text-muted-foreground">Which slice of each rubric, ordered most→least important, the agent weighs when scoring a lead. Strict considers every criterion.</p>
-              <select
-                value={settings.rubricEvaluationMode || 'strict'}
-                disabled={!criteriaUnlocked}
-                onChange={e => setSettings(p => ({ ...p, rubricEvaluationMode: e.target.value as AgentSettings['rubricEvaluationMode'] }))}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                <option value="strict">Strict — all criteria</option>
-                <option value="optimistic">Optimistic — top ~30%</option>
-                <option value="balanced">Balanced — middle ~40%</option>
-                <option value="pessimistic">Pessimistic — bottom ~30%</option>
-              </select>
+              <div className="relative">
+                <select
+                  value={settings.rubricEvaluationMode || 'strict'}
+                  disabled={!criteriaUnlocked}
+                  onChange={e => setSettings(p => ({ ...p, rubricEvaluationMode: e.target.value as AgentSettings['rubricEvaluationMode'] }))}
+                  className="flex h-9 w-full appearance-none rounded-md border border-input bg-background px-3 pr-8 py-1 text-sm text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <option value="strict">Strict — all criteria</option>
+                  <option value="optimistic">Optimistic — top ~30%</option>
+                  <option value="balanced">Balanced — middle ~40%</option>
+                  <option value="pessimistic">Pessimistic — bottom ~30%</option>
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              </div>
             </div>
 
             <p className="text-sm font-medium text-foreground mb-2">Who and what we want out of this person and this industry</p>
@@ -1415,14 +1421,17 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
               </div>
               <div className="space-y-1.5">
                 <Label>Timezone</Label>
-                <select value={settings.geographicSettings.timezone} onChange={e => updateGeo('timezone', e.target.value)}
-                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring">
-                  <option value="America/New_York">Eastern (ET)</option>
-                  <option value="America/Chicago">Central (CT)</option>
-                  <option value="America/Denver">Mountain (MT)</option>
-                  <option value="America/Los_Angeles">Pacific (PT)</option>
-                  <option value="UTC">UTC</option>
-                </select>
+                <div className="relative">
+                  <select value={settings.geographicSettings.timezone} onChange={e => updateGeo('timezone', e.target.value)}
+                    className="flex h-9 w-full appearance-none rounded-md border border-input bg-background px-3 pr-8 py-1 text-sm text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring">
+                    <option value="America/New_York">Eastern (ET)</option>
+                    <option value="America/Chicago">Central (CT)</option>
+                    <option value="America/Denver">Mountain (MT)</option>
+                    <option value="America/Los_Angeles">Pacific (PT)</option>
+                    <option value="UTC">UTC</option>
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                </div>
               </div>
             </div>
           </Section>
@@ -1604,33 +1613,39 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                 {/* Tone */}
                 <div className="space-y-1.5">
                   <Label>Tone</Label>
-                  <select
-                    value={settings.emailBuilder.tone}
-                    onChange={e => updateEmail('tone', e.target.value)}
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                  >
-                    <option value="professional">Professional</option>
-                    <option value="friendly">Friendly</option>
-                    <option value="casual">Casual</option>
-                    <option value="formal">Formal</option>
-                    <option value="conversational">Conversational</option>
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={settings.emailBuilder.tone}
+                      onChange={e => updateEmail('tone', e.target.value)}
+                      className="flex h-9 w-full appearance-none rounded-md border border-input bg-background px-3 pr-8 py-1 text-sm text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                    >
+                      <option value="professional">Professional</option>
+                      <option value="friendly">Friendly</option>
+                      <option value="casual">Casual</option>
+                      <option value="formal">Formal</option>
+                      <option value="conversational">Conversational</option>
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  </div>
                 </div>
 
                 {/* CTA */}
                 <div className="space-y-1.5">
                   <Label>Call to Action</Label>
-                  <select
-                    value={settings.emailBuilder.callToAction}
-                    onChange={e => updateEmail('callToAction', e.target.value)}
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                  >
-                    <option value="meeting">Book a meeting</option>
-                    <option value="call">Schedule a call</option>
-                    <option value="demo">Request a demo</option>
-                    <option value="reply">Simply reply</option>
-                    <option value="learn_more">Learn more</option>
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={settings.emailBuilder.callToAction}
+                      onChange={e => updateEmail('callToAction', e.target.value)}
+                      className="flex h-9 w-full appearance-none rounded-md border border-input bg-background px-3 pr-8 py-1 text-sm text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                    >
+                      <option value="meeting">Book a meeting</option>
+                      <option value="call">Schedule a call</option>
+                      <option value="demo">Request a demo</option>
+                      <option value="reply">Simply reply</option>
+                      <option value="learn_more">Learn more</option>
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  </div>
                 </div>
 
                 {/* Personalization */}
