@@ -1200,7 +1200,7 @@ export function AIReportModal({ report, onClose }: { report: AIReport; onClose: 
                   <div className="relative w-[710px] max-w-none h-[440px] shrink-0">
                     <div className="absolute left-0 top-0 w-[440px] h-[440px] rounded-full bg-green-500/10 border border-green-500/40" />
                     <div className="absolute right-0 top-0 w-[440px] h-[440px] rounded-full bg-yellow-500/10 border border-yellow-500/40" />
-                    <div className="absolute left-0 top-1/2 w-[190px] -translate-y-1/2 px-5 text-center">
+                    <div className="absolute left-[40px] top-1/2 w-[190px] -translate-y-1/2 px-5 text-center">
                       <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-green-600 dark:text-green-400">Strengths</p>
                       <ul className="space-y-2.5">
                         {report.keyStrengths?.map((s, i) => (
@@ -1212,13 +1212,13 @@ export function AIReportModal({ report, onClose }: { report: AIReport; onClose: 
                       <div className="absolute left-[265px] top-1/2 w-[180px] -translate-y-1/2 px-4 text-center">
                         <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-foreground/70">General Facts</p>
                         <ul className="space-y-2.5">
-                          {report.citedEvidence.slice(0, 2).map((e, i) => (
+                          {report.citedEvidence.slice(0, 1).map((e, i) => (
                             <li key={i} className="text-xs leading-snug text-foreground/80">{e.fact}</li>
                           ))}
                         </ul>
                       </div>
                     )}
-                    <div className="absolute right-0 top-1/2 w-[190px] -translate-y-1/2 px-5 text-center">
+                    <div className="absolute right-[40px] top-1/2 w-[190px] -translate-y-1/2 px-5 text-center">
                       <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-yellow-600 dark:text-yellow-400">Concerns</p>
                       <ul className="space-y-2.5">
                         {report.weaknesses?.map((w, i) => (
