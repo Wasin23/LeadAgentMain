@@ -77,6 +77,7 @@ interface AgentSettings {
   concurrencyLevel: number;
   researchFocus: { focusAreas: string[]; researchDepth: string; includeCompanyNews: boolean; includePersonalInfo: boolean; includeSocialMedia: boolean; };
   timelineResearchCriteria?: string;
+  rubricEvaluationMode?: 'strict' | 'optimistic' | 'pessimistic' | 'balanced';
   emailBuilder: {
     emailTemplate: string; customPrompt: string; emailResponsePrompt: string;
     tone: string; length: string; maxWords: number | null; callToAction: string; personalization: string;
@@ -114,6 +115,7 @@ const defaultSettings: AgentSettings = {
   concurrencyLevel: 1,
   researchFocus: { focusAreas: [], researchDepth: 'standard', includeCompanyNews: true, includePersonalInfo: false, includeSocialMedia: false },
   timelineResearchCriteria: '',
+  rubricEvaluationMode: 'strict',
   emailBuilder: { emailTemplate: 'professional', customPrompt: '', emailResponsePrompt: '', tone: 'professional', length: 'medium', maxWords: null, callToAction: 'meeting', personalization: 'high', ccEmails: '', bccEmails: '', enableAutoResponse: false, rebumpIntervalDays: 3, useCustomSignature: false, signatureName: '', signatureTitle: '', useGmail: false, useOutlook: false, useLinkedIn: false, templates: [], useTemplates: false, smartRebump: false, rebumpLinkedinScrape: true, includeChatLink: false, chatLinkInstructions: '' }
 };
 
@@ -826,6 +828,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
             includeSocialMedia: u.includeSocialMedia ?? u.researchFocus?.includeSocialMedia ?? false,
           },
           timelineResearchCriteria: (typeof s.timelineResearchCriteria === 'string' ? s.timelineResearchCriteria : '') || (typeof u.timelineResearchCriteria === 'string' ? u.timelineResearchCriteria : '') || '',
+          rubricEvaluationMode: (s.rubricEvaluationMode || u.rubricEvaluationMode || 'strict') as AgentSettings['rubricEvaluationMode'],
           emailBuilder: {
             emailTemplate: e.emailTemplate || e.emailBuilder?.emailTemplate || 'professional',
             customPrompt: e.customPrompt || e.emailBuilder?.customPrompt || '',
@@ -1273,6 +1276,22 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
               >
                 {criteriaUnlocked ? <><Unlock className="inline w-3 h-3 mr-1" />Lock</> : <><Lock className="inline w-3 h-3 mr-1" />Unlock to edit</>}
               </button>
+            </div>
+
+            <div className="space-y-1.5 mb-4">
+              <Label>Evaluation mode</Label>
+              <p className="text-xs text-muted-foreground">Which slice of each rubric, ordered most→least important, the agent weighs when scoring a lead. Strict considers every criterion.</p>
+              <select
+                value={settings.rubricEvaluationMode || 'strict'}
+                disabled={!criteriaUnlocked}
+                onChange={e => setSettings(p => ({ ...p, rubricEvaluationMode: e.target.value as AgentSettings['rubricEvaluationMode'] }))}
+                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground shadow-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <option value="strict">Strict — all criteria</option>
+                <option value="optimistic">Optimistic — top ~30%</option>
+                <option value="balanced">Balanced — middle ~40%</option>
+                <option value="pessimistic">Pessimistic — bottom ~30%</option>
+              </select>
             </div>
 
             <p className="text-sm font-medium text-foreground mb-2">Who and what we want out of this person and this industry</p>

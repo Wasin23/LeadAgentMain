@@ -2719,6 +2719,35 @@ Respond in JSON format:
   }
 
   /**
+   * Slice an already most→least-important-ordered rubric criteria list by
+   * percentage, per the agent's configured rubricEvaluationMode:
+   *   strict     — every criterion (default)
+   *   optimistic — top ~30% (the highest-magnitude, most decisive signals)
+   *   pessimistic— bottom ~30% (the lowest-magnitude, quietest signals)
+   *   balanced   — the remaining ~40% in the middle
+   * Percentage-based, not a fixed count, since rubric size varies lead to lead.
+   * Every tier has a floor of 1 criterion, and "balanced" falls back to the
+   * full list if the rubric is too small to have a meaningful middle slice.
+   */
+  _applyRubricEvaluationMode(criteria, mode) {
+    const list = Array.isArray(criteria) ? criteria : [];
+    const n = list.length;
+    if (mode === 'strict' || n === 0) return list;
+
+    const edgeCount = Math.max(1, Math.round(n * 0.3));
+
+    if (mode === 'optimistic') return list.slice(0, Math.min(edgeCount, n));
+    if (mode === 'pessimistic') return list.slice(Math.max(0, n - edgeCount));
+    if (mode === 'balanced') {
+      const start = Math.min(edgeCount, n);
+      const end = Math.max(start, n - edgeCount);
+      const middle = list.slice(start, end);
+      return middle.length > 0 ? middle : list;
+    }
+    return list;
+  }
+
+  /**
    * Detailed qualification after research
    * Uses full research data and campaign plan for comprehensive scoring
    */
@@ -2795,6 +2824,21 @@ Respond in JSON format:
         console.log(`[QUALIFY RUBRIC] No stored rubric for "${leadData?._searchKeyword || 'n/a'}#${leadData?._searchPosition || 'n/a'}" — using fallback mustHave list (${rubric.criteria.length} items)`);
       } else {
         console.log(`[QUALIFY RUBRIC] Using rubric v${rubric.version} for "${leadData._searchKeyword}#${leadData._searchPosition}" (${rubric.criteria.length} criteria)`);
+      }
+
+      // ── EVALUATION MODE — how much of the rubric actually gets weighed ────
+      // Rubric criteria are already generated in most→least-important order (see
+      // buildQualificationRubric's prompt). This slices that ordered list by
+      // percentage rather than a fixed count, since rubric size varies lead to
+      // lead (we've seen anywhere from a handful to 15+ criteria). Applied before
+      // both the prompt and the scoring math see the list, so "strict" is the
+      // only mode where every criterion is actually shown to and scored by the
+      // model — the other modes genuinely restrict what gets considered, not
+      // just what gets displayed.
+      const rubricEvaluationMode = this.settings?.rubricEvaluationMode || 'strict';
+      rubric = { ...rubric, criteria: this._applyRubricEvaluationMode(rubric.criteria, rubricEvaluationMode) };
+      if (rubricEvaluationMode !== 'strict') {
+        console.log(`[QUALIFY RUBRIC] Evaluation mode "${rubricEvaluationMode}" — considering ${rubric.criteria.length} criteria`);
       }
 
       // ── HARDCODED FACTORS — computed from structured data, never asked of the model ──
