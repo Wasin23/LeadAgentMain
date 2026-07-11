@@ -182,7 +182,7 @@ export default function PrivacyPolicyPage() {
             <div className="p-4 bg-muted rounded-lg">
               <p className="font-medium text-foreground">Meridian Privacy Team</p>
               <p className="text-muted-foreground">Email: coltonfidelman@g.ucla.edu</p>
-              <p className="text-muted-foreground">Address: 35 S Village Dr, 13035, NY</p>
+              <p className="text-muted-foreground">Address: 35 S Village Dr, Cazenovia, NY 13035</p>
             </div>
           </section>
 
