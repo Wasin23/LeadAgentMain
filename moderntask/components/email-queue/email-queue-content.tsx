@@ -1193,41 +1193,29 @@ export function AIReportModal({ report, onClose }: { report: AIReport; onClose: 
                 <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/90">{report.reasoning}</p>
               </div>
 
-              {/* Strengths vs Concerns — venn diagram header over a two-column table */}
+              {/* Strengths vs Concerns — the actual text lives inside the venn circles */}
               {((report.keyStrengths && report.keyStrengths.length > 0) || (report.weaknesses && report.weaknesses.length > 0)) && (
-                <div className="p-5 border-b border-border">
-                  <div className="flex items-center justify-center mb-4">
-                    <div className="relative w-40 h-24">
-                      <div className="absolute left-0 top-0 w-24 h-24 rounded-full bg-green-500/10 border border-green-500/40" />
-                      <div className="absolute right-0 top-0 w-24 h-24 rounded-full bg-yellow-500/10 border border-yellow-500/40" />
-                      <span className="absolute left-1.5 top-1/2 w-14 -translate-y-1/2 text-center text-[9px] font-semibold uppercase leading-tight tracking-wider text-green-600 dark:text-green-400">Strengths</span>
-                      <span className="absolute right-1.5 top-1/2 w-14 -translate-y-1/2 text-center text-[9px] font-semibold uppercase leading-tight tracking-wider text-yellow-600 dark:text-yellow-400">Concerns</span>
+                <div className="p-5 border-b border-border flex justify-center">
+                  <div className="relative w-[380px] max-w-full h-56">
+                    <div className="absolute left-0 top-0 w-56 h-56 rounded-full bg-green-500/10 border border-green-500/40" />
+                    <div className="absolute right-0 top-0 w-56 h-56 rounded-full bg-yellow-500/10 border border-yellow-500/40" />
+                    <div className="absolute left-0 top-1/2 w-44 -translate-y-1/2 px-4 text-center">
+                      <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-wider text-green-600 dark:text-green-400">Strengths</p>
+                      <ul className="space-y-1.5">
+                        {report.keyStrengths?.map((s, i) => (
+                          <li key={i} className="text-[10px] leading-snug text-green-800 dark:text-green-300">{s}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="absolute right-0 top-1/2 w-44 -translate-y-1/2 px-4 text-center">
+                      <p className="mb-1.5 text-[9px] font-semibold uppercase tracking-wider text-yellow-600 dark:text-yellow-400">Concerns</p>
+                      <ul className="space-y-1.5">
+                        {report.weaknesses?.map((w, i) => (
+                          <li key={i} className="text-[10px] leading-snug text-yellow-800 dark:text-yellow-300">{w}</li>
+                        ))}
+                      </ul>
                     </div>
                   </div>
-                  <table className="w-full text-xs table-fixed">
-                    <tbody>
-                      {Array.from({ length: Math.max(report.keyStrengths?.length ?? 0, report.weaknesses?.length ?? 0) }).map((_, i) => (
-                        <tr key={i} className="align-top">
-                          <td className="w-1/2 py-1.5 pr-4">
-                            {report.keyStrengths?.[i] && (
-                              <div className="flex items-start gap-2 text-muted-foreground">
-                                <span className="text-green-500 mt-0.5 shrink-0">+</span>
-                                <span>{report.keyStrengths[i]}</span>
-                              </div>
-                            )}
-                          </td>
-                          <td className="w-1/2 py-1.5 pl-4 border-l border-border">
-                            {report.weaknesses?.[i] && (
-                              <div className="flex items-start gap-2 text-muted-foreground">
-                                <span className="text-yellow-500 mt-0.5 shrink-0">−</span>
-                                <span>{report.weaknesses[i]}</span>
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
                 </div>
               )}
 
