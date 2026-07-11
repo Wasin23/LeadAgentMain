@@ -1196,33 +1196,33 @@ export function AIReportModal({ report, onClose }: { report: AIReport; onClose: 
               {/* Strengths vs Concerns — the actual text lives inside the venn circles,
                   with a couple of neutral evidence facts shown in the overlap */}
               {((report.keyStrengths && report.keyStrengths.length > 0) || (report.weaknesses && report.weaknesses.length > 0)) && (
-                <div className="p-5 border-b border-border flex justify-center">
-                  <div className="relative w-[500px] max-w-full h-[300px]">
-                    <div className="absolute left-0 top-0 w-[300px] h-[300px] rounded-full bg-green-500/10 border border-green-500/40" />
-                    <div className="absolute right-0 top-0 w-[300px] h-[300px] rounded-full bg-yellow-500/10 border border-yellow-500/40" />
-                    <div className="absolute left-0 top-1/2 w-[190px] -translate-y-1/2 px-5 text-center">
-                      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-green-600 dark:text-green-400">Strengths</p>
-                      <ul className="space-y-2">
+                <div className="p-5 border-b border-border flex justify-center overflow-x-auto">
+                  <div className="relative w-[800px] max-w-none h-[620px] shrink-0">
+                    <div className="absolute left-0 top-0 w-[620px] h-[620px] rounded-full bg-green-500/10 border border-green-500/40" />
+                    <div className="absolute right-0 top-0 w-[620px] h-[620px] rounded-full bg-yellow-500/10 border border-yellow-500/40" />
+                    <div className="absolute left-0 top-1/2 w-[160px] -translate-y-1/2 px-4 text-center">
+                      <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-green-600 dark:text-green-400">Strengths</p>
+                      <ul className="space-y-3">
                         {report.keyStrengths?.map((s, i) => (
-                          <li key={i} className="text-xs leading-snug text-green-800 dark:text-green-300">{s}</li>
+                          <li key={i} className="text-sm leading-snug text-green-800 dark:text-green-300">{s}</li>
                         ))}
                       </ul>
                     </div>
                     {report.citedEvidence && report.citedEvidence.length > 0 && (
-                      <div className="absolute left-[200px] top-1/2 w-[100px] -translate-y-1/2 px-2 text-center">
-                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-foreground/70">General Facts</p>
-                        <ul className="space-y-2">
-                          {report.citedEvidence.slice(0, 2).map((e, i) => (
-                            <li key={i} className="text-[10px] leading-snug text-foreground/80">{e.fact}</li>
+                      <div className="absolute left-[220px] top-1/2 w-[360px] -translate-y-1/2 px-6 text-center">
+                        <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-foreground/70">General Facts</p>
+                        <ul className="space-y-3">
+                          {report.citedEvidence.slice(0, 3).map((e, i) => (
+                            <li key={i} className="text-sm leading-snug text-foreground/80">{e.fact}</li>
                           ))}
                         </ul>
                       </div>
                     )}
-                    <div className="absolute right-0 top-1/2 w-[190px] -translate-y-1/2 px-5 text-center">
-                      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-yellow-600 dark:text-yellow-400">Concerns</p>
-                      <ul className="space-y-2">
+                    <div className="absolute right-0 top-1/2 w-[160px] -translate-y-1/2 px-4 text-center">
+                      <p className="mb-3 text-sm font-semibold uppercase tracking-wider text-yellow-600 dark:text-yellow-400">Concerns</p>
+                      <ul className="space-y-3">
                         {report.weaknesses?.map((w, i) => (
-                          <li key={i} className="text-xs leading-snug text-yellow-800 dark:text-yellow-300">{w}</li>
+                          <li key={i} className="text-sm leading-snug text-yellow-800 dark:text-yellow-300">{w}</li>
                         ))}
                       </ul>
                     </div>
