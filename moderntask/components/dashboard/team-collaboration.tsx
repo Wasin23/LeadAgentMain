@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { Bot, Users, ChevronRight } from "lucide-react"
+import { Bot, Users, ChevronRight, Search, Mail, Gauge, Target, Timer } from "lucide-react"
 
 export interface AgentActivityItem {
   agentId: string
@@ -12,6 +12,11 @@ export interface AgentActivityItem {
   avatar?: string | null
   lastRun?: string | null
   nextCycleTime?: string | null
+  currentKeyword?: string | null
+  concurrencyLevel?: number | null
+  leadLimit?: number | null
+  cycleMinutes?: number | null
+  emailsLast24h?: number
 }
 
 const PERSONALITY_AVATAR: Record<string, string> = {
@@ -74,6 +79,13 @@ function timeUntil(dateStr: string): string {
   return "under a minute"
 }
 
+function formatCycleLength(minutes?: number | null): string {
+  if (!minutes) return "-"
+  if (minutes < 60) return `${minutes}m`
+  const hours = minutes / 60
+  return Number.isInteger(hours) ? `${hours}h` : `${hours.toFixed(1)}h`
+}
+
 function agentSubtitle(agent: AgentActivityItem): string {
   const parts: string[] = [humanizePersonality(agent.personalityType)]
   if (agent.status === "running" && agent.nextCycleTime) {
@@ -109,7 +121,7 @@ export function TeamCollaboration({ agents = [] }: TeamCollaborationProps) {
           <button onClick={() => router.push("/prospecting")} className="text-[11px] text-primary hover:underline">Set up an agent →</button>
         </div>
       ) : (
-        <div className="mt-1.5 space-y-0.5">
+        <div className="mt-1.5 space-y-1">
           {agents.map((agent) => {
             const initials = agent.name
               .split(" ")
@@ -118,34 +130,52 @@ export function TeamCollaboration({ agents = [] }: TeamCollaborationProps) {
               .slice(0, 2)
               .toUpperCase()
 
+            const stats: { icon: typeof Search; label: string }[] = [
+              { icon: Search, label: agent.status === "running" && agent.currentKeyword ? agent.currentKeyword : "No active search" },
+              { icon: Mail, label: `${agent.emailsLast24h ?? 0} built / 24h` },
+              { icon: Gauge, label: `${agent.concurrencyLevel ?? 1}x concurrency` },
+              { icon: Target, label: `${agent.leadLimit ?? "-"} lead limit` },
+              { icon: Timer, label: `${formatCycleLength(agent.cycleMinutes)} cycle` },
+            ]
+
             return (
-              <button
+              <div
                 key={agent.agentId}
                 onClick={() => router.push("/prospecting")}
-                className="w-full grid grid-cols-[auto_1fr_auto] items-center gap-2.5 rounded-lg px-1.5 py-2 hover:bg-accent transition-colors cursor-pointer text-left"
+                className="w-full rounded-lg px-1.5 py-2 hover:bg-accent transition-colors cursor-pointer text-left"
               >
-                <div className="relative h-9 w-9 shrink-0 rounded-full overflow-hidden bg-muted">
-                  <img
-                    src={resolveAvatarUrl(agent)}
-                    alt={agent.name}
-                    className="h-full w-full object-cover"
-                    onError={(e) => {
-                      const t = e.target as HTMLImageElement
-                      t.style.display = "none"
-                      t.parentElement!.innerHTML = `<span class="absolute inset-0 grid place-items-center text-[10px] font-bold text-foreground/70">${initials}</span>`
-                    }}
-                  />
-                  <span className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card ${agent.status === "running" ? "bg-emerald-500" : agent.status === "idle" ? "bg-amber-500" : "bg-muted-foreground/50"}`} />
+                <div className="grid grid-cols-[auto_1fr_auto] items-center gap-2.5">
+                  <div className="relative h-9 w-9 shrink-0 rounded-full overflow-hidden bg-muted">
+                    <img
+                      src={resolveAvatarUrl(agent)}
+                      alt={agent.name}
+                      className="h-full w-full object-cover"
+                      onError={(e) => {
+                        const t = e.target as HTMLImageElement
+                        t.style.display = "none"
+                        t.parentElement!.innerHTML = `<span class="absolute inset-0 grid place-items-center text-[10px] font-bold text-foreground/70">${initials}</span>`
+                      }}
+                    />
+                    <span className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card ${agent.status === "running" ? "bg-emerald-500" : agent.status === "idle" ? "bg-amber-500" : "bg-muted-foreground/50"}`} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-medium text-foreground">{agent.name}</p>
+                    <p className="truncate text-[10px] text-muted-foreground">{agentSubtitle(agent)}</p>
+                  </div>
+                  <span className={`inline-flex items-center gap-1 rounded-full ${statusBadge(agent.status)} px-1.5 py-0.5 text-[9px] font-medium shrink-0`}>
+                    <span className="h-1 w-1 rounded-full bg-current opacity-70" />
+                    {statusLabel(agent.status)}
+                  </span>
                 </div>
-                <div className="min-w-0">
-                  <p className="truncate text-xs font-medium text-foreground">{agent.name}</p>
-                  <p className="truncate text-[10px] text-muted-foreground">{agentSubtitle(agent)}</p>
+                <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 pl-[46px]">
+                  {stats.map(({ icon: Icon, label }, i) => (
+                    <span key={i} className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/90 max-w-full">
+                      <Icon className="h-2.5 w-2.5 shrink-0" strokeWidth={2} />
+                      <span className="truncate">{label}</span>
+                    </span>
+                  ))}
                 </div>
-                <span className={`inline-flex items-center gap-1 rounded-full ${statusBadge(agent.status)} px-1.5 py-0.5 text-[9px] font-medium shrink-0`}>
-                  <span className="h-1 w-1 rounded-full bg-current opacity-70" />
-                  {statusLabel(agent.status)}
-                </span>
-              </button>
+              </div>
             )
           })}
         </div>

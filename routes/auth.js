@@ -1295,21 +1295,24 @@ router.get('/agents', authenticateToken, async (req, res) => {
         
         let nextCycleTime = null;
         let isCrmMode = agent.mode === 'crm'; // DB-persisted mode (survives restarts)
+        let currentKeyword = null;
         try {
           const runningAgent = getUserAgent(userId, agent.agentId);
           if (runningAgent && runningAgent.isRunning) {
             const status = await runningAgent.getStatus();
             nextCycleTime = status?.nextCycleIn || null;
+            currentKeyword = runningAgent.memory?.lastKeywordUsed || null;
             // Also check live in-memory flag in case DB hasn't updated yet
             if (runningAgent.isCrmMode) isCrmMode = true;
           }
         } catch (agentError) {
           console.log(`[AUTH] Agent ${agent.name} not found in memory (not started yet)`);
         }
-        
+
         return {
           ...agent,
           nextCycleTime,
+          currentKeyword,
           specialInstructions,
           settings,
           isCrmMode,

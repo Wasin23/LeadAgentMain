@@ -63,19 +63,20 @@ interface PlanStatusResponse {
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 const PERSONALITY_COLORS: Record<string, string> = {
-  hunter:              'border-orange-500/40',
-  'relationship-builder': 'border-green-500/40',
-  analyst:             'border-blue-500/40',
-  consultant:          'border-purple-500/40',
-  networker:           'border-pink-500/40',
+  hunter:              'border-red-600/40',
+  'relationship-builder': 'border-green-600/40',
+  analyst:             'border-blue-600/40',
+  consultant:          'border-purple-600/40',
+  networker:           'border-orange-500/40',
 }
 
-const PERSONALITY_BADGE: Record<string, string> = {
-  hunter:              'bg-orange-500/15 text-orange-400 border-orange-500/30',
-  'relationship-builder': 'bg-green-500/15 text-green-400 border-green-500/30',
-  analyst:             'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  consultant:          'bg-purple-500/15 text-purple-400 border-purple-500/30',
-  networker:           'bg-pink-500/15 text-pink-400 border-pink-500/30',
+// Full, solid, generic colors for the personality ribbon — no translucency.
+const PERSONALITY_RIBBON: Record<string, string> = {
+  hunter:              'bg-red-600',
+  'relationship-builder': 'bg-green-600',
+  analyst:             'bg-blue-600',
+  consultant:          'bg-purple-600',
+  networker:           'bg-orange-500',
 }
 
 function timeAgo(iso: string | null): string {
@@ -127,8 +128,9 @@ function AgentCard({
   const personalityType = agent.personality?.type ?? 'hunter'
   const avatar = agent.personality?.avatar ?? null
   const personalityName = agent.personality?.name ?? personalityType
+  const ribbonLabel = personalityName.replace(/^The\s+/i, '')
   const gradientClass = PERSONALITY_COLORS[personalityType] ?? PERSONALITY_COLORS.hunter
-  const badgeClass = PERSONALITY_BADGE[personalityType] ?? PERSONALITY_BADGE.hunter
+  const ribbonClass = PERSONALITY_RIBBON[personalityType] ?? PERSONALITY_RIBBON.hunter
   const isRunning = agent.isRunning || agent.status === 'running'
   const isAuditor = !!agent.isCrmMode
   const replyRate = agent.replyRate ?? (agent.sent && agent.sent > 0 ? parseFloat(((agent.replied ?? 0) / agent.sent * 100).toFixed(1)) : 0)
@@ -152,43 +154,46 @@ function AgentCard({
 
   return (
     <div className={cn(
-      'relative rounded-2xl p-5 border bg-card transition-colors',
+      'relative rounded-2xl p-5 border bg-card transition-colors overflow-hidden',
       gradientClass,
       isAuditor && 'opacity-60',
     )}>
-      {/* auditor mode badge - shown when agent is locked to CRM/auditor outreach */}
-      {isAuditor && (
-        <div className="absolute top-3 right-3 z-10">
-          <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-yellow-500/15 text-yellow-400 border-yellow-500/30">
-            <Bot className="w-2.5 h-2.5 mr-1" />Auditor
-          </Badge>
-        </div>
-      )}
-      {/* running pulse */}
-      {isRunning && !isAuditor && (
-        <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-green-400 animate-pulse shadow-lg shadow-green-400/50" />
-      )}
+      {/* personality ribbon - bookmark-style banner hanging from the top-right corner */}
+      <div
+        className={cn(
+          'absolute top-0 right-5 z-10 px-3 pt-1.5 pb-2.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm',
+          ribbonClass,
+        )}
+        style={{ clipPath: 'polygon(0 0, 100% 0, 100% 78%, 50% 100%, 0 78%)' }}
+      >
+        {ribbonLabel}
+      </div>
 
       {/* header row */}
-      <div className="flex items-start gap-3 mb-4">
-        <div className="text-2xl w-10 h-10 flex items-center justify-center rounded-xl bg-background/60 border border-border shrink-0 overflow-hidden">
+      <div className="flex items-start gap-3 mb-4 pr-16">
+        <div className="relative text-2xl w-10 h-10 flex items-center justify-center rounded-xl bg-background/60 border border-border shrink-0 overflow-hidden">
           {avatar && (avatar.startsWith('/') || avatar.startsWith('http')) ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={avatar} alt={personalityName} className="w-full h-full object-cover rounded-xl" />
           ) : (
             <Bot className="w-5 h-5 text-muted-foreground" />
           )}
+          {isRunning && !isAuditor && (
+            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-card animate-pulse" />
+          )}
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-sm text-foreground truncate">{agent.name}</h3>
           <div className="flex flex-wrap items-center gap-1.5 mt-1">
-            <Badge variant="outline" className={cn('text-[10px] px-1.5 py-0', badgeClass)}>
-              {personalityName}
-            </Badge>
+            {isAuditor && (
+              <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-yellow-500 text-white border-yellow-600">
+                <Bot className="w-2.5 h-2.5 mr-1" />Auditor
+              </Badge>
+            )}
             <Badge
               variant="outline"
               className={cn('text-[10px] px-1.5 py-0', isRunning
-                ? 'bg-green-500/15 text-green-400 border-green-500/30'
+                ? 'bg-green-600 text-white border-green-700'
                 : 'bg-muted text-muted-foreground border-muted-foreground/20'
               )}
             >

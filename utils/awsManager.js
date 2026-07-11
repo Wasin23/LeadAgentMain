@@ -1995,12 +1995,17 @@ class AWSManager {
             if (newBalance <= 100 && currentBalance > 100) {
               console.log(`⚠️ [CREDITS] Warning: User ${userId} has only ${newBalance.toFixed(2)} credits remaining`);
             }
+
+            // Fire-and-forget: charge the saved card if auto top-up is enabled and armed
+            import('./autoTopupService.js')
+              .then(({ maybeAutoTopup }) => maybeAutoTopup(this, userId, newBalance))
+              .catch(err => console.error('[AUTO-TOPUP] Failed to load service:', err.message));
           } else {
             // Legacy trial credits system
             const currentCreditsUsed = user.trialCreditsUsed ?? 0;
             const newCreditsUsed = currentCreditsUsed + creditsToDeduct;
             const creditsLimit = user.trialCreditsLimit ?? this.plans[user.plan || 'free-trial'].initialCredits;
-            
+
             await this.updateUser(userId, {
               trialCreditsUsed: newCreditsUsed
             });
@@ -2041,6 +2046,11 @@ class AWSManager {
                 }
               );
             }
+
+            // Fire-and-forget: charge the saved card if auto top-up is enabled and armed
+            import('./autoTopupService.js')
+              .then(({ maybeAutoTopup }) => maybeAutoTopup(this, userId, creditsLimit - newCreditsUsed))
+              .catch(err => console.error('[AUTO-TOPUP] Failed to load service:', err.message));
           }
         }
       } catch (creditError) {
@@ -3918,6 +3928,31 @@ class AWSManager {
     } catch (err) {
       console.error('❌ [DEVELOPER] Upgrade failed:', err);
       throw err;
+    }
+  }
+
+  /**
+   * Atomically claim the right to fire an auto top-up charge for this user.
+   * Prevents concurrent API-usage calls (which can land in the same second)
+   * from triggering duplicate Stripe charges while a balance sits below the
+   * user's threshold. Returns false if another call already holds the claim.
+   */
+  async claimAutoTopupLock(userId, cooldownMs) {
+    try {
+      const now = Date.now();
+      const cutoff = now - cooldownMs;
+      await this.dynamodb.send(new UpdateCommand({
+        TableName: this.tables.users,
+        Key: { userId },
+        UpdateExpression: 'SET autoTopupLock = :now',
+        ConditionExpression: 'attribute_not_exists(autoTopupLock) OR autoTopupLock < :cutoff',
+        ExpressionAttributeValues: { ':now': now, ':cutoff': cutoff },
+      }));
+      return true;
+    } catch (error) {
+      if (error.name === 'ConditionalCheckFailedException') return false;
+      console.error('❌ [AWS] Error claiming auto top-up lock:', error);
+      return false;
     }
   }
 

@@ -34,6 +34,10 @@ const TOPUP_TIERS = {
   bulk:   { priceCents: 25000, credits: 1850 }, // $250 -> $0.1351/credit
 };
 
+// Exported so utils/autoTopupService.js can charge against the same
+// server-authoritative pricing table instead of maintaining a second copy.
+export { TOPUP_TIERS };
+
 // Get user's current plan and credit status
 router.get('/status', authenticateToken, async (req, res) => {
   try {

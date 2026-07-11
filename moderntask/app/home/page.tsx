@@ -123,6 +123,15 @@ export default function DashboardPage() {
       })
     }
 
+    // ── queued/sent emails (used by both the chart and the agent cards) ──
+    const queuedEmails = queueRes.status === "fulfilled"
+      ? normaliseArray(queueRes.value.data) as Record<string, unknown>[]
+      : []
+    const sentEmailsForChart = sentRes.status === "fulfilled"
+      ? normaliseArray(sentRes.value.data) as Record<string, unknown>[]
+      : []
+    const allEmailsForChart = [...queuedEmails, ...sentEmailsForChart]
+
     // ── agents ──────────────────────────────────────────────────────────
     if (agentsRes.status === "fulfilled") {
       const agents: Record<string, unknown>[] = agentsRes.value.data?.agents ?? []
@@ -134,37 +143,43 @@ export default function DashboardPage() {
       setRunningAgents(running)
       setTotalAgents(agents.filter(a => a.agentId !== "orphan").length)
 
+      const dayAgo = Date.now() - 86400000
+
       // team-collaboration list
       setAgentActivity(
         agents
           .filter((a) => a.agentId !== "orphan")
-          .map((a) => ({
-            agentId: a.agentId as string,
-            name: (a.name as string) || "Agent",
-            status: (a.status as string) || "stopped",
-            currentActivity: (a.currentActivity as string) || undefined,
-            lastRun: (a.lastRun as string) || null,
-            nextCycleTime: (a.nextCycleTime as string) || null,
-            personalityType:
-              ((a.personality as Record<string, unknown>)?.type as string) ||
-              (a.personalityType as string) ||
-              "professional",
-            avatar:
-              (a.avatar as string) ||
-              ((a.personality as Record<string, unknown>)?.avatar as string) ||
-              null,
-          }))
+          .map((a) => {
+            const settings = (a.settings as Record<string, unknown>) || {}
+            const geo = (settings.geographicSettings as Record<string, unknown>) || {}
+            const emailsLast24h = allEmailsForChart.filter(
+              (e) => e.agentId === a.agentId && emailDate(e).getTime() >= dayAgo
+            ).length
+
+            return {
+              agentId: a.agentId as string,
+              name: (a.name as string) || "Agent",
+              status: (a.status as string) || "stopped",
+              currentActivity: (a.currentActivity as string) || undefined,
+              lastRun: (a.lastRun as string) || null,
+              nextCycleTime: (a.nextCycleTime as string) || null,
+              currentKeyword: (a.currentKeyword as string) || null,
+              concurrencyLevel: (settings.concurrencyLevel as number) ?? null,
+              leadLimit: (geo.leadLimit as number) ?? null,
+              cycleMinutes: (settings.customInterval as number) ?? null,
+              emailsLast24h,
+              personalityType:
+                ((a.personality as Record<string, unknown>)?.type as string) ||
+                (a.personalityType as string) ||
+                "professional",
+              avatar:
+                (a.avatar as string) ||
+                ((a.personality as Record<string, unknown>)?.avatar as string) ||
+                null,
+            }
+          })
       )
     }
-
-    // ── queued emails → chart ────────────────────────────────────────────
-    const queuedEmails = queueRes.status === "fulfilled"
-      ? normaliseArray(queueRes.value.data) as Record<string, unknown>[]
-      : []
-    const sentEmailsForChart = sentRes.status === "fulfilled"
-      ? normaliseArray(sentRes.value.data) as Record<string, unknown>[]
-      : []
-    const allEmailsForChart = [...queuedEmails, ...sentEmailsForChart]
 
     {
       // chart: emails queued per day for last 7 days

@@ -219,7 +219,7 @@ export function Header({
           >
             <Coins className="w-3.5 h-3.5 text-brass" strokeWidth={2} />
             <span className="text-muted-foreground">Credits</span>
-            <span className="tabular-nums font-semibold text-foreground">{credits.toLocaleString()}</span>
+            <span className="tabular-nums text-foreground">{credits.toLocaleString()}</span>
           </button>
 
           {maxAgents > 0 && (

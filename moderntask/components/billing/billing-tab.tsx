@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation"
 import { loadStripe } from "@stripe/stripe-js"
 import { Elements, CardElement, useStripe, useElements, PaymentRequestButtonElement } from "@stripe/react-stripe-js"
 import type { PaymentRequest } from "@stripe/stripe-js"
-import { X, Calendar, CreditCard, Plus, Loader2, Sparkles, ChevronDown, ChevronUp, TrendingDown, AlertTriangle, Gift, Lock, Users, RefreshCcw, XCircle, Check } from "lucide-react"
+import { X, Calendar, CreditCard, Plus, Loader2, ArrowUpCircle, ChevronDown, ChevronUp, TrendingDown, AlertTriangle, Gift, Lock, Users, RefreshCcw, XCircle, Check } from "lucide-react"
 import api from "@/lib/api"
 import { fetchDisplayedCreditData } from "@/lib/credit-balance"
 import { useToast } from "@/hooks/use-toast"
@@ -286,9 +286,10 @@ function BillingTabInner() {
   }, [showAddCard, showCreditPurchaseModal])
   const [creditLoading, setCreditLoading] = useState(true)
 
-  // Auto top-up
+  // Auto top-up — only surfaced once the user has actually bought a top-up before
   const [autoTopup, setAutoTopup] = useState({ enabled: false, threshold: 50, tierId: 'small' })
   const [autoTopupSaving, setAutoTopupSaving] = useState(false)
+  const [hasPurchasedTopup, setHasPurchasedTopup] = useState(false)
 
   // Per-agent usage
   type AgentUsage = { agentId: string; name: string; totalCost: number; credits: number }
@@ -324,6 +325,7 @@ function BillingTabInner() {
     loadTrialCredits()
     fetchCreditData()
     api.get('/api/settings/auto-topup').then(r => { if (r.data?.settings) setAutoTopup(r.data.settings) }).catch(() => {})
+    api.get('/api/plans/purchase-history').then(r => { setHasPurchasedTopup((r.data?.purchases?.length ?? 0) > 0) }).catch(() => {})
     api.get('/api/billing/payment-status').then(r => {
       if (r.data) {
         setPaymentStatus(r.data.status || 'active')
@@ -538,7 +540,7 @@ function BillingTabInner() {
                   onClick={() => { setCreditPurchaseMode("upgrade"); setShowCreditPurchaseModal(true) }}
                   className="inline-flex items-center gap-1.5 rounded-lg bg-foreground px-3 py-1.5 text-xs font-semibold text-background hover:opacity-90"
                 >
-                  <Sparkles className="w-3 h-3" /> Upgrade Plan
+                  <ArrowUpCircle className="w-3 h-3" /> Upgrade Plan
                 </button>
                 <button
                   onClick={() => setShowAddCard(true)}
@@ -682,14 +684,15 @@ function BillingTabInner() {
                 onClick={() => { setCreditPurchaseMode('upgrade'); setShowCreditPurchaseModal(true) }}
                 className="text-sm text-primary hover:underline font-medium flex items-center gap-1"
               >
-                <Sparkles className="w-3.5 h-3.5" />
+                <ArrowUpCircle className="w-3.5 h-3.5" />
                 {userPlan?.plan?.id === 'free-trial' ? 'Upgrade Plan' : 'View Other Plans'}
               </button>
             )}
           </div>
         </div>
 
-        {/* ── Auto Top-up ── */}
+        {/* ── Auto Top-up — only shown once a real top-up has been purchased ── */}
+        {hasPurchasedTopup && (
         <div className="rounded-xl border border-border bg-card p-5">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
@@ -752,6 +755,7 @@ function BillingTabInner() {
             </div>
           )}
         </div>
+        )}
 
         {/* ── Payment Methods ── */}
         <section id="payment-methods-section">
@@ -863,7 +867,7 @@ function BillingTabInner() {
               onClick={() => { setCreditPurchaseMode('upgrade'); setShowCreditPurchaseModal(true) }}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-colors"
             >
-              <Sparkles className="w-3.5 h-3.5" />
+              <ArrowUpCircle className="w-3.5 h-3.5" />
               Upgrade Plan
             </button>
           </div>
@@ -950,6 +954,7 @@ function BillingTabInner() {
             setShowCreditPurchaseModal(false)
             fetchCreditData()
             loadTrialCredits()
+            api.get('/api/plans/purchase-history').then(r => { setHasPurchasedTopup((r.data?.purchases?.length ?? 0) > 0) }).catch(() => {})
           }}
         />
       )}

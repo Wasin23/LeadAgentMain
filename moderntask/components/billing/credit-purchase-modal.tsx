@@ -1,9 +1,12 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { X, Sparkles, Check, Plus, Loader2 } from "lucide-react"
+import { X, Sparkles, ArrowUpCircle, Check, Plus, Loader2 } from "lucide-react"
 import api from "@/lib/api"
 import { PaymentHistorySection } from "./payment-history-section"
+import { useToast } from "@/hooks/use-toast"
+
+const ENTERPRISE_CONTACT_EMAIL = "colton.fidd@gmail.com"
 
 interface CreditPurchaseModalProps {
   onClose: () => void
@@ -43,6 +46,17 @@ export function CreditPurchaseModal({
   const [error, setError] = useState<string | null>(null)
   const [userPlanInfo, setUserPlanInfo] = useState<any>(null)
   const [hasPaymentMethod, setHasPaymentMethod] = useState<boolean | null>(null)
+  const { toast } = useToast()
+
+  const handleEnterpriseContact = async () => {
+    window.location.href = `mailto:${ENTERPRISE_CONTACT_EMAIL}?subject=Meridian%20Enterprise`
+    try {
+      await navigator.clipboard.writeText(ENTERPRISE_CONTACT_EMAIL)
+      toast({ title: "Email copied", description: `${ENTERPRISE_CONTACT_EMAIL} — paste it into your email client if one didn't open.` })
+    } catch {
+      toast({ title: "Contact Enterprise sales", description: ENTERPRISE_CONTACT_EMAIL })
+    }
+  }
 
   const pricingTiers: PricingTier[] = [
     {
@@ -146,7 +160,7 @@ export function CreditPurchaseModal({
         <div className="sticky top-0 bg-background/95 backdrop-blur-md border-b border-border p-6 flex items-center justify-between z-10">
           <div>
             <h2 className="text-2xl font-bold flex items-center gap-3">
-              <Sparkles className="w-7 h-7 text-muted-foreground" />
+              <ArrowUpCircle className="w-7 h-7 text-muted-foreground" />
               {mode === "upgrade" ? "Upgrade Plan" : "Buy More Credits"}
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
@@ -238,13 +252,13 @@ export function CreditPurchaseModal({
                           ))}
                         </ul>
                         {tier.id === "enterprise" && (
-                          <a
-                            href="mailto:colton.fidd@gmail.com?subject=Meridian%20Enterprise"
-                            onClick={e => e.stopPropagation()}
+                          <button
+                            type="button"
+                            onClick={e => { e.stopPropagation(); handleEnterpriseContact() }}
                             className="mt-4 inline-block w-full py-2 text-xs font-semibold border border-border rounded-lg text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
                           >
                             Contact us
-                          </a>
+                          </button>
                         )}
                       </div>
                     </div>
