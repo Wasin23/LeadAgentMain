@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Check, X, CloudUpload, Loader2, Lock, XCircle, Sparkles, AlertTriangle } from 'lucide-react'
+import { Check, X, CloudUpload, Loader2, Lock, XCircle, Sparkles, AlertTriangle, ChevronDown } from 'lucide-react'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import api from '@/lib/api'
@@ -1070,12 +1070,15 @@ export default function OnboardingFlow({ onComplete }: Props) {
         ) : (
           <div className="mb-5">
             <label className={lc}>Select your CRM</label>
-            <select value={selectedCrm?.id || ''}
-              onChange={e => { const found = CRM_CONFIGS.find(c => c.id === e.target.value) || null; setSelectedCrm(found); setCrmCreds({}); setCrmError(null) }}
-              className="w-full h-10 px-3 border border-gray-200 rounded-lg text-sm text-gray-900 outline-none focus:border-gray-400 bg-white mb-4 cursor-pointer">
-              <option value="">Choose a CRM…</option>
-              {CRM_CONFIGS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+            <div className="relative mb-4">
+              <select value={selectedCrm?.id || ''}
+                onChange={e => { const found = CRM_CONFIGS.find(c => c.id === e.target.value) || null; setSelectedCrm(found); setCrmCreds({}); setCrmError(null) }}
+                className="w-full h-10 appearance-none pl-3 pr-9 border border-gray-200 rounded-lg text-sm text-gray-900 outline-none focus:border-gray-400 bg-white cursor-pointer">
+                <option value="">Choose a CRM…</option>
+                {CRM_CONFIGS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            </div>
 
             {selectedCrm && (
               <div className="space-y-3">

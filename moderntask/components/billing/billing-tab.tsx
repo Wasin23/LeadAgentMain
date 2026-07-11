@@ -622,16 +622,19 @@ function BillingTabInner() {
                     {/* Downgrade */}
                     {downgradePlans.length > 0 && (
                       <div className="flex items-center gap-2">
-                        <select
-                          value={downgradeTarget}
-                          onChange={e => setDowngradeTarget(e.target.value)}
-                          className="text-sm border border-input rounded-lg px-2.5 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
-                        >
-                          <option value="">Downgrade to…</option>
-                          {downgradePlans.map(p => (
-                            <option key={p} value={p}>{PLAN_LABELS[p] ?? p}</option>
-                          ))}
-                        </select>
+                        <div className="relative">
+                          <select
+                            value={downgradeTarget}
+                            onChange={e => setDowngradeTarget(e.target.value)}
+                            className="text-sm appearance-none border border-input rounded-lg pl-2.5 pr-7 py-1.5 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+                          >
+                            <option value="">Downgrade to…</option>
+                            {downgradePlans.map(p => (
+                              <option key={p} value={p}>{PLAN_LABELS[p] ?? p}</option>
+                            ))}
+                          </select>
+                          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                        </div>
                         {downgradeTarget && (
                           <button
                             onClick={handleDowngrade}
@@ -717,28 +720,34 @@ function BillingTabInner() {
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Trigger when balance falls below</label>
-                <select
-                  value={autoTopup.threshold}
-                  onChange={e => { const updated = { ...autoTopup, threshold: Number(e.target.value) }; setAutoTopup(updated); saveAutoTopup(updated) }}
-                  className="w-full text-sm border border-input rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
-                >
-                  {[25, 50, 100, 200, 500].map(v => (
-                    <option key={v} value={v}>{v} credits</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={autoTopup.threshold}
+                    onChange={e => { const updated = { ...autoTopup, threshold: Number(e.target.value) }; setAutoTopup(updated); saveAutoTopup(updated) }}
+                    className="w-full text-sm appearance-none border border-input rounded-lg pl-3 pr-8 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  >
+                    {[25, 50, 100, 200, 500].map(v => (
+                      <option key={v} value={v}>{v} credits</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                </div>
               </div>
               <div>
                 <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Top-up amount</label>
-                <select
-                  value={autoTopup.tierId}
-                  onChange={e => { const updated = { ...autoTopup, tierId: e.target.value }; setAutoTopup(updated); saveAutoTopup(updated) }}
-                  className="w-full text-sm border border-input rounded-lg px-3 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
-                >
-                  <option value="mini">Mini - 100 credits ($10)</option>
-                  <option value="small">Small - 550 credits ($50)</option>
-                  <option value="medium">Medium - 1,150 credits ($100)</option>
-                  <option value="bulk">Bulk - 3,000 credits ($250)</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={autoTopup.tierId}
+                    onChange={e => { const updated = { ...autoTopup, tierId: e.target.value }; setAutoTopup(updated); saveAutoTopup(updated) }}
+                    className="w-full text-sm appearance-none border border-input rounded-lg pl-3 pr-8 py-2 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  >
+                    <option value="mini">Mini - 100 credits ($10)</option>
+                    <option value="small">Small - 550 credits ($50)</option>
+                    <option value="medium">Medium - 1,150 credits ($100)</option>
+                    <option value="bulk">Bulk - 3,000 credits ($250)</option>
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                </div>
               </div>
             </div>
           )}

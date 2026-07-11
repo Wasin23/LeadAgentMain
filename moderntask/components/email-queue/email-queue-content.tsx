@@ -14,7 +14,7 @@ import {
   ChevronRight, ChevronsRight, X, CalendarClock, Calendar,
   Settings2, Save, Search, FileText, ExternalLink,
   MoreHorizontal, Wrench, Loader2, Sparkles, Trash2, ListChecks,
-  ArrowLeftRight, Mail,
+  ArrowLeftRight, Mail, ChevronDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CopyChip } from '@/components/leads/leads-content'
@@ -153,16 +153,19 @@ function ScheduleModal({ email, onSave, onClose }: {
               <span className="text-[10px] text-blue-500/70">• auto-detected</span>
             )}
           </label>
-          <select
-            className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none"
-            value={tz}
-            onChange={e => setTz(e.target.value)}
-          >
-            {!TIMEZONES.includes(BROWSER_TZ) && (
-              <option key={BROWSER_TZ} value={BROWSER_TZ}>{BROWSER_TZ}</option>
-            )}
-            {TIMEZONES.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
+          <div className="relative">
+            <select
+              className="w-full h-8 appearance-none rounded-md border border-input bg-background pl-2 pr-6 text-xs focus:outline-none"
+              value={tz}
+              onChange={e => setTz(e.target.value)}
+            >
+              {!TIMEZONES.includes(BROWSER_TZ) && (
+                <option key={BROWSER_TZ} value={BROWSER_TZ}>{BROWSER_TZ}</option>
+              )}
+              {TIMEZONES.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          </div>
         </div>
         {email.scheduledAt && (
           <p className="text-[11px] text-muted-foreground">Currently scheduled: {new Date(email.scheduledAt).toLocaleString()}</p>
@@ -437,33 +440,42 @@ export function AgentScheduleCard({ agent, onSaved }: { agent: Agent; onSaved?: 
           <div className="space-y-1">
             <label className="text-[11px] font-medium text-muted-foreground">Send Time</label>
             <div className="flex items-center gap-1">
-              <select
-                className="flex-1 h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none"
-                value={hour12}
-                onChange={e => setTime(+e.target.value, timeM, isPM)}
-              >
-                {Array.from({length:12},(_,i)=>i+1).map(h => (
-                  <option key={h} value={h}>{h}</option>
-                ))}
-              </select>
+              <div className="relative flex-1">
+                <select
+                  className="w-full h-8 appearance-none rounded-md border border-input bg-background pl-2 pr-6 text-xs focus:outline-none"
+                  value={hour12}
+                  onChange={e => setTime(+e.target.value, timeM, isPM)}
+                >
+                  {Array.from({length:12},(_,i)=>i+1).map(h => (
+                    <option key={h} value={h}>{h}</option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
+              </div>
               <span className="text-muted-foreground text-xs">:</span>
-              <select
-                className="w-16 h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none"
-                value={timeM}
-                onChange={e => setTime(hour12, +e.target.value, isPM)}
-              >
-                {[0,5,10,15,20,25,30,35,40,45,50,55].map(m => (
-                  <option key={m} value={m}>{String(m).padStart(2,'0')}</option>
-                ))}
-              </select>
-              <select
-                className="w-16 h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none"
-                value={isPM ? 'PM' : 'AM'}
-                onChange={e => setTime(hour12, timeM, e.target.value === 'PM')}
-              >
-                <option value="AM">AM</option>
-                <option value="PM">PM</option>
-              </select>
+              <div className="relative w-16">
+                <select
+                  className="w-full h-8 appearance-none rounded-md border border-input bg-background pl-2 pr-6 text-xs focus:outline-none"
+                  value={timeM}
+                  onChange={e => setTime(hour12, +e.target.value, isPM)}
+                >
+                  {[0,5,10,15,20,25,30,35,40,45,50,55].map(m => (
+                    <option key={m} value={m}>{String(m).padStart(2,'0')}</option>
+                  ))}
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
+              </div>
+              <div className="relative w-16">
+                <select
+                  className="w-full h-8 appearance-none rounded-md border border-input bg-background pl-2 pr-6 text-xs focus:outline-none"
+                  value={isPM ? 'PM' : 'AM'}
+                  onChange={e => setTime(hour12, timeM, e.target.value === 'PM')}
+                >
+                  <option value="AM">AM</option>
+                  <option value="PM">PM</option>
+                </select>
+                <ChevronDown className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
+              </div>
             </div>
           </div>
           <div className="space-y-1">
@@ -492,17 +504,20 @@ export function AgentScheduleCard({ agent, onSaved }: { agent: Agent; onSaved?: 
                 <span className="text-[10px] text-blue-500/70">• auto-detected</span>
               )}
             </label>
-            <select
-              className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs focus:outline-none"
-              value={sched.timezone}
-              onChange={e => setSched(s => ({ ...s, timezone: e.target.value }))}
-            >
-              {/* Always ensure the browser's detected timezone is selectable */}
-              {!TIMEZONES.includes(BROWSER_TZ) && (
-                <option key={BROWSER_TZ} value={BROWSER_TZ}>{BROWSER_TZ}</option>
-              )}
-              {TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
-            </select>
+            <div className="relative">
+              <select
+                className="w-full h-8 appearance-none rounded-md border border-input bg-background pl-2 pr-6 text-xs focus:outline-none"
+                value={sched.timezone}
+                onChange={e => setSched(s => ({ ...s, timezone: e.target.value }))}
+              >
+                {/* Always ensure the browser's detected timezone is selectable */}
+                {!TIMEZONES.includes(BROWSER_TZ) && (
+                  <option key={BROWSER_TZ} value={BROWSER_TZ}>{BROWSER_TZ}</option>
+                )}
+                {TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            </div>
           </div>
           <Button size="sm" className="h-8 gap-1.5" disabled={saving} onClick={save}>
             <Save className="w-3.5 h-3.5" />
@@ -1909,14 +1924,17 @@ export function EmailQueueContent() {
           )}
           <div className="flex items-center gap-1.5">
             <Bot className="w-3.5 h-3.5 text-muted-foreground" />
-            <select
-              className="h-7 rounded-md border border-input bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring min-w-[130px]"
-              value={selectedAgent}
-              onChange={e => setSelectedAgent(e.target.value)}
-            >
-              <option value="all">All Agents</option>
-              {agents.map(a => <option key={a.agentId} value={a.agentId}>{a.name}</option>)}
-            </select>
+            <div className="relative">
+              <select
+                className="h-7 appearance-none rounded-md border border-input bg-background pl-2 pr-6 text-xs focus:outline-none focus:ring-1 focus:ring-ring min-w-[130px]"
+                value={selectedAgent}
+                onChange={e => setSelectedAgent(e.target.value)}
+              >
+                <option value="all">All Agents</option>
+                {agents.map(a => <option key={a.agentId} value={a.agentId}>{a.name}</option>)}
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            </div>
           </div>
           {selectedAgent === 'all' && hasAnyActiveSchedules && (
             <span className="flex items-center gap-1 text-[11px] text-primary bg-primary/10 border border-primary/20 rounded-full px-2 py-0.5">

@@ -6,7 +6,7 @@ import {
   ArrowLeft, Play, Square, RefreshCw, Settings2, Clock, User, Building2,
   Eye, CheckCircle2, Mail, AlertTriangle, X, Check, Search, Pencil,
   Pause, MessageSquare, Filter, Send, BarChart2, Zap, ChevronLeft,
-  ChevronRight, Trash2, Plus, RotateCcw, ExternalLink
+  ChevronRight, Trash2, Plus, RotateCcw, ExternalLink, ChevronDown
 } from 'lucide-react';
 import api from '@/lib/api';
 import { Sidebar } from '@/components/dashboard/sidebar';
@@ -664,9 +664,12 @@ export default function AgentDashboardPage({ params }: { params: Promise<{ agent
                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                         <Input className="pl-8 h-8 text-sm" placeholder="Search…" value={conversationSearch} onChange={e => setConversationSearch(e.target.value)} />
                       </div>
-                      <select className="h-8 rounded-md border border-input bg-background text-sm px-2" value={conversationFilter} onChange={e => setConversationFilter(e.target.value as any)}>
-                        <option value="all">All</option><option value="active">Active</option><option value="replied">Replied</option><option value="waiting">Waiting</option>
-                      </select>
+                      <div className="relative">
+                        <select className="h-8 appearance-none rounded-md border border-input bg-background text-sm pl-2 pr-7" value={conversationFilter} onChange={e => setConversationFilter(e.target.value as any)}>
+                          <option value="all">All</option><option value="active">Active</option><option value="replied">Replied</option><option value="waiting">Waiting</option>
+                        </select>
+                        <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="flex-1 overflow-y-auto p-0">
@@ -1242,9 +1245,12 @@ export default function AgentDashboardPage({ params }: { params: Promise<{ agent
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                     <Input className="pl-8 h-8 w-56 text-sm" placeholder="Search…" value={emailQueueSearch} onChange={e => { setEmailQueueSearch(e.target.value); setEmailQueuePage(1); }} />
                   </div>
-                  <select className="h-8 text-sm border border-input rounded-md px-2 bg-background" value={emailQueueSort} onChange={e => setEmailQueueSort(e.target.value as any)}>
-                    <option value="newest">Newest first</option><option value="oldest">Oldest first</option>
-                  </select>
+                  <div className="relative">
+                    <select className="h-8 text-sm appearance-none border border-input rounded-md pl-2 pr-7 bg-background" value={emailQueueSort} onChange={e => setEmailQueueSort(e.target.value as any)}>
+                      <option value="newest">Newest first</option><option value="oldest">Oldest first</option>
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                  </div>
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowEmailQueue(false)}><X className="h-4 w-4" /></Button>
                 </div>
               </div>

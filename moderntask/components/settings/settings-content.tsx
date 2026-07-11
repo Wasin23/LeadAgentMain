@@ -7,7 +7,7 @@ import {
   User, Palette, Bell, Mail, LayoutGrid,
   CheckCircle2, XCircle, Plus, Trash2, Loader2, RefreshCw,
   Building2, Database, Link2Off, CreditCard,
-  Reply, Eye, Calendar, CheckCheck, Inbox, AlertTriangle, Brain
+  Reply, Eye, Calendar, CheckCheck, Inbox, AlertTriangle, Brain, ChevronDown
 } from "lucide-react"
 import { format, formatDistanceToNow } from "date-fns"
 import { Card } from "@/components/ui/card"
@@ -1217,15 +1217,18 @@ export function SettingsContent() {
                 </div>
                 <div className="flex items-center gap-2 ml-7">
                   <p className="text-xs text-muted-foreground">Reassign to:</p>
-                  <select
-                    value={reassignProvider}
-                    onChange={e => setReassignProvider(e.target.value as 'gmail' | 'outlook' | 'mailgun')}
-                    className="text-xs rounded-md border border-border bg-background px-2 py-1 focus:outline-none"
-                  >
-                    {gmailAccounts.length > 0 && <option value="gmail">Gmail</option>}
-                    {outlookAccounts.length > 0 && <option value="outlook">Outlook</option>}
-                    <option value="mailgun">Mailgun (keep as-is)</option>
-                  </select>
+                  <div className="relative">
+                    <select
+                      value={reassignProvider}
+                      onChange={e => setReassignProvider(e.target.value as 'gmail' | 'outlook' | 'mailgun')}
+                      className="text-xs appearance-none rounded-md border border-border bg-background pl-2 pr-6 py-1 focus:outline-none"
+                    >
+                      {gmailAccounts.length > 0 && <option value="gmail">Gmail</option>}
+                      {outlookAccounts.length > 0 && <option value="outlook">Outlook</option>}
+                      <option value="mailgun">Mailgun (keep as-is)</option>
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
+                  </div>
                   <Button size="sm" className="h-7 text-xs" onClick={reassignAgents} disabled={reassigning}>
                     {reassigning ? <Loader2 className="w-3 h-3 animate-spin" /> : "Update Agents"}
                   </Button>

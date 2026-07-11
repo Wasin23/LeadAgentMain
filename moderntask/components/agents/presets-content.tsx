@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   Plus, Trash2, Pencil, Building2, Users, MapPin, Mail,
-  Zap, X, Send, MessageSquare, Wand2, Copy,
+  Zap, X, Send, MessageSquare, Wand2, Copy, ChevronDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
@@ -170,13 +170,16 @@ function Select({ value, onChange, options }: {
   options: { value: string; label: string }[]
 }) {
   return (
-    <select
-      className="w-full h-8 rounded-md border border-input bg-background px-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
-      value={value ?? ''}
-      onChange={e => onChange(e.target.value)}
-    >
-      {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-    </select>
+    <div className="relative">
+      <select
+        className="w-full h-8 appearance-none rounded-md border border-input bg-background pl-3 pr-7 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+        value={value ?? ''}
+        onChange={e => onChange(e.target.value)}
+      >
+        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+    </div>
   )
 }
 
