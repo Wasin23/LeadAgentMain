@@ -10,6 +10,8 @@ export interface AgentActivityItem {
   currentActivity?: string | null
   personalityType?: string
   avatar?: string | null
+  lastRun?: string | null
+  nextCycleTime?: string | null
 }
 
 const PERSONALITY_AVATAR: Record<string, string> = {
@@ -44,6 +46,44 @@ function statusLabel(status: string) {
     case "idle":    return "Idle"
     default:        return "Stopped"
   }
+}
+
+function humanizePersonality(type?: string): string {
+  if (!type) return "Agent"
+  return type.split("-").map(w => w[0]?.toUpperCase() + w.slice(1)).join(" ")
+}
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+  if (days > 0) return `${days}d ago`
+  if (hours > 0) return `${hours}h ago`
+  if (mins > 0) return `${mins}m ago`
+  return "just now"
+}
+
+function timeUntil(dateStr: string): string {
+  const diff = new Date(dateStr).getTime() - Date.now()
+  if (diff <= 0) return "any moment"
+  const mins = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  if (hours > 0) return `${hours}h ${mins % 60}m`
+  if (mins > 0) return `${mins}m`
+  return "under a minute"
+}
+
+function agentSubtitle(agent: AgentActivityItem): string {
+  const parts: string[] = [humanizePersonality(agent.personalityType)]
+  if (agent.status === "running" && agent.nextCycleTime) {
+    parts.push(`Next cycle in ${timeUntil(agent.nextCycleTime)}`)
+  } else if (agent.lastRun) {
+    parts.push(`Last ran ${timeAgo(agent.lastRun)}`)
+  } else {
+    parts.push("Never run yet")
+  }
+  return parts.join(" · ")
 }
 
 export function TeamCollaboration({ agents = [] }: TeamCollaborationProps) {
@@ -82,9 +122,9 @@ export function TeamCollaboration({ agents = [] }: TeamCollaborationProps) {
               <button
                 key={agent.agentId}
                 onClick={() => router.push("/prospecting")}
-                className="w-full grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-lg px-1 py-1 hover:bg-accent transition-colors cursor-pointer text-left"
+                className="w-full grid grid-cols-[auto_1fr_auto] items-center gap-2.5 rounded-lg px-1.5 py-2 hover:bg-accent transition-colors cursor-pointer text-left"
               >
-                <div className="relative h-6 w-6 shrink-0 rounded-full overflow-hidden bg-muted">
+                <div className="relative h-9 w-9 shrink-0 rounded-full overflow-hidden bg-muted">
                   <img
                     src={resolveAvatarUrl(agent)}
                     alt={agent.name}
@@ -92,11 +132,15 @@ export function TeamCollaboration({ agents = [] }: TeamCollaborationProps) {
                     onError={(e) => {
                       const t = e.target as HTMLImageElement
                       t.style.display = "none"
-                      t.parentElement!.innerHTML = `<span class="absolute inset-0 grid place-items-center text-[9px] font-bold text-foreground/70">${initials}</span>`
+                      t.parentElement!.innerHTML = `<span class="absolute inset-0 grid place-items-center text-[10px] font-bold text-foreground/70">${initials}</span>`
                     }}
                   />
+                  <span className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-card ${agent.status === "running" ? "bg-emerald-500" : agent.status === "idle" ? "bg-amber-500" : "bg-muted-foreground/50"}`} />
                 </div>
-                <p className="truncate text-xs font-medium text-foreground">{agent.name}</p>
+                <div className="min-w-0">
+                  <p className="truncate text-xs font-medium text-foreground">{agent.name}</p>
+                  <p className="truncate text-[10px] text-muted-foreground">{agentSubtitle(agent)}</p>
+                </div>
                 <span className={`inline-flex items-center gap-1 rounded-full ${statusBadge(agent.status)} px-1.5 py-0.5 text-[9px] font-medium shrink-0`}>
                   <span className="h-1 w-1 rounded-full bg-current opacity-70" />
                   {statusLabel(agent.status)}

@@ -143,6 +143,8 @@ export default function DashboardPage() {
             name: (a.name as string) || "Agent",
             status: (a.status as string) || "stopped",
             currentActivity: (a.currentActivity as string) || undefined,
+            lastRun: (a.lastRun as string) || null,
+            nextCycleTime: (a.nextCycleTime as string) || null,
             personalityType:
               ((a.personality as Record<string, unknown>)?.type as string) ||
               (a.personalityType as string) ||
