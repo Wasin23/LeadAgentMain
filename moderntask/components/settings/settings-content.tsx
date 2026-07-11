@@ -700,7 +700,7 @@ export function SettingsContent() {
               {React.createElement(Icon, { className: 'w-4 h-4 flex-shrink-0' })}
               {t.label}
               {t.id === "notifications" && notifUnreadCount > 0 && (
-                <span className="ml-0.5 min-w-[18px] h-[18px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center px-1">
+                <span className="ml-0.5 min-w-[18px] h-[18px] rounded-full bg-destructive text-destructive-foreground text-[10px] font-mono font-bold inline-flex items-center justify-center px-1 leading-none tabular-nums">
                   {notifUnreadCount > 99 ? '99+' : notifUnreadCount}
                 </span>
               )}

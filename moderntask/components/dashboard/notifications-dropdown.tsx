@@ -118,7 +118,7 @@ export function NotificationsDropdown({ onCountChange }: { onCountChange?: (coun
         >
           <Bell className="w-4 h-4" />
           {count > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-0.5 bg-destructive text-destructive-foreground text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
+            <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-0.5 bg-destructive text-destructive-foreground text-[9px] font-mono font-bold rounded-full inline-flex items-center justify-center leading-none tabular-nums">
               {count > 99 ? '99+' : count}
             </span>
           )}
