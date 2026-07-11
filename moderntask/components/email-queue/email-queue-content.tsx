@@ -1197,13 +1197,11 @@ export function AIReportModal({ report, onClose }: { report: AIReport; onClose: 
               {((report.keyStrengths && report.keyStrengths.length > 0) || (report.weaknesses && report.weaknesses.length > 0)) && (
                 <div className="p-5 border-b border-border">
                   <div className="flex items-center justify-center mb-4">
-                    <div className="relative flex items-center">
-                      <div className="w-20 h-20 rounded-full bg-green-500/10 border border-green-500/40 flex items-center justify-center">
-                        <span className="text-[9px] font-semibold uppercase tracking-wider text-green-600 dark:text-green-400">Strengths</span>
-                      </div>
-                      <div className="w-20 h-20 -ml-7 rounded-full bg-yellow-500/10 border border-yellow-500/40 flex items-center justify-center">
-                        <span className="text-[9px] font-semibold uppercase tracking-wider text-yellow-600 dark:text-yellow-400">Concerns</span>
-                      </div>
+                    <div className="relative w-40 h-24">
+                      <div className="absolute left-0 top-0 w-24 h-24 rounded-full bg-green-500/10 border border-green-500/40" />
+                      <div className="absolute right-0 top-0 w-24 h-24 rounded-full bg-yellow-500/10 border border-yellow-500/40" />
+                      <span className="absolute left-1.5 top-1/2 w-14 -translate-y-1/2 text-center text-[9px] font-semibold uppercase leading-tight tracking-wider text-green-600 dark:text-green-400">Strengths</span>
+                      <span className="absolute right-1.5 top-1/2 w-14 -translate-y-1/2 text-center text-[9px] font-semibold uppercase leading-tight tracking-wider text-yellow-600 dark:text-yellow-400">Concerns</span>
                     </div>
                   </div>
                   <table className="w-full text-xs table-fixed">
