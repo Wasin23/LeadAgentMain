@@ -27,7 +27,7 @@ async function deleteUser() {
     }));
 
     if (!users.Items || users.Items.length === 0) {
-      console.log('❌ No user found with that email');
+      console.log('No user found with that email');
       process.exit(1);
     }
 

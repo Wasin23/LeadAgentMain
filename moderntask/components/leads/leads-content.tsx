@@ -14,16 +14,6 @@ import { useToast } from '@/hooks/use-toast'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { StrengthsConcernsVenn } from '@/components/email-queue/email-queue-content'
 
-// A literal tiny venn diagram (two overlapping circles) used as the icon for the venn-view toggle
-function VennIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 16" fill="none" className={className}>
-      <circle cx="9" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" className="text-green-500" />
-      <circle cx="15" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" className="text-yellow-500" />
-    </svg>
-  )
-}
-
 interface AIReport {
   companyName?: string
   contactName?: string
@@ -187,7 +177,6 @@ export function LeadsContent() {
   const [showBanner, setShowBanner] = useState(true)
   const [starLimit, setStarLimit] = useState<number | null>(null)
   const [unsubscribedEmails, setUnsubscribedEmails] = useState<Set<string>>(new Set())
-  const [showVenn, setShowVenn] = useState(false)
   const { toast } = useToast()
   const pageSize = 10
 
@@ -571,19 +560,7 @@ export function LeadsContent() {
             {detailTab === 'research' && (
               <div className="space-y-3">
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <p className="text-xs font-medium text-muted-foreground">Research Summary</p>
-                    {((selected.aiReport?.keyStrengths?.length ?? 0) > 0 || (selected.aiReport?.weaknesses?.length ?? 0) > 0) && (
-                      <button
-                        onClick={() => setShowVenn(true)}
-                        title="View strengths vs. concerns as a venn diagram"
-                        className="flex items-center gap-1 text-[11px] text-primary hover:text-primary/70 transition-colors"
-                      >
-                        <VennIcon className="w-4 h-3" />
-                        Venn view
-                      </button>
-                    )}
-                  </div>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Research Summary</p>
                   <p className="text-sm whitespace-pre-wrap">{selected.aiReport?.reasoning || 'No research summary available.'}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -596,6 +573,11 @@ export function LeadsContent() {
                     <p className="text-[11px] text-muted-foreground">Confidence</p>
                   </div>
                 </div>
+                {((selected.aiReport?.keyStrengths?.length ?? 0) > 0 || (selected.aiReport?.weaknesses?.length ?? 0) > 0) && (
+                  <div className="rounded-lg border border-border p-2 overflow-x-auto">
+                    <StrengthsConcernsVenn report={selected.aiReport!} />
+                  </div>
+                )}
                 {selected.aiReport?.keyStrengths && selected.aiReport.keyStrengths.length > 0 && (
                   <div>
                     <p className="text-xs font-medium text-muted-foreground mb-1">Why This Lead Qualifies</p>
@@ -788,23 +770,6 @@ export function LeadsContent() {
           </div>
         )}
       </div>
-
-      {showVenn && selected && selected.aiReport && (
-        <>
-          <div className="fixed inset-0 bg-black/60 z-50" onClick={() => setShowVenn(false)} />
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
-            <div className="bg-card border border-border rounded-2xl shadow-2xl max-w-[90vw] max-h-[90vh] overflow-auto pointer-events-auto p-6">
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-sm font-semibold text-foreground">{selected.company} • {selected.contactName}</p>
-                <button onClick={() => setShowVenn(false)} className="p-1.5 hover:bg-muted rounded-lg transition-colors">
-                  <X className="w-4 h-4 text-muted-foreground" />
-                </button>
-              </div>
-              <StrengthsConcernsVenn report={selected.aiReport} />
-            </div>
-          </div>
-        </>
-      )}
     </div>
   )
 }
