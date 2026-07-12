@@ -14,6 +14,16 @@ import { useToast } from '@/hooks/use-toast'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { StrengthsConcernsVenn } from '@/components/email-queue/email-queue-content'
 
+// A literal tiny venn diagram (two overlapping circles) shown next to the strengths/concerns box
+function VennIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 16" fill="none" className={className}>
+      <circle cx="9" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" className="text-green-500" />
+      <circle cx="15" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" className="text-yellow-500" />
+    </svg>
+  )
+}
+
 interface AIReport {
   companyName?: string
   contactName?: string
@@ -575,6 +585,10 @@ export function LeadsContent() {
                 </div>
                 {((selected.aiReport?.keyStrengths?.length ?? 0) > 0 || (selected.aiReport?.weaknesses?.length ?? 0) > 0) && (
                   <div className="rounded-lg border border-border p-2 overflow-x-auto">
+                    <div className="flex items-center gap-1.5 mb-1 px-1">
+                      <VennIcon className="w-4 h-3" />
+                      <p className="text-xs font-medium text-muted-foreground">Strengths vs. Concerns</p>
+                    </div>
                     <StrengthsConcernsVenn report={selected.aiReport!} />
                   </div>
                 )}
