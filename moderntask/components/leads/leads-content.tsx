@@ -33,6 +33,8 @@ interface AIReport {
   reasoning: string
   keyStrengths?: string[]
   weaknesses?: string[]
+  keyStrengthsShort?: string[]
+  weaknessesShort?: string[]
   citedEvidence?: { fact: string; source: string }[]
   allCitedFacts?: { fact: string; source: string; sourceTitle?: string }[]
 }

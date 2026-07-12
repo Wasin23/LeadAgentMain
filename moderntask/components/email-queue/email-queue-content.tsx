@@ -59,6 +59,8 @@ export interface AIReport {
   reasoning: string
   keyStrengths?: string[]
   weaknesses?: string[]
+  keyStrengthsShort?: string[]
+  weaknessesShort?: string[]
   citedEvidence?: { fact: string; source: string }[]
   allCitedFacts?: { fact: string; source: string; sourceTitle?: string }[]
   evaluatedAt: string
@@ -1133,7 +1135,11 @@ function Empty({ icon: Icon, text, sub }: { icon: React.ElementType; text: strin
 }
 
 // ── strengths vs concerns venn — shared by the full report modal and the venn-only modal ──
-export function StrengthsConcernsVenn({ report }: { report: Pick<AIReport, 'keyStrengths' | 'weaknesses' | 'citedEvidence'> }) {
+export function StrengthsConcernsVenn({ report }: { report: Pick<AIReport, 'keyStrengths' | 'weaknesses' | 'keyStrengthsShort' | 'weaknessesShort' | 'citedEvidence'> }) {
+  // Prefer the short, venn-specific phrasing; fall back to the full text for
+  // leads scored before the short fields existed.
+  const strengths = (report.keyStrengthsShort?.length ? report.keyStrengthsShort : report.keyStrengths) || []
+  const concerns = (report.weaknessesShort?.length ? report.weaknessesShort : report.weaknesses) || []
   return (
     <div className="flex justify-center overflow-x-auto">
       <div className="relative w-[710px] max-w-none h-[440px] shrink-0">
@@ -1142,7 +1148,7 @@ export function StrengthsConcernsVenn({ report }: { report: Pick<AIReport, 'keyS
         <div className="absolute left-[40px] top-1/2 w-[190px] -translate-y-1/2 px-5 text-center">
           <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-green-600 dark:text-green-400">Strengths</p>
           <ul className="space-y-2.5">
-            {report.keyStrengths?.map((s, i) => (
+            {strengths.map((s, i) => (
               <li key={i} className="text-xs leading-snug text-green-800 dark:text-green-300">{s}</li>
             ))}
           </ul>
@@ -1160,7 +1166,7 @@ export function StrengthsConcernsVenn({ report }: { report: Pick<AIReport, 'keyS
         <div className="absolute right-[40px] top-1/2 w-[190px] -translate-y-1/2 px-5 text-center">
           <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-yellow-600 dark:text-yellow-400">Concerns</p>
           <ul className="space-y-2.5">
-            {report.weaknesses?.map((w, i) => (
+            {concerns.map((w, i) => (
               <li key={i} className="text-xs leading-snug text-yellow-800 dark:text-yellow-300">{w}</li>
             ))}
           </ul>

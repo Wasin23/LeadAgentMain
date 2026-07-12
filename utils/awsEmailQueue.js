@@ -802,20 +802,32 @@ class AWSEmailQueue {
         //   hasFollowUpDate: oldItem.followUpDate
         // });
         
-        const newTimestamp = new Date().toISOString();
+        const now = new Date().toISOString();
+
+        // Same-status updates (e.g. rebump/follow-up tracking, unsubscribe
+        // flagging, canceling a follow-up) go through this same delete+put path
+        // with oldStatus === newStatus just to patch a couple of fields via
+        // additionalData. Regenerating the SK/sentAt with `now` unconditionally
+        // was silently resetting a genuinely-old send's sentAt to "today" on
+        // every one of those unrelated field updates — preserve the original
+        // status-transition timestamp when the status itself hasn't changed.
+        const isSameStatus = oldStatus === newStatus;
+        const transitionTimestamp = isSameStatus
+          ? (String(oldItem.SK).split('#')[1] || now)
+          : now;
 
         // Create new item with updated status
         const newItem = {
           ...oldItem,
           PK: this._getPK(userId, agentId),
-          SK: this._getSK(newStatus, newTimestamp, emailId),
+          SK: this._getSK(newStatus, transitionTimestamp, emailId),
           GSIPK: this._getGSIPK(userId, newStatus),
-          GSISK: this._getGSISK(newTimestamp, emailId),
+          GSISK: this._getGSISK(transitionTimestamp, emailId),
           status: newStatus,
-          updatedAt: newTimestamp,
+          updatedAt: now,
           ...additionalData
         };
-        
+
         //   id: newItem.id,
         //   status: newItem.status,
         //   followUpScheduled: newItem.followUpScheduled,
@@ -823,13 +835,15 @@ class AWSEmailQueue {
         //   assignedTemplateId: newItem.assignedTemplateId
         // });
 
-        // Add status-specific timestamps
-        if (newStatus === 'APPROVED') {
-          newItem.approvedAt = newTimestamp;
-        } else if (newStatus === 'SENT') {
-          newItem.sentAt = newTimestamp;
-        } else if (newStatus === 'REPLIED') {
-          newItem.repliedAt = newTimestamp;
+        // Add status-specific timestamps (only on an actual transition into this status)
+        if (!isSameStatus) {
+          if (newStatus === 'APPROVED') {
+            newItem.approvedAt = transitionTimestamp;
+          } else if (newStatus === 'SENT') {
+            newItem.sentAt = transitionTimestamp;
+          } else if (newStatus === 'REPLIED') {
+            newItem.repliedAt = transitionTimestamp;
+          }
         }
 
         // Delete old item and put new item (transactional would be better but using two operations)

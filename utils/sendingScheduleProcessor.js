@@ -37,13 +37,14 @@ const _firedToday = new Set();
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Return "YYYY-MM-DD" in the given IANA timezone (or UTC if tz is invalid).
+ * Return "YYYY-MM-DD" in the given IANA timezone (or UTC if tz is invalid) for
+ * the given date (defaults to now).
  */
-function todayInTZ(timezone) {
+function todayInTZ(timezone, date = new Date()) {
   try {
-    return new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(new Date()); // "YYYY-MM-DD"
+    return new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(date); // "YYYY-MM-DD"
   } catch {
-    return new Date().toISOString().slice(0, 10);
+    return date.toISOString().slice(0, 10);
   }
 }
 
@@ -72,20 +73,42 @@ function localTimeParts(date, timezone) {
 
 /**
  * Count SENT emails for this agent on the agent's local calendar date.
- * SK format: SENT#<ISO-timestamp>#<emailId>
- * We query begins_with(SK, "SENT#YYYY-MM-DD") using the TZ-aware date.
+ * SK format: SENT#<UTC-ISO-timestamp>#<emailId> — the timestamp embedded at
+ * write time is UTC (see awsEmailQueue.updateEmailStatus), but "today" here is
+ * evaluated in the agent's local timezone. A local calendar day can straddle
+ * up to 3 UTC calendar dates depending on the offset, so we query all 3
+ * UTC-dated prefixes and filter by the real local date parsed from each item's
+ * own timestamp, rather than trusting the UTC date prefix alone. Querying only
+ * the single UTC date matching "today" (the old behavior) stamped evening
+ * sends with tomorrow's UTC date, so they leaked into the next local day's
+ * count instead of today's — the "daily counter doesn't reset cleanly" bug.
  */
 async function countSentToday(awsQueue, userId, agentId, timezone) {
   try {
     const pk = awsQueue._getPK(userId, agentId);
-    const skPrefix = `SENT#${todayInTZ(timezone)}`;
-    const response = await awsQueue.dynamodb.send(new QueryCommand({
-      TableName: awsQueue.tableName,
-      KeyConditionExpression: 'PK = :pk AND begins_with(SK, :skPrefix)',
-      ExpressionAttributeValues: { ':pk': pk, ':skPrefix': skPrefix },
-      Select: 'COUNT',
-    }));
-    return response.Count || 0;
+    const now = new Date();
+    const localToday = todayInTZ(timezone, now);
+    const utcDateStrings = [...new Set([-1, 0, 1].map(offset =>
+      new Date(now.getTime() + offset * 86400000).toISOString().slice(0, 10)
+    ))];
+
+    const responses = await Promise.all(utcDateStrings.map(dateStr =>
+      awsQueue.dynamodb.send(new QueryCommand({
+        TableName: awsQueue.tableName,
+        KeyConditionExpression: 'PK = :pk AND begins_with(SK, :skPrefix)',
+        ExpressionAttributeValues: { ':pk': pk, ':skPrefix': `SENT#${dateStr}` },
+        ProjectionExpression: 'SK',
+      }))
+    ));
+
+    let count = 0;
+    for (const response of responses) {
+      for (const item of response.Items || []) {
+        const ts = String(item.SK).split('#')[1]; // SENT#<timestamp>#<emailId>
+        if (ts && todayInTZ(timezone, new Date(ts)) === localToday) count++;
+      }
+    }
+    return count;
   } catch (err) {
     console.error('[SCHEDULE PROCESSOR] Error counting sent-today:', err.message);
     return 0;

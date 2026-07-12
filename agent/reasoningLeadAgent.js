@@ -805,7 +805,8 @@ research later, so how you phrase it determines whether it can ever be verified)
       'Lead Qualification',
       '💭 Agent Activity',
       '✅ Process Complete',
-      '🔗 CRM Sync'
+      '🔗 CRM Sync',
+      'Rubric Build'
     ];
 
     if (broadcastableOperations.includes(operation)) {
@@ -2312,6 +2313,10 @@ What's the single most useful NEXT search query to fill a real gap in this resea
     console.log(`[RUBRIC BUILD] ── START ─────────────────────────────────────`);
     console.log(`[RUBRIC BUILD] combo="${keyword}#${position}" | product: ${productDescription.slice(0, 120)}`);
 
+    this.logOperation('Rubric Build',
+      `Building a qualification rubric for "${keyword}" / "${position}" — researching this segment before any leads are scored (usually takes under a minute)`,
+      'info', { keyword, position, stage: 'started' });
+
     // ── Iterative grounded research loop ──────────────────────────────
     const MAX_RESEARCH_ROUNDS = 4;
     const researchFindings = [];
@@ -2347,6 +2352,10 @@ What's the single most useful NEXT search query to fill a real gap in this resea
       const snippets = organic.slice(0, 6).map(r => `${r.title}: ${r.snippet}`).filter(Boolean);
       console.log(`[RUBRIC BUILD] Round ${round + 1}: got ${snippets.length} usable snippets`);
       researchFindings.push({ query, snippets });
+
+      this.logOperation('Rubric Build',
+        `Rubric research ${round + 1}/${MAX_RESEARCH_ROUNDS}: "${query}" — found ${snippets.length} usable result${snippets.length === 1 ? '' : 's'}`,
+        'info', { keyword, position, stage: 'researching', round: round + 1, query, snippetCount: snippets.length });
 
       const totalSnippets = researchFindings.reduce((n, f) => n + f.snippets.length, 0);
       if (totalSnippets >= 12 && round >= 1) {
@@ -2392,6 +2401,9 @@ Respond in JSON:
 }`;
 
     console.log(`[RUBRIC BUILD] Synthesizing with Claude Sonnet 5 (adaptive thinking)...`);
+    this.logOperation('Rubric Build',
+      `Research done (${researchFindings.length} search${researchFindings.length === 1 ? '' : 'es'}) — synthesizing the weighted rubric now`,
+      'info', { keyword, position, stage: 'synthesizing', researchRounds: researchFindings.length });
 
     // max_tokens must cover BOTH adaptive-thinking's reasoning tokens AND the final
     // JSON output — they share the same budget. A 15-20 criterion rubric with
@@ -2437,6 +2449,13 @@ Respond in JSON:
 
     console.log(`[RUBRIC BUILD] Generated ${criteria.length} criteria (ordered most→least important):`);
     criteria.forEach((c, i) => console.log(`[RUBRIC BUILD]   ${i + 1}. [LLR ${c.weight >= 0 ? '+' : ''}${c.weight}] ${c.criterion} — ${c.justification}`));
+
+    this.logOperation('Rubric Build',
+      criteria.length > 0
+        ? `Rubric ready for "${keyword}" / "${position}" — ${criteria.length} weighted criteria. Leads under this combo will now be scored against it.`
+        : `Rubric build for "${keyword}" / "${position}" came back empty — falling back to basic criteria until it's rebuilt`,
+      criteria.length > 0 ? 'completed' : 'warning',
+      { keyword, position, stage: 'complete', criteriaCount: criteria.length });
 
     if (response.usage) {
       await this.awsManager.logApiUsage({
@@ -3098,7 +3117,9 @@ Respond in JSON:
   "reasoning": "detailed explanation with specific facts, numbers, and evidence (3-5 sentences minimum)",
   "buyerMotivation": "specific, evidence-based explanation of WHY this person would buy from us RIGHT NOW (required - 2-4 sentences with concrete reasoning)",
   "keyStrengths": ["specific strength with actual evidence/data"],
+  "keyStrengthsShort": ["same strengths, condensed to 5-8 words each — for a compact UI, same order/count as keyStrengths"],
   "weaknesses": ["specific concerns with reasoning"],
+  "weaknessesShort": ["same concerns, condensed to 5-8 words each — for a compact UI, same order/count as weaknesses"],
   "citedEvidence": [
     {"fact": "specific fact from research", "source": "source title or domain", "supportsMatch": true/false}
   ],
@@ -3282,6 +3303,18 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
       const weaknesses = Array.isArray(result.weaknesses) ? [...result.weaknesses] : [];
       if (sizeMismatchNote) weaknesses.push(sizeMismatchNote);
 
+      // Condensed versions for the venn diagram UI — falls back to a truncated
+      // version of the full text if the model's short list is missing/misaligned.
+      const truncate = (text, words = 8) => {
+        const parts = String(text || '').split(/\s+/).filter(Boolean);
+        return parts.length <= words ? parts.join(' ') : parts.slice(0, words).join(' ') + '…';
+      };
+      const alignShort = (longList, shortList) => longList.map((text, i) =>
+        (Array.isArray(shortList) && typeof shortList[i] === 'string' && shortList[i].trim()) ? shortList[i].trim() : truncate(text)
+      );
+      const keyStrengthsShort = alignShort(result.keyStrengths || [], result.keyStrengthsShort);
+      const weaknessesShort = alignShort(weaknesses, result.weaknessesShort);
+
       const rubricSummary = rubricResolved.map(e => `${e.criterion}:${e.status}(${e.contribution.toFixed(2)})`).join(', ');
       console.log(`[QUALIFY SCORE] ${personName} @ ${companyName}: percentile=${computedScore}/100 rawP=${(rawProbability * 100).toFixed(1)}% (vs ${referencePopulation.length} trailing) logit=${totalLogit.toFixed(2)} [intercept=${INTERCEPT_LOGIT.toFixed(2)} rubric=${rubricLogit.toFixed(2)}[v${rubric.version ?? 'fallback'}: ${rubricSummary}] title=${titleLogit.toFixed(2)} industry=${industryLogit.toFixed(2)} size=${sizeLogit.toFixed(2)} facts=${factBonus.toFixed(2)}[${citedFactCount}]]${sizeMismatchNote ? ` [${sizeMismatchNote}]` : ''}${disqualifierHit ? ' DISQUALIFIED' : ''}) -> ${computedTier}`);
 
@@ -3347,6 +3380,8 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
         reasoning: result.reasoning,
         keyStrengths: result.keyStrengths || [],
         weaknesses: weaknesses,
+        keyStrengthsShort,
+        weaknessesShort,
 
         // Metadata
         evaluatedAt: new Date().toISOString(),
@@ -3411,6 +3446,8 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
         requiresReview: computedTier === 'SHOTGUN' || computedConfidence === 'LOW',
         keyStrengths: result.keyStrengths || [],
         weaknesses: weaknesses,
+        keyStrengthsShort,
+        weaknessesShort,
         aiReport: aiReport // Include full AI report for email builder and UI
       };
 

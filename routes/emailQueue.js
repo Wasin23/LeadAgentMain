@@ -1521,26 +1521,44 @@ router.get('/daily-cap-status', async (req, res) => {
     const connectedAccounts = [...gmailAccounts, ...outlookAccounts];
 
     // Today's date string in user's timezone
-    const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(new Date());
-    const skPrefix = `SENT#${todayStr}`;
+    const now = new Date();
+    const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(now);
+    // SK is SENT#<UTC-ISO-timestamp>#<emailId> — the embedded date is UTC, but
+    // "today" is local. Query all 3 UTC-dated prefixes a local day can touch
+    // and filter by the real local date parsed from each item's own timestamp,
+    // otherwise evening sends get stamped with tomorrow's UTC date and leak
+    // into the next local day's count instead of resetting cleanly.
+    const utcDateStrings = [...new Set([-1, 0, 1].map(offset =>
+      new Date(now.getTime() + offset * 86400000).toISOString().slice(0, 10)
+    ))];
 
     // Count sent today across all agents
     const agents = await awsManager.getUserAgents(userId);
     const agentIds = (agents || []).map(a => a.agentId).filter(Boolean);
-    const counts = await Promise.all(
-      agentIds.map(agentId =>
-        awsQueue.dynamodb.send(new QueryCommand({
-          TableName: awsQueue.tableName,
-          KeyConditionExpression: 'PK = :pk AND begins_with(SK, :skPrefix)',
-          ExpressionAttributeValues: {
-            ':pk': `${userId}#${agentId}`,
-            ':skPrefix': skPrefix,
-          },
-          Select: 'COUNT',
-        })).then(r => r.Count || 0).catch(() => 0)
-      )
+    const perAgentCounts = await Promise.all(
+      agentIds.map(async agentId => {
+        const responses = await Promise.all(utcDateStrings.map(dateStr =>
+          awsQueue.dynamodb.send(new QueryCommand({
+            TableName: awsQueue.tableName,
+            KeyConditionExpression: 'PK = :pk AND begins_with(SK, :skPrefix)',
+            ExpressionAttributeValues: {
+              ':pk': `${userId}#${agentId}`,
+              ':skPrefix': `SENT#${dateStr}`,
+            },
+            ProjectionExpression: 'SK',
+          })).then(r => r.Items || []).catch(() => [])
+        ));
+        let count = 0;
+        for (const items of responses) {
+          for (const item of items) {
+            const ts = String(item.SK).split('#')[1];
+            if (ts && new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(new Date(ts)) === todayStr) count++;
+          }
+        }
+        return count;
+      })
     );
-    const sentToday = counts.reduce((sum, c) => sum + c, 0);
+    const sentToday = perAgentCounts.reduce((sum, c) => sum + c, 0);
 
     const PER_ACCOUNT_CAP = 50;
     const TOTAL_CAP = 250;
