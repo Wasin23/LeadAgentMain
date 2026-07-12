@@ -38,6 +38,7 @@ interface AnalyticsEmail {
   followUpScheduled?: boolean
   followUpDate?: string
   followUpStatus?: string
+  followUpCanceledAt?: string
   lastRebumpAt?: string
   lastFollowUpSentAt?: string
   assignedTemplate?: { name?: string; subject?: string; body?: string }
@@ -194,18 +195,22 @@ function SentRow({ email, onEditFollowUp, onScheduleFollowUp, onSendNow, onCance
     const rc  = email.rebumpCount  ?? 0
     const max = email.maxFollowUps ?? 1
     const hasFuture = !!email.followUpDate
-    const done      = rc >= max && max > 0
+    const canceled  = !!email.followUpCanceledAt
+    const done      = rc >= max && max > 0 && !canceled
     const hasSent   = rc > 0
 
     // nothing at all to show
-    if (!hasFuture && !hasSent && !done) return null
+    if (!hasFuture && !hasSent && !done && !canceled) return null
 
     const overdue = hasFuture && !done && new Date(email.followUpDate!) <= new Date()
     const dateStr = hasFuture ? new Date(email.followUpDate!).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''
 
     let cls = 'text-[9px] px-1.5 h-5 cursor-pointer '
     let label = ''
-    if (done) {
+    if (canceled) {
+      cls += 'text-muted-foreground border-border bg-muted/30'
+      label = hasSent ? `Cancelled (${rc} sent)` : 'Cancelled'
+    } else if (done) {
       cls += 'text-green-400 border-green-500/30 bg-green-500/10'
       label = `${rc}/${max} done`
     } else if (hasSent && hasFuture) {
@@ -233,6 +238,7 @@ function SentRow({ email, onEditFollowUp, onScheduleFollowUp, onSendNow, onCance
     const rc  = email.rebumpCount  ?? 0
     const max = email.maxFollowUps ?? 1
     if (a.replied) return <span className="text-muted-foreground">Awaiting your response</span>
+    if (email.followUpCanceledAt) return <span className="text-muted-foreground">Cancelled{rc > 0 ? ` (${rc} sent)` : ''}</span>
     if (email.followUpDate) {
       const overdue = new Date(email.followUpDate) <= new Date()
       const days = Math.ceil((new Date(email.followUpDate).getTime() - Date.now()) / 86400000)

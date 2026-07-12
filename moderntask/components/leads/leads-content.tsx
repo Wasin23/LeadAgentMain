@@ -7,12 +7,22 @@ import {
   CheckCircle2, Search, Building2, ExternalLink, X,
   ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight,
   Linkedin, Newspaper, Globe, FileText, Mail, Info, AlertTriangle, ArrowUpDown, Check,
-  Star, Clock, Loader2, Copy, Trash2, Combine,
+  Star, Clock, Loader2, Copy, Trash2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { AIReportModal } from '@/components/email-queue/email-queue-content'
+import { StrengthsConcernsVenn } from '@/components/email-queue/email-queue-content'
+
+// A literal tiny venn diagram (two overlapping circles) used as the icon for the venn-view toggle
+function VennIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 16" fill="none" className={className}>
+      <circle cx="9" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" className="text-green-500" />
+      <circle cx="15" cy="8" r="7" stroke="currentColor" strokeWidth="1.5" className="text-yellow-500" />
+    </svg>
+  )
+}
 
 interface AIReport {
   companyName?: string
@@ -569,7 +579,7 @@ export function LeadsContent() {
                         title="View strengths vs. concerns as a venn diagram"
                         className="flex items-center gap-1 text-[11px] text-primary hover:text-primary/70 transition-colors"
                       >
-                        <Combine className="w-3.5 h-3.5" />
+                        <VennIcon className="w-4 h-3" />
                         Venn view
                       </button>
                     )}
@@ -780,23 +790,20 @@ export function LeadsContent() {
       </div>
 
       {showVenn && selected && selected.aiReport && (
-        <AIReportModal
-          report={{
-            companyName: selected.aiReport.companyName || selected.company,
-            contactName: selected.aiReport.contactName || selected.contactName,
-            score: selected.aiReport.score,
-            confidence: selected.aiReport.confidence,
-            totalSources: Array.from(new Set((selected.aiReport.allCitedFacts ?? selected.aiReport.citedEvidence ?? []).map(f => f.source))).filter(Boolean).length,
-            tier: selected.aiReport.tier,
-            reasoning: selected.aiReport.reasoning,
-            keyStrengths: selected.aiReport.keyStrengths,
-            weaknesses: selected.aiReport.weaknesses,
-            citedEvidence: selected.aiReport.citedEvidence,
-            allCitedFacts: selected.aiReport.allCitedFacts,
-            evaluatedAt: new Date(selected.createdAt).toISOString(),
-          }}
-          onClose={() => setShowVenn(false)}
-        />
+        <>
+          <div className="fixed inset-0 bg-black/60 z-50" onClick={() => setShowVenn(false)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+            <div className="bg-card border border-border rounded-2xl shadow-2xl max-w-[90vw] max-h-[90vh] overflow-auto pointer-events-auto p-6">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm font-semibold text-foreground">{selected.company} • {selected.contactName}</p>
+                <button onClick={() => setShowVenn(false)} className="p-1.5 hover:bg-muted rounded-lg transition-colors">
+                  <X className="w-4 h-4 text-muted-foreground" />
+                </button>
+              </div>
+              <StrengthsConcernsVenn report={selected.aiReport} />
+            </div>
+          </div>
+        </>
       )}
     </div>
   )

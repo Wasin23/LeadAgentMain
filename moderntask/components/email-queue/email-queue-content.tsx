@@ -1132,6 +1132,44 @@ function Empty({ icon: Icon, text, sub }: { icon: React.ElementType; text: strin
   )
 }
 
+// ── strengths vs concerns venn — shared by the full report modal and the venn-only modal ──
+export function StrengthsConcernsVenn({ report }: { report: Pick<AIReport, 'keyStrengths' | 'weaknesses' | 'citedEvidence'> }) {
+  return (
+    <div className="flex justify-center overflow-x-auto">
+      <div className="relative w-[710px] max-w-none h-[440px] shrink-0">
+        <div className="absolute left-0 top-0 w-[440px] h-[440px] rounded-full bg-green-500/10 border border-green-500/40" />
+        <div className="absolute right-0 top-0 w-[440px] h-[440px] rounded-full bg-yellow-500/10 border border-yellow-500/40" />
+        <div className="absolute left-[40px] top-1/2 w-[190px] -translate-y-1/2 px-5 text-center">
+          <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-green-600 dark:text-green-400">Strengths</p>
+          <ul className="space-y-2.5">
+            {report.keyStrengths?.map((s, i) => (
+              <li key={i} className="text-xs leading-snug text-green-800 dark:text-green-300">{s}</li>
+            ))}
+          </ul>
+        </div>
+        {report.citedEvidence && report.citedEvidence.length > 0 && (
+          <div className="absolute left-[265px] top-1/2 w-[180px] -translate-y-1/2 px-4 text-center">
+            <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-foreground/70">General Facts</p>
+            <ul className="space-y-2.5">
+              {report.citedEvidence.slice(0, 1).map((e, i) => (
+                <li key={i} className="text-xs leading-snug text-foreground/80">{e.fact}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <div className="absolute right-[40px] top-1/2 w-[190px] -translate-y-1/2 px-5 text-center">
+          <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-yellow-600 dark:text-yellow-400">Concerns</p>
+          <ul className="space-y-2.5">
+            {report.weaknesses?.map((w, i) => (
+              <li key={i} className="text-xs leading-snug text-yellow-800 dark:text-yellow-300">{w}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── AI report modal ───────────────────────────────────────────────────────────
 export function AIReportModal({ report, onClose }: { report: AIReport; onClose: () => void }) {
   const tierColors = {
@@ -1193,40 +1231,10 @@ export function AIReportModal({ report, onClose }: { report: AIReport; onClose: 
                 <p className="text-sm leading-relaxed whitespace-pre-wrap text-foreground/90">{report.reasoning}</p>
               </div>
 
-              {/* Strengths vs Concerns — the actual text lives inside the venn circles,
-                  with a couple of neutral evidence facts shown in the overlap */}
+              {/* Strengths vs Concerns venn */}
               {((report.keyStrengths && report.keyStrengths.length > 0) || (report.weaknesses && report.weaknesses.length > 0)) && (
-                <div className="p-5 border-b border-border flex justify-center overflow-x-auto">
-                  <div className="relative w-[710px] max-w-none h-[440px] shrink-0">
-                    <div className="absolute left-0 top-0 w-[440px] h-[440px] rounded-full bg-green-500/10 border border-green-500/40" />
-                    <div className="absolute right-0 top-0 w-[440px] h-[440px] rounded-full bg-yellow-500/10 border border-yellow-500/40" />
-                    <div className="absolute left-[40px] top-1/2 w-[190px] -translate-y-1/2 px-5 text-center">
-                      <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-green-600 dark:text-green-400">Strengths</p>
-                      <ul className="space-y-2.5">
-                        {report.keyStrengths?.map((s, i) => (
-                          <li key={i} className="text-xs leading-snug text-green-800 dark:text-green-300">{s}</li>
-                        ))}
-                      </ul>
-                    </div>
-                    {report.citedEvidence && report.citedEvidence.length > 0 && (
-                      <div className="absolute left-[265px] top-1/2 w-[180px] -translate-y-1/2 px-4 text-center">
-                        <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-foreground/70">General Facts</p>
-                        <ul className="space-y-2.5">
-                          {report.citedEvidence.slice(0, 1).map((e, i) => (
-                            <li key={i} className="text-xs leading-snug text-foreground/80">{e.fact}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    <div className="absolute right-[40px] top-1/2 w-[190px] -translate-y-1/2 px-5 text-center">
-                      <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-yellow-600 dark:text-yellow-400">Concerns</p>
-                      <ul className="space-y-2.5">
-                        {report.weaknesses?.map((w, i) => (
-                          <li key={i} className="text-xs leading-snug text-yellow-800 dark:text-yellow-300">{w}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
+                <div className="p-5 border-b border-border">
+                  <StrengthsConcernsVenn report={report} />
                 </div>
               )}
 
