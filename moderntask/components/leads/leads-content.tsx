@@ -7,11 +7,12 @@ import {
   CheckCircle2, Search, Building2, ExternalLink, X,
   ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight,
   Linkedin, Newspaper, Globe, FileText, Mail, Info, AlertTriangle, ArrowUpDown, Check,
-  Star, Clock, Loader2, Copy, Trash2,
+  Star, Clock, Loader2, Copy, Trash2, Combine,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { AIReportModal } from '@/components/email-queue/email-queue-content'
 
 interface AIReport {
   companyName?: string
@@ -176,6 +177,7 @@ export function LeadsContent() {
   const [showBanner, setShowBanner] = useState(true)
   const [starLimit, setStarLimit] = useState<number | null>(null)
   const [unsubscribedEmails, setUnsubscribedEmails] = useState<Set<string>>(new Set())
+  const [showVenn, setShowVenn] = useState(false)
   const { toast } = useToast()
   const pageSize = 10
 
@@ -559,7 +561,19 @@ export function LeadsContent() {
             {detailTab === 'research' && (
               <div className="space-y-3">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1">Research Summary</p>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-xs font-medium text-muted-foreground">Research Summary</p>
+                    {((selected.aiReport?.keyStrengths?.length ?? 0) > 0 || (selected.aiReport?.weaknesses?.length ?? 0) > 0) && (
+                      <button
+                        onClick={() => setShowVenn(true)}
+                        title="View strengths vs. concerns as a venn diagram"
+                        className="flex items-center gap-1 text-[11px] text-primary hover:text-primary/70 transition-colors"
+                      >
+                        <Combine className="w-3.5 h-3.5" />
+                        Venn view
+                      </button>
+                    )}
+                  </div>
                   <p className="text-sm whitespace-pre-wrap">{selected.aiReport?.reasoning || 'No research summary available.'}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -764,6 +778,26 @@ export function LeadsContent() {
           </div>
         )}
       </div>
+
+      {showVenn && selected && selected.aiReport && (
+        <AIReportModal
+          report={{
+            companyName: selected.aiReport.companyName || selected.company,
+            contactName: selected.aiReport.contactName || selected.contactName,
+            score: selected.aiReport.score,
+            confidence: selected.aiReport.confidence,
+            totalSources: Array.from(new Set((selected.aiReport.allCitedFacts ?? selected.aiReport.citedEvidence ?? []).map(f => f.source))).filter(Boolean).length,
+            tier: selected.aiReport.tier,
+            reasoning: selected.aiReport.reasoning,
+            keyStrengths: selected.aiReport.keyStrengths,
+            weaknesses: selected.aiReport.weaknesses,
+            citedEvidence: selected.aiReport.citedEvidence,
+            allCitedFacts: selected.aiReport.allCitedFacts,
+            evaluatedAt: new Date(selected.createdAt).toISOString(),
+          }}
+          onClose={() => setShowVenn(false)}
+        />
+      )}
     </div>
   )
 }

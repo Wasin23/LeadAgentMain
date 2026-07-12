@@ -6,7 +6,7 @@ import AWSManager from '../utils/awsManager.js';
 
 dotenv.config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.env') });
 
-const userEmail = process.argv[2] || 'colton.fidd@gmail.com';
+const userEmail = process.argv[2] || 'coltonfidelman@g.ucla.edu';
 
 async function deleteUser() {
   const awsManager = new AWSManager();
