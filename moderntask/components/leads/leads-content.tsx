@@ -188,6 +188,7 @@ export function LeadsContent() {
   const [starLimit, setStarLimit] = useState<number | null>(null)
   const [unsubscribedEmails, setUnsubscribedEmails] = useState<Set<string>>(new Set())
   const { toast } = useToast()
+  const [showVenn, setShowVenn] = useState(false)
   const pageSize = 10
 
   useEffect(() => {
@@ -584,13 +585,13 @@ export function LeadsContent() {
                   </div>
                 </div>
                 {((selected.aiReport?.keyStrengths?.length ?? 0) > 0 || (selected.aiReport?.weaknesses?.length ?? 0) > 0) && (
-                  <div className="rounded-lg border border-border p-2 overflow-x-auto">
-                    <div className="flex items-center gap-1.5 mb-1 px-1">
-                      <VennIcon className="w-4 h-3" />
-                      <p className="text-xs font-medium text-muted-foreground">Strengths vs. Concerns</p>
-                    </div>
-                    <StrengthsConcernsVenn report={selected.aiReport!} />
-                  </div>
+                  <button
+                    onClick={() => setShowVenn(true)}
+                    className="flex w-full items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-left hover:bg-accent transition-colors"
+                  >
+                    <VennIcon className="w-4 h-3" />
+                    <span className="text-xs font-medium text-muted-foreground">Strengths vs. Concerns</span>
+                  </button>
                 )}
                 {selected.aiReport?.keyStrengths && selected.aiReport.keyStrengths.length > 0 && (
                   <div>
@@ -784,6 +785,23 @@ export function LeadsContent() {
           </div>
         )}
       </div>
+
+      {showVenn && selected && selected.aiReport && (
+        <>
+          <div className="fixed inset-0 bg-black/60 z-50" onClick={() => setShowVenn(false)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+            <div className="bg-card border border-border rounded-2xl shadow-2xl max-w-[90vw] max-h-[90vh] overflow-auto pointer-events-auto p-6">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm font-semibold text-foreground">{selected.company} • {selected.contactName}</p>
+                <button onClick={() => setShowVenn(false)} className="p-1.5 hover:bg-muted rounded-lg transition-colors">
+                  <X className="w-4 h-4 text-muted-foreground" />
+                </button>
+              </div>
+              <StrengthsConcernsVenn report={selected.aiReport} />
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

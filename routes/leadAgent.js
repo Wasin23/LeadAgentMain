@@ -222,24 +222,41 @@ router.post('/stop', async (req, res) => {
         const user = await getUserById(userId);
         
         if (user && user.activeAgents) {
-          const updatedAgents = user.activeAgents.map(agent => 
-            agent.agentId === agentId 
-              ? { ...agent, status: 'idle', mode: null }
+          const prevAgent = user.activeAgents.find(a => a.agentId === agentId);
+          // A "cycle" is one full start→stop session — counted here, once, on
+          // stop, rather than the old per-reasoning-loop-iteration cycleCount.
+          // That old counter never made it to the Home page stat (it was
+          // accidentally wired to the reply count there), so this is a
+          // simpler, consistent, persisted replacement for that display.
+          const wasRunning = prevAgent?.status === 'running';
+          const newSessionCount = (prevAgent?.runSessionCount || 0) + (wasRunning ? 1 : 0);
+          const updatedAgents = user.activeAgents.map(agent =>
+            agent.agentId === agentId
+              ? { ...agent, status: 'idle', mode: null, runSessionCount: newSessionCount }
               : agent
           );
-          
+
           const awsManager = (await import('../utils/awsManager.js')).default;
           const awsManagerInstance = new awsManager();
           await awsManagerInstance.updateUser(userId, { activeAgents: updatedAgents });
-          
+
+          if (wasRunning) {
+            await awsManagerInstance.addIssue(
+              userId,
+              'agent',
+              'Agent Cycle Completed',
+              `${prevAgent?.name || 'Agent'} finished a run cycle (#${newSessionCount}).`,
+              { severity: 'info', agentId, cycleNumber: newSessionCount }
+            ).catch(err => console.error('⚠️ [LEAD AGENT API] Failed to log cycle activity:', err.message));
+          }
+
           // Broadcast agent stop to all SSE clients for real-time UI update
           try {
             const { broadcastActivity } = await import('./monitoring.js');
-            const agent = user.activeAgents.find(a => a.agentId === agentId);
             broadcastActivity({
               type: 'agent_stopped',
               agentId: agentId,
-              agentName: agent?.name || 'Agent',
+              agentName: prevAgent?.name || 'Agent',
               userId: userId,
               timestamp: new Date().toISOString(),
               isActive: false,

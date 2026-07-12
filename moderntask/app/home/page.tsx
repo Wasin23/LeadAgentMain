@@ -60,6 +60,7 @@ export default function DashboardPage() {
   const [counts, setCounts] = useState({ sent: 0, queued: 0, replied: 0 })
   const [runningAgents, setRunningAgents] = useState(0)
   const [totalAgents, setTotalAgents] = useState(0)
+  const [cyclesCompleted, setCyclesCompleted] = useState(0)
   const [bouncedCount, setBouncedCount] = useState(0)
   const [openedCount, setOpenedCount] = useState(0)
   const [creditBalance, setCreditBalance] = useState<number | null>(null)
@@ -141,7 +142,11 @@ export default function DashboardPage() {
         (a) => a.isRunning === true || a.status === "running"
       ).length
       setRunningAgents(running)
-      setTotalAgents(agents.filter(a => a.agentId !== "orphan").length)
+      const nonOrphanAgents = agents.filter(a => a.agentId !== "orphan")
+      setTotalAgents(nonOrphanAgents.length)
+      // "Cycles Completed" = number of full start→stop sessions across all
+      // agents, persisted per-agent as runSessionCount and incremented on stop.
+      setCyclesCompleted(nonOrphanAgents.reduce((sum, a) => sum + ((a.runSessionCount as number) || 0), 0))
 
       const dayAgo = Date.now() - 86400000
 
@@ -344,7 +349,7 @@ export default function DashboardPage() {
             sent={counts.sent}
             queued={counts.queued}
             runningAgents={runningAgents}
-            cyclesCompleted={counts.replied}
+            cyclesCompleted={cyclesCompleted}
             replies={counts.replied}
             totalAgents={totalAgents}
             followUpCount={followUps.length}

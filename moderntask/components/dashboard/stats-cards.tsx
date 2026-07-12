@@ -180,7 +180,7 @@ export function StatsCards({ sent = 0, queued = 0, runningAgents = 0, cyclesComp
     replies:         { title: "Replies Received",    value: replies.toLocaleString(),         increase: "All time",          icon: MessageSquare, tone: "moss" },
     "reply-rate":    { title: "Reply Rate",          value: replyRate,                        subtitle: "Replies vs. sent",  icon: BarChart3,    tone: "lilac" },
     agents:          { title: "Running Agents",      value: runningAgents.toLocaleString(),   increase: "Active right now",  icon: Bot,          tone: "amber" },
-    cycles:          { title: "Cycles Completed",    value: cyclesCompleted.toLocaleString(), subtitle: "Past 24 hours",     icon: RefreshCw,    tone: "sage" },
+    cycles:          { title: "Cycles Completed",    value: cyclesCompleted.toLocaleString(), increase: "All time",          icon: RefreshCw,    tone: "sage" },
     "total-agents":  { title: "Total Agents",        value: totalAgents.toLocaleString(),     increase: "Created",           icon: Bot,          tone: "lilac" },
     followups:       { title: "Pending Follow-ups",  value: followUpCount.toLocaleString(),   increase: "Awaiting send",     icon: Repeat,       tone: "amber" },
     scheduled:       { title: "Scheduled Emails",    value: scheduledCount.toLocaleString(),  increase: "In queue",          icon: CalendarClock, tone: "sage" },
