@@ -6,6 +6,7 @@ import api from '@/lib/api'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useToast } from '@/hooks/use-toast'
 import {
   CheckCircle2, XCircle,
@@ -15,7 +16,7 @@ import {
   ChevronRight, ChevronsRight, X, CalendarClock, Calendar,
   Settings2, Save, Search, FileText, ExternalLink,
   MoreHorizontal, Wrench, Loader2, Sparkles, Trash2, ListChecks,
-  ArrowLeftRight, Mail, ChevronDown,
+  ArrowLeftRight, Mail, ChevronDown, Info,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CopyChip } from '@/components/leads/leads-content'
@@ -1138,6 +1139,9 @@ export function StrengthsConcernsVenn({ report }: { report: Pick<AIReport, 'keyS
   const consensus = report.buyerMotivation
     ? report.buyerMotivation.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean)
     : (report.citedEvidence?.slice(0, 1).map(e => e.fact) || [])
+  // Past this length the bullets spill outside the circle's overlap area —
+  // collapse to an info popover instead of letting text render off the shape.
+  const consensusTooLong = consensus.join(' ').length > 160
   return (
     <div className="flex justify-center overflow-x-auto">
       <div className="relative w-[710px] max-w-none h-[440px] shrink-0">
@@ -1154,11 +1158,33 @@ export function StrengthsConcernsVenn({ report }: { report: Pick<AIReport, 'keyS
         {consensus.length > 0 && (
           <div className="absolute left-[265px] top-1/2 w-[180px] -translate-y-1/2 px-4 text-center">
             <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-foreground/70">Consensus</p>
-            <ul className="space-y-2.5">
-              {consensus.map((s, i) => (
-                <li key={i} className="text-xs leading-snug text-foreground/80">{s}</li>
-              ))}
-            </ul>
+            {consensusTooLong ? (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center h-7 w-7 rounded-full border border-border bg-card text-foreground/70 hover:text-foreground hover:bg-accent transition-colors"
+                    title="Read the agent's consensus"
+                  >
+                    <Info className="h-3.5 w-3.5" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="center" className="w-72 text-left">
+                  <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-foreground/70">Consensus</p>
+                  <ul className="space-y-2">
+                    {consensus.map((s, i) => (
+                      <li key={i} className="text-xs leading-relaxed text-foreground/80">{s}</li>
+                    ))}
+                  </ul>
+                </PopoverContent>
+              </Popover>
+            ) : (
+              <ul className="space-y-2.5">
+                {consensus.map((s, i) => (
+                  <li key={i} className="text-xs leading-snug text-foreground/80">{s}</li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
         <div className="absolute right-[40px] top-1/2 w-[190px] -translate-y-1/2 px-5 text-center">
