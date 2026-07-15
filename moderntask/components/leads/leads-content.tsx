@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useSearchParams } from 'next/navigation'
 import api from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import {
@@ -37,6 +38,7 @@ interface AIReport {
   weaknessesShort?: string[]
   citedEvidence?: { fact: string; source: string }[]
   allCitedFacts?: { fact: string; source: string; sourceTitle?: string }[]
+  buyerMotivation?: string
 }
 
 interface LeadRecord {
@@ -174,6 +176,7 @@ const TIER_RANK: Record<string, number> = { HIGHLY_QUALIFIED: 4, QUALIFIED: 3, S
 const CONFIDENCE_RANK: Record<string, number> = { high: 3, medium: 2, low: 1 }
 
 export function LeadsContent() {
+  const searchParams = useSearchParams()
   const [leads, setLeads] = useState<LeadRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [starredIds, setStarredIds] = useState<Set<string>>(new Set())
@@ -237,6 +240,16 @@ export function LeadsContent() {
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  // Deep-link from Outreach's "View Full Lead Report" — jump straight to the lead
+  useEffect(() => {
+    const leadId = searchParams.get('leadId')
+    if (!leadId || leads.length === 0) return
+    if (leads.some(l => l.id === leadId)) {
+      setSelectedId(leadId)
+      setDetailTab('research')
+    }
+  }, [searchParams, leads])
 
   const toggleStar = async (lead: LeadRecord, e: React.MouseEvent) => {
     e.stopPropagation()

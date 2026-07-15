@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import api from '@/lib/api'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -65,6 +66,7 @@ export interface AIReport {
   allCitedFacts?: { fact: string; source: string; sourceTitle?: string }[]
   evaluatedAt: string
   researchQuality?: string
+  buyerMotivation?: string
 }
 
 // Strips the compliance footer (company branding + unsubscribe link) from a draft body
@@ -764,14 +766,13 @@ function CompactEmailRow({ email, agentMap, active, selected, onActivate, onTogg
 }
 
 // ── email row ─────────────────────────────────────────────────────────────────
-function EmailRow({ email, agentMap, selected, onSelect, fontSize, actions, onEdit, onSchedule, onCancelSchedule, onCancelAutoSchedule, autoScheduleDate, onViewReport, onRebuild, forceExpanded, hideSelect }: {
+function EmailRow({ email, agentMap, selected, onSelect, fontSize, actions, onEdit, onSchedule, onCancelSchedule, onCancelAutoSchedule, autoScheduleDate, onRebuild, forceExpanded, hideSelect }: {
   email: QueueEmail; agentMap: Record<string, Agent>
   selected: boolean; onSelect: (id: string) => void
   fontSize: number; actions?: React.ReactNode; onEdit?: () => void; onSchedule?: () => void
   onCancelSchedule?: () => void
   onCancelAutoSchedule?: () => void
   autoScheduleDate?: Date
-  onViewReport?: () => void
   onRebuild?: () => void
   forceExpanded?: boolean
   hideSelect?: boolean
@@ -846,15 +847,6 @@ function EmailRow({ email, agentMap, selected, onSelect, fontSize, actions, onEd
                     </span>
                   )}
                 </Badge>
-              )}
-              {email.aiReport && onViewReport && (
-                <button
-                  onClick={e => { e.stopPropagation(); onViewReport() }}
-                  className="flex items-center gap-1 text-blue-400 hover:text-blue-300 transition-colors"
-                >
-                  <FileText className="w-2.5 h-2.5" />
-                  <span>View Report</span>
-                </button>
               )}
             </div>
           </button>
@@ -1135,11 +1127,17 @@ function Empty({ icon: Icon, text, sub }: { icon: React.ElementType; text: strin
 }
 
 // ── strengths vs concerns venn — shared by the full report modal and the venn-only modal ──
-export function StrengthsConcernsVenn({ report }: { report: Pick<AIReport, 'keyStrengths' | 'weaknesses' | 'keyStrengthsShort' | 'weaknessesShort' | 'citedEvidence'> }) {
+export function StrengthsConcernsVenn({ report }: { report: Pick<AIReport, 'keyStrengths' | 'weaknesses' | 'keyStrengthsShort' | 'weaknessesShort' | 'citedEvidence' | 'buyerMotivation'> }) {
   // Prefer the short, venn-specific phrasing; fall back to the full text for
   // leads scored before the short fields existed.
   const strengths = (report.keyStrengthsShort?.length ? report.keyStrengthsShort : report.keyStrengths) || []
   const concerns = (report.weaknessesShort?.length ? report.weaknessesShort : report.weaknesses) || []
+  // Consensus = the agent's own synthesized take on why this lead would buy,
+  // split into sentence-sized statements. Falls back to a raw cited fact for
+  // leads scored before buyerMotivation was captured on the frontend type.
+  const consensus = report.buyerMotivation
+    ? report.buyerMotivation.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean)
+    : (report.citedEvidence?.slice(0, 1).map(e => e.fact) || [])
   return (
     <div className="flex justify-center overflow-x-auto">
       <div className="relative w-[710px] max-w-none h-[440px] shrink-0">
@@ -1153,12 +1151,12 @@ export function StrengthsConcernsVenn({ report }: { report: Pick<AIReport, 'keyS
             ))}
           </ul>
         </div>
-        {report.citedEvidence && report.citedEvidence.length > 0 && (
+        {consensus.length > 0 && (
           <div className="absolute left-[265px] top-1/2 w-[180px] -translate-y-1/2 px-4 text-center">
-            <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-foreground/70">General Facts</p>
+            <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-foreground/70">Consensus</p>
             <ul className="space-y-2.5">
-              {report.citedEvidence.slice(0, 1).map((e, i) => (
-                <li key={i} className="text-xs leading-snug text-foreground/80">{e.fact}</li>
+              {consensus.map((s, i) => (
+                <li key={i} className="text-xs leading-snug text-foreground/80">{s}</li>
               ))}
             </ul>
           </div>
@@ -1177,7 +1175,8 @@ export function StrengthsConcernsVenn({ report }: { report: Pick<AIReport, 'keyS
 }
 
 // ── AI report modal ───────────────────────────────────────────────────────────
-export function AIReportModal({ report, onClose }: { report: AIReport; onClose: () => void }) {
+export function AIReportModal({ report, onClose, leadId }: { report: AIReport; onClose: () => void; leadId?: string }) {
+  const router = useRouter()
   const tierColors = {
     HIGHLY_QUALIFIED: 'bg-green-500/10 text-green-500 border-green-500/30',
     QUALIFIED: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
@@ -1222,6 +1221,15 @@ export function AIReportModal({ report, onClose }: { report: AIReport; onClose: 
                   {tierLabels[report.tier]}
                 </Badge>
               </div>
+              {leadId && (
+                <button
+                  onClick={() => router.push(`/leads?leadId=${encodeURIComponent(leadId)}`)}
+                  className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:opacity-80 transition-opacity"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  View this lead in Leads
+                </button>
+              )}
             </div>
             <button onClick={onClose} className="p-2 hover:bg-muted rounded-lg transition-colors ml-4">
               <X className="w-6 h-6 text-muted-foreground" />
@@ -1326,6 +1334,7 @@ export function AIReportModal({ report, onClose }: { report: AIReport; onClose: 
 
 // ── context pane (right column of the 3-pane Awaiting Review layout) ────────
 function ContextPane({ email, agentMap }: { email: QueueEmail | null; agentMap: Record<string, Agent> }) {
+  const [viewingReport, setViewingReport] = useState(false)
   if (!email) {
     return (
       <div className="min-w-0 rounded-2xl border border-border bg-card p-4 text-xs text-muted-foreground">
@@ -1391,13 +1400,19 @@ function ContextPane({ email, agentMap }: { email: QueueEmail | null; agentMap: 
         <p className="text-xs font-medium text-foreground">{agent?.name || '-'}</p>
       </div>
 
-      <button
-        onClick={() => window.location.href = '/leads'}
-        className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-foreground hover:bg-accent"
-      >
-        View Full Lead Report
-        <ExternalLink className="h-3.5 w-3.5" />
-      </button>
+      {report && (
+        <button
+          onClick={() => setViewingReport(true)}
+          className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium text-foreground hover:bg-accent"
+        >
+          View Full Lead Report
+          <ExternalLink className="h-3.5 w-3.5" />
+        </button>
+      )}
+
+      {viewingReport && report && (
+        <AIReportModal report={report} leadId={email.id} onClose={() => setViewingReport(false)} />
+      )}
     </div>
   )
 }
@@ -1421,7 +1436,6 @@ function QueuedList({ agentId, agentMap, fontSize, setFontSize, onCountChange, a
   const [scheduleTarget, setScheduleTarget] = useState<QueueEmail | null>(null)
   const [rebuildTarget, setRebuildTarget] = useState<QueueEmail | null>(null)
   const [showMassReEdit, setShowMassReEdit] = useState(false)
-  const [viewingAiReport, setViewingAiReport] = useState<AIReport | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const LIMIT = 20
 
@@ -1727,7 +1741,6 @@ function QueuedList({ agentId, agentMap, fontSize, setFontSize, onCountChange, a
                 onEdit={() => setEditTarget(active)}
                 onSchedule={() => setScheduleTarget(active)}
                 onRebuild={() => setRebuildTarget(active)}
-                onViewReport={active.aiReport ? () => setViewingAiReport(active.aiReport!) : undefined}
                 onCancelSchedule={active.scheduledAt ? () => scheduleEmail(active.id, null, active.agentId) : undefined}
                 onCancelAutoSchedule={autoSendDates.has(active.id) ? async () => {
                   setExcludedAuto(s => { const n = new Set(s); n.add(active.id); return n })
@@ -1761,7 +1774,6 @@ function QueuedList({ agentId, agentMap, fontSize, setFontSize, onCountChange, a
       {scheduleTarget  && <ScheduleModal email={scheduleTarget} onSave={scheduleEmail} onClose={() => setScheduleTarget(null)} />}
       {rebuildTarget   && <RebuildModal  email={rebuildTarget}  onSave={saveEdit}    onClose={() => setRebuildTarget(null)} />}
       {showMassReEdit && <MassReEditModal emails={emails.filter(e => selected.has(e.id))} onSave={saveEdit} onClose={() => { setShowMassReEdit(false); load(offset) }} />}
-      {viewingAiReport && <AIReportModal report={viewingAiReport} onClose={() => setViewingAiReport(null)} />}
     </div>
   )
 }

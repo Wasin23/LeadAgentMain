@@ -77,7 +77,20 @@ class OutlookManager {
 
     if (!currentAccount.accessToken || this.isTokenExpired(currentAccount.expiresAt)) {
       console.log(`🔄 [OUTLOOK] Refreshing access token for ${currentAccount.email}`);
-      const refreshed = await this.refreshAccessTokenPayload(currentAccount.refreshToken);
+      let refreshed;
+      try {
+        refreshed = await this.refreshAccessTokenPayload(currentAccount.refreshToken);
+      } catch (error) {
+        const isInvalidGrant = error.response?.data?.error === 'invalid_grant';
+        awsManager.addIssue(
+          userId,
+          'email',
+          'Outlook Connection Expired',
+          `Your Outlook connection for ${currentAccount.email} ${isInvalidGrant ? 'has expired and needs to be reconnected' : 'failed to refresh'} in Settings before agents can send from it.`,
+          { severity: 'high', provider: 'outlook', account: currentAccount.email }
+        ).catch(err => console.error('[OUTLOOK] Failed to persist token-refresh issue:', err.message));
+        throw error;
+      }
 
       currentAccount.accessToken = refreshed.access_token;
       currentAccount.refreshToken = refreshed.refresh_token || currentAccount.refreshToken;

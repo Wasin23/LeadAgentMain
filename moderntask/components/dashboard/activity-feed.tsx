@@ -22,6 +22,10 @@ interface ActivityFeedProps {
 }
 
 type FeedKind = "notification" | "activity"
+// Normalized severity, independent of which of the two upstream vocabularies
+// (critical/high/medium/low from notifications, error/warning/success/info
+// from the monitoring/activity feed) an entry came from.
+type Severity = "critical" | "warning" | "success" | "neutral"
 interface FeedEntry {
   kind: FeedKind
   id: string
@@ -31,7 +35,16 @@ interface FeedEntry {
   isIssue: boolean
   isCycle: boolean
   isAgent: boolean
+  severity: Severity
   type?: string
+}
+
+function normalizeSeverity(raw: string | undefined, isCycle: boolean): Severity {
+  const s = (raw || "").toLowerCase()
+  if (s === "critical" || s === "high" || s === "error") return "critical"
+  if (s === "medium" || s === "warning") return "warning"
+  if (s === "success" || isCycle) return "success"
+  return "neutral"
 }
 
 type Filter = "all" | "agents" | "cycles" | "issues"
@@ -46,9 +59,12 @@ function typeIcon(entry: FeedEntry) {
 }
 
 function iconColors(entry: FeedEntry): string {
-  if (entry.isIssue) return "bg-danger-soft text-danger-soft-foreground"
-  if (entry.isCycle) return "bg-success-soft text-success-soft-foreground"
-  return "bg-muted text-muted-foreground"
+  switch (entry.severity) {
+    case "critical": return "bg-danger-soft text-danger-soft-foreground"
+    case "warning": return "bg-warning-soft text-warning-soft-foreground"
+    case "success": return "bg-success-soft text-success-soft-foreground"
+    default: return "bg-muted text-muted-foreground"
+  }
 }
 
 function timeAgo(dateStr: string): string {
@@ -88,18 +104,24 @@ export function ActivityFeed({ notifications = [], exportState = null }: Activit
       isIssue: n.severity === "critical" || n.severity === "high",
       isCycle: false,
       isAgent: n.type === "agent",
+      severity: normalizeSeverity(n.severity, false),
       type: n.type,
     })),
-    ...rawActivities.map((a, i): FeedEntry => ({
-      kind: "activity",
-      id: `act-${i}-${a.timestamp}`,
-      title: a.title || a.message || "Activity",
-      message: a.details,
-      timestamp: a.timestamp,
-      isIssue: a.activityType === "issue" || a.category === "issue",
-      isCycle: a.title?.toLowerCase().includes("cycle") || a.category === "cycle",
-      isAgent: ["agent", "bot"].some((kw: string) => a.title?.toLowerCase().includes(kw)),
-    })),
+    ...rawActivities.map((a, i): FeedEntry => {
+      const isCycle = a.title?.toLowerCase().includes("cycle") || a.category === "cycle"
+      return {
+        kind: "activity",
+        id: `act-${i}-${a.timestamp}`,
+        title: a.title || a.message || "Activity",
+        message: a.details,
+        timestamp: a.timestamp,
+        isIssue: a.activityType === "issue" || a.category === "issue",
+        isCycle,
+        isAgent: ["agent", "bot"].some((kw: string) => a.title?.toLowerCase().includes(kw)),
+        // /api/monitoring/activity already normalizes to type: 'error'|'warning'|'success'|'info'
+        severity: normalizeSeverity(a.type, isCycle),
+      }
+    }),
   ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 
   const filtered = entries.filter(e => {
@@ -138,6 +160,13 @@ export function ActivityFeed({ notifications = [], exportState = null }: Activit
             {exportState.loading ? "Loading…" : "Export Report (.csv)"}
           </button>
         )}
+      </div>
+
+      <div className="mt-1.5 flex items-center gap-3 text-[10px] text-muted-foreground">
+        <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-danger-soft-foreground" />Critical</span>
+        <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-warning-soft-foreground" />Warning</span>
+        <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-success-soft-foreground" />Success</span>
+        <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />Info</span>
       </div>
 
       {loading ? (

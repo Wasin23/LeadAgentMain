@@ -188,28 +188,37 @@ class CircuitBreaker {
   }
   
   // Log circuit opened event to monitoring
+  //
+  // This is a shared-service event (Apollo/Mailgun/etc. affects every user of
+  // that provider, not one account), so it can't honestly be filed as a
+  // per-user awsManager.addIssue() — that table is keyed by userId, and the
+  // previous version here passed the literal string 'system' as the userId,
+  // which orphaned every one of these from any real account's issue feed
+  // (they were written to the DB but never appeared to anyone). Broadcasting
+  // live via SSE instead reaches every currently-connected client immediately,
+  // which is the honest scope for a shared-service outage.
   async logCircuitOpened(service, failures) {
+    const title = `Circuit Breaker: ${this.config[service].name} Opened`;
+    const message = `${failures} consecutive failures detected. Operations paused for ${this.getCooldownTime(service)}.`;
+    console.error(`❌ [CIRCUIT BREAKER] ${title} — ${message}`);
     try {
-      // Import AWS manager to log issue
-      const AWSManager = (await import('./awsManager.js')).default;
-      const awsManager = new AWSManager();
-      
-      await awsManager.addIssue(
-        'system', // System-level issue
-        'error',
-        `Circuit Breaker: ${this.config[service].name} Opened`,
-        `${failures} consecutive failures detected. Operations paused for ${this.getCooldownTime(service)}.`,
-        {
+      const { broadcastActivity } = await import('../routes/monitoring.js');
+      broadcastActivity({
+        type: 'error',
+        category: 'system',
+        title,
+        message,
+        timestamp: new Date().toISOString(),
+        metadata: {
           service,
           failures,
           threshold: this.config[service].threshold,
           cooldown: this.config[service].cooldownMs,
           openedAt: this.openedAt.get(service),
-          timestamp: new Date().toISOString()
         }
-      );
+      });
     } catch (error) {
-      console.error('❌ [CIRCUIT BREAKER] Failed to log issue:', error);
+      console.error('❌ [CIRCUIT BREAKER] Failed to broadcast issue:', error);
     }
   }
 }

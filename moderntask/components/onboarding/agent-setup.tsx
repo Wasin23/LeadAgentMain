@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Lightbulb, Check, Plus, AlertTriangle, AlertCircle, Reply, Eye, Calendar, XCircle, Mail, MessageSquare, CheckCircle2 } from 'lucide-react'
 import api from '@/lib/api'
 import GlobeBackground from '@/components/onboarding/globe-background'
+import { useToast } from '@/hooks/use-toast'
 
 // Personality types data
 const PERSONALITY_TYPES = [
@@ -146,6 +147,7 @@ interface Props {
 }
 
 export default function AgentSetup({ onComplete, onSkip }: Props) {
+  const { toast } = useToast()
   const [step, setStep] = useState<Step>('intro')
   const [showIntroSlideshow, setShowIntroSlideshow] = useState(false)
   const [introSlide, setIntroSlide] = useState(0)
@@ -223,7 +225,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
         jobTitles: a.jobTitles?.length ? a.jobTitles : s.jobTitles,
       }))
     } catch {
-      alert('Could not autofill - make sure your Company Profile is filled out in Settings.')
+      toast({ title: 'Could not autofill', description: 'Make sure your Company Profile is filled out in Settings.', variant: 'destructive', duration: 4000 })
     } finally {
       setAutofilling(false)
     }
@@ -978,7 +980,7 @@ export default function AgentSetup({ onComplete, onSkip }: Props) {
                   if (!settings.industries.length) missing.push('Target Industries')
                   if (!settings.jobTitles.length) missing.push('Target Positions')
                   if (!settings.leadsPerCycle) missing.push('Leads Per Cycle')
-                  if (missing.length) { alert(`Please fill in:\n• ${missing.join('\n• ')}`); return }
+                  if (missing.length) { toast({ title: 'Please fill in the required fields', description: missing.join(', '), variant: 'destructive', duration: 4000 }); return }
                   setPresetJson(JSON.stringify(settings))
                   next()
                 }}

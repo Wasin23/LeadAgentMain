@@ -346,9 +346,16 @@ class GmailManager {
       
       // If refresh token expired, user needs to reconnect
       if (error.message?.includes('invalid_grant') || error.message?.includes('Token has been expired')) {
+        awsManager.addIssue(
+          userId,
+          'email',
+          'Gmail Connection Expired',
+          'Your Gmail connection has expired and needs to be reconnected in Settings before this agent can send email from it.',
+          { severity: 'high', provider: 'gmail' }
+        ).catch(err => console.error('[GMAIL] Failed to persist token-expired issue:', err.message));
         throw new Error('Gmail connection expired. Please reconnect your Gmail account in settings.');
       }
-      
+
       throw error;
     }
   }

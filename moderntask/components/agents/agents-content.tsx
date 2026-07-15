@@ -125,6 +125,7 @@ function AgentCard({
   onCopySettings: (fromAgentId: string, toAgentId: string) => void
 }) {
   const [showCopyMenu, setShowCopyMenu] = useState(false)
+  const { toast } = useToast()
   const personalityType = agent.personality?.type ?? 'hunter'
   const avatar = agent.personality?.avatar ?? null
   const personalityName = agent.personality?.name ?? personalityType
@@ -145,7 +146,7 @@ function AgentCard({
       await api.post('/api/lead-agent/settings', { ...(agent.settings ?? {}), agentId: agent.agentId, concurrencyLevel: clamped })
       onSettingsChange(agent.agentId)
     } catch (error: any) {
-      alert(error?.response?.data?.error || 'Failed to update concurrency')
+      toast({ title: 'Failed to update concurrency', description: error?.response?.data?.error, variant: 'destructive', duration: 4000 })
     }
   }
 

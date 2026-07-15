@@ -15,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 // ─────────────────────────────────────────────────────
@@ -658,12 +659,14 @@ function UnlockCriteriaDialog({ open, onOpenChange, onUnlock }: {
 export default function AgentSettingsPage({ params }: { params: Promise<{ agentId: string }> }) {
   const resolvedParams = use(params);
   const router = useRouter();
+  const { toast } = useToast();
 
   const [settings, setSettings] = useState<AgentSettings>(defaultSettings);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [agentName, setAgentName] = useState('Agent');
+  const [agentRunning, setAgentRunning] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastSavedSettings, setLastSavedSettings] = useState<AgentSettings | null>(null);
   const [planStatus, setPlanStatus] = useState<PlanStatusResponse | null>(null);
@@ -710,7 +713,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
         setResetWebsiteUrl('');
       }
     } catch {
-      alert('Failed to scrape website. Check the URL and try again.');
+      toast({ title: 'Failed to scrape website', description: 'Check the URL and try again.', variant: 'destructive', duration: 4000 });
     } finally {
       setResetScraping(false);
     }
@@ -736,7 +739,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
         },
       }));
     } catch {
-      alert('Could not autofill - make sure your Company Profile is filled out in Settings.');
+      toast({ title: 'Could not autofill', description: 'Make sure your Company Profile is filled out in Settings.', variant: 'destructive', duration: 4000 });
     } finally {
       setAutofilling(false);
     }
@@ -755,6 +758,17 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
     fetchSettings();
     fetchPresets();
     fetchRubrics();
+  }, [resolvedParams.agentId]);
+
+  // Poll running status only (not full settings) so the form unlocks shortly
+  // after the agent is stopped elsewhere, without clobbering in-progress edits.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      api.get(`/api/lead-agent/status?agentId=${resolvedParams.agentId}`)
+        .then(res => setAgentRunning(!!res.data?.isActive))
+        .catch(() => {});
+    }, 15000);
+    return () => clearInterval(interval);
   }, [resolvedParams.agentId]);
 
   const fetchPresets = async () => {
@@ -776,13 +790,15 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
   const fetchSettings = async () => {
     try {
       setIsLoading(true);
-      const [res, planRes] = await Promise.all([
+      const [res, planRes, statusRes] = await Promise.all([
         api.get(`/api/lead-agent/settings?agentId=${resolvedParams.agentId}`),
         api.get('/api/plans/status').catch(() => null),
+        api.get(`/api/lead-agent/status?agentId=${resolvedParams.agentId}`).catch(() => null),
       ]);
       if (planRes?.data?.success) {
         setPlanStatus(planRes.data);
       }
+      setAgentRunning(!!statusRes?.data?.isActive);
       if (res.data.settings) {
         const s = res.data.settings;
         const u = s.userSettings || s.leadGeneration || s;
@@ -881,7 +897,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
 
   // ── auto-save ──
   const autoSave = useCallback(async () => {
-    if (!hasUnsavedChanges || isSaving) return;
+    if (!hasUnsavedChanges || isSaving || agentRunning) return;
     setSaveStatus('saving');
     try {
       await api.post('/api/lead-agent/settings', { ...settings, agentId: resolvedParams.agentId });
@@ -890,7 +906,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
       setHasUnsavedChanges(false);
       setTimeout(() => setSaveStatus('idle'), 2000);
     } catch { setSaveStatus('error'); setTimeout(() => setSaveStatus('idle'), 3000); }
-  }, [settings, resolvedParams.agentId, hasUnsavedChanges, isSaving]);
+  }, [settings, resolvedParams.agentId, hasUnsavedChanges, isSaving, agentRunning]);
 
   useEffect(() => {
     if (!hasUnsavedChanges) return;
@@ -900,6 +916,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
 
   // ── manual save ──
   const saveSettings = async () => {
+    if (agentRunning) return;
     setIsSaving(true);
     setSaveStatus('saving');
     try {
@@ -1020,7 +1037,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                 {saveStatus === 'error' && <span className="flex items-center gap-1.5 text-destructive"><AlertCircle className="h-4 w-4" />Save failed</span>}
                 {saveStatus === 'idle' && hasUnsavedChanges && <span className="text-yellow-500">Unsaved changes</span>}
               </div>
-              <Button disabled={isSaving || !hasUnsavedChanges} onClick={saveSettings}>
+              <Button disabled={isSaving || !hasUnsavedChanges || agentRunning} onClick={saveSettings}>
                 {isSaving ? <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" />Saving…</> : 'Save'}
               </Button>
             </div>
@@ -1055,6 +1072,15 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
               </div>
             </button>
           </div>
+
+          {agentRunning && activeTab !== null && (
+            <div className="w-full flex items-center gap-2 rounded-xl border border-amber-400/40 bg-amber-50 dark:bg-amber-950/20 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+              <Lock className="w-4 h-4 shrink-0" />
+              Settings are locked while this agent is running — stop it to make changes.
+            </div>
+          )}
+
+          <div className={cn('w-full space-y-5', agentRunning && 'opacity-50 pointer-events-none select-none')}>
 
           {activeTab === 'research' && (<>
 
@@ -1778,11 +1804,13 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
 
           </>)}
 
+          </div>
+
           {/* Bottom Save */}
           {activeTab !== null && (
             <div className="flex items-center justify-between pt-4 border-t border-border pb-8">
-              <p className="text-sm text-muted-foreground">{hasUnsavedChanges ? 'You have unsaved changes' : 'All changes saved'}</p>
-              <Button size="lg" disabled={isSaving || !hasUnsavedChanges} onClick={saveSettings}>
+              <p className="text-sm text-muted-foreground">{agentRunning ? 'Stop the agent to make changes' : hasUnsavedChanges ? 'You have unsaved changes' : 'All changes saved'}</p>
+              <Button size="lg" disabled={isSaving || !hasUnsavedChanges || agentRunning} onClick={saveSettings}>
                 {isSaving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving…</> : 'Save All Changes'}
               </Button>
             </div>

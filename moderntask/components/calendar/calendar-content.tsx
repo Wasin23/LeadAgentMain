@@ -50,7 +50,7 @@ export function CalendarContent() {
               </div>
             ))}
           </div>
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-7 gap-2 rounded-xl bg-muted/30 p-2">
             {daysInMonth.map((day) => (
               <button
                 key={day}
@@ -60,7 +60,7 @@ export function CalendarContent() {
                   ${
                     day === today
                       ? "bg-primary text-primary-foreground shadow-lg"
-                      : "hover:bg-secondary text-foreground"
+                      : "bg-card hover:bg-secondary text-foreground"
                   }
                   ${day < today ? "opacity-40" : ""}
                 `}

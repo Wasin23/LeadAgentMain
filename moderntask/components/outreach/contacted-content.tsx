@@ -832,6 +832,7 @@ export function ContactedContent() {
   const [selectedIds, setSelectedIds]     = useState<Set<string>>(new Set())
   const [editFollowUpEmail, setEditFollowUpEmail] = useState<AnalyticsEmail | null>(null)
   const [activeReport, setActiveReport]           = useState<AIReport | null>(null)
+  const [activeReportLeadId, setActiveReportLeadId] = useState<string | undefined>(undefined)
   const [showMassReschedule, setShowMassReschedule]       = useState(false)
   const [showMassFollowUpModal, setShowMassFollowUpModal] = useState(false)
   const [saved, setSaved]                 = useState(false)
@@ -1114,7 +1115,7 @@ export function ContactedContent() {
                         onScheduleFollowUp={scheduleFollowUp}
                         onSendNow={retryFollowUp}
                         onCancelAllFollowUps={cancelFollowUp}
-                        onViewReport={e.aiReport ? () => setActiveReport(e.aiReport!) : undefined}
+                        onViewReport={e.aiReport ? () => { setActiveReport(e.aiReport!); setActiveReportLeadId(emailId(e)) } : undefined}
                         selectionMode={selectionMode}
                         selected={selectedIds.has(emailId(e))}
                         onToggleSelect={() => setSelectedIds(prev => { const s = new Set(prev); s.has(emailId(e)) ? s.delete(emailId(e)) : s.add(emailId(e)); return s })}
@@ -1439,7 +1440,7 @@ export function ContactedContent() {
       )}
 
       {/* modals */}
-      {activeReport && <AIReportModal report={activeReport} onClose={() => setActiveReport(null)} />}
+      {activeReport && <AIReportModal report={activeReport} leadId={activeReportLeadId} onClose={() => { setActiveReport(null); setActiveReportLeadId(undefined) }} />}
       {editFollowUpEmail && <EditFollowUpModal email={editFollowUpEmail} onClose={() => setEditFollowUpEmail(null)} onSaved={load} />}
       {showMassReschedule && (
         <MassRescheduleModal emails={sent.filter(e => selectedIds.has(emailId(e)))} onClose={() => setShowMassReschedule(false)}

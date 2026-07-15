@@ -806,7 +806,8 @@ research later, so how you phrase it determines whether it can ever be verified)
       '💭 Agent Activity',
       '✅ Process Complete',
       '🔗 CRM Sync',
-      'Rubric Build'
+      'Rubric Build',
+      'Keyword Discovery'
     ];
 
     if (broadcastableOperations.includes(operation)) {
@@ -6820,7 +6821,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       ].filter(Boolean).join(' | ') || 'Not specified';
 
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o-mini',
         messages: [{
           role: 'user',
           content: `Does the job title "${position}" realistically appear on LinkedIn/Apollo profiles at companies in the "${keyword}" industry? Would someone actually list this exact title (or a close variant)?
@@ -6888,7 +6889,7 @@ Format as JSON array of objects:
 ]`;
 
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
         max_tokens: 300
@@ -6913,19 +6914,23 @@ Format as JSON array of objects:
       if (Array.isArray(pairs) && pairs.length > 0) {
         const industries = pairs.map(p => p.industry?.toLowerCase()).filter(Boolean).slice(0, 5);
         const positions = pairs.map(p => p.position).filter(Boolean).slice(0, 5);
-        
+
         this.memory.aiGeneratedKeywords = industries;
         this.memory.aiGeneratedPositions = positions;
         this.memory.aiKeywordCycleCount++;
-        
-        for (let i = 0; i < industries.length; i++) {
-        }
+
+        this.logOperation('Keyword Discovery',
+          `Found ${industries.length} new industry/role combo${industries.length === 1 ? '' : 's'} to try: ${industries.map((ind, i) => `${ind} (${positions[i] || '?'})`).join(', ')}`,
+          'info', { stage: 'new_keywords_generated', industries, positions });
       } else {
         throw new Error('No valid pairs generated');
       }
-      
+
     } catch (error) {
       console.error('❌ [AI GENERATION ERROR]', error.message);
+      this.logOperation('Keyword Discovery',
+        `Couldn't come up with new industries/roles to try (${error.message}) — sticking with the current targeting until the next attempt`,
+        'warning', { stage: 'new_keywords_failed', error: error.message });
       // Fallback: keep current arrays empty (will use base pairs)
       this.memory.aiGeneratedKeywords = [];
       this.memory.aiGeneratedPositions = [];
@@ -6968,7 +6973,7 @@ Requirements:
 Specific Niche Keywords:`;
 
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
         max_tokens: 100
@@ -7033,7 +7038,7 @@ Requirements:
 Target Positions:`;
 
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
         max_tokens: 150
@@ -8246,6 +8251,15 @@ Target Positions:`;
             };
             console.warn(`[CRM SYNC] Failed to sync: ${syncResult.error}`);
             this.logOperation('🔗 CRM Sync', `CRM sync failed for ${leadData.name || leadData.first_name} - ${syncResult.error}`, 'failed', { phase: 'crm_sync_failed', error: syncResult.error, contactName: leadData.name || leadData.first_name });
+            // logOperation above is live-only (SSE) — also persist so this survives
+            // a page refresh instead of only being visible in the moment it happens.
+            this.awsManager.addIssue(
+              this.userId,
+              'crm',
+              'CRM Sync Failed',
+              `${leadData.name || leadData.first_name} couldn't be synced to ${syncResult.crmIntegration || user?.crmIntegration || 'your CRM'}: ${syncResult.error || 'unknown error'}`,
+              { severity: 'medium', agentId: this.agentId, contactName: leadData.name || leadData.first_name, crmIntegration: syncResult.crmIntegration || user?.crmIntegration }
+            ).catch(err => console.error('[CRM SYNC] Failed to persist issue:', err.message));
           }
         } else {
           const skipReason = !user ? 'user not found' : 
