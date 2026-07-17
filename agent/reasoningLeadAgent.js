@@ -44,6 +44,24 @@ const QUALIFICATION_SCORE_BOOTSTRAP = [
   0.0005, 0.0065, 0.0098, 0.0187, 0.0289, 0.0377, 0.049, 0.0747, 0.0879, 0.1345, 0.1914, 0.3291, 0.8181
 ];
 
+// Used to broaden a zero-result "City, ST" Apollo location filter to the full
+// state name (Apollo's documented examples use full names like "california",
+// not abbreviations) before retrying — see the location-broadening fallback
+// in leadSearch().
+const US_STATE_NAMES_BY_ABBREV = {
+  AL: 'Alabama', AK: 'Alaska', AZ: 'Arizona', AR: 'Arkansas', CA: 'California',
+  CO: 'Colorado', CT: 'Connecticut', DE: 'Delaware', FL: 'Florida', GA: 'Georgia',
+  HI: 'Hawaii', ID: 'Idaho', IL: 'Illinois', IN: 'Indiana', IA: 'Iowa',
+  KS: 'Kansas', KY: 'Kentucky', LA: 'Louisiana', ME: 'Maine', MD: 'Maryland',
+  MA: 'Massachusetts', MI: 'Michigan', MN: 'Minnesota', MS: 'Mississippi', MO: 'Missouri',
+  MT: 'Montana', NE: 'Nebraska', NV: 'Nevada', NH: 'New Hampshire', NJ: 'New Jersey',
+  NM: 'New Mexico', NY: 'New York', NC: 'North Carolina', ND: 'North Dakota', OH: 'Ohio',
+  OK: 'Oklahoma', OR: 'Oregon', PA: 'Pennsylvania', RI: 'Rhode Island', SC: 'South Carolina',
+  SD: 'South Dakota', TN: 'Tennessee', TX: 'Texas', UT: 'Utah', VT: 'Vermont',
+  VA: 'Virginia', WA: 'Washington', WV: 'West Virginia', WI: 'Wisconsin', WY: 'Wyoming',
+  DC: 'Washington DC',
+};
+
 // ======================
 // MONITORING INTEGRATION
 // ======================
@@ -807,7 +825,8 @@ research later, so how you phrase it determines whether it can ever be verified)
       '✅ Process Complete',
       '🔗 CRM Sync',
       'Rubric Build',
-      'Keyword Discovery'
+      'Keyword Discovery',
+      'Search Strategy Adapted'
     ];
 
     if (broadcastableOperations.includes(operation)) {
@@ -1385,7 +1404,7 @@ research later, so how you phrase it determines whether it can ever be verified)
                 this.memory.searchPageOffset += 5;
                 this.memory.consecutiveDuplicateSearches = 0;
                 this.logOperation(
-                  '🔍 Search Strategy Adapted',
+                  'Search Strategy Adapted',
                   `Exhausted recent leads - now searching deeper pages (${this.memory.searchPageOffset + 1}+) for fresh prospects (no alternative source available)`,
                   'info',
                   { pageOffset: this.memory.searchPageOffset }
@@ -1397,7 +1416,7 @@ research later, so how you phrase it determines whether it can ever be verified)
               this.memory.consecutiveDuplicateSearches = 0;
 
               this.logOperation(
-                '🔍 Search Strategy Adapted',
+                'Search Strategy Adapted',
                 `Exhausted recent leads - now searching deeper pages (${this.memory.searchPageOffset + 1}+) for fresh prospects`,
                 'info',
                 {
@@ -2164,6 +2183,7 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
         
         // Geographic settings (REAL DATA)
         targetLocations: leadContactSettings.geographicSettings?.targetLocations,
+        excludedLocations: leadContactSettings.geographicSettings?.excludedLocations,
         leadLimit: leadContactSettings.geographicSettings?.leadLimit,
         
         // Research focus (REAL DATA)
@@ -6299,6 +6319,14 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         searchPayload.person_locations = userSettings.targetLocations;
       }
 
+      // NOTE: excludedLocations was captured in settings and shown in the UI but
+      // never actually applied anywhere — a real gap. There is no
+      // person_not_locations (or any negative-location) parameter in Apollo's
+      // People Search API — confirmed against Apollo's own docs, which list
+      // person_locations, organization_locations, and nothing exclusionary.
+      // Applied as a post-filter on the response below instead (see
+      // excludedLocations filtering after rawLeads).
+
       // Use the selected keyword (from rotation system) for Apollo search
       searchPayload.q_organization_keyword_tags = [selectedKeyword];
       
@@ -6336,23 +6364,86 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         );
       }
 
-      const response = await fetch('https://api.apollo.io/api/v1/mixed_people/api_search', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache',
-          'X-Api-Key': apiKey
-        },
-        body: JSON.stringify(searchPayload)
-      });
+      const runApolloSearch = async (payload) => {
+        const res = await fetch('https://api.apollo.io/api/v1/mixed_people/api_search', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+            'X-Api-Key': apiKey
+          },
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+        if (!res.ok) {
+          throw new Error(`Apollo API error: ${json.error || res.statusText}`);
+        }
+        return json;
+      };
 
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(`Apollo API error: ${data.error || response.statusText}`);
+      let data = await runApolloSearch(searchPayload);
+
+      // Zero-results handling: a city-level (or otherwise narrow) location
+      // filter can legitimately have no matching people in Apollo's index —
+      // rather than just returning found:0 and letting the caller treat that
+      // like "this whole combo is dead," broaden the location one notch and
+      // retry once before accepting defeat. "City, ST" -> "ST" (full state
+      // name) -> drop the location filter entirely on a second empty result.
+      if ((data.people || []).length === 0 && searchPayload.person_locations?.length > 0) {
+        const original = [...searchPayload.person_locations];
+        const broadened = original
+          .map(loc => {
+            const parts = String(loc).split(',').map(p => p.trim());
+            if (parts.length < 2) return null; // already just a state/country — nothing to strip
+            const stateAbbrev = parts[parts.length - 1];
+            return US_STATE_NAMES_BY_ABBREV[stateAbbrev.toUpperCase()] || stateAbbrev;
+          })
+          .filter(Boolean);
+        const uniqueBroadened = [...new Set(broadened)];
+
+        if (uniqueBroadened.length > 0) {
+          this.logOperation('Search Strategy Adapted',
+            `No results for ${original.join(', ')} — broadening to ${uniqueBroadened.join(', ')} and retrying`,
+            'info', { phase: 'location_broadened', from: original, to: uniqueBroadened });
+          const broadenedPayload = { ...searchPayload, person_locations: uniqueBroadened };
+          const retryData = await runApolloSearch(broadenedPayload);
+          if ((retryData.people || []).length > 0) {
+            data = retryData;
+            searchPayload.person_locations = uniqueBroadened;
+          } else {
+            this.logOperation('Search Strategy Adapted',
+              `Still no results after broadening to ${uniqueBroadened.join(', ')} — dropping the location filter for this search`,
+              'info', { phase: 'location_dropped', from: uniqueBroadened });
+            const noLocationPayload = { ...searchPayload };
+            delete noLocationPayload.person_locations;
+            const finalData = await runApolloSearch(noLocationPayload);
+            if ((finalData.people || []).length > 0) {
+              data = finalData;
+              delete searchPayload.person_locations;
+            }
+          }
+        }
       }
 
-      const rawLeads = data.people || [];
+      let rawLeads = data.people || [];
+
+      // excludedLocations has no equivalent Apollo request parameter (see note
+      // above), so it's applied here as a post-filter against each returned
+      // person's city/state/country. Substring match so "Miami, FL" in the
+      // exclusion list catches a lead with city="Miami", state="Florida", or
+      // any other case/format Apollo happens to return.
+      if (userSettings.excludedLocations && userSettings.excludedLocations.length > 0) {
+        const excluded = userSettings.excludedLocations.map(l => l.toLowerCase());
+        const beforeExclusion = rawLeads.length;
+        rawLeads = rawLeads.filter(lead => {
+          const leadLocation = [lead.city, lead.state, lead.country].filter(Boolean).join(', ').toLowerCase();
+          if (!leadLocation) return true;
+          return !excluded.some(ex => leadLocation.includes(ex) || ex.includes(leadLocation));
+        });
+        if (beforeExclusion !== rawLeads.length) {
+          console.log(`[LOCATION EXCLUDE] Filtered out ${beforeExclusion - rawLeads.length}/${beforeExclusion} leads matching excluded locations: ${userSettings.excludedLocations.join(', ')}`);
+        }
+      }
 
       // Build lead stubs from the FREE search response only — do NOT spend an
       // Apollo enrichment credit here. Enrichment (people/enrich, 1 credit)

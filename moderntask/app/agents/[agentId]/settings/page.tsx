@@ -139,10 +139,25 @@ function LocationTagInput({ values, onChange, placeholder }: {
 }) {
   const [input, setInput] = React.useState('');
   const [showSuggestions, setShowSuggestions] = React.useState(false);
+  const [citySuggestions, setCitySuggestions] = React.useState<string[]>([]);
   const containerRef = React.useRef<HTMLDivElement>(null);
 
-  const suggestions = input.trim().length >= 1
-    ? US_STATES.filter(s => s.toLowerCase().startsWith(input.toLowerCase()) && !values.includes(s)).slice(0, 6)
+  // Debounced, server-side city search — the full ~135k-city dataset lives
+  // only on the server (app/api/cities), never shipped to the client.
+  React.useEffect(() => {
+    const q = input.trim();
+    if (q.length < 1) { setCitySuggestions([]); return; }
+    const t = setTimeout(() => {
+      fetch(`/api/cities?q=${encodeURIComponent(q)}`)
+        .then(r => r.json())
+        .then(d => setCitySuggestions((d.cities || []).filter((c: string) => !values.includes(c))))
+        .catch(() => setCitySuggestions([]));
+    }, 200);
+    return () => clearTimeout(t);
+  }, [input, values]);
+
+  const stateSuggestions = input.trim().length >= 1
+    ? US_STATES.filter(s => s.toLowerCase().startsWith(input.toLowerCase()) && !values.includes(s)).slice(0, 5)
     : [];
 
   const add = (raw: string) => {
@@ -178,11 +193,13 @@ function LocationTagInput({ values, onChange, placeholder }: {
         ))}
         <input
           className="flex-1 min-w-[120px] bg-transparent text-xs outline-none placeholder:text-muted-foreground"
-          placeholder={values.length === 0 ? placeholder : 'Add location…'}
+          placeholder={values.length === 0 ? placeholder : 'City, state, or country…'}
           value={input}
           onChange={e => { setInput(e.target.value); setShowSuggestions(true); }}
           onKeyDown={e => {
-            if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add(input); }
+            // Enter-only submit — city entries ("Austin, TX") contain a comma,
+            // so comma can no longer double as a submit key without breaking them.
+            if (e.key === 'Enter') { e.preventDefault(); add(input); }
             if (e.key === 'Backspace' && !input && values.length) onChange(values.slice(0, -1));
             if (e.key === 'Escape') setShowSuggestions(false);
           }}
@@ -191,11 +208,13 @@ function LocationTagInput({ values, onChange, placeholder }: {
         />
       </div>
 
-      {/* US state suggestions */}
-      {showSuggestions && suggestions.length > 0 && (
-        <div className="absolute z-50 left-0 right-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-lg overflow-hidden">
+      {/* State + city suggestions — city-level targeting needs its own list since
+          Apollo's person_locations filter accepts "City, ST" as a distinct,
+          more precise granularity than state/country alone. */}
+      {showSuggestions && (stateSuggestions.length > 0 || citySuggestions.length > 0) && (
+        <div className="absolute z-50 left-0 right-0 top-full mt-1 max-h-64 overflow-y-auto bg-popover border border-border rounded-lg shadow-lg">
           {!usCovered && (
-            <div className="px-3 py-1.5 border-b border-border flex items-center justify-between">
+            <div className="px-3 py-1.5 border-b border-border flex items-center justify-between sticky top-0 bg-popover">
               <span className="text-[10px] text-muted-foreground">US States</span>
               <button
                 type="button"
@@ -204,14 +223,31 @@ function LocationTagInput({ values, onChange, placeholder }: {
               >+ Add all of United States</button>
             </div>
           )}
-          {suggestions.map(s => (
-            <button
-              key={s}
-              type="button"
-              onMouseDown={e => { e.preventDefault(); add(s); }}
-              className="w-full text-left px-3 py-2 text-xs hover:bg-muted transition-colors"
-            >{s}</button>
-          ))}
+          {stateSuggestions.length > 0 && (
+            <div>
+              {stateSuggestions.map(s => (
+                <button
+                  key={s}
+                  type="button"
+                  onMouseDown={e => { e.preventDefault(); add(s); }}
+                  className="w-full text-left px-3 py-2 text-xs hover:bg-muted transition-colors"
+                >{s}</button>
+              ))}
+            </div>
+          )}
+          {citySuggestions.length > 0 && (
+            <div className="border-t border-border">
+              <p className="px-3 pt-1.5 pb-1 text-[10px] text-muted-foreground">Cities</p>
+              {citySuggestions.map(c => (
+                <button
+                  key={c}
+                  type="button"
+                  onMouseDown={e => { e.preventDefault(); add(c); }}
+                  className="w-full text-left px-3 py-2 text-xs hover:bg-muted transition-colors"
+                >{c}</button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -1394,15 +1430,16 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                 <LocationTagInput
                   values={settings.geographicSettings.targetLocations}
                   onChange={v => updateGeo('targetLocations', v)}
-                  placeholder="e.g. United States"
+                  placeholder="e.g. United States, Texas, or Austin, TX"
                 />
+                <p className="text-xs text-muted-foreground">Country, state, or a specific city — city gives the tightest targeting.</p>
               </div>
               <div className="space-y-1.5">
                 <Label>Excluded Locations</Label>
                 <LocationTagInput
                   values={settings.geographicSettings.excludedLocations}
                   onChange={v => updateGeo('excludedLocations', v)}
-                  placeholder="e.g. Alaska"
+                  placeholder="e.g. Alaska or Miami, FL"
                 />
               </div>
               <div className="space-y-1.5">
