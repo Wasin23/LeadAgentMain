@@ -703,6 +703,14 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [agentName, setAgentName] = useState('Agent');
   const [agentRunning, setAgentRunning] = useState(false);
+
+  // Defensive: force-blur whatever's focused the instant the agent starts
+  // running, in case a field was mid-edit before the status poll caught up.
+  useEffect(() => {
+    if (agentRunning && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+  }, [agentRunning]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastSavedSettings, setLastSavedSettings] = useState<AgentSettings | null>(null);
   const [planStatus, setPlanStatus] = useState<PlanStatusResponse | null>(null);
@@ -796,14 +804,17 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
     fetchRubrics();
   }, [resolvedParams.agentId]);
 
-  // Poll running status only (not full settings) so the form unlocks shortly
-  // after the agent is stopped elsewhere, without clobbering in-progress edits.
+  // Poll running status only (not full settings) so the form locks/unlocks
+  // promptly when the agent is started or stopped elsewhere (e.g. the
+  // Prospecting page), without clobbering in-progress edits by refetching
+  // the whole settings object. 4s keeps the lock window tight without
+  // hammering the endpoint.
   useEffect(() => {
     const interval = setInterval(() => {
       api.get(`/api/lead-agent/status?agentId=${resolvedParams.agentId}`)
         .then(res => setAgentRunning(!!res.data?.isActive))
         .catch(() => {});
-    }, 15000);
+    }, 4000);
     return () => clearInterval(interval);
   }, [resolvedParams.agentId]);
 
@@ -1116,7 +1127,11 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
             </div>
           )}
 
-          <div className={cn('w-full space-y-5', agentRunning && 'opacity-50 pointer-events-none select-none')}>
+          {/* inert (not just pointer-events-none) — pointer-events-none only blocks
+              mouse/touch, it does NOT blur or block keyboard input on a field that
+              already has focus when the agent starts running mid-edit. inert
+              properly disables the whole subtree: focus, clicks, and keystrokes. */}
+          <div inert={agentRunning ? true : undefined} className={cn('w-full space-y-5', agentRunning && 'opacity-50 select-none')}>
 
           {activeTab === 'research' && (<>
 

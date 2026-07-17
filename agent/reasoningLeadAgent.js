@@ -6313,10 +6313,27 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
 
       searchPayload.organization_num_employees_ranges = [`${sizeMin},${sizeMax}`];
 
+      // Apollo's own docs only ever show bare, single-level location terms
+      // ("chicago", "california") — never a combined "City, ST" string. The UI
+      // stores/displays "Los Angeles, CA" (needed to disambiguate cities that
+      // share a name across states), but sending that combined string to
+      // Apollo verbatim appears to match nothing: real-world testing showed
+      // "Los Angeles, CA" returning zero results twice in a row for a city
+      // that obviously has plenty of matches. Strip to just the city name
+      // (text before the first comma) before it goes in the request.
+      const toApolloLocation = (loc) => String(loc).split(',')[0].trim();
+
+      // Keep the original "City, ST" tags around too — the zero-results
+      // broadening fallback below needs the state suffix that toApolloLocation
+      // just stripped, to know what to broaden a dead city search out to.
+      const originalLocationTags = parameters.location
+        ? [parameters.location]
+        : (userSettings.targetLocations || []);
+
       if (parameters.location) {
-        searchPayload.person_locations = [parameters.location];
+        searchPayload.person_locations = [toApolloLocation(parameters.location)];
       } else if (userSettings.targetLocations && userSettings.targetLocations.length > 0) {
-        searchPayload.person_locations = userSettings.targetLocations;
+        searchPayload.person_locations = userSettings.targetLocations.map(toApolloLocation);
       }
 
       // NOTE: excludedLocations was captured in settings and shown in the UI but
@@ -6390,7 +6407,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       // retry once before accepting defeat. "City, ST" -> "ST" (full state
       // name) -> drop the location filter entirely on a second empty result.
       if ((data.people || []).length === 0 && searchPayload.person_locations?.length > 0) {
-        const original = [...searchPayload.person_locations];
+        const original = originalLocationTags.length > 0 ? [...originalLocationTags] : [...searchPayload.person_locations];
         const broadened = original
           .map(loc => {
             const parts = String(loc).split(',').map(p => p.trim());
