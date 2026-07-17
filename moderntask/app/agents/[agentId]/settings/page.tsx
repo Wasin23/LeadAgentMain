@@ -4,7 +4,7 @@ import React, { useState, useEffect, use, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Check, ChevronDown, ChevronRight,
-  Search, Mail, X, Plus, AlertCircle, CheckCircle2, Loader2, Lock, Unlock, FlaskConical
+  Search, Mail, X, Plus, AlertCircle, CheckCircle2, Loader2, Lock, Unlock, FlaskConical, Square
 } from 'lucide-react';
 import api from '@/lib/api';
 import { Sidebar } from '@/components/dashboard/sidebar';
@@ -703,6 +703,7 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [agentName, setAgentName] = useState('Agent');
   const [agentRunning, setAgentRunning] = useState(false);
+  const [stoppingAgent, setStoppingAgent] = useState(false);
 
   // Defensive: force-blur whatever's focused the instant the agent starts
   // running, in case a field was mid-edit before the status poll caught up.
@@ -711,6 +712,18 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
       document.activeElement.blur();
     }
   }, [agentRunning]);
+
+  const stopAgent = async () => {
+    setStoppingAgent(true);
+    try {
+      await api.post('/api/lead-agent/stop', { agentId: resolvedParams.agentId });
+      setAgentRunning(false);
+    } catch {
+      toast({ title: 'Failed to stop agent', description: 'Try again from the Prospecting page.', variant: 'destructive', duration: 4000 });
+    } finally {
+      setStoppingAgent(false);
+    }
+  };
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastSavedSettings, setLastSavedSettings] = useState<AgentSettings | null>(null);
   const [planStatus, setPlanStatus] = useState<PlanStatusResponse | null>(null);
@@ -1121,9 +1134,20 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
           </div>
 
           {agentRunning && activeTab !== null && (
-            <div className="w-full flex items-center gap-2 rounded-xl border border-amber-400/40 bg-amber-50 dark:bg-amber-950/20 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
-              <Lock className="w-4 h-4 shrink-0" />
-              Settings are locked while this agent is running — stop it to make changes.
+            <div className="w-full flex items-center justify-between gap-3 rounded-xl border border-amber-400/40 bg-amber-50 dark:bg-amber-950/20 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+              <div className="flex items-center gap-2">
+                <Lock className="w-4 h-4 shrink-0" />
+                Settings are locked while this agent is running — stop it to make changes.
+              </div>
+              <button
+                type="button"
+                onClick={stopAgent}
+                disabled={stoppingAgent}
+                className="flex shrink-0 items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 disabled:opacity-50 transition-colors"
+              >
+                {stoppingAgent ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Square className="w-3.5 h-3.5" />}
+                {stoppingAgent ? 'Stopping…' : 'Stop Agent'}
+              </button>
             </div>
           )}
 
