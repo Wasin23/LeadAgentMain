@@ -9484,6 +9484,29 @@ Target Positions:`;
       if (freshSettings) {
         this.settings = freshSettings;
         console.log(`🔄 [CYCLE SETTINGS] Agent ${this.agentId}: concurrencyLevel=${freshSettings.concurrencyLevel ?? 1}`);
+
+        // BUG (fixed): email generation reads from this.memory.emailSettings, a
+        // completely separate cache from this.settings that was only ever
+        // populated once — the first time the agent's own reasoning loop
+        // happened to choose the 'get_email_settings' action (gated on
+        // hasEmailSettings being false, which becomes permanently true after
+        // the first fetch). Once populated it never refreshed again for the
+        // life of the in-memory agent instance, so editing email-build
+        // settings (length/tone/CTA/etc.) mid-run silently did nothing until
+        // the agent was stopped and restarted. Keep it in lockstep with
+        // this.settings, refreshed every cycle, same as everything else here.
+        if (freshSettings.emailBuilder) {
+          this.memory.emailSettings = {
+            emailTemplate: freshSettings.emailBuilder.emailTemplate,
+            customPrompt: freshSettings.emailBuilder.customPrompt,
+            tone: freshSettings.emailBuilder.tone,
+            length: freshSettings.emailBuilder.length,
+            callToAction: freshSettings.emailBuilder.callToAction,
+            personalization: freshSettings.emailBuilder.personalization,
+            emailBuilder: freshSettings.emailBuilder,
+            companyBranding: freshSettings.companyBranding,
+          };
+        }
       }
     } catch (err) {
       console.warn(`⚠️ [CYCLE SETTINGS] Failed to refresh settings for agent ${this.agentId}:`, err.message);
