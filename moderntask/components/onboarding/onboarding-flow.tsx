@@ -5,6 +5,7 @@ import { Check, X, CloudUpload, Loader2, Lock, XCircle, Sparkles, AlertTriangle,
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import api from '@/lib/api'
+import { MailboxLoader } from '@/components/ui/mailbox-loader'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '')
 
@@ -207,6 +208,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
   const [step, setStep] = useState(1)
   const [returnToReview, setReturnToReview] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [showLaunchLoader, setShowLaunchLoader] = useState(false)
   const [createError, setCreateError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -509,7 +511,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
       })
       if (!agentRes.data.success) throw new Error('Failed to create agent')
       await api.put('/api/settings/notifications', { emailEnabled: notifEmailEnabled, smsEnabled: notifSmsEnabled }).catch(() => {})
-      setTimeout(onComplete, 1500)
+      setShowLaunchLoader(true)
     } catch (err: unknown) {
       setCreateError((err as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message || (err as { message?: string })?.message || 'Something went wrong')
       setCreating(false)
@@ -1240,7 +1242,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
         {step === 9 && <IllustrationReview />}
       </div>
 
-      {creating && (
+      {creating && !showLaunchLoader && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm gap-5">
           <div className="w-12 h-12 border-[3px] border-gray-900 border-t-transparent rounded-full animate-spin" />
           <div className="text-center">
@@ -1249,6 +1251,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
           </div>
         </div>
       )}
+      {showLaunchLoader && <MailboxLoader onComplete={onComplete} />}
     </div>
   )
 }

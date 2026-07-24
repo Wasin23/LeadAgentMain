@@ -8,6 +8,7 @@ import api from '@/lib/api'
 import Cookies from 'js-cookie'
 import { Eye, EyeOff, AlertCircle, CheckCircle, Loader2, HelpCircle, ArrowLeft } from 'lucide-react'
 import Image from 'next/image'
+import { MailboxLoader } from '@/components/ui/mailbox-loader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -51,6 +52,7 @@ export default function SignInPage() {
   const [signUpForm, setSignUpForm] = useState({ username: '', email: '', password: '', confirmPassword: '' })
   const [forgotForm, setForgotForm] = useState({ email: '' })
   const [resetForm, setResetForm] = useState({ code: '', newPassword: '', confirmPassword: '' })
+  const [pendingRedirect, setPendingRedirect] = useState<string | null>(null)
 
   const { login, register, isAuthenticated } = useAuth()
   const router = useRouter()
@@ -91,9 +93,9 @@ export default function SignInPage() {
       // For Google sign-in, check if user needs onboarding
       try {
         const { data } = await api.get('/api/company-profile/check')
-        router.replace((data?.hasProfile || data?.hasCompletedOnboarding) ? redirectPath : '/onboarding?new=1')
+        setPendingRedirect((data?.hasProfile || data?.hasCompletedOnboarding) ? redirectPath : '/onboarding?new=1')
       } catch {
-        router.replace(redirectPath)
+        setPendingRedirect(redirectPath)
       }
     } catch {
       setError('Google sign-in failed. Please try again.')
@@ -110,7 +112,7 @@ export default function SignInPage() {
       const ok = await login(signInForm.username, signInForm.password)
       if (ok) {
         setSuccessMsg('Sign in successful! Redirecting...')
-        setTimeout(() => router.push('/home'), 1200)
+        setPendingRedirect('/home')
       } else {
         setError('Invalid username or password')
       }
@@ -133,7 +135,7 @@ export default function SignInPage() {
       const ok = await register(signUpForm.username, signUpForm.email, signUpForm.password)
       if (ok) {
         setSuccessMsg('Account created! Redirecting...')
-        setTimeout(() => router.push('/onboarding?new=1'), 1200)
+        setPendingRedirect('/onboarding?new=1')
       } else {
         setError('Registration failed. Username or email may already exist.')
       }
@@ -555,6 +557,9 @@ export default function SignInPage() {
           )}
         </DialogContent>
       </Dialog>
+      {pendingRedirect && (
+        <MailboxLoader onComplete={() => router.push(pendingRedirect)} />
+      )}
     </div>
   </>
   )

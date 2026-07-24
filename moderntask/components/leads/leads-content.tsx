@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { StrengthsConcernsVenn } from '@/components/email-queue/email-queue-content'
+import { StarButton } from '@/components/ui/star-button'
 
 // A literal tiny venn diagram (two overlapping circles) shown next to the strengths/concerns box
 function VennIcon({ className }: { className?: string }) {
@@ -458,15 +459,11 @@ export function LeadsContent() {
                       )}
                     >
                       <td className="py-2.5 px-2 w-8">
-                        <button
-                          onClick={e => toggleStar(l, e)}
+                        <StarButton
+                          starred={starredIds.has(l.id)}
+                          onToggle={e => toggleStar(l, e)}
                           disabled={starringId === l.id}
-                          className="flex items-center justify-center rounded-md p-1 hover:bg-accent disabled:opacity-50"
-                        >
-                          <Star
-                            className={cn('w-3.5 h-3.5 transition-colors', starredIds.has(l.id) ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground')}
-                          />
-                        </button>
+                        />
                       </td>
                       <td className="py-2.5 px-3">
                         <div className="flex items-center gap-1.5 max-w-[200px]">

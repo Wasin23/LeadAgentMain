@@ -307,6 +307,26 @@
   }
 }
 
+@keyframes star-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.6) rotate(-15deg); }
+  70% { transform: scale(0.9) rotate(10deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+.star-pop { animation: star-pop 0.5s ease-out; }
+
+@keyframes star-ring {
+  0% { transform: scale(0.4); opacity: 0.9; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+.star-ring { animation: star-ring 0.6s ease-out forwards; }
+
+@keyframes star-spark {
+  0% { transform: rotate(var(--angle)) translateY(0) scale(1); opacity: 1; }
+  100% { transform: rotate(var(--angle)) translateY(-14px) scale(0); opacity: 0; }
+}
+.star-spark { animation: star-spark 0.6s ease-out forwards; }
+
 /* Added shimmer and fade-in animations for chart interactions */
 @keyframes shimmer {
   0% {
