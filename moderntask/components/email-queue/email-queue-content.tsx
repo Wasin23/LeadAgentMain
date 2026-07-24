@@ -730,10 +730,11 @@ function PaginationBar({ offset, limit, total, onChange }: {
 }
 
 // ── compact list row (left pane of the 3-pane Awaiting Review layout) ────────
-function CompactEmailRow({ email, agentMap, active, selected, onActivate, onToggleSelect }: {
+function CompactEmailRow({ email, agentMap, active, selected, onActivate, onToggleSelect, leaving }: {
   email: QueueEmail; agentMap: Record<string, Agent>
   active: boolean; selected: boolean
   onActivate: () => void; onToggleSelect: () => void
+  leaving?: boolean
 }) {
   const { to, subject, name, company } = ef(email)
   const agent = email.agentId ? agentMap[email.agentId] : null
@@ -741,9 +742,11 @@ function CompactEmailRow({ email, agentMap, active, selected, onActivate, onTogg
   return (
     <button
       onClick={onActivate}
+      disabled={leaving}
       className={cn(
-        'mb-1 flex w-full gap-3 rounded-xl px-3 py-3 text-left transition-colors',
+        'mb-1 flex w-full gap-3 rounded-xl px-3 py-3 text-left transition-colors overflow-hidden',
         active ? 'border border-success bg-success-soft' : 'border border-transparent hover:bg-accent',
+        leaving && 'animate-row-out pointer-events-none',
       )}
     >
       <span onClick={e => { e.stopPropagation(); onToggleSelect() }} className="mt-0.5 text-muted-foreground hover:text-foreground shrink-0">
@@ -1463,6 +1466,9 @@ function QueuedList({ agentId, agentMap, fontSize, setFontSize, onCountChange, a
   const [rebuildTarget, setRebuildTarget] = useState<QueueEmail | null>(null)
   const [showMassReEdit, setShowMassReEdit] = useState(false)
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [sendingActiveId, setSendingActiveId] = useState<string | null>(null)
+  const [bulkSending, setBulkSending] = useState(false)
+  const [leavingIds, setLeavingIds] = useState<Set<string>>(new Set())
   const LIMIT = 20
 
   const load = useCallback(async (off = 0) => {
@@ -1556,18 +1562,24 @@ function QueuedList({ agentId, agentMap, fontSize, setFontSize, onCountChange, a
   const toggleAll   = () => setSelected(allSelected ? new Set() : new Set(filtered.map(e => e.id)))
   const toggleOne   = (id: string) => setSelected(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s })
 
-  const approve = async (email: QueueEmail) => {
-    // Optimistic update - remove immediately
-    setEmails(p => p.filter(e => e.id !== email.id))
-    setTotal(t => t - 1); onCountChange(total - 1)
-    toast({ title: 'Email sent', description: `Sent to ${ef(email).to || ef(email).name}`, duration: 2000 })
-    
-    // API call in background
-    try {
-      await api.post(`/api/email-queue/${email.id}/approve`, { agentId: email.agentId }, { params: { agentId: email.agentId } })
-    } catch {
-      // Silent failure - email already removed from UI
-    }
+  const approve = (email: QueueEmail) => {
+    // Fire the API call immediately in the background — the animation below
+    // is purely visual and shouldn't delay the actual send.
+    api.post(`/api/email-queue/${email.id}/approve`, { agentId: email.agentId }, { params: { agentId: email.agentId } }).catch(() => {})
+
+    // Send button plays its check/ring animation, then the row collapses
+    // out, then it's actually removed from state.
+    setSendingActiveId(email.id)
+    setTimeout(() => {
+      setSendingActiveId(id => id === email.id ? null : id)
+      setLeavingIds(prev => new Set(prev).add(email.id))
+      setTimeout(() => {
+        setEmails(p => p.filter(e => e.id !== email.id))
+        setTotal(t => { const next = t - 1; onCountChange(next); return next })
+        setLeavingIds(prev => { const n = new Set(prev); n.delete(email.id); return n })
+        toast({ title: 'Email sent', description: `Sent to ${ef(email).to || ef(email).name}`, duration: 2000 })
+      }, 380)
+    }, 420)
   }
 
   const reject = async (email: QueueEmail) => {
@@ -1620,22 +1632,28 @@ function QueuedList({ agentId, agentMap, fontSize, setFontSize, onCountChange, a
     }
   }
 
-  const bulkApprove = async () => {
+  const bulkApprove = () => {
     const targets = emails.filter(e => selected.has(e.id))
     const targetIds = new Set(targets.map(e => e.id))
-    
-    // Optimistic update - remove all immediately
-    setEmails(p => p.filter(e => !targetIds.has(e.id)))
-    setTotal(t => t - targets.length)
-    onCountChange(total - targets.length)
     setSelected(new Set())
-    toast({ title: `${targets.length} email${targets.length !== 1 ? 's' : ''} sent`, duration: 2000 })
-    
+
     // API calls in background (don't await - fire and forget)
     targets.forEach(email => {
       api.post(`/api/email-queue/${email.id}/approve`, { agentId: email.agentId }, { params: { agentId: email.agentId } })
         .catch(() => {}) // Silent failure
     })
+
+    setBulkSending(true)
+    setTimeout(() => {
+      setBulkSending(false)
+      setLeavingIds(prev => { const n = new Set(prev); targetIds.forEach(id => n.add(id)); return n })
+      setTimeout(() => {
+        setEmails(p => p.filter(e => !targetIds.has(e.id)))
+        setTotal(t => { const next = t - targets.length; onCountChange(next); return next })
+        setLeavingIds(prev => { const n = new Set(prev); targetIds.forEach(id => n.delete(id)); return n })
+        toast({ title: `${targets.length} email${targets.length !== 1 ? 's' : ''} sent`, duration: 2000 })
+      }, 380)
+    }, 420)
   }
 
   const bulkReject = async () => {
@@ -1668,8 +1686,22 @@ function QueuedList({ agentId, agentMap, fontSize, setFontSize, onCountChange, a
         {selected.size > 0 && (
           <>
             <div className="w-px h-4 bg-border" />
-            <Button size="sm" className="h-7 text-xs gap-1 bg-primary hover:bg-primary/90" onClick={bulkApprove}>
-              <CheckCircle2 className="w-3 h-3" /> Send {selected.size}
+            <Button
+              size="sm"
+              className="relative h-7 text-xs gap-1 overflow-visible bg-primary hover:bg-primary/90"
+              onClick={bulkApprove}
+              disabled={bulkSending}
+            >
+              {bulkSending ? (
+                <>
+                  <span className="pointer-events-none absolute inset-0 rounded-md border-2 border-primary animate-send-ring" />
+                  <CheckCircle2 className="w-3.5 h-3.5 animate-send-check" />
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-3 h-3" /> Send {selected.size}
+                </>
+              )}
             </Button>
             <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-destructive/40 text-destructive hover:bg-destructive/10" onClick={bulkReject}>
               <XCircle className="w-3 h-3" /> Reject {selected.size}
@@ -1750,6 +1782,7 @@ function QueuedList({ agentId, agentMap, fontSize, setFontSize, onCountChange, a
                   selected={selected.has(email.id)}
                   onActivate={() => setActiveId(email.id)}
                   onToggleSelect={() => toggleOne(email.id)}
+                  leaving={leavingIds.has(email.id)}
                 />
               ))}
             </div>
@@ -1779,8 +1812,22 @@ function QueuedList({ agentId, agentMap, fontSize, setFontSize, onCountChange, a
                 autoScheduleDate={autoSendDates.get(active.id)}
                 actions={
                   <>
-                    <Button size="sm" className="h-7 text-xs gap-1 bg-primary hover:bg-primary/90" onClick={() => approve(active)}>
-                      <CheckCircle2 className="w-3 h-3" /> Send
+                    <Button
+                      size="sm"
+                      className="relative h-7 text-xs gap-1 overflow-visible bg-primary hover:bg-primary/90"
+                      onClick={() => approve(active)}
+                      disabled={sendingActiveId === active.id}
+                    >
+                      {sendingActiveId === active.id ? (
+                        <>
+                          <span className="pointer-events-none absolute inset-0 rounded-md border-2 border-primary animate-send-ring" />
+                          <CheckCircle2 className="w-3.5 h-3.5 animate-send-check" />
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-3 h-3" /> Send
+                        </>
+                      )}
                     </Button>
                     <Button size="sm" variant="outline" className="h-7 w-7 p-0 border-destructive/40 text-destructive hover:bg-destructive/10" onClick={() => reject(active)}>
                       <XCircle className="w-3 h-3" />
