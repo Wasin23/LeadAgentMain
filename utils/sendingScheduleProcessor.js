@@ -520,7 +520,7 @@ let _interval = null;
 
 export function startSendingScheduleProcessor() {
   if (_interval) return;
-  console.log('📅 [SCHEDULE PROCESSOR] Starting — checks every 60 seconds');
+  console.log('[SCHEDULE PROCESSOR] Starting — checks every 60 seconds');
   tick(); // run immediately on start
   _interval = setInterval(tick, 60 * 1000);
 }
@@ -529,6 +529,6 @@ export function stopSendingScheduleProcessor() {
   if (_interval) {
     clearInterval(_interval);
     _interval = null;
-    console.log('🛑 [SCHEDULE PROCESSOR] Stopped');
+    console.log('[SCHEDULE PROCESSOR] Stopped');
   }
 }

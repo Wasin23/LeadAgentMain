@@ -2,12 +2,18 @@
 
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
 import { useEffect, useState } from "react"
+import { useTheme } from "@/components/theme-provider"
 
 /**
  * Refined loading UI:
  * a letter drifts down and slides into a minimalist mailbox.
  * A soft flash + ripple confirms delivery, the flag lifts,
  * then the whole scene fades and blurs away.
+ *
+ * onComplete fires ~350ms before the visual fade-out starts (not when the
+ * scene finally disappears) so the destination page has a head start
+ * mounting/fetching underneath the still-opaque overlay — otherwise the
+ * exit fade reveals a half-loaded page and it reads as a lag/stutter.
  */
 export function MailboxLoader({
   onComplete,
@@ -17,17 +23,33 @@ export function MailboxLoader({
   duration?: number
 }) {
   const [visible, setVisible] = useState(true)
+  const [mounted, setMounted] = useState(false)
   const reduce = useReducedMotion()
+  const { resolvedTheme } = useTheme()
+
+  useEffect(() => setMounted(true), [])
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      setVisible(false)
-      // Fire immediately so the dashboard mounts and paints
-      // in sync with the loader's fade-out.
-      onComplete?.()
-    }, duration)
-    return () => clearTimeout(t)
+    const navigateLeadMs = Math.min(350, duration)
+    const navigateT = setTimeout(() => onComplete?.(), duration - navigateLeadMs)
+    const hideT = setTimeout(() => setVisible(false), duration)
+    return () => {
+      clearTimeout(navigateT)
+      clearTimeout(hideT)
+    }
   }, [duration, onComplete])
+
+  // Default to dark (matches the original design) until the theme is known
+  // client-side, to avoid a flash of the wrong palette on first paint.
+  const isDark = !mounted || resolvedTheme === "dark"
+
+  const bg = isDark ? "#0a0c0a" : "#f4efe6"
+  const vignette = isDark ? "rgba(201,180,95,0.08)" : "rgba(201,180,95,0.18)"
+  const gridLine = isDark ? "rgba(255,255,255,0.5)" : "rgba(10,12,10,0.45)"
+  const groundShadow = isDark ? "rgba(0,0,0,0.7)" : "rgba(0,0,0,0.22)"
+  const labelColor = isDark ? "#a9a89f" : "#6b6a5f"
+  const subtitleColor = isDark ? "#6a6b64" : "#8a8878"
+  const barTrack = isDark ? "rgba(255,255,255,0.06)" : "rgba(10,12,10,0.08)"
 
   // Smooth, "expressive" cubic bezier used across the scene
   const easeOutExpo: [number, number, number, number] = [0.16, 1, 0.3, 1]
@@ -42,14 +64,14 @@ export function MailboxLoader({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0, filter: "blur(12px)" }}
           transition={{ duration: 0.6, ease: easeInOutQuint }}
-          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden bg-[#0a0c0a]"
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden"
+          style={{ backgroundColor: bg }}
         >
           {/* Ambient vignette */}
           <div
             className="pointer-events-none absolute inset-0"
             style={{
-              background:
-                "radial-gradient(ellipse 60% 50% at 50% 45%, rgba(201,180,95,0.08), transparent 70%)",
+              background: `radial-gradient(ellipse 60% 50% at 50% 45%, ${vignette}, transparent 70%)`,
             }}
           />
           {/* Subtle grid */}
@@ -57,7 +79,7 @@ export function MailboxLoader({
             className="pointer-events-none absolute inset-0 opacity-[0.04]"
             style={{
               backgroundImage:
-                "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
+                `linear-gradient(${gridLine} 1px, transparent 1px), linear-gradient(90deg, ${gridLine} 1px, transparent 1px)`,
               backgroundSize: "48px 48px",
               maskImage:
                 "radial-gradient(ellipse 50% 40% at 50% 50%, black, transparent 75%)",
@@ -75,7 +97,8 @@ export function MailboxLoader({
             <div className="relative h-64 w-72">
               {/* Ground shadow (grows as envelope descends) */}
               <motion.div
-                className="absolute left-1/2 top-[236px] h-2 w-40 -translate-x-1/2 rounded-[50%] bg-black/70 blur-md"
+                className="absolute left-1/2 top-[236px] h-2 w-40 -translate-x-1/2 rounded-[50%] blur-md"
+                style={{ backgroundColor: groundShadow }}
                 initial={{ opacity: 0.3, scaleX: 0.9 }}
                 animate={{ opacity: [0.3, 0.55, 0.4], scaleX: [0.9, 1.1, 1] }}
                 transition={{ duration: 1.6, delay: 0.9, ease: easeOutExpo }}
@@ -227,14 +250,20 @@ export function MailboxLoader({
 
             {/* Label */}
             <div className="mt-6 flex flex-col items-center gap-3">
-              <div className="flex items-center gap-2.5 text-[11px] font-medium tracking-[0.32em] text-[#a9a89f]">
+              <div
+                className="flex items-center gap-2.5 text-[11px] font-medium tracking-[0.32em]"
+                style={{ color: labelColor }}
+              >
                 <span className="text-[#c9b45f]">◈</span>
                 <span>MERIDIAN</span>
               </div>
-              <div className="text-[11px] tracking-wide text-[#6a6b64]">
+              <div className="text-[11px] tracking-wide" style={{ color: subtitleColor }}>
                 Preparing your workspace
               </div>
-              <div className="relative mt-1 h-[2px] w-44 overflow-hidden rounded-full bg-white/[0.06]">
+              <div
+                className="relative mt-1 h-[2px] w-44 overflow-hidden rounded-full"
+                style={{ backgroundColor: barTrack }}
+              >
                 <motion.div
                   className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-[#c9b45f]/60 via-[#c9b45f] to-[#c9b45f]/60"
                   initial={{ width: "0%" }}

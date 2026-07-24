@@ -20,7 +20,7 @@ async function logBillingActivity(userId, action, details, status = 'success') {
     const timestamp = new Date().toISOString();
     
     // Console log only
-    console.log(`💰 [BILLING LOG] ${timestamp} - User: ${userId} - Action: ${action} - Status: ${status}`);
+    console.log(`[BILLING LOG] ${timestamp} - User: ${userId} - Action: ${action} - Status: ${status}`);
     console.log(`   Details:`, details);
     
     // Only create critical issue for failures (shows in notifications AND activity feed)
@@ -29,7 +29,7 @@ async function logBillingActivity(userId, action, details, status = 'success') {
         const issueResult = await awsManager.addIssue(
           userId,
           'billing',
-          `💳 Payment ${action} Failed`,
+          `Payment ${action} Failed`,
           details.error || details.message || 'Unknown error',
           {
             severity: 'critical',
@@ -38,7 +38,7 @@ async function logBillingActivity(userId, action, details, status = 'success') {
             timestamp
           }
         );
-        console.log('✅ [BILLING LOG] Critical issue created:', issueResult);
+        console.log('[BILLING LOG] Critical issue created:', issueResult);
         
         // Broadcast the billing failure to SSE clients immediately
         broadcastActivity({
@@ -46,7 +46,7 @@ async function logBillingActivity(userId, action, details, status = 'success') {
           category: 'issue',
           severity: 'critical',
           userId: userId,
-          title: `💳 Payment ${action} Failed`,
+          title: `Payment ${action} Failed`,
           message: details.error || details.message || 'Unknown error',
           timestamp,
           metadata: {
@@ -54,14 +54,14 @@ async function logBillingActivity(userId, action, details, status = 'success') {
             currency: details.currency || 'USD'
           }
         });
-        console.log('📡 [BILLING LOG] Broadcasted billing failure to SSE clients');
+        console.log('[BILLING LOG] Broadcasted billing failure to SSE clients');
       } catch (issueError) {
-        console.error('❌ [BILLING LOG] Failed to create issue:', issueError.message);
+        console.error('[BILLING LOG] Failed to create issue:', issueError.message);
         console.error('   Stack:', issueError.stack);
       }
     }
   } catch (error) {
-    console.error('❌ [BILLING LOG] Error logging activity:', error);
+    console.error('[BILLING LOG] Error logging activity:', error);
   }
 }
 
@@ -80,7 +80,7 @@ router.get('/trial-credits', authenticateToken, async (req, res) => {
       credits: creditStatus
     });
   } catch (error) {
-    console.error('❌ [BILLING] Error getting trial credits:', error);
+    console.error('[BILLING] Error getting trial credits:', error);
     res.status(500).json({ error: 'Failed to get trial credit status' });
   }
 });
@@ -107,10 +107,10 @@ router.post('/add-payment-method', authenticateToken, async (req, res) => {
     if (customerId) {
       try {
         await stripe.customers.retrieve(customerId);
-        console.log('✅ [BILLING] Using existing customer:', customerId);
+        console.log('[BILLING] Using existing customer:', customerId);
       } catch (error) {
         if (error.code === 'resource_missing') {
-          console.log('⚠️ [BILLING] Customer not found in Stripe, creating new one...');
+          console.log('[BILLING] Customer not found in Stripe, creating new one...');
           customerId = null;
         } else {
           throw error;
@@ -127,7 +127,7 @@ router.post('/add-payment-method', authenticateToken, async (req, res) => {
         }
       });
       customerId = customer.id;
-      console.log('✅ [BILLING] Created new customer:', customerId);
+      console.log('[BILLING] Created new customer:', customerId);
     }
     
     // Attach payment method to customer
@@ -135,11 +135,11 @@ router.post('/add-payment-method', authenticateToken, async (req, res) => {
       await stripe.paymentMethods.attach(paymentMethodId, {
         customer: customerId
       });
-      console.log('✅ [BILLING] Payment method attached successfully');
+      console.log('[BILLING] Payment method attached successfully');
     } catch (attachError) {
       // If customer doesn't exist (even though retrieve said it did), create new one
       if (attachError.code === 'resource_missing') {
-        console.log('⚠️ [BILLING] Customer disappeared, creating fresh one...');
+        console.log('[BILLING] Customer disappeared, creating fresh one...');
         const customer = await stripe.customers.create({
           email: user.email,
           metadata: {
@@ -148,13 +148,13 @@ router.post('/add-payment-method', authenticateToken, async (req, res) => {
           }
         });
         customerId = customer.id;
-        console.log('✅ [BILLING] Created new customer:', customerId);
+        console.log('[BILLING] Created new customer:', customerId);
         
         // Retry attach with new customer
         await stripe.paymentMethods.attach(paymentMethodId, {
           customer: customerId
         });
-        console.log('✅ [BILLING] Payment method attached to new customer');
+        console.log('[BILLING] Payment method attached to new customer');
       } else {
         throw attachError;
       }
@@ -173,16 +173,16 @@ router.post('/add-payment-method', authenticateToken, async (req, res) => {
           default_payment_method: paymentMethodId
         }
       });
-      console.log('✅ [BILLING] Set first payment method as default');
+      console.log('[BILLING] Set first payment method as default');
     }
     
     // Update user to indicate payment method added and save customer ID
-    console.log('🔵 [BILLING] Updating user with paymentMethodAdded=true...');
+    console.log('[BILLING] Updating user with paymentMethodAdded=true...');
     const updateResult = await awsManager.updateUser(userId, {
       paymentMethodAdded: true,
       stripeCustomerId: customerId  // Single source of truth in users table
     });
-    console.log('✅ [BILLING] User update result:', updateResult);
+    console.log('[BILLING] User update result:', updateResult);
 
     // Also persist defaultPaymentMethodId in userSettings (first card = default)
     if (existingPaymentMethods.data.length === 1) {
@@ -191,10 +191,10 @@ router.post('/add-payment-method', authenticateToken, async (req, res) => {
         ...existingSettings,
         defaultPaymentMethodId: paymentMethodId,
       });
-      console.log('✅ [BILLING] defaultPaymentMethodId saved to userSettings');
+      console.log('[BILLING] defaultPaymentMethodId saved to userSettings');
     }
 
-    console.log(`✅ [BILLING] Payment method added for user ${userId} - Trial restrictions removed`);
+    console.log(`[BILLING] Payment method added for user ${userId} - Trial restrictions removed`);
 
     // Send confirmation email (non-blocking)
     if (user.email) {
@@ -213,7 +213,7 @@ router.post('/add-payment-method', authenticateToken, async (req, res) => {
       customerId: customerId
     });
   } catch (error) {
-    console.error('❌ [BILLING] Error adding payment method:', error);
+    console.error('[BILLING] Error adding payment method:', error);
     res.status(500).json({ 
       error: 'Failed to add payment method',
       message: error.message 
@@ -243,7 +243,7 @@ router.get('/payment-status', authenticateToken, async (req, res) => {
       nextPaymentDue: nextPaymentDue.toISOString()
     });
   } catch (error) {
-    console.error('❌ [BILLING] Error getting payment status:', error);
+    console.error('[BILLING] Error getting payment status:', error);
     res.status(500).json({ error: 'Failed to get payment status' });
   }
 });
@@ -252,7 +252,7 @@ router.get('/payment-status', authenticateToken, async (req, res) => {
 router.get('/payment-methods', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
-    console.log('🔵 [BILLING] Fetching payment methods for user:', userId);
+    console.log('[BILLING] Fetching payment methods for user:', userId);
     
     // Get or create Stripe customer from users table (single source of truth)
     const user = await awsManager.getUserById(userId);
@@ -260,29 +260,29 @@ router.get('/payment-methods', authenticateToken, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
     const userSettings = await awsManager.getUserSettings(userId);
-    console.log('🔵 [BILLING] User settings:', userSettings);
+    console.log('[BILLING] User settings:', userSettings);
     
     let customerId = user.stripeCustomerId;
-    console.log('🔵 [BILLING] Existing customer ID:', customerId);
+    console.log('[BILLING] Existing customer ID:', customerId);
     
     if (!customerId) {
-      console.log('🔵 [BILLING] Creating new Stripe customer...');
+      console.log('[BILLING] Creating new Stripe customer...');
       // Create new Stripe customer
       const customer = await stripe.customers.create({
         metadata: { userId }
       });
       customerId = customer.id;
-      console.log('✅ [BILLING] Created Stripe customer:', customerId);
+      console.log('[BILLING] Created Stripe customer:', customerId);
       
       // Save to users table (single source of truth)
       await awsManager.updateUser(userId, {
         stripeCustomerId: customerId
       });
-      console.log('✅ [BILLING] Saved customer ID to users table');
+      console.log('[BILLING] Saved customer ID to users table');
     }
     
     // Get payment methods
-    console.log('🔵 [BILLING] Fetching payment methods from Stripe...');
+    console.log('[BILLING] Fetching payment methods from Stripe...');
     let paymentMethods;
     try {
       paymentMethods = await stripe.paymentMethods.list({
@@ -292,18 +292,18 @@ router.get('/payment-methods', authenticateToken, async (req, res) => {
     } catch (stripeError) {
       // If customer doesn't exist (switched from test to live mode), create new one
       if (stripeError.code === 'resource_missing') {
-        console.log('⚠️ [BILLING] Customer not found in Stripe, creating new one...');
+        console.log('[BILLING] Customer not found in Stripe, creating new one...');
         const newCustomer = await stripe.customers.create({
           metadata: { userId }
         });
         customerId = newCustomer.id;
-        console.log('✅ [BILLING] Created new Stripe customer:', customerId);
+        console.log('[BILLING] Created new Stripe customer:', customerId);
         
         // Update users table with new customer ID (single source of truth)
         await awsManager.updateUser(userId, {
           stripeCustomerId: customerId
         });
-        console.log('✅ [BILLING] Updated users table with new customer ID');
+        console.log('[BILLING] Updated users table with new customer ID');
         
         // Try again with new customer
         paymentMethods = await stripe.paymentMethods.list({
@@ -314,7 +314,7 @@ router.get('/payment-methods', authenticateToken, async (req, res) => {
         throw stripeError;
       }
     }
-    console.log('✅ [BILLING] Found', paymentMethods.data.length, 'payment methods');
+    console.log('[BILLING] Found', paymentMethods.data.length, 'payment methods');
     
     res.json({
       success: true,
@@ -329,8 +329,8 @@ router.get('/payment-methods', authenticateToken, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ [BILLING] Error fetching payment methods:', error);
-    console.error('❌ [BILLING] Error stack:', error.stack);
+    console.error('[BILLING] Error fetching payment methods:', error);
+    console.error('[BILLING] Error stack:', error.stack);
     res.status(500).json({ 
       error: 'Failed to fetch payment methods',
       message: error.message 
@@ -353,7 +353,7 @@ router.post('/setup-intent', authenticateToken, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ [BILLING] Error creating setup intent:', error);
+    console.error('[BILLING] Error creating setup intent:', error);
     res.status(500).json({ error: 'Failed to create setup intent' });
   }
 });
@@ -374,7 +374,7 @@ router.post('/set-default-payment', authenticateToken, async (req, res) => {
     // If payment previously failed, retry charge
     if (userSettings?.paymentStatus === 'payment_failed' && userSettings?.lastFailedCharge) {
       try {
-        console.log('💳 [BILLING] Retrying failed charge after card update...');
+        console.log('[BILLING] Retrying failed charge after card update...');
         
         const amountInCents = Math.round(userSettings.lastFailedCharge.amount * 100);
         
@@ -415,7 +415,7 @@ router.post('/set-default-payment', authenticateToken, async (req, res) => {
           retriedCharge: true
         }, 'success');
         
-        console.log('✅ [BILLING] Charge retry successful, account reactivated');
+        console.log('[BILLING] Charge retry successful, account reactivated');
         
         return res.json({ 
           success: true,
@@ -424,7 +424,7 @@ router.post('/set-default-payment', authenticateToken, async (req, res) => {
         });
         
       } catch (retryError) {
-        console.error('❌ [BILLING] Charge retry failed:', retryError.message);
+        console.error('[BILLING] Charge retry failed:', retryError.message);
         // Card updated but charge still failed - don't block the response
       }
     }
@@ -432,7 +432,7 @@ router.post('/set-default-payment', authenticateToken, async (req, res) => {
     res.json({ success: true });
     
   } catch (error) {
-    console.error('❌ [BILLING] Error setting default payment:', error);
+    console.error('[BILLING] Error setting default payment:', error);
     res.status(500).json({ error: 'Failed to set default payment method' });
   }
 });
@@ -447,7 +447,7 @@ router.delete('/payment-methods/:id', authenticateToken, async (req, res) => {
     res.json({ success: true });
     
   } catch (error) {
-    console.error('❌ [BILLING] Error removing payment method:', error);
+    console.error('[BILLING] Error removing payment method:', error);
     res.status(500).json({ error: 'Failed to remove payment method' });
   }
 });
@@ -486,14 +486,14 @@ router.post('/charge-tokens', authenticateToken, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ [BILLING] Error charging tokens:', error);
+    console.error('[BILLING] Error charging tokens:', error);
     res.status(500).json({ error: error.message || 'Failed to charge payment method' });
   }
 });
 
 // Extracted billing logic for direct calls (from admin or cron)
 export async function scanUsersAndCharge() {
-  console.log('💰 [BILLING] Starting monthly billing cycle...');
+  console.log('[BILLING] Starting monthly billing cycle...');
   
   // Get all users with Stripe customers from USERS table (single source of truth)
   const { ScanCommand } = await import('@aws-sdk/lib-dynamodb');
@@ -506,7 +506,7 @@ export async function scanUsersAndCharge() {
   });
   
   const { Items: users } = await awsManager.dynamodb.send(scanCommand);
-  console.log(`📊 [BILLING] Found ${users?.length || 0} users with payment methods`);
+  console.log(`[BILLING] Found ${users?.length || 0} users with payment methods`);
   
   const results = {
     total: users?.length || 0,
@@ -534,7 +534,7 @@ export async function scanUsersAndCharge() {
       
       const { Items: summaries } = await awsManager.dynamodb.send(summaryQuery);
       
-      console.log(`📊 [BILLING] User ${userId}: Found ${summaries?.length || 0} usage summaries`);
+      console.log(`[BILLING] User ${userId}: Found ${summaries?.length || 0} usage summaries`);
       if (summaries && summaries.length > 0) {
         summaries.forEach(s => {
           let cost = 0;
@@ -574,7 +574,7 @@ export async function scanUsersAndCharge() {
         paymentsByMonth[month] += p.amount || 0;
       });
       
-      console.log(`💳 [BILLING] User ${userId}: Payment totals by month:`, paymentsByMonth);
+      console.log(`[BILLING] User ${userId}: Payment totals by month:`, paymentsByMonth);
       
       // Calculate total outstanding (all unpaid months)
       let totalCost = 0;
@@ -583,7 +583,7 @@ export async function scanUsersAndCharge() {
       for (const summary of summaries || []) {
         // Skip if no valid month field
         if (!summary.month || typeof summary.month !== 'string') {
-          console.log(`⚠️ [BILLING] Skipping summary with invalid month:`, summary.month);
+          console.log(`[BILLING] Skipping summary with invalid month:`, summary.month);
           continue;
         }
         
@@ -599,7 +599,7 @@ export async function scanUsersAndCharge() {
         const monthPayments = paymentsByMonth[summary.month] || 0;
         const monthOutstanding = Math.max(0, monthCost - monthPayments);
         
-        console.log(`💰 [BILLING] ${summary.month}: Usage=$${monthCost.toFixed(2)}, Payments=$${monthPayments.toFixed(2)}, Outstanding=$${monthOutstanding.toFixed(2)}`);
+        console.log(`[BILLING] ${summary.month}: Usage=$${monthCost.toFixed(2)}, Payments=$${monthPayments.toFixed(2)}, Outstanding=$${monthOutstanding.toFixed(2)}`);
         
         if (monthOutstanding > 0) {
           totalCost += monthOutstanding;
@@ -610,7 +610,7 @@ export async function scanUsersAndCharge() {
       // Convert to cents and round
       const amountInCents = Math.round(totalCost * 100);
       
-      console.log(`💵 [BILLING] User ${userId}: $${totalCost.toFixed(2)} (${amountInCents} cents) for ${unpaidMonths.length} unpaid month(s): ${unpaidMonths.join(', ')}`);
+      console.log(`[BILLING] User ${userId}: $${totalCost.toFixed(2)} (${amountInCents} cents) for ${unpaidMonths.length} unpaid month(s): ${unpaidMonths.join(', ')}`);
       
       // Skip if no charges
       if (amountInCents === 0) {
@@ -624,12 +624,12 @@ export async function scanUsersAndCharge() {
         let paymentMethodId = userSettings?.defaultPaymentMethodId;
         
         if (!paymentMethodId && user.stripeCustomerId) {
-          console.log(`🔍 [BILLING] No payment method in settings, fetching from Stripe for ${userId}`);
+          console.log(`[BILLING] No payment method in settings, fetching from Stripe for ${userId}`);
           const customer = await stripe.customers.retrieve(user.stripeCustomerId);
           paymentMethodId = customer.invoice_settings?.default_payment_method || customer.default_source;
           
           if (paymentMethodId) {
-            console.log(`✅ [BILLING] Found payment method from Stripe: ${paymentMethodId}`);
+            console.log(`[BILLING] Found payment method from Stripe: ${paymentMethodId}`);
             // Update userSettings with the payment method for next time
             await awsManager.saveUserSettings(userId, {
               ...userSettings,
@@ -667,7 +667,7 @@ export async function scanUsersAndCharge() {
           // Log payment for EACH unpaid month so they're marked as paid
           for (const month of unpaidMonths) {
             if (!month || typeof month !== 'string' || !month.includes('-')) {
-              console.log(`⚠️ [BILLING] Skipping invalid month in payment logging:`, month);
+              console.log(`[BILLING] Skipping invalid month in payment logging:`, month);
               continue;
             }
             const [year, monthNum] = month.split('-');
@@ -686,7 +686,7 @@ export async function scanUsersAndCharge() {
           // Send success email (non-blocking)
           if (user.email) {
             sendPaymentSuccessEmail(userId, user.email, totalCost).catch(err => {
-              console.error(`⚠️ [BILLING] Failed to send success email (non-critical):`, err.message);
+              console.error(`[BILLING] Failed to send success email (non-critical):`, err.message);
             });
           }
           
@@ -698,9 +698,9 @@ export async function scanUsersAndCharge() {
             billingPeriod: new Date().toISOString() // Use current date instead of undefined variable
           }, 'success');
           
-          console.log(`✅ [BILLING] Charged ${userId}: $${totalCost.toFixed(2)}`);
+          console.log(`[BILLING] Charged ${userId}: $${totalCost.toFixed(2)}`);
           results.successful++;      } catch (chargeError) {
-        console.error(`❌ [BILLING] Charge failed for ${userId}:`, chargeError.message);
+        console.error(`[BILLING] Charge failed for ${userId}:`, chargeError.message);
         
         // Only trigger payment_failed for actual Stripe errors, not code bugs
         const isStripeError = chargeError.type?.startsWith('Stripe') || 
@@ -712,7 +712,7 @@ export async function scanUsersAndCharge() {
         
         if (!isStripeError) {
           // This is a code bug, not a payment failure - don't suspend the user!
-          console.error(`🐛 [BILLING] Code error (not payment failure) for ${userId}:`, chargeError);
+          console.error(`[BILLING] Code error (not payment failure) for ${userId}:`, chargeError);
           results.failed++;
           results.errors.push({
             userId,
@@ -753,7 +753,7 @@ export async function scanUsersAndCharge() {
         // Send failed payment email (non-blocking)
         if (user.email) {
           sendPaymentFailedEmail(userId, user.email, totalCost, chargeError.message).catch(err => {
-            console.error(`⚠️ [BILLING] Failed to send failure email (non-critical):`, err.message);
+            console.error(`[BILLING] Failed to send failure email (non-critical):`, err.message);
           });
         }
         
@@ -774,7 +774,7 @@ export async function scanUsersAndCharge() {
       }
       
     } catch (userError) {
-      console.error(`❌ [BILLING] Error processing user:`, userError);
+      console.error(`[BILLING] Error processing user:`, userError);
       results.errors.push({
         userId: user.userId,
         error: userError.message
@@ -783,7 +783,7 @@ export async function scanUsersAndCharge() {
   }
 
   // ── Process pending plan changes + reset monthly credits ──────────────────
-  console.log('🔄 [BILLING] Processing pending plan changes and resetting credits...');
+  console.log('[BILLING] Processing pending plan changes and resetting credits...');
   const allUsersForReset = await awsManager.dynamodb.send(
     new (await import('@aws-sdk/lib-dynamodb')).ScanCommand({ TableName: awsManager.tables.users })
   );
@@ -803,7 +803,7 @@ export async function scanUsersAndCharge() {
         updates.pendingCancelAt = null;
         updates.creditBalance = 0;
         updates.planUpdatedAt = new Date().toISOString();
-        console.log(`📋 [BILLING] Applied pending cancellation for ${uid} → free-trial`);
+        console.log(`[BILLING] Applied pending cancellation for ${uid} → free-trial`);
       }
       // Apply pending downgrade
       else if (u.pendingDowngrade && u.pendingDowngradeAt && new Date(u.pendingDowngradeAt) <= new Date()) {
@@ -816,24 +816,24 @@ export async function scanUsersAndCharge() {
         updates.pendingDowngradeAt = null;
         updates.creditBalance = newPlan.initialCredits;
         updates.planUpdatedAt = new Date().toISOString();
-        console.log(`📋 [BILLING] Applied pending downgrade for ${uid} → ${u.pendingDowngrade}`);
+        console.log(`[BILLING] Applied pending downgrade for ${uid} → ${u.pendingDowngrade}`);
       }
       // Reset credits for active paid plans (no cancellation/downgrade)
       else if (u.plan && u.plan !== 'free-trial' && !u.pendingCancel) {
         const planCfg = awsManager.getPlanConfig(u.plan);
         updates.creditBalance = planCfg.initialCredits;
-        console.log(`💳 [BILLING] Reset credits for ${uid} (${u.plan}) → ${planCfg.initialCredits}`);
+        console.log(`[BILLING] Reset credits for ${uid} (${u.plan}) → ${planCfg.initialCredits}`);
       }
 
       if (Object.keys(updates).length > 0) {
         await awsManager.updateUser(uid, updates);
       }
     } catch (resetErr) {
-      console.error(`⚠️ [BILLING] Credit reset failed for ${u.userId}:`, resetErr.message);
+      console.error(`[BILLING] Credit reset failed for ${u.userId}:`, resetErr.message);
     }
   }
 
-  console.log('✅ [BILLING] Monthly billing complete:', results);
+  console.log('[BILLING] Monthly billing complete:', results);
   return results;
 }
 
@@ -851,7 +851,7 @@ router.post('/charge-monthly', authenticateToken, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ [BILLING] Error in monthly billing:', error);
+    console.error('[BILLING] Error in monthly billing:', error);
     res.status(500).json({ error: error.message || 'Failed to process monthly billing' });
   }
 });
@@ -870,7 +870,7 @@ router.get('/payment-history', authenticateToken, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ [BILLING] Error getting payment history:', error);
+    console.error('[BILLING] Error getting payment history:', error);
     res.status(500).json({ error: 'Failed to get payment history' });
   }
 });
@@ -888,7 +888,7 @@ router.get('/payment-stats', authenticateToken, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ [BILLING] Error getting payment stats:', error);
+    console.error('[BILLING] Error getting payment stats:', error);
     res.status(500).json({ error: 'Failed to get payment stats' });
   }
 });
@@ -909,7 +909,7 @@ router.get('/credit-balance', authenticateToken, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ [BILLING] Error getting credit balance:', error);
+    console.error('[BILLING] Error getting credit balance:', error);
     res.status(500).json({ error: 'Failed to get credit balance' });
   }
 });
@@ -948,7 +948,7 @@ router.post('/add-credits', authenticateToken, async (req, res) => {
       return res.status(400).json({ error: 'No default payment method found' });
     }
     
-    console.log(`💳 [BILLING] Adding ${credits} credits ($${amount}) to user ${userId} balance`);
+    console.log(`[BILLING] Adding ${credits} credits ($${amount}) to user ${userId} balance`);
     
     // Create payment intent
     const paymentIntent = await stripe.paymentIntents.create({
@@ -976,7 +976,7 @@ router.post('/add-credits', authenticateToken, async (req, res) => {
         creditBalance: newBalance
       });
       
-      console.log(`✅ [BILLING] Credit top-up successful - Added ${credits} credits to user ${userId} (New balance: ${newBalance})`);
+      console.log(`[BILLING] Credit top-up successful - Added ${credits} credits to user ${userId} (New balance: ${newBalance})`);
       
       // Log successful payment
       await logBillingActivity(userId, 'credit_topup', {
@@ -1005,7 +1005,7 @@ router.post('/add-credits', authenticateToken, async (req, res) => {
     }
     
   } catch (error) {
-    console.error('❌ [BILLING] Error adding credits:', error);
+    console.error('[BILLING] Error adding credits:', error);
     
     // Log failed payment
     await logBillingActivity(req.user.userId, 'credit_topup', {

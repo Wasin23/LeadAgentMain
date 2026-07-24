@@ -73,7 +73,7 @@ class CircuitBreaker {
     
     // If circuit was half-open and testing, close it
     if (this.state.get(service) === 'half-open') {
-      console.log(`✅ [CIRCUIT BREAKER] ${this.config[service].name} recovered - closing circuit`);
+      console.log(`[CIRCUIT BREAKER] ${this.config[service].name} recovered - closing circuit`);
       this.state.set(service, 'closed');
       this.openedAt.delete(service);
     }
@@ -87,14 +87,14 @@ class CircuitBreaker {
     
     const threshold = this.config[service].threshold;
     
-    console.log(`⚠️ [CIRCUIT BREAKER] ${this.config[service].name} failure ${newFailures}/${threshold}`);
+    console.log(`[CIRCUIT BREAKER] ${this.config[service].name} failure ${newFailures}/${threshold}`);
     
     // Open circuit if threshold exceeded
     if (newFailures >= threshold && this.state.get(service) === 'closed') {
       this.state.set(service, 'open');
       this.openedAt.set(service, Date.now());
       
-      console.log(`🚨 [CIRCUIT BREAKER] ${this.config[service].name} CIRCUIT OPENED after ${newFailures} failures`);
+      console.log(`[CIRCUIT BREAKER] ${this.config[service].name} CIRCUIT OPENED after ${newFailures} failures`);
       console.log(`⏸️ [CIRCUIT BREAKER] Cooldown: ${this.getCooldownTime(service)}`);
       
       // Log to monitoring/issues system
@@ -123,7 +123,7 @@ class CircuitBreaker {
       
       // If cooldown period has passed, try half-open state
       if (elapsed >= cooldownMs) {
-        console.log(`🔄 [CIRCUIT BREAKER] ${this.config[service].name} entering half-open state (testing recovery)`);
+        console.log(`[CIRCUIT BREAKER] ${this.config[service].name} entering half-open state (testing recovery)`);
         this.state.set(service, 'half-open');
         return false; // Allow one test request
       }
@@ -181,7 +181,7 @@ class CircuitBreaker {
   
   // Manually reset a circuit (admin action)
   reset(service) {
-    console.log(`🔧 [CIRCUIT BREAKER] Manually resetting ${this.config[service].name}`);
+    console.log(`[CIRCUIT BREAKER] Manually resetting ${this.config[service].name}`);
     this.state.set(service, 'closed');
     this.failures.set(service, 0);
     this.openedAt.delete(service);
@@ -200,7 +200,7 @@ class CircuitBreaker {
   async logCircuitOpened(service, failures) {
     const title = `Circuit Breaker: ${this.config[service].name} Opened`;
     const message = `${failures} consecutive failures detected. Operations paused for ${this.getCooldownTime(service)}.`;
-    console.error(`❌ [CIRCUIT BREAKER] ${title} — ${message}`);
+    console.error(`[CIRCUIT BREAKER] ${title} — ${message}`);
     try {
       const { broadcastActivity } = await import('../routes/monitoring.js');
       broadcastActivity({
@@ -218,7 +218,7 @@ class CircuitBreaker {
         }
       });
     } catch (error) {
-      console.error('❌ [CIRCUIT BREAKER] Failed to broadcast issue:', error);
+      console.error('[CIRCUIT BREAKER] Failed to broadcast issue:', error);
     }
   }
 }
@@ -237,7 +237,7 @@ export default CircuitBreaker;
 */
 
 // TEMPORARY PLACEHOLDER - Remove when uncommenting above
-console.log('⚠️ Circuit Breaker system ready but commented out');
+console.log('Circuit Breaker system ready but commented out');
 export function getCircuitBreaker() {
   return {
     shouldBlock: () => false,

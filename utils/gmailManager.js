@@ -52,13 +52,13 @@ class GmailManager {
   async getTokensFromCode(code) {
     try {
       const { tokens } = await this.oauth2Client.getToken(code);
-      console.log('✅ [GMAIL] Got tokens:', {
+      console.log('[GMAIL] Got tokens:', {
         hasAccessToken: !!tokens.access_token,
         hasRefreshToken: !!tokens.refresh_token
       });
       return tokens;
     } catch (error) {
-      console.error('❌ [GMAIL] Error getting tokens:', error);
+      console.error('[GMAIL] Error getting tokens:', error);
       throw error;
     }
   }
@@ -73,7 +73,7 @@ class GmailManager {
       const profile = await gmail.users.getProfile({ userId: 'me' });
       return profile.data.emailAddress;
     } catch (error) {
-      console.error('❌ [GMAIL] Error getting user email:', error);
+      console.error('[GMAIL] Error getting user email:', error);
       throw error;
     }
   }
@@ -88,7 +88,7 @@ class GmailManager {
       const userInfo = await oauth2.userinfo.get();
       return userInfo.data.picture || null;
     } catch (error) {
-      console.error('❌ [GMAIL] Error getting profile picture:', error);
+      console.error('[GMAIL] Error getting profile picture:', error);
       return null;
     }
   }
@@ -106,7 +106,7 @@ class GmailManager {
       const profile = await gmail.users.getProfile({ userId: 'me' });
       return profile.data.emailAddress;
     } catch (error) {
-      console.error('❌ [GMAIL] Error getting email from tokens:', error);
+      console.error('[GMAIL] Error getting email from tokens:', error);
       return 'unknown@gmail.com';
     }
   }
@@ -121,29 +121,29 @@ class GmailManager {
   async sendEmail({ userId, to, subject, htmlBody, textBody, ccEmails = null, bccEmails = null, replyTo = null, agentId = null, enableTracking = true, trackingId = null, inReplyTo = null, references = null, threadId = null }) {
     try {
       console.log('═══════════════════════════════════════════════════════════════');
-      console.log('📧 [GMAIL SEND] Starting Gmail send process');
-      console.log('📧 [GMAIL SEND] To:', to);
-      console.log('📧 [GMAIL SEND] Subject:', subject);
-      console.log('📧 [GMAIL SEND] User ID:', userId);
-      console.log('📧 [GMAIL SEND] Agent ID:', agentId);
-      console.log('📧 [GMAIL SEND] Tracking ID:', trackingId);
-      console.log('📧 [GMAIL SEND] CC:', ccEmails || 'None');
-      console.log('📧 [GMAIL SEND] BCC:', bccEmails || 'None');
-      console.log('📧 [GMAIL SEND] HTML Body Length:', htmlBody?.length || 0);
+      console.log('[GMAIL SEND] Starting Gmail send process');
+      console.log('[GMAIL SEND] To:', to);
+      console.log('[GMAIL SEND] Subject:', subject);
+      console.log('[GMAIL SEND] User ID:', userId);
+      console.log('[GMAIL SEND] Agent ID:', agentId);
+      console.log('[GMAIL SEND] Tracking ID:', trackingId);
+      console.log('[GMAIL SEND] CC:', ccEmails || 'None');
+      console.log('[GMAIL SEND] BCC:', bccEmails || 'None');
+      console.log('[GMAIL SEND] HTML Body Length:', htmlBody?.length || 0);
       console.log('═══════════════════════════════════════════════════════════════');
       if (inReplyTo || threadId) {
-        console.log('🧵 [GMAIL THREADING] Threading enabled - sending as reply');
-        console.log('🧵 [GMAIL THREADING] In-Reply-To:', inReplyTo);
-        console.log('🧵 [GMAIL THREADING] Thread ID:', threadId);
+        console.log('[GMAIL THREADING] Threading enabled - sending as reply');
+        console.log('[GMAIL THREADING] In-Reply-To:', inReplyTo);
+        console.log('[GMAIL THREADING] Thread ID:', threadId);
       }
 
       // Get user's Gmail credentials from DynamoDB
-      console.log('📥 [GMAIL ACCOUNTS] Fetching user settings from DynamoDB...');
+      console.log('[GMAIL ACCOUNTS] Fetching user settings from DynamoDB...');
       const userSettings = await awsManager.getUserSettings(userId);
-      console.log('📥 [GMAIL ACCOUNTS] User settings retrieved');
-      console.log('📥 [GMAIL ACCOUNTS] Has gmailAuth:', !!userSettings?.gmailAuth);
-      console.log('📥 [GMAIL ACCOUNTS] Has gmailAccounts:', !!userSettings?.gmailAccounts);
-      console.log('📥 [GMAIL ACCOUNTS] Has calendarTokens:', !!userSettings?.calendarTokens);
+      console.log('[GMAIL ACCOUNTS] User settings retrieved');
+      console.log('[GMAIL ACCOUNTS] Has gmailAuth:', !!userSettings?.gmailAuth);
+      console.log('[GMAIL ACCOUNTS] Has gmailAccounts:', !!userSettings?.gmailAccounts);
+      console.log('[GMAIL ACCOUNTS] Has calendarTokens:', !!userSettings?.calendarTokens);
       
       // Support both old gmailAuth format, new gmailAccounts array, and calendarTokens with Gmail scopes
       let gmailAccounts = [];
@@ -151,27 +151,27 @@ class GmailManager {
       
       if (userSettings?.gmailAccounts && userSettings.gmailAccounts.length > 0) {
         // New multi-account format
-        console.log('✅ [GMAIL ACCOUNTS] Using gmailAccounts format');
+        console.log('[GMAIL ACCOUNTS] Using gmailAccounts format');
         gmailAccounts = userSettings.gmailAccounts;
         currentAccountIndex = userSettings.activeGmailIndex || 0;
-        console.log('📧 [GMAIL ACCOUNTS] Found', gmailAccounts.length, 'accounts, active index:', currentAccountIndex);
+        console.log('[GMAIL ACCOUNTS] Found', gmailAccounts.length, 'accounts, active index:', currentAccountIndex);
         gmailAccounts.forEach((acc, idx) => {
           console.log(`   Account ${idx + 1}: ${acc.email} (Active: ${acc.isActive}, Has Token: ${!!acc.refreshToken})`);
         });
       } else if (userSettings?.gmailAuth?.refreshToken) {
         // Legacy single account format - convert to array
-        console.log('✅ [GMAIL ACCOUNTS] Using legacy gmailAuth format');
+        console.log('[GMAIL ACCOUNTS] Using legacy gmailAuth format');
         gmailAccounts = [{
           email: userSettings.gmailAuth.email,
           refreshToken: userSettings.gmailAuth.refreshToken,
           isActive: true
         }];
         currentAccountIndex = 0;
-        console.log('📧 [GMAIL ACCOUNTS] Legacy account:', userSettings.gmailAuth.email);
+        console.log('[GMAIL ACCOUNTS] Legacy account:', userSettings.gmailAuth.email);
       } else if (userSettings?.calendarTokens?.refresh_token && 
                  userSettings?.calendarTokens?.scope?.includes('gmail')) {
         // Calendar OAuth includes Gmail scopes
-        console.log('✅ [GMAIL ACCOUNTS] Using calendarTokens with Gmail scopes');
+        console.log('[GMAIL ACCOUNTS] Using calendarTokens with Gmail scopes');
         const emailAddress = await this.getUserEmailFromTokens(userSettings.calendarTokens);
         gmailAccounts = [{
           email: emailAddress,
@@ -179,10 +179,10 @@ class GmailManager {
           isActive: true
         }];
         currentAccountIndex = 0;
-        console.log('📧 [GMAIL ACCOUNTS] Calendar token email:', emailAddress);
+        console.log('[GMAIL ACCOUNTS] Calendar token email:', emailAddress);
       } else {
-        console.error('❌ [GMAIL ACCOUNTS] No Gmail accounts found!');
-        console.error('❌ [GMAIL ACCOUNTS] User settings:', {
+        console.error('[GMAIL ACCOUNTS] No Gmail accounts found!');
+        console.error('[GMAIL ACCOUNTS] User settings:', {
           hasGmailAuth: !!userSettings?.gmailAuth,
           hasGmailAccounts: !!userSettings?.gmailAccounts,
           hasCalendarTokens: !!userSettings?.calendarTokens,
@@ -194,17 +194,17 @@ class GmailManager {
       // Get the current account for this email
       const currentAccount = gmailAccounts[currentAccountIndex];
       console.log('═══════════════════════════════════════════════════════════════');
-      console.log(`📧 [GMAIL ACCOUNT] Using account ${currentAccountIndex + 1}/${gmailAccounts.length}: ${currentAccount.email}`);
-      console.log(`📧 [GMAIL ACCOUNT] Has refresh token: ${!!currentAccount.refreshToken}`);
-      console.log(`📧 [GMAIL ACCOUNT] Token length: ${currentAccount.refreshToken?.length || 0}`);
+      console.log(`[GMAIL ACCOUNT] Using account ${currentAccountIndex + 1}/${gmailAccounts.length}: ${currentAccount.email}`);
+      console.log(`[GMAIL ACCOUNT] Has refresh token: ${!!currentAccount.refreshToken}`);
+      console.log(`[GMAIL ACCOUNT] Token length: ${currentAccount.refreshToken?.length || 0}`);
       console.log('═══════════════════════════════════════════════════════════════');
 
       // Set credentials
-      console.log('🔐 [GMAIL AUTH] Setting OAuth2 credentials...');
+      console.log('[GMAIL AUTH] Setting OAuth2 credentials...');
       this.oauth2Client.setCredentials({
         refresh_token: currentAccount.refreshToken
       });
-      console.log('✅ [GMAIL AUTH] Credentials set successfully');
+      console.log('[GMAIL AUTH] Credentials set successfully');
 
       // Create Gmail API client
       const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
@@ -217,12 +217,12 @@ class GmailManager {
 
       // Use provided tracking ID or generate new one
       const finalTrackingId = trackingId || `tracking-${userId}_${agentId || 'unknown'}_${Date.now()}`;
-      console.log(`📊 [GMAIL] Using tracking ID: ${finalTrackingId}`);
+      console.log(`[GMAIL] Using tracking ID: ${finalTrackingId}`);
 
       // Tracking pixel was already injected by sendEmailMailgun before routing to Gmail
       let finalHtmlBody = htmlBody || textBody;
-      console.log(`📊 [GMAIL] Email body received (tracking pixel should already be included)`);
-      console.log(`📊 [GMAIL] Body contains tracking pixel?`, finalHtmlBody?.includes(finalTrackingId));
+      console.log(`[GMAIL] Email body received (tracking pixel should already be included)`);
+      console.log(`[GMAIL] Body contains tracking pixel?`, finalHtmlBody?.includes(finalTrackingId));
 
       // Build email message in RFC 2822 format
       const messageParts = [
@@ -237,11 +237,11 @@ class GmailManager {
       // Add threading headers for follow-up emails (send as reply)
       if (inReplyTo) {
         messageParts.push(`In-Reply-To: ${inReplyTo}`);
-        console.log(`📧 [GMAIL] Adding In-Reply-To header: ${inReplyTo}`);
+        console.log(`[GMAIL] Adding In-Reply-To header: ${inReplyTo}`);
       }
       if (references) {
         messageParts.push(`References: ${references}`);
-        console.log(`📧 [GMAIL] Adding References header: ${references}`);
+        console.log(`[GMAIL] Adding References header: ${references}`);
       } else if (inReplyTo) {
         // If no references but we have inReplyTo, use that as references
         messageParts.push(`References: ${inReplyTo}`);
@@ -287,7 +287,7 @@ class GmailManager {
       // Add threadId for threading if provided (to reply in the same thread)
       if (threadId) {
         requestBody.threadId = threadId;
-        console.log(`📧 [GMAIL] Sending in thread: ${threadId}`);
+        console.log(`[GMAIL] Sending in thread: ${threadId}`);
       }
       
       const result = await gmail.users.messages.send({
@@ -295,14 +295,14 @@ class GmailManager {
         requestBody
       });
 
-      console.log('✅ [GMAIL] Email sent successfully. MessageId:', result.data.id);
-      console.log('✅ [GMAIL] Thread ID:', result.data.threadId);
-      console.log('✅ [GMAIL] Email will appear in user\'s Gmail Sent folder');
+      console.log('[GMAIL] Email sent successfully. MessageId:', result.data.id);
+      console.log('[GMAIL] Thread ID:', result.data.threadId);
+      console.log('[GMAIL] Email will appear in user\'s Gmail Sent folder');
 
       // Cycle to next account for future emails (if multiple accounts)
       if (gmailAccounts.length > 1) {
         const nextIndex = (currentAccountIndex + 1) % gmailAccounts.length;
-        console.log(`🔄 [GMAIL] Cycling to account ${nextIndex + 1}/${gmailAccounts.length} for next email`);
+        console.log(`[GMAIL] Cycling to account ${nextIndex + 1}/${gmailAccounts.length} for next email`);
         
         // Update active account
         gmailAccounts.forEach((acc, i) => {
@@ -342,7 +342,7 @@ class GmailManager {
         provider: 'gmail'
       };
     } catch (error) {
-      console.error('❌ [GMAIL] Error sending email:', error);
+      console.error('[GMAIL] Error sending email:', error);
       
       // If refresh token expired, user needs to reconnect
       if (error.message?.includes('invalid_grant') || error.message?.includes('Token has been expired')) {
@@ -386,7 +386,7 @@ class GmailManager {
         return { success: false, error: 'Gmail not connected' };
       }
 
-      console.log(`🧪 [GMAIL] Testing connection for: ${activeAccount.email}`);
+      console.log(`[GMAIL] Testing connection for: ${activeAccount.email}`);
 
       this.oauth2Client.setCredentials({
         refresh_token: activeAccount.refreshToken
@@ -395,7 +395,7 @@ class GmailManager {
       const gmail = google.gmail({ version: 'v1', auth: this.oauth2Client });
       const profile = await gmail.users.getProfile({ userId: 'me' });
 
-      console.log(`✅ [GMAIL] Connection test successful: ${profile.data.emailAddress}`);
+      console.log(`[GMAIL] Connection test successful: ${profile.data.emailAddress}`);
 
       return {
         success: true,
@@ -404,7 +404,7 @@ class GmailManager {
         threadsTotal: profile.data.threadsTotal
       };
     } catch (error) {
-      console.error('❌ [GMAIL] Test connection failed:', error);
+      console.error('[GMAIL] Test connection failed:', error);
       return {
         success: false,
         error: error.message || 'Connection test failed'
@@ -454,11 +454,11 @@ class GmailManager {
       });
 
       const messages = response.data.messages || [];
-      console.log(`📬 [GMAIL] Found ${messages.length} unread messages`);
+      console.log(`[GMAIL] Found ${messages.length} unread messages`);
 
       return messages;
     } catch (error) {
-      console.error('❌ [GMAIL] Error checking replies:', error);
+      console.error('[GMAIL] Error checking replies:', error);
       return [];
     }
   }
@@ -540,18 +540,18 @@ class GmailManager {
       
       if (message.payload?.parts) {
         // Multipart message - extract all parts
-        console.log(`📬 [GMAIL] Message has ${message.payload.parts.length} top-level parts`);
+        console.log(`[GMAIL] Message has ${message.payload.parts.length} top-level parts`);
         extractAllBodyParts(message.payload.parts);
       } else if (message.payload?.body?.data) {
         // Simple message
         const text = Buffer.from(message.payload.body.data, 'base64').toString('utf-8');
-        console.log(`📬 [GMAIL] Simple message: ${text.length} chars`);
+        console.log(`[GMAIL] Simple message: ${text.length} chars`);
         allTextParts.push(text);
       }
       
       // Combine all text parts
       const body = allTextParts.join('\n\n---\n\n');
-      console.log(`📝 [GMAIL] Total body length: ${body.length} chars from ${allTextParts.length} parts`);
+      console.log(`[GMAIL] Total body length: ${body.length} chars from ${allTextParts.length} parts`);
 
       return {
         id: message.id,
@@ -567,7 +567,7 @@ class GmailManager {
         date: headers['date'] || ''
       };
     } catch (error) {
-      console.error('❌ [GMAIL] Error getting message:', error);
+      console.error('[GMAIL] Error getting message:', error);
       throw error;
     }
   }
@@ -579,10 +579,10 @@ class GmailManager {
     try {
       this.oauth2Client.setCredentials({ refresh_token: refreshToken });
       await this.oauth2Client.revokeCredentials();
-      console.log('✅ [GMAIL] Token revoked successfully');
+      console.log('[GMAIL] Token revoked successfully');
       return { success: true };
     } catch (error) {
-      console.error('❌ [GMAIL] Error revoking token:', error);
+      console.error('[GMAIL] Error revoking token:', error);
       throw error;
     }
   }
@@ -633,7 +633,7 @@ class GmailManager {
         }
       });
 
-      console.log('✅ [GMAIL] Push notifications set up:', response.data);
+      console.log('[GMAIL] Push notifications set up:', response.data);
       
       // Store the watch info to renew it later (expires in ~7 days)
       await awsManager.saveUserSettings(userId, {
@@ -651,7 +651,7 @@ class GmailManager {
         expiration: response.data.expiration
       };
     } catch (error) {
-      console.error('❌ [GMAIL] Error setting up push notifications:', error);
+      console.error('[GMAIL] Error setting up push notifications:', error);
       throw error;
     }
   }
@@ -691,10 +691,10 @@ class GmailManager {
         userId: 'me'
       });
 
-      console.log('✅ [GMAIL] Push notifications stopped');
+      console.log('[GMAIL] Push notifications stopped');
       return { success: true };
     } catch (error) {
-      console.error('❌ [GMAIL] Error stopping push notifications:', error);
+      console.error('[GMAIL] Error stopping push notifications:', error);
       throw error;
     }
   }
@@ -730,7 +730,7 @@ class GmailManager {
 
       return response.data;
     } catch (error) {
-      console.error('❌ [GMAIL] Error getting profile:', error);
+      console.error('[GMAIL] Error getting profile:', error);
       throw error;
     }
   }
@@ -775,7 +775,7 @@ class GmailManager {
 
       return response.data.history || [];
     } catch (error) {
-      console.error('❌ [GMAIL] Error getting history:', error);
+      console.error('[GMAIL] Error getting history:', error);
       throw error;
     }
   }
@@ -817,7 +817,7 @@ class GmailManager {
     if (message.xMeridianTrackingId && message.xMeridianTrackingId.includes('tracking-')) {
       const match = message.xMeridianTrackingId.match(trackingPattern);
       if (match) {
-        console.log(`🔍 [GMAIL] Found tracking ID in X-Meridian-Tracking-Id: ${match[1]}`);
+        console.log(`[GMAIL] Found tracking ID in X-Meridian-Tracking-Id: ${match[1]}`);
         return match[1];
       }
     }
@@ -826,7 +826,7 @@ class GmailManager {
     if (message.inReplyTo && message.inReplyTo.includes('tracking-')) {
       const match = message.inReplyTo.match(trackingPattern);
       if (match) {
-        console.log(`🔍 [GMAIL] Found tracking ID in In-Reply-To: ${match[1]}`);
+        console.log(`[GMAIL] Found tracking ID in In-Reply-To: ${match[1]}`);
         return match[1];
       }
     }
@@ -835,7 +835,7 @@ class GmailManager {
     if (message.references && message.references.includes('tracking-')) {
       const match = message.references.match(trackingPattern);
       if (match) {
-        console.log(`🔍 [GMAIL] Found tracking ID in References: ${match[1]}`);
+        console.log(`[GMAIL] Found tracking ID in References: ${match[1]}`);
         return match[1];
       }
     }
@@ -844,7 +844,7 @@ class GmailManager {
     if (message.messageId && message.messageId.includes('tracking-')) {
       const match = message.messageId.match(trackingPattern);
       if (match) {
-        console.log(`🔍 [GMAIL] Found tracking ID in Message-ID: ${match[1]}`);
+        console.log(`[GMAIL] Found tracking ID in Message-ID: ${match[1]}`);
         return match[1];
       }
     }
@@ -853,12 +853,12 @@ class GmailManager {
     if (message.body) {
       const match = message.body.match(trackingPattern);
       if (match) {
-        console.log(`🔍 [GMAIL] Found tracking ID in body: ${match[1]}`);
+        console.log(`[GMAIL] Found tracking ID in body: ${match[1]}`);
         return match[1];
       }
     }
 
-    console.log(`⚠️ [GMAIL] Could not find tracking ID in message`);
+    console.log(`[GMAIL] Could not find tracking ID in message`);
     console.log(`   In-Reply-To: ${message.inReplyTo || 'none'}`);
     console.log(`   References: ${message.references || 'none'}`);
     console.log(`   Message-ID: ${message.messageId || 'none'}`);

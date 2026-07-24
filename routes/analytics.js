@@ -39,20 +39,20 @@ router.get('/track/open/:trackingId', async (req, res) => {
   const timestamp = new Date().toISOString();
   console.log('\n');
   console.log('═══════════════════════════════════════════════════════════════');
-  console.log('🎯 [TRACKING PIXEL] EMAIL OPENED!');
+  console.log('[TRACKING PIXEL] EMAIL OPENED!');
   console.log('═══════════════════════════════════════════════════════════════');
-  console.log('📅 Timestamp:', timestamp);
+  console.log('Timestamp:', timestamp);
   try {
     const { trackingId } = req.params;
     const userAgent = req.get('User-Agent') || '';
     const referer = req.get('Referer') || '';
     const forwarded = req.get('X-Forwarded-For') || '';
     
-    console.log('🔑 Tracking ID:', trackingId);
-    console.log('🌐 IP Address:', req.ip);
-    console.log('🖥️  User Agent:', userAgent);
-    console.log('🔗 Referer:', referer);
-    console.log('📡 X-Forwarded-For:', forwarded);
+    console.log('Tracking ID:', trackingId);
+    console.log('IP Address:', req.ip);
+    console.log('User Agent:', userAgent);
+    console.log('Referer:', referer);
+    console.log('X-Forwarded-For:', forwarded);
     
     // Detect actual bots/crawlers (but allow email client proxies like Gmail)
     const imageProxyPatterns = [
@@ -72,19 +72,19 @@ router.get('/track/open/:trackingId', async (req, res) => {
       pattern.test(userAgent) || pattern.test(referer)
     );
     
-    console.log('🤖 Is Image Proxy/Bot:', isImageProxy);
+    console.log('Is Image Proxy/Bot:', isImageProxy);
     
     // Only count as real open if not from image proxy
     if (!isImageProxy) {
-      console.log('✅ LEGITIMATE HIT - Processing...');
+      console.log('LEGITIMATE HIT - Processing...');
       
       // Parse tracking ID format: tracking-{userId}_{agentId}_{timestamp}_{random}
       const parts = trackingId.split('_');
       const userId = parts[0].replace('tracking-', ''); // Remove "tracking-" prefix
       const agentId = parts[1]; // Extract agentId
       
-      console.log('👤 User ID:', userId);
-      console.log('🤖 Agent ID:', agentId);
+      console.log('User ID:', userId);
+      console.log('Agent ID:', agentId);
       
       // STEP 1: Get email sent time to determine if this is a proxy hit (immediate) or real open (delayed)
       let emailSentTime = null;
@@ -92,31 +92,31 @@ router.get('/track/open/:trackingId', async (req, res) => {
       let eventType = 'open'; // Default to open
       
       console.log('⏰ [INBOX DETECTION] Fetching email sent time for timing analysis...');
-      console.log('🔍 [INBOX DETECTION] userId:', userId, 'agentId:', agentId);
+      console.log('[INBOX DETECTION] userId:', userId, 'agentId:', agentId);
       try {
         // For orphaned emails (agentId is null or 'null'), get all user emails
         let sentEmails;
         if (!agentId || agentId === 'null') {
-          console.log('📧 [INBOX DETECTION] Orphaned email detected, fetching all user emails...');
+          console.log('[INBOX DETECTION] Orphaned email detected, fetching all user emails...');
           sentEmails = await awsQueue.getAllSentEmailsForUser(userId);
         } else {
-          console.log('📧 [INBOX DETECTION] Fetching emails for specific agent:', agentId);
+          console.log('[INBOX DETECTION] Fetching emails for specific agent:', agentId);
           sentEmails = await awsQueue.getSentEmails(userId, agentId);
         }
         
-        console.log(`📊 [INBOX DETECTION] Found ${sentEmails.length} sent emails to search`);
+        console.log(`[INBOX DETECTION] Found ${sentEmails.length} sent emails to search`);
         const emailData = sentEmails.find(e => e.trackingId === trackingId);
         if (emailData && emailData.sentAt) {
           emailSentTime = new Date(emailData.sentAt).getTime();
-          console.log('✅ [INBOX DETECTION] Found email with sentAt:', new Date(emailSentTime).toISOString());
+          console.log('[INBOX DETECTION] Found email with sentAt:', new Date(emailSentTime).toISOString());
         } else {
-          console.warn('⚠️ [INBOX DETECTION] No email found with sentAt timestamp for trackingId:', trackingId);
+          console.warn('[INBOX DETECTION] No email found with sentAt timestamp for trackingId:', trackingId);
           if (sentEmails.length > 0) {
-            console.log('📋 [INBOX DETECTION] Sample tracking IDs:', sentEmails.slice(0, 3).map(e => e.trackingId));
+            console.log('[INBOX DETECTION] Sample tracking IDs:', sentEmails.slice(0, 3).map(e => e.trackingId));
           }
         }
       } catch (err) {
-        console.error('❌ [INBOX DETECTION] Error fetching email sent time:', err.message);
+        console.error('[INBOX DETECTION] Error fetching email sent time:', err.message);
       }
       
       const now = Date.now();
@@ -126,21 +126,21 @@ router.get('/track/open/:trackingId', async (req, res) => {
       console.log('═══════════════════════════════════════════════════════════════');
       console.log('⏱️  [INBOX DETECTION] TIMING ANALYSIS');
       console.log('═══════════════════════════════════════════════════════════════');
-      console.log('📧 Tracking ID:', trackingId);
-      console.log('📅 Email sent at:', emailSentTime ? new Date(emailSentTime).toISOString() : 'UNKNOWN');
-      console.log('🕐 Pixel hit at:', new Date(now).toISOString());
+      console.log('Tracking ID:', trackingId);
+      console.log('Email sent at:', emailSentTime ? new Date(emailSentTime).toISOString() : 'UNKNOWN');
+      console.log('Pixel hit at:', new Date(now).toISOString());
       console.log('⏳ Time since sent:', timeSinceSent !== null ? `${timeSinceSent.toFixed(2)} seconds` : 'UNKNOWN');
-      console.log('🎯 Classification:', isProxyHit ? '🟢 PRIMARY INBOX (auto-load <10s)' : '📧 USER OPENED (>10s or unknown timing)');
+      console.log('Classification:', isProxyHit ? 'PRIMARY INBOX (auto-load <10s)' : 'USER OPENED (>10s or unknown timing)');
       console.log('═══════════════════════════════════════════════════════════════');
       
       // Determine event type based on timing
       eventType = isProxyHit ? 'proxy' : 'open';
-      console.log(`📝 [INBOX DETECTION] Recording as: ${eventType}`);
+      console.log(`[INBOX DETECTION] Recording as: ${eventType}`);
       
       // STEP 2: Only update email as "opened" if this is NOT a proxy hit
       if (!isProxyHit) {
-        console.log('✅ REAL USER OPEN - Marking email as opened!');
-        console.log('📊 Updating analytics in DynamoDB...');
+        console.log('REAL USER OPEN - Marking email as opened!');
+        console.log('Updating analytics in DynamoDB...');
         
         await updateEmailAnalytics(trackingId, {
           opened: true,
@@ -149,9 +149,9 @@ router.get('/track/open/:trackingId', async (req, res) => {
           ipAddress: req.ip
         });
         
-        console.log('💾 Analytics updated successfully!');
+        console.log('Analytics updated successfully!');
       } else {
-        console.log('🟢 PRIMARY INBOX PROXY HIT - Not marking as opened (just logging event)');
+        console.log('PRIMARY INBOX PROXY HIT - Not marking as opened (just logging event)');
       }
       
       // STEP 3: Log event to DynamoDB (for both proxy and real opens)
@@ -175,11 +175,11 @@ router.get('/track/open/:trackingId', async (req, res) => {
             console.log(`[EMAIL TRACKING] Enriched event: to=${recipientEmail}, leadName=${leadName}, subject=${subject}`);
           }
         } catch (err) {
-          console.error('❌ Error fetching email details:', err);
+          console.error('Error fetching email details:', err);
         }
         
-        console.log('📬 Logging tracking event to DynamoDB...');
-        console.log(`📝 [EMAIL-TRACKING] Logging event: {`);
+        console.log('Logging tracking event to DynamoDB...');
+        console.log(`[EMAIL-TRACKING] Logging event: {`);
         console.log(`  eventType: '${eventType}',`);
         console.log(`  recipientEmail: '${recipientEmail}',`);
         console.log(`  leadName: '${leadName}',`);
@@ -195,7 +195,7 @@ router.get('/track/open/:trackingId', async (req, res) => {
           userAgent: userAgent,
           timestamp: new Date().toISOString()
         });
-        console.log('✅ Tracking event logged to DynamoDB!');
+        console.log('Tracking event logged to DynamoDB!');
         
         // Broadcast to SSE clients for real-time UI updates
         try {
@@ -209,22 +209,22 @@ router.get('/track/open/:trackingId', async (req, res) => {
             subject,
             timestamp: new Date().toISOString()
           });
-          console.log('📡 SSE broadcast sent for real-time UI update!');
+          console.log('SSE broadcast sent for real-time UI update!');
         } catch (sseError) {
-          console.error('⚠️  SSE broadcast failed:', sseError.message);
+          console.error('SSE broadcast failed:', sseError.message);
         }
       } catch (dbError) {
-        console.error('❌ DynamoDB logging failed:', dbError);
+        console.error('DynamoDB logging failed:', dbError);
       }
       console.log('═══════════════════════════════════════════════════════════════');
       if (eventType === 'proxy') {
-        console.log('📧 TRACKING PIXEL PROCESSED - PRIMARY INBOX PROXY HIT (not counted as opened)');
+        console.log('TRACKING PIXEL PROCESSED - PRIMARY INBOX PROXY HIT (not counted as opened)');
       } else {
-        console.log('🎉 TRACKING PIXEL PROCESSED - EMAIL MARKED AS OPENED');
+        console.log('TRACKING PIXEL PROCESSED - EMAIL MARKED AS OPENED');
       }
       console.log('═══════════════════════════════════════════════════════════════\n');
     } else {
-      console.log('⚠️  IMAGE PROXY/BOT DETECTED - Not counting as real open');
+      console.log('IMAGE PROXY/BOT DETECTED - Not counting as real open');
       console.log('═══════════════════════════════════════════════════════════════\n');
     }
     
@@ -469,7 +469,7 @@ router.get('/api/analytics/emails', authenticateToken, async (req, res) => {
       // Filter by agentId if provided (for agent-specific requests)
       if (agentId) {
         approvedEmails = allApprovedEmails.filter(email => email.agentId === agentId);
-        console.log(`📧 [ANALYTICS] Filtered ${approvedEmails.length} approved emails for agent ${agentId} (from ${allApprovedEmails.length} total)`);
+        console.log(`[ANALYTICS] Filtered ${approvedEmails.length} approved emails for agent ${agentId} (from ${allApprovedEmails.length} total)`);
       } else {
         approvedEmails = allApprovedEmails;
       }
@@ -503,10 +503,10 @@ router.get('/api/analytics/emails', authenticateToken, async (req, res) => {
       // Otherwise, get ALL sent emails for the user across all agents
       if (agentId) {
         sentEmails = await awsEmailQueue.getSentEmails(userId, agentId);
-        console.log(`📧 [ANALYTICS] Loaded ${sentEmails.length} sent emails from DynamoDB for user ${userId}, agent ${agentId}`);
+        console.log(`[ANALYTICS] Loaded ${sentEmails.length} sent emails from DynamoDB for user ${userId}, agent ${agentId}`);
       } else {
         sentEmails = await awsEmailQueue.getAllSentEmailsForUser(userId);
-        console.log(`📧 [ANALYTICS] Loaded ${sentEmails.length} sent emails from DynamoDB for user ${userId} (all agents)`);
+        console.log(`[ANALYTICS] Loaded ${sentEmails.length} sent emails from DynamoDB for user ${userId} (all agents)`);
       }
       
       // Normalize DynamoDB emails to match expected structure
@@ -530,14 +530,14 @@ router.get('/api/analytics/emails', authenticateToken, async (req, res) => {
       // Combine with legacy logs
       logs = [...logs, ...normalizedSent];
     } catch (dynamoError) {
-      console.error('📧 [ANALYTICS] Failed to load sent emails from DynamoDB:', dynamoError.message);
-      console.error('📧 [ANALYTICS] Error stack:', dynamoError.stack);
+      console.error('[ANALYTICS] Failed to load sent emails from DynamoDB:', dynamoError.message);
+      console.error('[ANALYTICS] Error stack:', dynamoError.stack);
       // Continue with legacy logs only
     }
     
     // Add analytics status to each email
     console.log('═══════════════════════════════════════════════════════════════');
-    console.log('📊 [ANALYTICS] Adding tracking data to', logs.length, 'emails');
+    console.log('[ANALYTICS] Adding tracking data to', logs.length, 'emails');
     
     // Get all tracking events for this user
     let emailsWithAnalytics = [];
@@ -548,7 +548,7 @@ router.get('/api/analytics/emails', authenticateToken, async (req, res) => {
       } else {
         allTrackingEvents = await awsManager.getEmailTrackingByUser(userId);
       }
-      console.log('📊 [ANALYTICS] Found', allTrackingEvents.length, 'tracking events');
+      console.log('[ANALYTICS] Found', allTrackingEvents.length, 'tracking events');
       
       // Group tracking events by trackingId for quick lookup
       const trackingByEmail = {};
@@ -559,7 +559,7 @@ router.get('/api/analytics/emails', authenticateToken, async (req, res) => {
         trackingByEmail[event.trackingId].push(event);
       });
       
-      console.log('📊 [ANALYTICS] Grouped into', Object.keys(trackingByEmail).length, 'unique emails');
+      console.log('[ANALYTICS] Grouped into', Object.keys(trackingByEmail).length, 'unique emails');
       
       emailsWithAnalytics = logs.map(log => {
         const events = trackingByEmail[log.trackingId] || [];
@@ -584,11 +584,11 @@ router.get('/api/analytics/emails', authenticateToken, async (req, res) => {
       });
       
       const withTracking = emailsWithAnalytics.filter(e => e.analyticsStatus.opened || e.analyticsStatus.hasProxy);
-      console.log('✅ [ANALYTICS]', withTracking.length, 'emails have tracking data');
+      console.log('[ANALYTICS]', withTracking.length, 'emails have tracking data');
       console.log('═══════════════════════════════════════════════════════════════');
       
     } catch (trackingError) {
-      console.error('❌ [ANALYTICS] Error loading tracking:', trackingError);
+      console.error('[ANALYTICS] Error loading tracking:', trackingError);
       // Fallback to legacy
       emailsWithAnalytics = logs.map(log => ({
         ...log,
@@ -1072,7 +1072,7 @@ router.delete('/api/agents/:agentId', authenticateToken, async (req, res) => {
 router.get('/api/analytics/scheduled-events', authenticateToken, async (req, res) => {
   try {
     const agentId = req.query.agentId || 'reasoning-lead-agent'; // Get agentId from query param
-    console.log('📅 [SCHEDULED EVENTS] Fetching scheduled events for user:', req.user.userId, 'agentId:', agentId);
+    console.log('[SCHEDULED EVENTS] Fetching scheduled events for user:', req.user.userId, 'agentId:', agentId);
     
     // Import the desktop email tracker to get scheduled events from polling
     const { desktopEmailTracker } = await import('../utils/desktopEmailTracker.js');
@@ -1100,11 +1100,11 @@ router.get('/api/analytics/scheduled-events', authenticateToken, async (req, res
       attendeeEmail: event.attendee_email || ''
     }));
     
-    console.log(`📅 [SCHEDULED EVENTS] Found ${scheduledEvents.length} scheduled events`);
+    console.log(`[SCHEDULED EVENTS] Found ${scheduledEvents.length} scheduled events`);
     res.json(scheduledEvents);
     
   } catch (error) {
-    console.error('❌ [SCHEDULED EVENTS] Error fetching scheduled events:', error);
+    console.error('[SCHEDULED EVENTS] Error fetching scheduled events:', error);
     res.status(500).json({
       error: 'Failed to fetch scheduled events',
       details: error.message

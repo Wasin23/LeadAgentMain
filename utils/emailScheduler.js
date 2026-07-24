@@ -163,11 +163,11 @@ class EmailScheduler {
   // Start the scheduler
   start() {
     if (this.isRunning) {
-      console.log('⚠️ [EMAIL SCHEDULER] Already running');
+      console.log('[EMAIL SCHEDULER] Already running');
       return;
     }
     
-    console.log('📅 [EMAIL SCHEDULER] Starting email scheduler (checks every minute)');
+    console.log('[EMAIL SCHEDULER] Starting email scheduler (checks every minute)');
     this.isRunning = true;
     
     // Check immediately on start
@@ -181,7 +181,7 @@ class EmailScheduler {
   
   // Stop the scheduler
   stop() {
-    console.log('🛑 [EMAIL SCHEDULER] Stopping email scheduler');
+    console.log('[EMAIL SCHEDULER] Stopping email scheduler');
     this.isRunning = false;
     
     if (this.checkInterval) {
@@ -193,16 +193,16 @@ class EmailScheduler {
   // Check for emails ready to send
   async checkAndSend() {
     const now = new Date().toISOString();
-    console.log(`📅 [EMAIL SCHEDULER] checkAndSend() tick — now=${now}`);
+    console.log(`[EMAIL SCHEDULER] checkAndSend() tick — now=${now}`);
     try {
       const scheduledEmails = await this.getScheduledEmailsReadyToSend();
       
       if (!scheduledEmails || scheduledEmails.length === 0) {
-        console.log('📊 [EMAIL SCHEDULER] No emails ready to send');
+        console.log('[EMAIL SCHEDULER] No emails ready to send');
         return;
       }
       
-      console.log(`📊 [EMAIL SCHEDULER] Found ${scheduledEmails.length} email(s) ready to send:`);
+      console.log(`[EMAIL SCHEDULER] Found ${scheduledEmails.length} email(s) ready to send:`);
       for (const e of scheduledEmails) {
         console.log(`   → id=${e.emailId || e.id} scheduledAt=${e.scheduledAt} userId=${e.userId} agentId=${e.agentId}`);
       }
@@ -245,7 +245,7 @@ class EmailScheduler {
                   await this.scheduledEmailJobs.deleteScheduledEmail(userId, email.agentId, email.emailId || email.id).catch(() => {});
                 }
               }
-              console.log(`🔄 [EMAIL SCHEDULER] Post-send reconcile done for ${userId}`);
+              console.log(`[EMAIL SCHEDULER] Post-send reconcile done for ${userId}`);
             } catch (err) {
               console.warn(`[EMAIL SCHEDULER] ⚠️ Post-send reconcile failed for ${userId}:`, err.message);
             }
@@ -253,9 +253,9 @@ class EmailScheduler {
         }, 15_000);
       }
 
-      console.log('✅ [EMAIL SCHEDULER] Check complete');
+      console.log('[EMAIL SCHEDULER] Check complete');
     } catch (error) {
-      console.error('❌ [EMAIL SCHEDULER] Error during check:', error);
+      console.error('[EMAIL SCHEDULER] Error during check:', error);
     }
   }
 
@@ -269,7 +269,7 @@ class EmailScheduler {
         return new Date(left.scheduledAt).getTime() - new Date(right.scheduledAt).getTime();
       });
 
-      console.log(`📊 [EMAIL SCHEDULER] Query found ${scheduledEmails.length} item(s) with scheduledAt <= ${now}`);
+      console.log(`[EMAIL SCHEDULER] Query found ${scheduledEmails.length} item(s) with scheduledAt <= ${now}`);
       return scheduledEmails;
     } catch (error) {
       console.error('[EMAIL SCHEDULER] Error fetching scheduled emails:', error);
@@ -282,22 +282,22 @@ class EmailScheduler {
     const emailId = email.emailId || email.id;
     const { userId, agentId, scheduledAt } = email;
     if (this.processingEmails.has(emailId)) {
-      console.log(`⚠️ [EMAIL SCHEDULER] Skipping duplicate in-flight send for ${emailId}`);
+      console.log(`[EMAIL SCHEDULER] Skipping duplicate in-flight send for ${emailId}`);
       return;
     }
 
     this.processingEmails.add(emailId);
-    console.log(`📧 [EMAIL SCHEDULER] sendScheduledEmail start — id=${emailId} userId=${userId} agentId=${agentId} scheduledAt=${scheduledAt}`);
+    console.log(`[EMAIL SCHEDULER] sendScheduledEmail start — id=${emailId} userId=${userId} agentId=${agentId} scheduledAt=${scheduledAt}`);
     try {
       const approvedEmail = await this.awsEmailQueue.approveEmail(userId, agentId, emailId);
-      console.log(`📧 [EMAIL SCHEDULER] approveEmail OK — keys=${Object.keys(approvedEmail).join(',')}`);
+      console.log(`[EMAIL SCHEDULER] approveEmail OK — keys=${Object.keys(approvedEmail).join(',')}`);
 
       const emailData      = approvedEmail.emailData || {};
       const finalRecipient = emailData.finalRecipient || approvedEmail.finalRecipient || approvedEmail.to;
       const finalSubject   = emailData.finalSubject   || approvedEmail.finalSubject   || approvedEmail.subject;
       const finalBody      = emailData.finalBody      || approvedEmail.finalBody      || approvedEmail.body;
 
-      console.log(`📧 [EMAIL SCHEDULER] fields — to=${finalRecipient} hasSubject=${!!finalSubject} hasBody=${!!finalBody}`);
+      console.log(`[EMAIL SCHEDULER] fields — to=${finalRecipient} hasSubject=${!!finalSubject} hasBody=${!!finalBody}`);
 
       if (!finalRecipient || !finalSubject || !finalBody) {
         console.warn(`[EMAIL SCHEDULER] ⚠️ Email ${emailId} missing required fields, skipping`);
@@ -308,7 +308,7 @@ class EmailScheduler {
       // was scheduled. Pull it out of the send flow instead of emailing them.
       const recipientUnsubscribed = await this.awsManager.isUnsubscribed(finalRecipient).catch(() => false);
       if (recipientUnsubscribed) {
-        console.log(`🚫 [EMAIL SCHEDULER] Skipping ${emailId} — ${finalRecipient} has unsubscribed`);
+        console.log(`[EMAIL SCHEDULER] Skipping ${emailId} — ${finalRecipient} has unsubscribed`);
         await this.awsEmailQueue.updateEmailStatus(userId, agentId, emailId, 'QUEUED', 'QUEUED', {
           scheduledAt: null,
           unsubscribed: true,
@@ -343,14 +343,14 @@ class EmailScheduler {
         companyBranding,
       }).replace('<!--MERIDIAN_FOOTER-->', '');
 
-      console.log(`📧 [EMAIL SCHEDULER] Calling leadEmail() for ${emailId}...`);
+      console.log(`[EMAIL SCHEDULER] Calling leadEmail() for ${emailId}...`);
       const sendResult = await leadEmail(
         finalRecipient, finalSubject, finalBodyWithFooter,
         personInfo, userId, agentId,
         ccEmails, bccEmails, senderName, replyOptions
       );
 
-      console.log(`📧 [EMAIL SCHEDULER] leadEmail result — success=${sendResult.success} method=${sendResult.method} error=${sendResult.error || 'none'}`);
+      console.log(`[EMAIL SCHEDULER] leadEmail result — success=${sendResult.success} method=${sendResult.method} error=${sendResult.error || 'none'}`);
 
       if (sendResult.success) {
         await this.awsEmailQueue.markEmailAsSent(userId, agentId, emailId, {
@@ -362,7 +362,7 @@ class EmailScheduler {
           messageId:  sendResult.result?.messageId || null,
           threadId:   sendResult.result?.threadId  || null,
         });
-        console.log(`✅ [EMAIL SCHEDULER] Sent ${emailId} → ${finalRecipient}`);
+        console.log(`[EMAIL SCHEDULER] Sent ${emailId} → ${finalRecipient}`);
         return {
           success: true,
           emailId,
@@ -372,7 +372,7 @@ class EmailScheduler {
           approvedEmail,
         };
       } else {
-        console.error(`❌ [EMAIL SCHEDULER] Send failed for ${emailId}:`, sendResult.error);
+        console.error(`[EMAIL SCHEDULER] Send failed for ${emailId}:`, sendResult.error);
         return { success: false };
       }
 
@@ -380,13 +380,13 @@ class EmailScheduler {
       if (error.message?.includes('not found in QUEUED status')) {
         try {
           await this.scheduledEmailJobs.deleteScheduledEmail(userId, agentId, emailId);
-          console.warn(`⚠️ [EMAIL SCHEDULER] Removed stale scheduled job for ${emailId}`);
+          console.warn(`[EMAIL SCHEDULER] Removed stale scheduled job for ${emailId}`);
         } catch (cleanupError) {
-          console.error(`❌ [EMAIL SCHEDULER] Failed to clean stale scheduled job for ${emailId}:`, cleanupError.message);
+          console.error(`[EMAIL SCHEDULER] Failed to clean stale scheduled job for ${emailId}:`, cleanupError.message);
         }
       }
-      console.error(`❌ [EMAIL SCHEDULER] Error sending email ${emailId}:`, error.message);
-      console.error(`❌ [EMAIL SCHEDULER] Stack:`, error.stack);
+      console.error(`[EMAIL SCHEDULER] Error sending email ${emailId}:`, error.message);
+      console.error(`[EMAIL SCHEDULER] Stack:`, error.stack);
     } finally {
       this.processingEmails.delete(emailId);
     }

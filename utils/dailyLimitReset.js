@@ -27,11 +27,11 @@ class DailyLimitReset {
   // Start the reset cron
   start() {
     if (this.isRunning) {
-      console.log('⚠️ [DAILY RESET] Already running');
+      console.log('[DAILY RESET] Already running');
       return;
     }
     
-    console.log('🕐 [DAILY RESET] Starting daily limit reset cron (checks every hour)');
+    console.log('[DAILY RESET] Starting daily limit reset cron (checks every hour)');
     this.isRunning = true;
     
     // Check immediately on start
@@ -45,7 +45,7 @@ class DailyLimitReset {
   
   // Stop the reset cron
   stop() {
-    console.log('🛑 [DAILY RESET] Stopping daily limit reset cron');
+    console.log('[DAILY RESET] Stopping daily limit reset cron');
     this.isRunning = false;
     
     if (this.checkInterval) {
@@ -57,25 +57,25 @@ class DailyLimitReset {
   // Check if it's midnight in any user's timezone and reset limits
   async checkAndReset() {
     try {
-      console.log('🕐 [DAILY RESET] Checking for midnight resets...');
+      console.log('[DAILY RESET] Checking for midnight resets...');
       
       // Get all users with daily limits enabled
       const users = await this.awsManager.getUsersWithDailyLimits();
       
       if (!users || users.length === 0) {
-        console.log('📊 [DAILY RESET] No users with daily limits configured');
+        console.log('[DAILY RESET] No users with daily limits configured');
         return;
       }
       
-      console.log(`📊 [DAILY RESET] Checking ${users.length} users`);
+      console.log(`[DAILY RESET] Checking ${users.length} users`);
       
       for (const user of users) {
         await this.checkUserReset(user);
       }
       
-      console.log('✅ [DAILY RESET] Check complete');
+      console.log('[DAILY RESET] Check complete');
     } catch (error) {
-      console.error('❌ [DAILY RESET] Error during reset check:', error);
+      console.error('[DAILY RESET] Error during reset check:', error);
     }
   }
   
@@ -98,7 +98,7 @@ class DailyLimitReset {
         return; // Not midnight yet
       }
       
-      console.log(`🌙 [DAILY RESET] Midnight detected for user ${userId} (${timezone})`);
+      console.log(`[DAILY RESET] Midnight detected for user ${userId} (${timezone})`);
       
       // Check if we already reset today
       const lastReset = await this.awsManager.getLastDailyReset(userId);
@@ -111,7 +111,7 @@ class DailyLimitReset {
       }
       
       // Perform reset
-      console.log(`🔄 [DAILY RESET] Resetting daily limits for ${userId}`);
+      console.log(`[DAILY RESET] Resetting daily limits for ${userId}`);
       
       // Reset usage counters
       await this.awsManager.resetDailyUsage(userId);
@@ -125,10 +125,10 @@ class DailyLimitReset {
       // Send notification
       await this.sendResetNotification(userId, resumedAgents);
       
-      console.log(`✅ [DAILY RESET] Reset complete for ${userId}. Resumed ${resumedAgents} agent(s)`);
+      console.log(`[DAILY RESET] Reset complete for ${userId}. Resumed ${resumedAgents} agent(s)`);
       
     } catch (error) {
-      console.error(`❌ [DAILY RESET] Error resetting user ${user.userId}:`, error);
+      console.error(`[DAILY RESET] Error resetting user ${user.userId}:`, error);
     }
   }
   
@@ -167,7 +167,7 @@ class DailyLimitReset {
       
       return resumed;
     } catch (error) {
-      console.error(`❌ [DAILY RESET] Error resuming agents for ${userId}:`, error);
+      console.error(`[DAILY RESET] Error resuming agents for ${userId}:`, error);
       return 0;
     }
   }
@@ -187,7 +187,7 @@ class DailyLimitReset {
         }
       );
     } catch (error) {
-      console.error('❌ [DAILY RESET] Failed to send notification:', error);
+      console.error('[DAILY RESET] Failed to send notification:', error);
     }
   }
 }
@@ -216,10 +216,10 @@ export default DailyLimitReset;
 */
 
 // TEMPORARY PLACEHOLDER - Remove when uncommenting above
-console.log('⚠️ Daily Limit Reset system ready but commented out');
+console.log('Daily Limit Reset system ready but commented out');
 export function startDailyLimitReset() {
-  console.log('📊 Daily limit reset cron would start here');
+  console.log('Daily limit reset cron would start here');
 }
 export function stopDailyLimitReset() {
-  console.log('📊 Daily limit reset cron would stop here');
+  console.log('Daily limit reset cron would stop here');
 }

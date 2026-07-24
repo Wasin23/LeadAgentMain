@@ -66,7 +66,7 @@ router.post('/start', async (req, res) => {
           await awsManagerInstance.updateUser(userId, { activeAgents: updatedAgents });
         }
       } catch (dbError) {
-        console.error('⚠️ [LEAD AGENT API] Failed to update agent status in database:', dbError);
+        console.error('[LEAD AGENT API] Failed to update agent status in database:', dbError);
         // Continue anyway - agent is running even if DB update failed
       }
     }
@@ -85,7 +85,7 @@ router.post('/start', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('❌ [LEAD AGENT API] Error starting agent:', error);
+    console.error('[LEAD AGENT API] Error starting agent:', error);
     return res.status(500).json({
       success: false,
       message: 'Error starting Lead Contact Agent',
@@ -123,7 +123,7 @@ router.post('/start-from-crm', async (req, res) => {
           await awsManagerInstance.updateUser(userId, { activeAgents: updatedAgents });
         }
       } catch (dbError) {
-        console.error('⚠️ [CRM START] Failed to update agent status in DB:', dbError);
+        console.error('[CRM START] Failed to update agent status in DB:', dbError);
       }
     }
 
@@ -134,7 +134,7 @@ router.post('/start-from-crm', async (req, res) => {
       contactCount: contacts.length
     });
   } catch (error) {
-    console.error('❌ [CRM START] Error:', error);
+    console.error('[CRM START] Error:', error);
     return res.status(500).json({ success: false, message: error.message, isActive: false });
   }
 });
@@ -247,7 +247,7 @@ router.post('/stop', async (req, res) => {
               'Agent Cycle Completed',
               `${prevAgent?.name || 'Agent'} finished a run cycle (#${newSessionCount}).`,
               { severity: 'info', agentId, cycleNumber: newSessionCount }
-            ).catch(err => console.error('⚠️ [LEAD AGENT API] Failed to log cycle activity:', err.message));
+            ).catch(err => console.error('[LEAD AGENT API] Failed to log cycle activity:', err.message));
           }
 
           // Broadcast agent stop to all SSE clients for real-time UI update
@@ -264,11 +264,11 @@ router.post('/stop', async (req, res) => {
               message: 'Agent stopped'
             });
           } catch (broadcastError) {
-            console.error('⚠️ [LEAD AGENT API] Failed to broadcast agent stop:', broadcastError.message);
+            console.error('[LEAD AGENT API] Failed to broadcast agent stop:', broadcastError.message);
           }
         }
       } catch (dbError) {
-        console.error('⚠️ [LEAD AGENT API] Failed to update agent status in database:', dbError);
+        console.error('[LEAD AGENT API] Failed to update agent status in database:', dbError);
         // Continue anyway - agent is stopped even if DB update failed
       }
     }
@@ -283,7 +283,7 @@ router.post('/stop', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('❌ [LEAD AGENT API] Error stopping agent:', error);
+    console.error('[LEAD AGENT API] Error stopping agent:', error);
     return res.status(500).json({
       success: false,
       message: 'Error stopping Lead Contact Agent',
@@ -310,7 +310,7 @@ router.get('/status', async (req, res) => {
       data: status
     });
   } catch (error) {
-    console.error('❌ [LEAD AGENT API] Error getting status:', error);
+    console.error('[LEAD AGENT API] Error getting status:', error);
     return res.status(500).json({
       success: false,
       message: 'Error getting agent status',
@@ -861,7 +861,7 @@ router.post('/calendar/test', async (req, res) => {
 
 // Test route for debugging
 router.get('/activity-logs-test', (req, res) => {
-  console.log('🔍 [TEST] Activity logs test endpoint hit!');
+  console.log('[TEST] Activity logs test endpoint hit!');
   res.json({ message: 'Test endpoint working', timestamp: new Date().toISOString() });
 });
 
@@ -935,7 +935,7 @@ router.get('/contacted-leads', async (req, res) => {
     const userId = req.user.userId;
     const agentId = req.query.agentId || 'reasoning-lead-agent'; // Get agentId from query param
     const limit = parseInt(req.query.limit) || 50;
-    console.log('📊 [CONTACTED LEADS] Getting history for user:', userId, 'agentId:', agentId, 'limit:', limit);
+    console.log('[CONTACTED LEADS] Getting history for user:', userId, 'agentId:', agentId, 'limit:', limit);
     
     // Get agent-specific instance to access AWS manager
     const userAgent = getUserAgent(userId, agentId);
@@ -957,7 +957,7 @@ router.get('/contacted-leads', async (req, res) => {
         message: `Found ${result.count} contacted leads`
       });
     } else {
-      console.error('❌ [CONTACTED LEADS] Failed to get history:', result.error);
+      console.error('[CONTACTED LEADS] Failed to get history:', result.error);
       res.status(500).json({
         success: false,
         error: result.error,
@@ -980,25 +980,25 @@ router.delete('/agent-data', async (req, res) => {
   try {
     const userId = req.user.userId;
     const agentId = req.query.agentId || 'reasoning-lead-agent';
-    console.log(`🗑️ [CLEAR AGENT DATA] Clearing data for agent: ${agentId}, user: ${userId}`);
+    console.log(`[CLEAR AGENT DATA] Clearing data for agent: ${agentId}, user: ${userId}`);
     
     const AWSManager = (await import('../utils/awsManager.js')).default;
     const awsManager = new AWSManager();
     
     // Delete agent state
     await awsManager.deleteAgentState(userId, agentId);
-    console.log(`✅ Deleted agent state for ${agentId}`);
+    console.log(`Deleted agent state for ${agentId}`);
     
     // Delete search history
     const searchResult = await awsManager.deleteSearchHistory(userId, agentId);
-    console.log(`✅ Deleted ${searchResult.deletedCount} search history entries`);
+    console.log(`Deleted ${searchResult.deletedCount} search history entries`);
     
     // Delete cycle logs
     const cycleResult = await awsManager.deleteCycleLogs(userId, agentId);
-    console.log(`✅ Deleted ${cycleResult.deletedCount} cycle logs`);
+    console.log(`Deleted ${cycleResult.deletedCount} cycle logs`);
     
     // Delete email tracking/conversations
-    console.log(`🗑️ Clearing email tracking for agent ${agentId}...`);
+    console.log(`Clearing email tracking for agent ${agentId}...`);
     const events = await awsManager.getEmailTrackingByUser(userId, agentId, 10000);
     let trackingDeleted = 0;
     for (const event of events) {
@@ -1009,7 +1009,7 @@ router.delete('/agent-data', async (req, res) => {
         console.error(`Failed to delete tracking event:`, err.message);
       }
     }
-    console.log(`✅ Deleted ${trackingDeleted} tracking events`);
+    console.log(`Deleted ${trackingDeleted} tracking events`);
     
     res.json({
       success: true,
@@ -1035,7 +1035,7 @@ router.delete('/clear-contacts', async (req, res) => {
   try {
     const userId = req.user.userId;
     const agentId = req.query.agentId || 'reasoning-lead-agent'; // Get agentId from query param
-    console.log('🗑️ [CLEAR CONTACTS] Clearing contacted leads for user:', userId, 'agentId:', agentId);
+    console.log('[CLEAR CONTACTS] Clearing contacted leads for user:', userId, 'agentId:', agentId);
     
     // Get agent-specific instance to access AWS manager
     const userAgent = getUserAgent(userId, agentId);
@@ -1050,7 +1050,7 @@ router.delete('/clear-contacts', async (req, res) => {
     const result = await userAgent.awsManager.clearContactedLeads(userId);
     
     if (result.success) {
-      console.log('✅ [CLEAR CONTACTS] Successfully cleared contacts:', result);
+      console.log('[CLEAR CONTACTS] Successfully cleared contacts:', result);
       res.json({
         success: true,
         message: `Successfully cleared ${result.deletedCount} contacted leads`,
@@ -1058,7 +1058,7 @@ router.delete('/clear-contacts', async (req, res) => {
         totalFound: result.totalFound
       });
     } else {
-      console.error('❌ [CLEAR CONTACTS] Failed to clear contacts:', result.error);
+      console.error('[CLEAR CONTACTS] Failed to clear contacts:', result.error);
       res.status(500).json({
         success: false,
         error: result.error,
@@ -1083,7 +1083,7 @@ router.get('/cycle-logs', async (req, res) => {
     const agentId = req.query.agentId || null; // Optional: filter by specific agent
     const limit = parseInt(req.query.limit) || 100;
     
-    console.log('📊 [LEAD AGENT API] Getting cycle logs for user:', userId, agentId ? `agentId: ${agentId}` : '(all agents)');
+    console.log('[LEAD AGENT API] Getting cycle logs for user:', userId, agentId ? `agentId: ${agentId}` : '(all agents)');
     
     // Get agent instance to access AWS manager
     const userAgent = getUserAgent(userId, agentId || 'reasoning-lead-agent');
@@ -1095,7 +1095,7 @@ router.get('/cycle-logs', async (req, res) => {
       count: cycleLogs.length
     });
   } catch (error) {
-    console.error('❌ [LEAD AGENT API] Error getting cycle logs:', error);
+    console.error('[LEAD AGENT API] Error getting cycle logs:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to get cycle logs',
@@ -1633,7 +1633,7 @@ router.delete('/:agentId', async (req, res) => {
     const userId = req.user.userId;
     const { agentId } = req.params;
     
-    console.log(`🗑️ [DELETE AGENT] Starting deletion for agent: ${agentId}, user: ${userId}`);
+    console.log(`[DELETE AGENT] Starting deletion for agent: ${agentId}, user: ${userId}`);
     
     const AWSManager = (await import('../utils/awsManager.js')).default;
     const awsManager = new AWSManager();
@@ -1641,19 +1641,19 @@ router.delete('/:agentId', async (req, res) => {
     // 1. Keep emails - DO NOT delete or reassign them
     // Emails will remain in the queue with their original agentId
     // The frontend will handle displaying orphaned emails
-    console.log(`📧 [DELETE AGENT] Keeping emails in queue for agent ${agentId} (orphaned emails)`);
+    console.log(`[DELETE AGENT] Keeping emails in queue for agent ${agentId} (orphaned emails)`);
     
     // 2. Delete agent state
     await awsManager.deleteAgentState(userId, agentId);
-    console.log(`✅ [DELETE AGENT] Deleted agent state`);
+    console.log(`[DELETE AGENT] Deleted agent state`);
     
     // 3. Delete search history
     const searchResult = await awsManager.deleteSearchHistory(userId, agentId);
-    console.log(`✅ [DELETE AGENT] Deleted ${searchResult.deletedCount} search history entries`);
+    console.log(`[DELETE AGENT] Deleted ${searchResult.deletedCount} search history entries`);
     
     // 4. Delete cycle logs
     const cycleResult = await awsManager.deleteCycleLogs(userId, agentId);
-    console.log(`✅ [DELETE AGENT] Deleted ${cycleResult.deletedCount} cycle logs`);
+    console.log(`[DELETE AGENT] Deleted ${cycleResult.deletedCount} cycle logs`);
     
     // 5. Delete email tracking/conversations
     const events = await awsManager.getEmailTrackingByUser(userId, agentId, 10000);
@@ -1666,16 +1666,16 @@ router.delete('/:agentId', async (req, res) => {
         console.error(`Failed to delete tracking event:`, err.message);
       }
     }
-    console.log(`✅ [DELETE AGENT] Deleted ${trackingDeleted} tracking events`);
+    console.log(`[DELETE AGENT] Deleted ${trackingDeleted} tracking events`);
     
     // 6. Delete agent settings
     await awsManager.deleteAgentSettings(userId, agentId);
-    console.log(`✅ [DELETE AGENT] Deleted agent settings`);
+    console.log(`[DELETE AGENT] Deleted agent settings`);
     
     // 7. Remove agent from user's activeAgents
     const { removeAgentFromUser } = await import('../lib/userManager.js');
     await removeAgentFromUser(userId, agentId);
-    console.log(`✅ [DELETE AGENT] Removed agent from user's activeAgents`);
+    console.log(`[DELETE AGENT] Removed agent from user's activeAgents`);
     
     res.json({
       success: true,

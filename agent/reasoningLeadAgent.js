@@ -316,7 +316,7 @@ class ReasoningLeadAgent extends EventEmitter {
     this.campaignPlan = null;
     
     // Add initial log entry
-    this.logOperation('🤖 Agent Ready', `Ready to find and contact leads`, 'completed', {
+    this.logOperation('Agent Ready', `Ready to find and contact leads`, 'completed', {
       userId,
       timestamp: new Date().toISOString()
     });
@@ -385,7 +385,7 @@ class ReasoningLeadAgent extends EventEmitter {
     const totalTokens = systemTokens + userTokens;
 
     console.log(
-      `📏 [EMAIL PROMPT SIZE] ${contactName} @ ${companyName} | ` +
+      `[EMAIL PROMPT SIZE] ${contactName} @ ${companyName} | ` +
       `chars(system=${systemChars}, user=${userChars}, total=${totalChars}) | ` +
       `estTokens(system=${systemTokens}, user=${userTokens}, total=${totalTokens})`
     );
@@ -542,7 +542,7 @@ Write a brief, clear description of WHO we're targeting and WHY. Be specific and
       return description;
       
     } catch (error) {
-      console.error('❌ [PLAN DESCRIPTION] Failed to generate description:', error);
+      console.error('[PLAN DESCRIPTION] Failed to generate description:', error);
       // Fallback to basic summary
       const keywords = plan.searchStrategy?.additionalKeywords?.slice(0, 3).join(', ') || 'custom criteria';
       return `Targeting prospects matching: ${keywords}`;
@@ -554,16 +554,16 @@ Write a brief, clear description of WHO we're targeting and WHY. Be specific and
    * This is the "brain" that interprets user goals and converts them into actionable strategies
    */
   async convertInstructionsToPlan(specialInstructions, userSettings) {
-    console.log('🎯 [CAMPAIGN PLAN] Converting instructions to structured plan...');
+    console.log('[CAMPAIGN PLAN] Converting instructions to structured plan...');
     
     // If no instructions provided, return null (use default behavior)
     if (!specialInstructions || specialInstructions.trim() === '') {
-      console.log('📋 [CAMPAIGN PLAN] No special instructions provided, using default behavior');
-      console.log('⚠️ [CAMPAIGN PLAN] WARNING: Without special instructions, agent will skip research/pre-qualify/qualify phases!');
+      console.log('[CAMPAIGN PLAN] No special instructions provided, using default behavior');
+      console.log('[CAMPAIGN PLAN] WARNING: Without special instructions, agent will skip research/pre-qualify/qualify phases!');
       return null;
     }
     
-    console.log('📋 [CAMPAIGN PLAN] Special instructions received:', specialInstructions.substring(0, 100) + '...');
+    console.log('[CAMPAIGN PLAN] Special instructions received:', specialInstructions.substring(0, 100) + '...');
     
     try {
       const prompt = `You are an AI campaign strategist. Convert these campaign instructions into a structured plan for lead generation and outreach.
@@ -667,7 +667,7 @@ research later, so how you phrase it determines whether it can ever be verified)
         }).catch(err => console.error('Failed to log OpenAI usage:', err));
       }
       
-      console.log('🎯 [CAMPAIGN PLAN SUMMARY] Loaded:', {
+      console.log('[CAMPAIGN PLAN SUMMARY] Loaded:', {
         keywords: plan.searchStrategy?.additionalKeywords?.length || 0,
         industries: plan.searchStrategy?.priorityIndustries?.length || 0,
         mustHave: plan.qualificationCriteria?.mustHave?.length || 0
@@ -676,7 +676,7 @@ research later, so how you phrase it determines whether it can ever be verified)
       // Generate AI description of the plan
       const planDescription = await this.generatePlanDescription(plan, specialInstructions);
       
-      this.logOperation('🎯 Campaign Strategy', planDescription || 'Custom targeting campaign', 'completed', {
+      this.logOperation('Campaign Strategy', planDescription || 'Custom targeting campaign', 'completed', {
         hasSearchStrategy: !!plan.searchStrategy,
         hasCriteria: !!plan.qualificationCriteria,
         hasEmailStrategy: !!plan.emailMessaging
@@ -685,7 +685,7 @@ research later, so how you phrase it determines whether it can ever be verified)
       return plan;
       
     } catch (error) {
-      console.error('❌ [CAMPAIGN PLAN] Failed to convert instructions:', error);
+      console.error('[CAMPAIGN PLAN] Failed to convert instructions:', error);
       this.logIssue('warning', 'Failed to convert campaign instructions to plan', {
         error: error.message,
         instructions: specialInstructions.substring(0, 100)
@@ -714,7 +714,7 @@ research later, so how you phrase it determines whether it can ever be verified)
           }
         );
       } catch (error) {
-        console.error('📊 [MONITORING] Failed to emit agent status:', error.message);
+        console.error('[MONITORING] Failed to emit agent status:', error.message);
       }
     }
   }
@@ -731,7 +731,7 @@ research later, so how you phrase it determines whether it can ever be verified)
           monitoringStore.updateMetric(category, key, value);
         }
       } catch (error) {
-        console.error('📊 [MONITORING] Failed to emit metric:', error.message);
+        console.error('[MONITORING] Failed to emit metric:', error.message);
       }
     }
   }
@@ -747,7 +747,7 @@ research later, so how you phrase it determines whether it can ever be verified)
           ...details
         });
       } catch (error) {
-        console.error('📊 [MONITORING] Failed to log issue:', error.message);
+        console.error('[MONITORING] Failed to log issue:', error.message);
       }
     }
 
@@ -766,7 +766,7 @@ research later, so how you phrase it determines whether it can ever be verified)
         }
       );
     } catch (issueError) {
-      console.error('❌ [ISSUES] Failed to log issue to database:', issueError);
+      console.error('[ISSUES] Failed to log issue to database:', issueError);
     }
   }
 
@@ -778,7 +778,7 @@ research later, so how you phrase it determines whether it can ever be verified)
       try {
         monitoringStore.updateIntegration(service, data);
       } catch (error) {
-        console.error('📊 [MONITORING] Failed to update integration:', error.message);
+        console.error('[MONITORING] Failed to update integration:', error.message);
       }
     }
   }
@@ -819,11 +819,11 @@ research later, so how you phrase it determines whether it can ever be verified)
       'Lead Processing',
       'Email Processing',
       'Lead Complete',
-      '✅ Lead Complete',
+      'Lead Complete',
       'Lead Qualification',
-      '💭 Agent Activity',
-      '✅ Process Complete',
-      '🔗 CRM Sync',
+      'Agent Activity',
+      'Process Complete',
+      'CRM Sync',
       'Rubric Build',
       'Keyword Discovery',
       'Search Strategy Adapted'
@@ -838,7 +838,7 @@ research later, so how you phrase it determines whether it can ever be verified)
         data,
         timestamp: logEntry.timestamp
       }).catch(err => {
-        console.error('⚠️ [SSE] Failed to broadcast agent activity:', err.message);
+        console.error('[SSE] Failed to broadcast agent activity:', err.message);
       });
     }
   }
@@ -856,7 +856,7 @@ research later, so how you phrase it determines whether it can ever be verified)
           agentName = agentSettings.name;
         }
       } catch (error) {
-        console.error('⚠️ [AGENT NAME] Could not fetch agent name:', error);
+        console.error('[AGENT NAME] Could not fetch agent name:', error);
       }
       
       // Strip emojis from details before broadcast
@@ -912,7 +912,7 @@ research later, so how you phrase it determines whether it can ever be verified)
         } : null
       });
     } catch (error) {
-      console.error('❌ [SSE BROADCAST] Error:', error);
+      console.error('[SSE BROADCAST] Error:', error);
     }
   }
 
@@ -950,7 +950,7 @@ research later, so how you phrase it determines whether it can ever be verified)
         await this.awsManager.saveAuditorState(this.userId, nextPatch);
       })
       .catch(error => {
-        console.error('❌ [AUDITOR STATE] Failed to update auditor state:', error.message);
+        console.error('[AUDITOR STATE] Failed to update auditor state:', error.message);
       });
 
     return this.auditorStateUpdateChain;
@@ -1070,10 +1070,10 @@ research later, so how you phrase it determines whether it can ever be verified)
       const apiUsage = await this.awsManager.getUserApiUsageSummary(this.userId);
       if (apiUsage.success && apiUsage.stats) {
         const totalCost = Object.values(apiUsage.stats).reduce((sum, service) => sum + (service.cost || 0), 0);
-        console.log(`💰 [LIFETIME API COST] User total across all agents/cycles (after cycle #${this.cycleCount}): $${totalCost.toFixed(4)}`);
+        console.log(`[LIFETIME API COST] User total across all agents/cycles (after cycle #${this.cycleCount}): $${totalCost.toFixed(4)}`);
       }
     } catch (error) {
-      console.error('❌ [CYCLE LOG] Failed to log cycle completion:', error);
+      console.error('[CYCLE LOG] Failed to log cycle completion:', error);
     }
   }
 
@@ -1158,14 +1158,14 @@ research later, so how you phrase it determines whether it can ever be verified)
         type: 'hunter',
         name: 'The Hunter',
         description: 'Default personality',
-        avatar: '🎯',
+        avatar: '',
         emailPrompt: 'Write professional, direct sales emails that create urgency and drive action. Use confident language and clear value propositions.',
         emailStyle: 'Professional and direct',
         traits: ['Professional', 'Direct'],
         color: 'blue'
       };
     } catch (error) {
-      console.error('❌ [PERSONALITY] Error getting agent personality:', error);
+      console.error('[PERSONALITY] Error getting agent personality:', error);
       return null;
     }
   }
@@ -1331,12 +1331,12 @@ research later, so how you phrase it determines whether it can ever be verified)
             // Broadcast location update immediately when starting first lead
             this.broadcastAgentActivity({
               agentId: this.agentId,
-              operation: '💭 Agent Activity',
+              operation: 'Agent Activity',
               details: `Starting research on ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`,
               status: 'active',
               timestamp: new Date()
             }).catch(err => {
-              console.error('⚠️ [SSE] Failed to broadcast first lead activity:', err.message);
+              console.error('[SSE] Failed to broadcast first lead activity:', err.message);
             });
           }
         } else {
@@ -1394,7 +1394,7 @@ research later, so how you phrase it determines whether it can ever be verified)
                 });
 
                 this.logOperation(
-                  '🔀 Source Switched (Depth)',
+                  'Source Switched (Depth)',
                   `Keyword "${currentKeyword}": switched from ${prevSource} → ${alt.label} after ${depthCount} deep-page searches`,
                   'info',
                   { keyword: currentKeyword, from: prevSource, to: alt.id, depthCount }
@@ -1467,12 +1467,12 @@ research later, so how you phrase it determines whether it can ever be verified)
               // Broadcast location update for skipped lead replacement
               this.broadcastAgentActivity({
                 agentId: this.agentId,
-                operation: '💭 Agent Activity',
+                operation: 'Agent Activity',
                 details: `Starting research on ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`,
                 status: 'active',
                 timestamp: new Date()
               }).catch(err => {
-                console.error('⚠️ [SSE] Failed to broadcast skipped lead replacement:', err.message);
+                console.error('[SSE] Failed to broadcast skipped lead replacement:', err.message);
               });
             } else {
               this.memory.currentCycle.processingPhase = 'search';
@@ -1542,12 +1542,12 @@ research later, so how you phrase it determines whether it can ever be verified)
               this.memory.currentCycle.processingPhase = 'research';
               this.broadcastAgentActivity({
                 agentId: this.agentId,
-                operation: '💭 Agent Activity',
+                operation: 'Agent Activity',
                 details: `Starting research on ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`,
                 status: 'active',
                 timestamp: new Date()
               }).catch(err => {
-                console.error('⚠️ [SSE] Failed to broadcast disqualified lead replacement:', err.message);
+                console.error('[SSE] Failed to broadcast disqualified lead replacement:', err.message);
               });
             } else {
               this.memory.currentCycle.processingPhase = 'search';
@@ -1616,7 +1616,7 @@ research later, so how you phrase it determines whether it can ever be verified)
           
           // Emit SSE log for email unlock failure so user can see it
           this.logOperation(
-            '❌ Email Unlock Failed', 
+            'Email Unlock Failed', 
             `Could not unlock email for ${this.memory.currentCycle.currentLead?.name} at ${this.memory.currentCycle.currentLead?.company || 'Unknown Company'}. Reason: ${actionResult?.error || 'No valid email found'}. Skipping to next lead.`,
             'warning',
             {
@@ -1645,7 +1645,7 @@ research later, so how you phrase it determines whether it can ever be verified)
               }
             );
           } catch (issueError) {
-            console.error('❌ [ISSUES] Failed to log issue:', issueError);
+            console.error('[ISSUES] Failed to log issue:', issueError);
           }
           
           // Add failed lead to contacted database to prevent duplicates
@@ -1667,7 +1667,7 @@ research later, so how you phrase it determines whether it can ever be verified)
               position: this.memory.currentCycle.currentLead?._searchPosition
             });
           } catch (trackingError) {
-            console.error('❌ [CONTACT TRACKING] Failed to add failed lead to database:', trackingError);
+            console.error('[CONTACT TRACKING] Failed to add failed lead to database:', trackingError);
           }
           
           this.memory.currentCycle.currentLead = null;
@@ -1680,12 +1680,12 @@ research later, so how you phrase it determines whether it can ever be verified)
             // Broadcast location update for lead after email unlock failure
             this.broadcastAgentActivity({
               agentId: this.agentId,
-              operation: '💭 Agent Activity',
+              operation: 'Agent Activity',
               details: `Starting research on ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`,
               status: 'active',
               timestamp: new Date()
             }).catch(err => {
-              console.error('⚠️ [SSE] Failed to broadcast lead after failure:', err.message);
+              console.error('[SSE] Failed to broadcast lead after failure:', err.message);
             });
           } else {
             // Queue empty, need to search for more leads
@@ -1704,7 +1704,7 @@ research later, so how you phrase it determines whether it can ever be verified)
           // Add email to queue with confidence metadata
           const currentLead = this.memory.currentCycle?.currentLead;
           if (!currentLead) {
-            console.error('❌ [CYCLE] updateCycleState called but currentLead is null — skipping queue add');
+            console.error('[CYCLE] updateCycleState called but currentLead is null — skipping queue add');
             return;
           }
           const leadData = {
@@ -1734,17 +1734,17 @@ research later, so how you phrase it determines whether it can ever be verified)
           const queueResult = await this.addToEmailQueue(leadData);
           
           const reviewNote = requiresReview ? ' ⚠️ MARKED FOR REVIEW (low confidence)' : '';
-          console.log(`📧 [QUEUE] Email added to queue for ${this.memory.currentCycle.currentLead?.name}${reviewNote}`);
+          console.log(`[QUEUE] Email added to queue for ${this.memory.currentCycle.currentLead?.name}${reviewNote}`);
           
           // Broadcast email built event with location for white dot placement
           this.broadcastAgentActivity({
             agentId: this.agentId,
             operation: 'Email Processing',
-            details: `✅ Email built for ${this.memory.currentCycle.currentLead?.company}`,
+            details: `Email built for ${this.memory.currentCycle.currentLead?.company}`,
             status: 'active',
             timestamp: new Date()
           }).catch(err => {
-            console.error('⚠️ [SSE] Failed to broadcast email built event:', err.message);
+            console.error('[SSE] Failed to broadcast email built event:', err.message);
           });
           
           // Email built, lead complete - move to next lead
@@ -1773,12 +1773,12 @@ research later, so how you phrase it determines whether it can ever be verified)
             // Broadcast location update immediately when starting new lead
             this.broadcastAgentActivity({
               agentId: this.agentId,
-              operation: '💭 Agent Activity',
+              operation: 'Agent Activity',
               details: `Starting research on ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`,
               status: 'active',
               timestamp: new Date()
             }).catch(err => {
-              console.error('⚠️ [SSE] Failed to broadcast new lead activity:', err.message);
+              console.error('[SSE] Failed to broadcast new lead activity:', err.message);
             });
           } else if (!targetReached && !this.isCrmMode) {
             // Need more leads - search again
@@ -1818,7 +1818,7 @@ research later, so how you phrase it determines whether it can ever be verified)
             status: 'warning',
             timestamp: new Date()
           }).catch(err => {
-            console.error('⚠️ [SSE] Failed to broadcast skip event:', err.message);
+            console.error('[SSE] Failed to broadcast skip event:', err.message);
           });
           
           // Clear current lead and move to next
@@ -1833,12 +1833,12 @@ research later, so how you phrase it determines whether it can ever be verified)
             // Broadcast location update
             this.broadcastAgentActivity({
               agentId: this.agentId,
-              operation: '💭 Agent Activity',
+              operation: 'Agent Activity',
               details: `Starting research on ${this.memory.currentCycle.currentLead.name} at ${this.memory.currentCycle.currentLead.company}`,
               status: 'active',
               timestamp: new Date()
             }).catch(err => {
-              console.error('⚠️ [SSE] Failed to broadcast new lead activity:', err.message);
+              console.error('[SSE] Failed to broadcast new lead activity:', err.message);
             });
           } else if (!this.isCrmMode && this.memory.currentCycle.leadsProcessed < this.memory.currentCycle.targetLeads) {
             // Need more leads - search again
@@ -1884,7 +1884,7 @@ research later, so how you phrase it determines whether it can ever be verified)
       this.memory.leadsFoundWithCurrentKeyword = 0;
       this.memory.searchPageOffset = 0;
       this.logOperation(
-        '🔄 DISQ Rotate (Campaign)',
+        'DISQ Rotate (Campaign)',
         `3 consecutive SKIP/DISQ leads — cleared campaign keyword "${cleared}", resuming normal rotation`,
         'warn'
       );
@@ -1920,7 +1920,7 @@ research later, so how you phrase it determines whether it can ever be verified)
 
     const chosenKw = allKeywords[this.memory.currentKeywordIndex % total] || 'unknown';
     this.logOperation(
-      '🔄 DISQ Keyword Rotate',
+      'DISQ Keyword Rotate',
       `3 consecutive SKIP/DISQ leads — rotating search keyword to "${chosenKw}"`,
       'warn'
     );
@@ -2133,7 +2133,7 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
       };
 
     } catch (error) {
-      console.error('❌ [AI ANALYSIS] Failed to analyze research findings:', error);
+      console.error('[AI ANALYSIS] Failed to analyze research findings:', error);
       return {
         summary: `Research findings collected for ${companyName}`,
         fullAnalysis: 'Analysis temporarily unavailable',
@@ -2151,7 +2151,7 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
       
       
       if (!leadContactSettings) {
-        console.log('❌ [SETTINGS] No lead agent settings found in AWS DynamoDB!');
+        console.log('[SETTINGS] No lead agent settings found in AWS DynamoDB!');
         return { error: 'No lead agent settings configured for this user' };
       }
 
@@ -2193,7 +2193,7 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
       
       return actualSettings;
     } catch (error) {
-      console.error('❌ [SETTINGS] Error getting lead agent settings:', error);
+      console.error('[SETTINGS] Error getting lead agent settings:', error);
       return { error: error.message };
     }
   }
@@ -2234,7 +2234,7 @@ APPROACH: [specific outreach angles or conversation starters based on their busi
       
       return actualEmailSettings;
     } catch (error) {
-      console.error('❌ [EMAIL SETTINGS] Error getting email settings:', error);
+      console.error('[EMAIL SETTINGS] Error getting email settings:', error);
       return { error: error.message };
     }
   }
@@ -2748,7 +2748,7 @@ Respond in JSON format:
       };
 
     } catch (error) {
-      console.error('❌ [PRE-QUALIFY] Error:', error);
+      console.error('[PRE-QUALIFY] Error:', error);
       // On error, don't block the lead - proceed with research
       return {
         success: true,
@@ -3416,13 +3416,13 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
       
       // Emit detailed activity log with tier information
       const tierEmojis = {
-        'HIGHLY_QUALIFIED': '⭐',
-        'QUALIFIED': '✅',
-        'SHOTGUN': '🎯',
-        'REJECT': '❌'
+        'HIGHLY_QUALIFIED': '',
+        'QUALIFIED': '',
+        'SHOTGUN': '',
+        'REJECT': ''
       };
-      const emoji = tierEmojis[computedTier] || '❓';
-      const confidenceEmoji = computedConfidence === 'HIGH' ? '🟢' : computedConfidence === 'MEDIUM' ? '🟡' : '🔴';
+      const emoji = tierEmojis[computedTier] || '';
+      const confidenceEmoji = computedConfidence === 'HIGH' ? '' : computedConfidence === 'MEDIUM' ? '' : '';
 
       // Build detailed summary with AI's full reasoning
       const detailsSummary = [
@@ -3474,7 +3474,7 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
 
       
     } catch (error) {
-      console.error('❌ [QUALIFY] Error:', error);
+      console.error('[QUALIFY] Error:', error);
       // On error, don't block the lead - default to SHOTGUN tier
       return {
         success: true,
@@ -3894,11 +3894,11 @@ Format as:
         
         
         // Log to UI for visibility (commented out - will show after qualification)
-        // this.logOperation('🔍 Phase 1-2: Prospect Research Complete', 
+        // this.logOperation('Phase 1-2: Prospect Research Complete', 
         //   `Gathered ${totalWebpageInsights} insights from ${allResearchData.searches.length} research streams:\n` +
         //   `• Company Overview (${allResearchData.searches.find(s => s.purpose === 'company_overview')?.webpageInsights?.length || 0} insights)\n` +
         //   `• Recent News (${allResearchData.searches.find(s => s.purpose === 'recent_developments')?.webpageInsights?.length || 0} insights)\n\n` +
-        //   `📚 Key Findings:\n${allCitedFacts.slice(0, 5).map((f, i) => `${i + 1}. ${f.text.substring(0, 80)}...`).join('\n')}`,
+        //   `Key Findings:\n${allCitedFacts.slice(0, 5).map((f, i) => `${i + 1}. ${f.text.substring(0, 80)}...`).join('\n')}`,
         //   'success',
         //   {
         //     totalSources: allResearchData.totalSources,
@@ -3945,7 +3945,7 @@ Format as:
             }
           });
           } catch (logError) {
-          console.error('⚠️ [SERPER] Failed to log API usage:', logError);
+          console.error('[SERPER] Failed to log API usage:', logError);
         }
       }
       
@@ -3953,16 +3953,16 @@ Format as:
       const researchSummary = [];
       
       if (allResearchData.data?.knowledgeGraph) {
-        researchSummary.push(`🧠 Knowledge Graph: ${allResearchData.data.knowledgeGraph.title} (${allResearchData.data.knowledgeGraph.type})`);
+        researchSummary.push(`Knowledge Graph: ${allResearchData.data.knowledgeGraph.title} (${allResearchData.data.knowledgeGraph.type})`);
       }
       
       if (allResearchData.data?.answerBox) {
-        researchSummary.push(`💡 Answer: ${allResearchData.data.answerBox.answer?.substring(0, 100)}...`);
+        researchSummary.push(`Answer: ${allResearchData.data.answerBox.answer?.substring(0, 100)}...`);
       }
       
       if (allResearchData.data?.organic && allResearchData.data.organic.length > 0) {
-        researchSummary.push(`🎯 Found ${allResearchData.data.organic.length} search results`);
-        researchSummary.push(`📖 Top result: ${allResearchData.data.organic[0].title}`);
+        researchSummary.push(`Found ${allResearchData.data.organic.length} search results`);
+        researchSummary.push(`Top result: ${allResearchData.data.organic[0].title}`);
       }
       
       const summaryText = researchSummary.length > 0 
@@ -3971,7 +3971,7 @@ Format as:
       
       this.emit('progress', {
         type: 'info',
-        message: `🔍 Research Results: ${summaryText}`,
+        message: `Research Results: ${summaryText}`,
         timestamp: new Date().toISOString(),
         details: {
           company: companyName,
@@ -4024,7 +4024,7 @@ Format as:
         
         this.emit('progress', {
           type: 'info',
-          message: `🧠 Research Analysis: ${aiInsights.summary}`,
+          message: `Research Analysis: ${aiInsights.summary}`,
           timestamp: new Date().toISOString(),
           details: {
             company: companyName,
@@ -4054,7 +4054,7 @@ Format as:
       
       return researchResults;
     } catch (error) {
-      console.error('❌ [SERPER] Research failed:', error);
+      console.error('[SERPER] Research failed:', error);
       throw error;
     }
   }
@@ -4139,7 +4139,7 @@ Format as:
 
       if (!userCompanyName) {
         // No company name configured — skip this search entirely
-        console.log('⚠️ [SUPPORTING RESEARCH] No company name configured, skipping company wins search');
+        console.log('[SUPPORTING RESEARCH] No company name configured, skipping company wins search');
       } else {
         const cachedCompanyWins = this.memory.companyWinsCache?.[companyCacheKey];
         if (cachedCompanyWins && (Date.now() - cachedCompanyWins.timestamp) < companyCacheMaxAge) {
@@ -4192,7 +4192,7 @@ Format as:
               purpose: search.purpose,
               timestamp: new Date().toISOString()
             }
-          }).catch(err => console.error('⚠️ Failed to log API usage:', err));
+          }).catch(err => console.error('Failed to log API usage:', err));
           
           // Extract top 3 URLs
           const organicResults = results?.organic || results?.data?.organic || [];
@@ -4423,7 +4423,7 @@ Format as:
       
       
       // Log to UI
-      this.logOperation('🎯 Phase 3: Supporting Research Complete',
+      this.logOperation('Phase 3: Supporting Research Complete',
         `Gathered email supporting data:\\n` +
         `• Industry Stats (${this.memory.lastResearch.searches.find(s => s.purpose === 'industry_statistics')?.webpageInsights?.length || 0} insights)\\n` +
         `• Your Company Wins (${this.memory.lastResearch.searches.find(s => s.purpose === 'user_company_success')?.webpageInsights?.length || 0} insights)\\n` +
@@ -4439,7 +4439,7 @@ Format as:
       return { success: true, platformMetrics };
       
     } catch (error) {
-      console.error('❌ [PHASE 3] Supporting research failed:', error);
+      console.error('[PHASE 3] Supporting research failed:', error);
       return {
         success: false,
         error: error.message,
@@ -4642,7 +4642,7 @@ Format as:
         'apollo',
         1 // 1 credit per enrichment
       ).catch(err => {
-        console.error('⚠️ Rate limit check failed, allowing request:', err);
+        console.error('Rate limit check failed, allowing request:', err);
         return { allowed: true };
       });
 
@@ -4740,10 +4740,10 @@ Format as:
         
         // Check if we have valid emails (already filtered above)
         if (allEmails.length > 0) {
-          console.log('✅ [APOLLO] Email unlocked successfully!');
+          console.log('[APOLLO] Email unlocked successfully!');
           
           // Add activity log for SSE stream
-          this.logOperation('🔓 Email Found', `${allEmails[0]} for ${person.first_name} ${person.last_name} at ${person.organization?.name}`, 'success', {
+          this.logOperation('Email Found', `${allEmails[0]} for ${person.first_name} ${person.last_name} at ${person.organization?.name}`, 'success', {
             type: 'email_unlocked',
             email: allEmails[0],
             personName: `${person.first_name} ${person.last_name}`,
@@ -4758,18 +4758,18 @@ Format as:
             person: person
           };
         } else {
-          console.log('❌ [APOLLO] No emails available after filtering (empty or contains email_not_unlocked)');
+          console.log('[APOLLO] No emails available after filtering (empty or contains email_not_unlocked)');
         }
       }
 
-      console.log('❌ [APOLLO] No emails found - Apollo did not return any email addresses');
+      console.log('[APOLLO] No emails found - Apollo did not return any email addresses');
       return {
         success: false,
         error: 'No email addresses available from Apollo (not even constructed emails)'
       };
 
     } catch (error) {
-      console.error('❌ [APOLLO] Email unlock failed:', error);
+      console.error('[APOLLO] Email unlock failed:', error);
       return {
         success: false,
         error: error.message
@@ -4835,7 +4835,7 @@ Format as:
         reason: data.sub_status || data.status
       };
     } catch (error) {
-      console.error('❌ [ZEROBOUNCE] Validation error:', error);
+      console.error('[ZEROBOUNCE] Validation error:', error);
       // If ZeroBounce fails, default to accepting the email
       return { isValid: true, status: 'validation_error', reason: error.message };
     }
@@ -4929,8 +4929,8 @@ Format as:
       
       if (!hasValidMotivation) {
         const errorMsg = !buyerMotivation || buyerMotivation === 'Not articulated' 
-          ? '❌ [BUYER MOTIVATION] Not articulated - cannot generate email'
-          : '❌ [BUYER MOTIVATION] Too generic or speculative - requires specific evidence-based reasoning';
+          ? '[BUYER MOTIVATION] Not articulated - cannot generate email'
+          : '[BUYER MOTIVATION] Too generic or speculative - requires specific evidence-based reasoning';
         
         
         this.logOperation('Email Generation Blocked', 
@@ -5031,7 +5031,7 @@ Format as:
         }
         const tplFooter = `\n\n${footerParts.join(' | ')}\n<a href="${unsubscribeUrl}">Stop emails</a>`;
 
-        console.log(`📄 [TEMPLATE MODE] Using template "${tpl.name}" for ${leadData.first_name} ${leadData.last_name} @ ${companyName}`);
+        console.log(`[TEMPLATE MODE] Using template "${tpl.name}" for ${leadData.first_name} ${leadData.last_name} @ ${companyName}`);
         return {
           success: true,
           email: tplBody + tplFooter,
@@ -5107,7 +5107,7 @@ Format as:
           `BAD: any question, generic FOMO, vague compliments, anything that sounds like a marketing headline`,
           ``,
           ...(employeeCount && parseInt(employeeCount) >= 500 ? [
-            `⚠️  ENTERPRISE TONE RULE: This company has ${employeeCount} employees — they are a large, established organization.`,
+            `ENTERPRISE TONE RULE: This company has ${employeeCount} employees — they are a large, established organization.`,
             `DO NOT use framing that implies they are naive, behind, or missing something obvious. They have smart people.`,
             `Peer-level framing only. You are a peer with a specific insight, not a challenger showing them what they missed.`,
             `SUBJECT TYPE for large enterprises: "statement" or "intrigue" only.`,
@@ -5214,7 +5214,7 @@ Format as:
         .replace(/-/g, ' ')  // replace ALL hyphens, not just the first
         .replace('RELATIONSHIP BUILDER', 'RELATIONSHIP')
         .trim();
-      console.log(`🎭 [EMAIL BUILDER] personalityType resolved: "${personalityType}" (from raw: "${personality?.type}")`);
+      console.log(`[EMAIL BUILDER] personalityType resolved: "${personalityType}" (from raw: "${personality?.type}")`);
 
       // ── SOFT STYLE NUDGE POOLS (personality-specific, 3 sampled per email) ────────
       const softRulePools = {
@@ -5420,7 +5420,7 @@ Write the email now. First sentence must be specific to this company.`;
         emailResponse = await createEmail();
       } catch (error) {
         if (error?.status === 429) {
-          console.warn('⚠️ [EMAIL BUILDER] Haiku rate limit hit, retrying after cooldown');
+          console.warn('[EMAIL BUILDER] Haiku rate limit hit, retrying after cooldown');
           await this.waitForRetryAfter(error.headers, 15000);
           emailResponse = await createEmail();
         } else {
@@ -5437,7 +5437,7 @@ Write the email now. First sentence must be specific to this company.`;
       const claudeInputTokens = emailResponse.usage?.input_tokens || 0;
       const claudeOutputTokens = emailResponse.usage?.output_tokens || 0;
       console.log(
-        `📊 [EMAIL PROMPT ACTUAL] ${contactName} @ ${companyName} | ` +
+        `[EMAIL PROMPT ACTUAL] ${contactName} @ ${companyName} | ` +
         `actualInput=${claudeInputTokens} actualOutput=${claudeOutputTokens} | ` +
         `estimatedInput=${promptMetrics.totalTokens}`
       );
@@ -5569,7 +5569,7 @@ Output ONLY the subject line. Nothing else.`;
           subject = dynamicSubject;
         }
       } catch (error) {
-        console.error('❌ [SUBJECT GEN] Failed to generate dynamic subject:', error.message);
+        console.error('[SUBJECT GEN] Failed to generate dynamic subject:', error.message);
       }
       } // end fallback dynamic subject generator
 
@@ -5663,7 +5663,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         salesAngle: salesAngle || null
       };
     } catch (error) {
-      console.error('❌ [EMAIL BUILDER] Failed to create email:', error);
+      console.error('[EMAIL BUILDER] Failed to create email:', error);
       return {
         success: false,
         error: error.message,
@@ -5686,7 +5686,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       const userSettings = this.memory.userSettings;
       
       if (!userSettings) {
-        console.error('❌ [APOLLO] User settings not loaded yet!');
+        console.error('[APOLLO] User settings not loaded yet!');
         return {
           success: false,
           error: 'User settings must be loaded before searching for leads'
@@ -5963,7 +5963,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
 
           if (canGenerate) {
             this.logOperation(
-              '🔄 Finding New Markets',
+              'Finding New Markets',
               `"${selectedKeyword}" has been fully searched. Discovering related industries to keep finding leads...`,
               'info'
             );
@@ -5989,7 +5989,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
             // New keywords generated — rotate to them
             const newKws = (this.memory.aiGeneratedKeywords || []).slice(-3).join(', ');
             this.logOperation(
-              '✅ New Markets Found',
+              'New Markets Found',
               `Switching from "${selectedKeyword}" to fresh target industries: ${newKws || 'newly generated'}`,
               'info'
             );
@@ -6047,7 +6047,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
 
           // Truly nothing left — stop
           this.logOperation(
-            '🛑 Search Complete',
+            'Search Complete',
             `All target industries and generated markets have been fully searched. Stopping to avoid duplicate outreach.`,
             'warning'
           );
@@ -6063,7 +6063,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
 
         // Other keywords exist — rotate to them
         this.logOperation(
-          '🔄 Switching Target Industry',
+          'Switching Target Industry',
           `"${selectedKeyword}" is saturated (${tracker.cumulativeDuplicateRate.toFixed(1)}% already contacted). Moving to the next industry to find fresh leads.`,
           'info'
         );
@@ -6179,7 +6179,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       if (!this.memory.validatedPairs) this.memory.validatedPairs = {};
       if (this.memory.validatedPairs[pairKey] === false) {
         this.logOperation(
-          '⚠️ Pair Skipped',
+          'Pair Skipped',
           `"${selectedKeyword}" + "${targetPosition}" was flagged as an invalid search pair — rotating`,
           'info',
           { keyword: selectedKeyword, position: targetPosition }
@@ -6191,7 +6191,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         this.memory.validatedPairs[pairKey] = valid;
         if (!valid) {
           this.logOperation(
-            '⚠️ Pair Skipped',
+            'Pair Skipped',
             `"${selectedKeyword}" + "${targetPosition}" doesn't match real-world titles — rotating to next pair`,
             'info',
             { keyword: selectedKeyword, position: targetPosition }
@@ -6228,7 +6228,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
          */
         const chosenSource = this.bandit.select(selectedKeyword, availableSources);
         this.memory.keywordSourceAssignments[selectedKeyword] = chosenSource.id;
-        console.log(`🎰 [BANDIT] Assigned source "${chosenSource.id}" to keyword "${selectedKeyword}"`);
+        console.log(`[BANDIT] Assigned source "${chosenSource.id}" to keyword "${selectedKeyword}"`);
       }
 
       const activeSourceId = this.memory.keywordSourceAssignments[selectedKeyword];
@@ -6270,11 +6270,11 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         const sourceApiKey = process.env[activeSource.envKey];
         if (!sourceApiKey) {
           // Key missing — fall back to Apollo silently and log a warning
-          console.warn(`⚠️ [BANDIT] No API key for source "${activeSource.id}", falling back to Apollo`);
+          console.warn(`[BANDIT] No API key for source "${activeSource.id}", falling back to Apollo`);
           this.memory.keywordSourceAssignments[selectedKeyword] = 'apollo';
         } else {
           this.logOperation(
-            `🔍 Searching via ${activeSource.label}`,
+            `Searching via ${activeSource.label}`,
             `Using ${activeSource.label} for "${selectedKeyword}" (${targetPosition})`,
             'info'
           );
@@ -6288,9 +6288,9 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
               taggedLeads, selectedKeyword, targetPosition, keywordSource, activeSource.id, parameters
             );
           } catch (sourceErr) {
-            console.error(`❌ [SOURCE ${activeSource.id}] Search failed:`, sourceErr.message);
+            console.error(`[SOURCE ${activeSource.id}] Search failed:`, sourceErr.message);
             // Fall through to Apollo as safety net
-            console.warn(`⚠️ Falling back to Apollo for this search`);
+            console.warn(`Falling back to Apollo for this search`);
             this.memory.keywordSourceAssignments[selectedKeyword] = 'apollo';
           }
         }
@@ -6368,7 +6368,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         'apollo',
         1 // 1 credit per search
       ).catch(err => {
-        console.error('⚠️ Rate limit check failed, allowing request:', err);
+        console.error('Rate limit check failed, allowing request:', err);
         return { allowed: true };
       });
 
@@ -6526,7 +6526,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
           id: this.generateUniqueId(),
           timestamp: new Date().toISOString(),
           operation: 'Deduplication Check',
-          details: `🔍 Checking ${enrichedLeads.length} leads for duplicates...`,
+          details: `Checking ${enrichedLeads.length} leads for duplicates...`,
           status: 'processing',
           data: { 
             phase: 'deduplication_start',
@@ -6559,7 +6559,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
             return !junkCompanyPatterns.some(p => p.test(co));
           });
           if (junkFiltered.length < newLeads.length) {
-            console.log(`🚫 [JUNK FILTER] Removed ${newLeads.length - junkFiltered.length} leads with generic company names`);
+            console.log(`[JUNK FILTER] Removed ${newLeads.length - junkFiltered.length} leads with generic company names`);
           }
           newLeads = junkFiltered;
           summary = { ...summary, newCount: newLeads.length };
@@ -6579,11 +6579,11 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
           if (summary.newCount === 0 && summary.duplicateCount === 0) {
             dedupMsg = `Apollo returned 0 leads for this search.`;
           } else if (summary.duplicateCount === 0) {
-            dedupMsg = `✅ ${summary.newCount} new leads found — no duplicates.`;
+            dedupMsg = `${summary.newCount} new leads found — no duplicates.`;
           } else if (summary.newCount === 0) {
-            dedupMsg = `⚠️ All ${summary.duplicateCount} leads were already contacted: ${dupNames.join(', ')}${dupSuffix}`;
+            dedupMsg = `All ${summary.duplicateCount} leads were already contacted: ${dupNames.join(', ')}${dupSuffix}`;
           } else {
-            dedupMsg = `✅ ${summary.newCount} new / 🔁 ${summary.duplicateCount} already contacted (${dupNames.join(', ')}${dupSuffix})`;
+            dedupMsg = `${summary.newCount} new / 🔁 ${summary.duplicateCount} already contacted (${dupNames.join(', ')}${dupSuffix})`;
           }
 
           if (stillNeeded > 0) {
@@ -6592,7 +6592,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
             dedupMsg += ` — target of ${target} reached.`;
           }
 
-          this.logOperation('🔍 Lead Search Results', dedupMsg, summary.newCount > 0 ? 'completed' : 'info', {
+          this.logOperation('Lead Search Results', dedupMsg, summary.newCount > 0 ? 'completed' : 'info', {
             phase: 'deduplication_complete',
             newLeads: summary.newCount,
             duplicatesFiltered: summary.duplicateCount,
@@ -6645,13 +6645,13 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
                   );
                   
                   this.logOperation(
-                    '🧠 Memory Updated',
+                    'Memory Updated',
                     `Stored performance for "${selectedKeyword}" - ${storeResult.totalAttempts} total attempts, ${storeResult.cumulativeRate.toFixed(1)}% duplicate rate`,
                     'info'
                   );
                 } catch (memError) {
-                  console.error('⚠️ [MEMORY] Failed to store performance:', memError.message);
-                  this.logOperation('⚠️ Memory Error', `Failed to store performance: ${memError.message}`, 'warning');
+                  console.error('[MEMORY] Failed to store performance:', memError.message);
+                  this.logOperation('Memory Error', `Failed to store performance: ${memError.message}`, 'warning');
                 }
               }
 
@@ -6674,7 +6674,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
               if (this.banditInitialized && activeSourceId) {
                 this.bandit.reward(selectedKeyword, activeSourceId, newLeads.length, duplicateLeads.length);
                 // Flush updated stats to DynamoDB (non-blocking)
-                this.bandit.flushToDB().catch(e => console.warn('⚠️ [BANDIT] Flush failed:', e.message));
+                this.bandit.flushToDB().catch(e => console.warn('[BANDIT] Flush failed:', e.message));
               }
 
               // ─────────────────────────────────────────────────────────────
@@ -6743,7 +6743,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
                     });
 
                     this.logOperation(
-                      '🔀 Source Switched (Dup Rate)',
+                      'Source Switched (Dup Rate)',
                       `Keyword "${selectedKeyword}": switched ${prev} → ${altSource.label} (dup rate was ${triggeringDupRate.toFixed(1)}%, alt source looks fresh)`,
                       'info'
                     );
@@ -6770,7 +6770,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
 
           return results;
         } else {
-          console.error('⚠️ [DEDUPLICATION] Check failed, proceeding with all leads:', deduplicationResult.error);
+          console.error('[DEDUPLICATION] Check failed, proceeding with all leads:', deduplicationResult.error);
         }
       } else {
       }
@@ -6802,7 +6802,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       return results;
 
     } catch (error) {
-      console.error('❌ [APOLLO] Search failed:', error);
+      console.error('[APOLLO] Search failed:', error);
       
       // Record failed search
       this.memory.searchHistory.push({
@@ -6856,7 +6856,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       id: this.generateUniqueId(),
       timestamp: new Date().toISOString(),
       operation: 'Deduplication Check',
-      details: `🔍 Checking ${enrichedLeads.length} leads for duplicates...`,
+      details: `Checking ${enrichedLeads.length} leads for duplicates...`,
       status: 'processing',
       data: { phase: 'deduplication_start', totalLeads: enrichedLeads.length }
     });
@@ -6899,7 +6899,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       // Bandit reward for this source
       if (this.banditInitialized && activeSourceId) {
         this.bandit.reward(selectedKeyword, activeSourceId, newLeads.length, duplicateLeads.length);
-        this.bandit.flushToDB().catch(e => console.warn('⚠️ [BANDIT] Flush failed:', e.message));
+        this.bandit.flushToDB().catch(e => console.warn('[BANDIT] Flush failed:', e.message));
       }
     }
 
@@ -6946,7 +6946,7 @@ Answer with JSON: {"valid": true/false, "reason": "one sentence"}`
       const match = raw.match(/\{[\s\S]*\}/);
       if (match) {
         const result = JSON.parse(match[0]);
-        console.log(`[PAIR VALIDATE] "${keyword}" + "${position}": ${result.valid ? '✅' : '❌'} — ${result.reason}`);
+        console.log(`[PAIR VALIDATE] "${keyword}" + "${position}": ${result.valid ? '' : ''} — ${result.reason}`);
         return result.valid !== false;
       }
       return true; // default allow on parse failure
@@ -7014,7 +7014,7 @@ Format as JSON array of objects:
           pairs = JSON.parse(jsonMatch[0]);
         }
       } catch (parseError) {
-        console.error('❌ [JSON PARSE ERROR] Could not parse AI response:', parseError.message);
+        console.error('[JSON PARSE ERROR] Could not parse AI response:', parseError.message);
         throw new Error('AI response not valid JSON');
       }
       
@@ -7035,7 +7035,7 @@ Format as JSON array of objects:
       }
 
     } catch (error) {
-      console.error('❌ [AI GENERATION ERROR]', error.message);
+      console.error('[AI GENERATION ERROR]', error.message);
       this.logOperation('Keyword Discovery',
         `Couldn't come up with new industries/roles to try (${error.message}) — sticking with the current targeting until the next attempt`,
         'warning', { stage: 'new_keywords_failed', error: error.message });
@@ -7099,7 +7099,7 @@ Specific Niche Keywords:`;
       
       
     } catch (error) {
-      console.error('❌ [AI GENERATION ERROR]', error.message);
+      console.error('[AI GENERATION ERROR]', error.message);
       // Fallback to base keywords if generation fails
       this.memory.aiGeneratedKeywords = [];
     }
@@ -7179,7 +7179,7 @@ Target Positions:`;
       return positions;
       
     } catch (error) {
-      console.error('❌ [DYNAMIC POSITIONS ERROR]', error.message);
+      console.error('[DYNAMIC POSITIONS ERROR]', error.message);
       // Return original positions on error
       return originalPositions || ['CEO', 'CTO', 'CFO', 'VP', 'Director'];
     }
@@ -7242,7 +7242,7 @@ Target Positions:`;
       const decision = await this.reason(context);
       
       // Log the decision to activity logs
-      this.logOperation('Agent Decision', `🧠 [DECISION] ${decision.reasoning}`, 'info', {
+      this.logOperation('Agent Decision', `[DECISION] ${decision.reasoning}`, 'info', {
         action: decision.action,
         attempt: attempts,
         context: context
@@ -7253,24 +7253,24 @@ Target Positions:`;
       
       switch (decision.action) {
         case 'get_user_settings':
-          this.logOperation('Action Execution', '🔧 [ACTION] Retrieving user settings from AWS', 'in-progress');
+          this.logOperation('Action Execution', '[ACTION] Retrieving user settings from AWS', 'in-progress');
           actionResult = await this.getUserSettings();
           this.memory.userSettings = actionResult;
-          this.logOperation('Action Execution', '✅ [COMPLETE] User settings retrieved successfully', 'success', { hasSettings: !!actionResult });
+          this.logOperation('Action Execution', '[COMPLETE] User settings retrieved successfully', 'success', { hasSettings: !!actionResult });
           break;
           
         case 'get_email_settings':
-          this.logOperation('Action Execution', '🔧 [ACTION] Retrieving email settings from AWS', 'in-progress');
+          this.logOperation('Action Execution', '[ACTION] Retrieving email settings from AWS', 'in-progress');
           actionResult = await this.getEmailSettings();
           this.memory.emailSettings = actionResult;
-          this.logOperation('Action Execution', '✅ [COMPLETE] Email settings retrieved successfully', 'success', { hasSettings: !!actionResult });
+          this.logOperation('Action Execution', '[COMPLETE] Email settings retrieved successfully', 'success', { hasSettings: !!actionResult });
           break;
           
         case 'lead_search':
-          this.logOperation('Lead Search', `🔍 [SEARCH] Searching for ${decision.parameters.title || 'leads'} at ${decision.parameters.industry || 'various industries'}`, 'in-progress', decision.parameters);
+          this.logOperation('Lead Search', `[SEARCH] Searching for ${decision.parameters.title || 'leads'} at ${decision.parameters.industry || 'various industries'}`, 'in-progress', decision.parameters);
           actionResult = await this.leadSearch(decision.parameters);
           if (actionResult.found > 0) {
-            this.logOperation('Lead Search', `✅ [SEARCH SUCCESS] Found ${actionResult.found} leads! Total progress: ${foundLeads.length + actionResult.found}/${targetLeads}`, 'success', { 
+            this.logOperation('Lead Search', `[SEARCH SUCCESS] Found ${actionResult.found} leads! Total progress: ${foundLeads.length + actionResult.found}/${targetLeads}`, 'success', { 
               found: actionResult.found, 
               total: foundLeads.length + actionResult.found,
               target: targetLeads 
@@ -7297,7 +7297,7 @@ Target Positions:`;
             
             // Process each NEW lead through the full workflow
             for (const lead of newLeads) {
-              this.logOperation('Lead Processing', `🔍 [PROCESSING] Researching lead: ${lead.name} at ${lead.organization?.name}`, 'in-progress', { 
+              this.logOperation('Lead Processing', `[PROCESSING] Researching lead: ${lead.name} at ${lead.organization?.name}`, 'in-progress', { 
                 lead: lead.name, 
                 company: lead.organization?.name 
               });
@@ -7319,7 +7319,7 @@ Target Positions:`;
                 
                 // Track email unlock success and handle both success/failure cases
                 if (emailUnlock.success && this.memory.emailSettings) {
-                  this.logOperation('Email Processing', `📧 [EMAIL SUCCESS] Unlocked ${emailUnlock.all_emails?.length || 1} email(s) for ${lead.name} at ${lead.organization?.name}`, 'success', { 
+                  this.logOperation('Email Processing', `[EMAIL SUCCESS] Unlocked ${emailUnlock.all_emails?.length || 1} email(s) for ${lead.name} at ${lead.organization?.name}`, 'success', { 
                     emails: emailUnlock.all_emails?.length || 1,
                     company: lead.organization?.name,
                     employees: lead.organization?.estimated_num_employees || 'unknown'
@@ -7365,7 +7365,7 @@ Target Positions:`;
                   // Save to database like normal lead agent
                   await this.addLeadToDatabase(completeLead);
                   
-                  this.logOperation('Lead Complete', `✅ [LEAD COMPLETE] Successfully processed and saved ${lead.name} at ${lead.organization?.name}`, 'success', {
+                  this.logOperation('Lead Complete', `[LEAD COMPLETE] Successfully processed and saved ${lead.name} at ${lead.organization?.name}`, 'success', {
                     leadName: lead.name,
                     company: lead.organization?.name,
                     email: emailUnlock.email,
@@ -7426,7 +7426,7 @@ Target Positions:`;
               timestamp: new Date().toISOString()
             });
           } else {
-            this.logOperation('Lead Search', `❌ [SEARCH FAILED] Apollo search returned 0 leads for ${decision.parameters.title || 'specified criteria'}`, 'warning', { 
+            this.logOperation('Lead Search', `[SEARCH FAILED] Apollo search returned 0 leads for ${decision.parameters.title || 'specified criteria'}`, 'warning', { 
               parameters: decision.parameters,
               reason: actionResult.error || 'No leads found'
             });
@@ -8035,7 +8035,7 @@ Target Positions:`;
       await fs.mkdir(path.dirname(this.leadsFile), { recursive: true });
       await fs.writeFile(this.leadsFile, JSON.stringify(data, null, 2));
     } catch (error) {
-      console.error('❌ [DATABASE] Error saving leads database:', error);
+      console.error('[DATABASE] Error saving leads database:', error);
     }
   }
 
@@ -8071,7 +8071,7 @@ Target Positions:`;
 
         return leadRecord;
       } catch (error) {
-        console.error('❌ [DATABASE] Error adding lead:', error);
+        console.error('[DATABASE] Error adding lead:', error);
         throw error;
       }
     });
@@ -8199,7 +8199,7 @@ Target Positions:`;
         this.emit('progress', {
           id: this.generateUniqueId(),
           timestamp: new Date().toISOString(),
-          operation: '📝 Saving Contact',
+          operation: 'Saving Contact',
           details: `Saving ${leadInfo.name} from ${leadInfo.company} to database...`,
           status: 'processing',
           data: { 
@@ -8221,7 +8221,7 @@ Target Positions:`;
           this.emit('progress', {
             id: this.generateUniqueId(),
             timestamp: new Date().toISOString(),
-            operation: '✅ Contact Saved',
+            operation: 'Contact Saved',
             details: `${leadInfo.name} at ${leadInfo.company} saved successfully`,
             status: 'completed',
             data: { 
@@ -8238,7 +8238,7 @@ Target Positions:`;
             id: this.generateUniqueId(),
             timestamp: new Date().toISOString(),
             operation: 'Contact Tracking',
-            details: `⚠️ Contact already exists - ${leadInfo.name} was previously contacted`,
+            details: `Contact already exists - ${leadInfo.name} was previously contacted`,
             status: 'warning',
             data: { 
               phase: 'already_contacted',
@@ -8248,14 +8248,14 @@ Target Positions:`;
             }
           });
         } else {
-          console.error('❌ [CONTACT TRACKING] Failed to add to database:', trackingResult.error);
+          console.error('[CONTACT TRACKING] Failed to add to database:', trackingResult.error);
           
           // Emit SSE error for tracking failure
           this.emit('progress', {
             id: this.generateUniqueId(),
             timestamp: new Date().toISOString(),
             operation: 'Contact Tracking',
-            details: `❌ Failed to save contact - ${trackingResult.error}`,
+            details: `Failed to save contact - ${trackingResult.error}`,
             status: 'error',
             data: { 
               phase: 'tracking_failed',
@@ -8265,14 +8265,14 @@ Target Positions:`;
           });
         }
       } catch (trackingError) {
-        console.error('❌ [CONTACT TRACKING] Error tracking contact:', trackingError.message);
+        console.error('[CONTACT TRACKING] Error tracking contact:', trackingError.message);
         
         // Emit SSE error for tracking exception
         this.emit('progress', {
           id: this.generateUniqueId(),
           timestamp: new Date().toISOString(),
           operation: 'Contact Tracking',
-          details: `❌ Contact tracking error - ${trackingError.message}`,
+          details: `Contact tracking error - ${trackingError.message}`,
           status: 'error',
           data: { 
             phase: 'tracking_exception',
@@ -8300,7 +8300,7 @@ Target Positions:`;
           console.log(`[CRM SYNC] Starting sync for ${leadData.name || leadData.first_name} to ${user.crmIntegration || 'CRM'}`);
           
           // Log CRM sync start
-          this.logOperation('🔗 CRM Sync', `Syncing ${leadData.name || leadData.first_name} to ${user.crmIntegration}...`, 'processing', { phase: 'crm_sync', contactName: leadData.name || leadData.first_name, crmIntegration: user.crmIntegration });
+          this.logOperation('CRM Sync', `Syncing ${leadData.name || leadData.first_name} to ${user.crmIntegration}...`, 'processing', { phase: 'crm_sync', contactName: leadData.name || leadData.first_name, crmIntegration: user.crmIntegration });
           
           // Prepare comprehensive lead data for CRM with full research and context
           const crmLeadData = {
@@ -8348,7 +8348,7 @@ Target Positions:`;
               crmContactId: syncResult.crmContactId || leadData.crmId || null
             };
             console.log(`[CRM SYNC] OK - ${leadData.name || leadData.first_name} ${action} ${syncResult.crmIntegration} (contactId: ${syncResult.crmContactId || 'n/a'})`);
-            this.logOperation('🔗 CRM Sync', `${leadData.name || leadData.first_name} ${action} ${syncResult.crmIntegration} ✓`, 'completed', { phase: 'crm_sync_complete', crmContactId: syncResult.crmContactId, crmIntegration: syncResult.crmIntegration, contactName: leadData.name || leadData.first_name });
+            this.logOperation('CRM Sync', `${leadData.name || leadData.first_name} ${action} ${syncResult.crmIntegration} ✓`, 'completed', { phase: 'crm_sync_complete', crmContactId: syncResult.crmContactId, crmIntegration: syncResult.crmIntegration, contactName: leadData.name || leadData.first_name });
           } else {
             crmSyncSummary = {
               status: 'failed',
@@ -8358,7 +8358,7 @@ Target Positions:`;
               crmContactId: syncResult.crmContactId || leadData.crmId || null
             };
             console.warn(`[CRM SYNC] Failed to sync: ${syncResult.error}`);
-            this.logOperation('🔗 CRM Sync', `CRM sync failed for ${leadData.name || leadData.first_name} - ${syncResult.error}`, 'failed', { phase: 'crm_sync_failed', error: syncResult.error, contactName: leadData.name || leadData.first_name });
+            this.logOperation('CRM Sync', `CRM sync failed for ${leadData.name || leadData.first_name} - ${syncResult.error}`, 'failed', { phase: 'crm_sync_failed', error: syncResult.error, contactName: leadData.name || leadData.first_name });
             // logOperation above is live-only (SSE) — also persist so this survives
             // a page refresh instead of only being visible in the moment it happens.
             this.awsManager.addIssue(
@@ -8390,7 +8390,7 @@ Target Positions:`;
           crmIntegration: null,
           crmContactId: leadData.crmId || null
         };
-        console.error('❌ [CRM SYNC] Error syncing to CRM:', crmError.message);
+        console.error('[CRM SYNC] Error syncing to CRM:', crmError.message);
         // Don't fail the email queue if CRM sync fails
       }
 
@@ -8406,8 +8406,8 @@ Target Positions:`;
         crmSync: crmSyncSummary
       };
     } catch (error) {
-      console.error('❌ [EMAIL QUEUE] Error adding to queue:', error);
-      console.error('❌ [EMAIL QUEUE FAILED] User:', this.userId, '| Agent:', this.agentId, '| Lead:', leadData.email, '| Error:', error.message);
+      console.error('[EMAIL QUEUE] Error adding to queue:', error);
+      console.error('[EMAIL QUEUE FAILED] User:', this.userId, '| Agent:', this.agentId, '| Lead:', leadData.email, '| Error:', error.message);
       throw error;
     }
   }
@@ -8441,7 +8441,7 @@ Target Positions:`;
       // 1 ─ Research
       this.broadcastAgentActivity({
         agentId:   this.agentId,
-        operation: '🔬 Researching',
+        operation: 'Researching',
         details:   `${leadName} at ${companyName}`,
         status:    'active',
         timestamp: new Date()
@@ -8494,7 +8494,7 @@ Target Positions:`;
 
         if (!emailUnlock?.success) {
           this.logOperation(
-            '❌ Email Unlock Failed',
+            'Email Unlock Failed',
             `Could not unlock email for ${leadName} at ${companyName}. Reason: ${emailUnlock?.error || 'No valid email found'}. Skipping.`,
             'warning'
           );
@@ -8521,7 +8521,7 @@ Target Positions:`;
 
       // 3 ─ Build personalized email
       if (!this.memory.emailSettings) {
-        this.logOperation('⚠️ No Email Settings', `Email settings not loaded — skipping ${leadName}`, 'warning');
+        this.logOperation('No Email Settings', `Email settings not loaded — skipping ${leadName}`, 'warning');
         await this._markAuditorContactComplete(lead, {
           crmSync: { status: 'failed', action: 'email_settings_missing', message: 'Email settings were not loaded' }
         });
@@ -8571,7 +8571,7 @@ Target Positions:`;
       this.memory.currentCycle.leadsProcessed++;
 
       this.logOperation(
-        '✅ Lead Complete',
+        'Lead Complete',
         `${leadName} at ${companyName} — email queued (${this.memory.currentCycle.leadsProcessed}/${this.memory.currentCycle.targetLeads})`,
         'success',
         {
@@ -8588,7 +8588,7 @@ Target Positions:`;
 
       return { success: true, leadName, company: companyName };
     } catch (err) {
-      this.logOperation('❌ Pipeline Error', `${leadName}: ${err.message}`, 'error');
+      this.logOperation('Pipeline Error', `${leadName}: ${err.message}`, 'error');
       await this._markAuditorContactComplete(lead, {
         crmSync: { status: 'failed', action: 'pipeline_error', message: err.message || 'Unexpected pipeline error' }
       });
@@ -8621,7 +8621,7 @@ Target Positions:`;
     }
 
     this.logOperation(
-      `⚡ Parallel Processing`,
+      `Parallel Processing`,
       `Processing ${allLeads.length} lead${allLeads.length !== 1 ? 's' : ''} with ${f} concurrent worker${f !== 1 ? 's' : ''}`,
       'info'
     );
@@ -8641,7 +8641,7 @@ Target Positions:`;
     const processed = this.memory.currentCycle.leadsProcessed;
     const target = this.memory.currentCycle.targetLeads;
     if (this.isRunning && !this.isCrmMode && processed < target) {
-      console.log(`⚡ [CONCURRENCY] ${processed}/${target} leads done — searching for ${target - processed} more`);
+      console.log(`[CONCURRENCY] ${processed}/${target} leads done — searching for ${target - processed} more`);
       this.memory.currentCycle.processingPhase = 'search';
       this.memory.currentCycle.cycleComplete   = false;
     } else {
@@ -8743,7 +8743,7 @@ Target Positions:`;
                 cumulativeDuplicateRate: agg.cumulativeDuplicateRate
               };
               const rate = agg.cumulativeDuplicateRate;
-              const flag = agg.exhausted ? '🔴 EXHAUSTED' : rate > 40 ? '🟠 HIGH-DUP' : rate > 10 ? '🟡 WARNING' : '🟢 OK';
+              const flag = agg.exhausted ? 'EXHAUSTED' : rate > 40 ? 'HIGH-DUP' : rate > 10 ? 'WARNING' : 'OK';
               console.log(`[MEMORY RESTORE] ${flag} "${keyword}": ${rate.toFixed(1)}% dup rate (${agg.totalAttempts} attempts across ${agg.combos.length} position(s): ${agg.combos.join(', ')})`);
               if (rate > 40 && agg.totalAttempts >= 5) preSkippedCount++;
             });
@@ -8753,17 +8753,17 @@ Target Positions:`;
 
             // Log to UI
             this.logOperation(
-              '🧠 Memory Loaded',
+              'Memory Loaded',
               `Restored ${memoryData.count} combo records → ${Object.keys(keywordAggMap).length} keywords. ${exhaustedCount} exhausted (Zilliz), ${highDupCount} high-dup (>40%, will be pre-skipped this run).`,
               'success'
             );
           } else {
-            this.logOperation('🧠 Memory Initialized', 'No previous memory found, starting fresh', 'info');
+            this.logOperation('Memory Initialized', 'No previous memory found, starting fresh', 'info');
           }
           this.memoryInitialized = true;
         } catch (memError) {
-          console.error('⚠️ [MEMORY] Failed to load memory, continuing without it:', memError.message);
-          this.logOperation('⚠️ Memory Error', `Failed to load memory: ${memError.message}`, 'warning');
+          console.error('[MEMORY] Failed to load memory, continuing without it:', memError.message);
+          this.logOperation('Memory Error', `Failed to load memory: ${memError.message}`, 'warning');
         }
       }
 
@@ -8807,7 +8807,7 @@ Target Positions:`;
             const restored = Object.keys(bestByKeyword).length;
             if (restored > 0) {
               this.logOperation(
-                '🎰 Bandit Loaded',
+                'Bandit Loaded',
                 `Restored source assignments for ${restored} keyword(s) from previous learning`,
                 'success'
               );
@@ -8816,7 +8816,7 @@ Target Positions:`;
 
           this.banditInitialized = true;
         } catch (banditErr) {
-          console.warn('⚠️ [BANDIT] Failed to load from DB, starting with priors:', banditErr.message);
+          console.warn('[BANDIT] Failed to load from DB, starting with priors:', banditErr.message);
           this.banditInitialized = true; // Still mark initialized — priors are fine
         }
       }
@@ -8853,7 +8853,7 @@ Target Positions:`;
 
       return result;
     } catch (error) {
-      console.error('❌ [REASONING AGENT] Error starting agent:', error);
+      console.error('[REASONING AGENT] Error starting agent:', error);
       // Force stop on error
       this.isRunning = false;
       return {
@@ -8983,7 +8983,7 @@ Target Positions:`;
 
       return result;
     } catch (error) {
-      console.error('❌ [REASONING AGENT] Error stopping agent:', error);
+      console.error('[REASONING AGENT] Error stopping agent:', error);
       // Force stop even on error
       this.isRunning = false;
       this.cycleCount = 0;
@@ -9034,7 +9034,7 @@ Target Positions:`;
         }
       };
     } catch (error) {
-      console.error('❌ [REASONING AGENT] Error getting status:', error);
+      console.error('[REASONING AGENT] Error getting status:', error);
       return {
         isActive: false,
         status: 'error',
@@ -9066,7 +9066,7 @@ Target Positions:`;
         // Save merged settings to preserve all configuration
         await this.awsManager.saveLeadAgentSettings(this.userId, this.agentId, updatedSettings);
       } catch (dbError) {
-        console.error('❌ [REASONING AGENT] Failed to save interval to DB:', dbError);
+        console.error('[REASONING AGENT] Failed to save interval to DB:', dbError);
       }
       
       return {
@@ -9076,7 +9076,7 @@ Target Positions:`;
         nextCycleIn: this.getNextCycleTime()
       };
     } catch (error) {
-      console.error('❌ [REASONING AGENT] Error setting interval:', error);
+      console.error('[REASONING AGENT] Error setting interval:', error);
       return {
         success: false,
         message: 'Failed to set cycle interval: ' + error.message
@@ -9099,7 +9099,7 @@ Target Positions:`;
         nextCycleIn: this.getNextCycleTime()
       };
     } catch (error) {
-      console.error('❌ [REASONING AGENT] Error resetting interval:', error);
+      console.error('[REASONING AGENT] Error resetting interval:', error);
       return {
         success: false,
         message: 'Failed to reset cycle interval: ' + error.message
@@ -9128,7 +9128,7 @@ Target Positions:`;
       this.settings = leadSettings;
       
     } catch (error) {
-      console.error('❌ [REASONING AGENT] Error loading saved settings:', error);
+      console.error('[REASONING AGENT] Error loading saved settings:', error);
       // Continue with default settings if load fails
     }
   }
@@ -9179,7 +9179,7 @@ Target Positions:`;
       try {
         await fs.writeFile(this.leadsFile, JSON.stringify([], null, 2));
       } catch (fileError) {
-        console.warn('⚠️ [REASONING AGENT] Could not clear leads file:', fileError.message);
+        console.warn('[REASONING AGENT] Could not clear leads file:', fileError.message);
       }
 
       // Emit progress update
@@ -9195,7 +9195,7 @@ Target Positions:`;
         message: 'Reasoning Lead Agent reset successfully'
       };
     } catch (error) {
-      console.error('❌ [REASONING AGENT] Error resetting agent:', error);
+      console.error('[REASONING AGENT] Error resetting agent:', error);
       return {
         success: false,
         message: 'Failed to reset agent: ' + error.message
@@ -9221,7 +9221,7 @@ Target Positions:`;
         
         if (remainingCredits <= 0) {
           this.isRunning = false;
-          console.warn(`🚫 [CREDITS] Agent ${this.agentId} stopped — credit balance exhausted (balance: ${user.creditBalance})`);
+          console.warn(`[CREDITS] Agent ${this.agentId} stopped — credit balance exhausted (balance: ${user.creditBalance})`);
           this.emit('progress', {
             stage: 'credit-limit-reached',
             message: 'Credit balance exhausted. Purchase more credits to continue.',
@@ -9270,7 +9270,7 @@ Target Positions:`;
         // Check if exhausted
         if (remainingCredits <= 0) {
           this.isRunning = false;
-          console.warn(`🚫 [CREDITS] Agent ${this.agentId} stopped — trial credits exhausted (used: ${creditsUsed}/${creditsLimit})`);
+          console.warn(`[CREDITS] Agent ${this.agentId} stopped — trial credits exhausted (used: ${creditsUsed}/${creditsLimit})`);
           this.emit('progress', {
             stage: 'credit-limit-reached',
             message: 'Trial credits exhausted. Please upgrade or purchase credits.',
@@ -9321,7 +9321,7 @@ Target Positions:`;
         };
       }
     } catch (error) {
-      console.error('⚠️ [CREDITS] Error checking credit status:', error);
+      console.error('[CREDITS] Error checking credit status:', error);
       // Allow operation to continue on error to prevent blocking
       return { canContinue: true, reason: 'credit-check-error' };
     }
@@ -9361,7 +9361,7 @@ Target Positions:`;
 
       return result;
     } catch (error) {
-      console.error('❌ [REASONING AGENT] Error running manual cycle:', error);
+      console.error('[REASONING AGENT] Error running manual cycle:', error);
       
       // Log cycle error as issue
       this.logIssue('error', `Agent cycle failed unexpectedly: ${error.message}`, {
@@ -9398,7 +9398,7 @@ Target Positions:`;
           
           // Check if settings have an error
           if (result?.error) {
-            this.logOperation('⚙️ Settings Required', 'Please configure your lead agent settings in the dashboard', 'warning', {
+            this.logOperation('Settings Required', 'Please configure your lead agent settings in the dashboard', 'warning', {
               error: result.error,
               action: 'Configure settings to start finding leads'
             });
@@ -9419,7 +9419,7 @@ Target Positions:`;
           
           // Check if email settings have an error
           if (result?.error) {
-            this.logOperation('📧 Email Settings Required', 'Please configure your email builder settings in the dashboard', 'warning', {
+            this.logOperation('Email Settings Required', 'Please configure your email builder settings in the dashboard', 'warning', {
               error: result.error,
               action: 'Configure email settings to start sending emails'
             });
@@ -9543,7 +9543,7 @@ Target Positions:`;
       this._cyclePromise = this.executeReasoningCycle();
       cycleResult = await this._cyclePromise;
     } catch (error) {
-      console.error('❌ [REASONING AGENT] Cycle error:', error);
+      console.error('[REASONING AGENT] Cycle error:', error);
       this.emit('progress', {
         stage: 'error',
         message: 'Cycle failed: ' + error.message,
@@ -9556,7 +9556,7 @@ Target Positions:`;
 
     // A stop (or stop→start) happened while this cycle was executing — this loop is stale
     if (gen !== (this.runGeneration || 0)) {
-      console.log('🛑 [REASONING AGENT] Stale run loop detected after stop/start — exiting without rescheduling');
+      console.log('[REASONING AGENT] Stale run loop detected after stop/start — exiting without rescheduling');
       return;
     }
 
@@ -9591,7 +9591,7 @@ Target Positions:`;
       const freshSettings = await this.awsManager.getLeadAgentSettings(this.userId, this.agentId);
       if (freshSettings) {
         this.settings = freshSettings;
-        console.log(`🔄 [CYCLE SETTINGS] Agent ${this.agentId}: concurrencyLevel=${freshSettings.concurrencyLevel ?? 1}`);
+        console.log(`[CYCLE SETTINGS] Agent ${this.agentId}: concurrencyLevel=${freshSettings.concurrencyLevel ?? 1}`);
 
         // BUG (fixed): email generation reads from this.memory.emailSettings, a
         // completely separate cache from this.settings that was only ever
@@ -9617,7 +9617,7 @@ Target Positions:`;
         }
       }
     } catch (err) {
-      console.warn(`⚠️ [CYCLE SETTINGS] Failed to refresh settings for agent ${this.agentId}:`, err.message);
+      console.warn(`[CYCLE SETTINGS] Failed to refresh settings for agent ${this.agentId}:`, err.message);
     }
     
     // Broadcast cycle start event
@@ -9669,7 +9669,7 @@ Target Positions:`;
       this.crmContactList = null; // Consumed — clear so next cycle uses Apollo normally
       crmContactsLoadedThisCycle = true;
       console.log(`[CRM MODE] Pre-loaded ${crmLeads.length} contacts from CRM, skipping Apollo search — starting with ${crmLeads[0]?.name}`);
-      this.logOperation('📋 CRM Mode', `Processing ${crmLeads.length} contacts imported from CRM`, 'running');
+      this.logOperation('CRM Mode', `Processing ${crmLeads.length} contacts imported from CRM`, 'running');
       // Broadcast CRM session start so the frontend knows the full contact list
       this._emitCRMEvent('crm_session_start', {
         contacts: crmLeads.map(l => ({ id: l.crmId || l.email, name: l.name, company: l.company }))
@@ -9683,12 +9683,12 @@ Target Positions:`;
     
     // Load campaign plan from special instructions
     if (this.settings?.specialInstructions && !this.campaignPlan) {
-      console.log('🎯 [CAMPAIGN PLAN] Special instructions detected, converting to plan...');
+      console.log('[CAMPAIGN PLAN] Special instructions detected, converting to plan...');
       
       // We'll get userSettings in the cycle, but we can try to load them now for the plan
       const tempSettings = await this.getUserSettings();
       if (!tempSettings.error) {
-        console.log('📋 [CAMPAIGN PLAN] Converting with baseline settings:', {
+        console.log('[CAMPAIGN PLAN] Converting with baseline settings:', {
           industries: tempSettings.companyIndustries,
           positions: tempSettings.targetPositions,
           companySize: `${tempSettings.companySizeMin}-${tempSettings.companySizeMax}`,
@@ -9716,7 +9716,7 @@ Target Positions:`;
         if (this.campaignPlan) {
           this.emit('progress', {
             stage: 'campaign-plan',
-            message: `🎯 Campaign Strategy: ${this.campaignPlan.emailMessaging?.primaryValue || 'Custom targeting'}`,
+            message: `Campaign Strategy: ${this.campaignPlan.emailMessaging?.primaryValue || 'Custom targeting'}`,
             timestamp: new Date().toISOString(),
             level: 'info',
             data: {
@@ -9731,7 +9731,7 @@ Target Positions:`;
     }
     
     // Log cycle start
-    this.logOperation('🔄 Starting Search', `Looking for new leads to contact`, 'running', {
+    this.logOperation('Starting Search', `Looking for new leads to contact`, 'running', {
       cycleNumber: this.cycleCount,
       timestamp: new Date().toISOString()
     });
@@ -9757,7 +9757,7 @@ Target Positions:`;
         if (stepCount % 5 === 0) {
           const creditCheck = await this.checkCreditsStatus();
           if (!creditCheck.canContinue) {
-            this.logOperation('🚫 Agent Stopped', 'Credits exhausted during operation', 'error', creditCheck);
+            this.logOperation('Agent Stopped', 'Credits exhausted during operation', 'error', creditCheck);
             return { 
               success: false, 
               reason: 'credits-exhausted-mid-cycle',
@@ -9798,10 +9798,10 @@ Target Positions:`;
 
         // Check if settings have errors and need to be fetched
         if (!context.hasUserSettings && this.memory.userSettings?.error) {
-          this.logOperation('⚙️ Configuring Agent', 'Loading your agent settings...', 'in-progress');
+          this.logOperation('Configuring Agent', 'Loading your agent settings...', 'in-progress');
         }
         if (!context.hasEmailSettings && this.memory.emailSettings?.error) {
-          this.logOperation('📧 Email Setup', 'Loading your email preferences...', 'in-progress');
+          this.logOperation('Email Setup', 'Loading your email preferences...', 'in-progress');
         }
 
         if (
@@ -9829,7 +9829,7 @@ Target Positions:`;
 
           if (this.memory.emailSettings && !this.memory.emailSettings.error) {
             const concurrencyLevel = this.settings?.concurrencyLevel || 1;
-            console.log(`⚡ [CRM CONCURRENCY] Agent ${this.agentId}: draining CRM contacts with concurrencyLevel=${concurrencyLevel}`);
+            console.log(`[CRM CONCURRENCY] Agent ${this.agentId}: draining CRM contacts with concurrencyLevel=${concurrencyLevel}`);
             await this.drainQueueConcurrently(concurrencyLevel);
             continue;
           }
@@ -9846,14 +9846,14 @@ Target Positions:`;
         // Log what the agent is thinking in user-friendly terms
         if (reasoningResult.reasoning) {
           const friendlyThinking = this.translateThinkingToFriendly(reasoningResult.action, context);
-          this.logOperation('💭 Agent Activity', friendlyThinking, 'info', {
+          this.logOperation('Agent Activity', friendlyThinking, 'info', {
             action: reasoningResult.action,
             step: stepCount
           });
         }
         
         if (!reasoningResult.action || reasoningResult.action === 'think' || reasoningResult.action === 'complete') {
-          this.logOperation('✅ Process Complete', `Successfully completed lead outreach`, 'completed', {
+          this.logOperation('Process Complete', `Successfully completed lead outreach`, 'completed', {
             cycleNumber: this.cycleCount,
             stepsExecuted: stepCount,
             completedAt: new Date().toISOString()
@@ -9894,7 +9894,7 @@ Target Positions:`;
               && this.memory.currentCycle.leadsProcessed >= this.memory.currentCycle.targetLeads;
             const hardLimit = consecutiveEmptySearches >= 8;
             if (targetMet || hardLimit) {
-              this.logOperation('⚠️ Search Exhausted', `No new leads found after ${consecutiveEmptySearches} consecutive searches — ending cycle`, 'warning', {
+              this.logOperation('Search Exhausted', `No new leads found after ${consecutiveEmptySearches} consecutive searches — ending cycle`, 'warning', {
                 cycleNumber: this.cycleCount,
                 stepNumber: stepCount,
                 consecutiveEmptySearches,
@@ -9916,15 +9916,15 @@ Target Positions:`;
           actionResult?.leads?.length > 0
         ) {
           const concurrencyLevel = this.settings?.concurrencyLevel || 1;
-          console.log(`⚡ [CONCURRENCY] Agent ${this.agentId}: using concurrencyLevel=${concurrencyLevel} (raw setting: ${this.settings?.concurrencyLevel})`);
+          console.log(`[CONCURRENCY] Agent ${this.agentId}: using concurrencyLevel=${concurrencyLevel} (raw setting: ${this.settings?.concurrencyLevel})`);
           if (concurrencyLevel > 1) {
-            console.log(`⚡ [CONCURRENCY] Draining ${actionResult?.leads?.length ?? 0} leads with ${concurrencyLevel} parallel workers`);
+            console.log(`[CONCURRENCY] Draining ${actionResult?.leads?.length ?? 0} leads with ${concurrencyLevel} parallel workers`);
             await this.drainQueueConcurrently(concurrencyLevel);
             // drainQueueConcurrently sets phase='search' if more leads are needed,
             // or phase='complete'/cycleComplete=true if target is reached — let the
             // while loop continue and it will either search again or exit naturally.
           } else {
-            console.log(`⚡ [CONCURRENCY] Sequential mode (concurrencyLevel=1) — processing leads one by one`);
+            console.log(`[CONCURRENCY] Sequential mode (concurrencyLevel=1) — processing leads one by one`);
           }
         }
         // ──────────────────────────────────────────────────────────────────
@@ -9969,7 +9969,7 @@ Target Positions:`;
           }
         });
       } catch (sseError) {
-        console.error('❌ [REASONING AGENT] Failed to broadcast cycle completion:', sseError);
+        console.error('[REASONING AGENT] Failed to broadcast cycle completion:', sseError);
       }
 
       return {
@@ -9980,7 +9980,7 @@ Target Positions:`;
       };
 
     } catch (error) {
-      console.error('❌ [REASONING AGENT] Cycle error:', error);
+      console.error('[REASONING AGENT] Cycle error:', error);
       
       // Log failed cycle to DynamoDB
       const cycleEndTime = Date.now();
@@ -10049,7 +10049,7 @@ export function getUserAgent(userId, agentId = 'reasoning-lead-agent') {
           ...eventData
         });
       } catch (error) {
-        console.error('⚠️ [AGENT MANAGER] Failed to broadcast email_queued event:', error);
+        console.error('[AGENT MANAGER] Failed to broadcast email_queued event:', error);
       }
     });
     

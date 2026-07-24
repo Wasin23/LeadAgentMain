@@ -49,7 +49,7 @@ function emitMetricEvent(category, key, value, operation = 'set') {
         monitoringStore.updateMetric(category, key, value);
       }
     } catch (error) {
-      console.error('📊 [LANGCHAIN AGENT] Failed to emit metric:', error.message);
+      console.error('[LANGCHAIN AGENT] Failed to emit metric:', error.message);
     }
   }
 }
@@ -62,7 +62,7 @@ function logMonitoringIssue(severity, message, agentId, details = {}) {
     try {
       monitoringStore.addIssue(severity, message, agentId, details);
     } catch (error) {
-      console.error('📊 [LANGCHAIN AGENT] Failed to log issue:', error.message);
+      console.error('[LANGCHAIN AGENT] Failed to log issue:', error.message);
     }
   }
 }
@@ -1090,7 +1090,7 @@ export async function chatWithAgent(userInput, chatHistory = [], userId = null) 
   // 🥚 EASTER EGG: Developer Mode Detection
   if (userInput.trim().toLowerCase() === 'hadex-alpha initiate') {
     console.log('[EASTER EGG] Developer mode activated!');
-    return `🔧 **DEVELOPER MODE ACTIVATED** 🔧
+    return `**DEVELOPER MODE ACTIVATED** 🔧
 
 Hey there, programmer! Meridian here, switching to technical consultation mode.
 
@@ -1151,7 +1151,7 @@ Ready to collaborate on making me better! 🚀`;
       const pending = await queue.getQueue();  // Use getQueue() not getPendingEmails()
       
       if (!pending || pending.length === 0) {
-        return `📭 No pending emails in the queue for agent ${agentId}.`;
+        return `No pending emails in the queue for agent ${agentId}.`;
       }
       
       // Instead of formatting the response ourselves, let the AI analyze the queue data
@@ -1184,7 +1184,7 @@ Max 150 words.`;
       
     } catch (error) {
       console.error('[EMAIL QUEUE] Error fetching queue:', error);
-      return `❌ Error retrieving email queue for agent ${agentId}: ${error.message}`;
+      return `Error retrieving email queue for agent ${agentId}: ${error.message}`;
     }
   }
   
@@ -1275,11 +1275,11 @@ Max 150 words.`;
       });
       
       console.log('[chatWithAgent] Email tool result:', result);
-      return `✅ ${result}`;
+      return `${result}`;
       
     } catch (error) {
       console.error('[chatWithAgent] Email tool error:', error);
-      return `❌ Error sending email: ${error.message}`;
+      return `Error sending email: ${error.message}`;
     }
   }
   

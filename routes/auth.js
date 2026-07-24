@@ -838,7 +838,7 @@ router.post('/verify-reset-token', credentialLimiter, async (req, res) => {
     if (tokenValid.success) {
       res.json({ 
         success: true, 
-        message: '✅ Valid reset token!',
+        message: 'Valid reset token!',
         email: tokenValid.email 
       });
     } else {
@@ -1001,7 +1001,7 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
         type: 'hunter',
         name: 'The Hunter',
         description: 'Default personality',
-        avatar: '🎯',
+        avatar: '',
         emailPrompt: 'Write short, plain emails. Simple words. Short sentences. Nothing fancy.',
         emailStyle: 'Professional and direct',
         traits: ['Professional', 'Direct'],
@@ -1202,7 +1202,7 @@ router.post('/create-agent', authenticateToken, async (req, res) => {
       type: 'hunter',
       name: 'The Hunter',
       description: 'Default personality',
-      avatar: '🎯',
+      avatar: '',
       emailPrompt: 'Write short, plain emails. Simple words. Short sentences. Nothing fancy.',
       emailStyle: 'Professional and direct',
       traits: ['Professional', 'Direct'],
@@ -1403,7 +1403,7 @@ router.put('/agents/:agentId/settings', authenticateToken, async (req, res) => {
     
     if (wasEnabled && !isEnabled) {
       // Rebump was just disabled - cancel scheduled follow-ups
-      console.log(`🚫 [REBUMP] Auto-followup disabled for agent ${agentId}, canceling scheduled follow-ups`);
+      console.log(`[REBUMP] Auto-followup disabled for agent ${agentId}, canceling scheduled follow-ups`);
       const { cancelScheduledFollowUps } = await import('../utils/rebumpChecker.js');
       await cancelScheduledFollowUps(userId, agentId);
     }

@@ -31,7 +31,7 @@ function rateLimitCounts(req, res, next) {
   const validRequests = requests.filter(time => now - time < windowMs);
   
   if (validRequests.length >= maxRequests) {
-    console.log(`🚫 [RATE LIMIT] Blocked ${ip} (${userAgent}) - ${validRequests.length} requests in 1 minute (limit: ${maxRequests})`);
+    console.log(`[RATE LIMIT] Blocked ${ip} (${userAgent}) - ${validRequests.length} requests in 1 minute (limit: ${maxRequests})`);
     return res.status(429).json({ error: `Rate limit exceeded. Max ${maxRequests} requests per minute.` });
   }
   
@@ -601,7 +601,7 @@ router.post('/:id/approve', async (req, res) => {
     // sat in the queue. Never send to an unsubscribed address.
     const recipientUnsubscribed = await new AWSManager().isUnsubscribed(finalRecipient).catch(() => false);
     if (recipientUnsubscribed) {
-      console.log(`🚫 [EMAIL QUEUE] Blocking send — ${finalRecipient} has unsubscribed`);
+      console.log(`[EMAIL QUEUE] Blocking send — ${finalRecipient} has unsubscribed`);
       return res.status(409).json({
         success: false,
         error: `${finalRecipient} has unsubscribed and cannot be emailed.`,
@@ -609,15 +609,15 @@ router.post('/:id/approve', async (req, res) => {
       });
     }
 
-    console.log('🎯 [EMAIL QUEUE] About to send email via leadEmail() with tracking enabled');
-    console.log('🔑 [EMAIL QUEUE] userId:', userId);
-    console.log('🔑 [EMAIL QUEUE] effectiveAgentId:', effectiveAgentId);
+    console.log('[EMAIL QUEUE] About to send email via leadEmail() with tracking enabled');
+    console.log('[EMAIL QUEUE] userId:', userId);
+    console.log('[EMAIL QUEUE] effectiveAgentId:', effectiveAgentId);
     
     // Check for replyOptions (threading info for follow-up emails)
     const replyOptions = approvedEmail.replyOptions || null;
     if (replyOptions) {
-      console.log('🧵 [EMAIL QUEUE] This is a follow-up email - will send as reply to original thread');
-      console.log('🧵 [EMAIL QUEUE] Reply options:', replyOptions);
+      console.log('[EMAIL QUEUE] This is a follow-up email - will send as reply to original thread');
+      console.log('[EMAIL QUEUE] Reply options:', replyOptions);
     }
     
     // Inject MQL Chat button if enabled in agent settings
@@ -718,7 +718,7 @@ router.post('/:id/approve', async (req, res) => {
     
     if (sendResult.success) {
       console.log(`[EMAIL QUEUE] ✅ Sent approved email to ${finalRecipient}`);
-      console.log('📦 [EMAIL QUEUE] sendResult object:', JSON.stringify(sendResult, null, 2));
+      console.log('[EMAIL QUEUE] sendResult object:', JSON.stringify(sendResult, null, 2));
       
       // Create in-app notification for email approval/send
       try {
@@ -729,7 +729,7 @@ router.post('/:id/approve', async (req, res) => {
         await awsManager.addIssue(
           userId,
           'email',
-          `✅ Email sent to ${leadName}`,
+          `Email sent to ${leadName}`,
           `Your email to ${leadName} at ${companyName} has been sent successfully.`,
           {
             severity: 'low',
@@ -752,7 +752,7 @@ router.post('/:id/approve', async (req, res) => {
         const companyName = approvedEmail.leadDetails?.companyName || 'Unknown Company';
         await desktopNotifications.sendNotification(
           userId,
-          '✅ Email Sent Successfully',
+          'Email Sent Successfully',
           `Email to ${leadName} at ${companyName} has been sent`,
           'email_sent',
           { 
@@ -826,10 +826,10 @@ router.post('/:id/approve', async (req, res) => {
           // Auto-schedule follow-up if enabled for this agent
           try {
             console.log('═══════════════════════════════════════════════════════════');
-            console.log('📅 [FOLLOW-UP] Starting auto-schedule follow-up process');
-            console.log('📅 [FOLLOW-UP] userId:', userId);
-            console.log('📅 [FOLLOW-UP] effectiveAgentId:', effectiveAgentId);
-            console.log('📅 [FOLLOW-UP] emailId:', id);
+            console.log('[FOLLOW-UP] Starting auto-schedule follow-up process');
+            console.log('[FOLLOW-UP] userId:', userId);
+            console.log('[FOLLOW-UP] effectiveAgentId:', effectiveAgentId);
+            console.log('[FOLLOW-UP] emailId:', id);
             console.log('═══════════════════════════════════════════════════════════');
             
             // Build the email object directly from available data — avoids a DynamoDB
@@ -1077,7 +1077,7 @@ router.post('/bulk-edit', async (req, res) => {
       });
     }
     
-    console.log(`🔧 [EMAIL QUEUE] Bulk edit: "${findText}" → "${replaceText}" (regex: ${useRegex}, agent: ${agentId || 'all'})`);
+    console.log(`[EMAIL QUEUE] Bulk edit: "${findText}" → "${replaceText}" (regex: ${useRegex}, agent: ${agentId || 'all'})`);
     
     const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
     const awsQueue = getAWSEmailQueue();
@@ -1090,7 +1090,7 @@ router.post('/bulk-edit', async (req, res) => {
       emails = emails.filter(e => e.agentId === agentId);
     }
     
-    console.log(`🔧 [EMAIL QUEUE] Found ${emails.length} queued emails to process`);
+    console.log(`[EMAIL QUEUE] Found ${emails.length} queued emails to process`);
     
     let updatedCount = 0;
     const updates = [];
@@ -1155,7 +1155,7 @@ router.post('/bulk-edit', async (req, res) => {
           subjectChanged
         });
         
-        console.log(`✅ [EMAIL QUEUE] Updated email ${updatedCount}/${emails.length} (${email.to})`);
+        console.log(`[EMAIL QUEUE] Updated email ${updatedCount}/${emails.length} (${email.to})`);
         
         // Delay 500ms between updates to avoid AWS throttling
         if (i < emails.length - 1) {
@@ -1164,7 +1164,7 @@ router.post('/bulk-edit', async (req, res) => {
       }
     }
     
-    console.log(`✅ [EMAIL QUEUE] Bulk edit complete: ${updatedCount}/${emails.length} emails updated`);
+    console.log(`[EMAIL QUEUE] Bulk edit complete: ${updatedCount}/${emails.length} emails updated`);
     
     res.json({
       success: true,
@@ -1221,7 +1221,7 @@ router.post('/schedule-mass-followup', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Agent ID is required' });
     }
     
-    console.log(`🔧 [EMAIL QUEUE] Scheduling mass follow-up for agent ${agentId}`);
+    console.log(`[EMAIL QUEUE] Scheduling mass follow-up for agent ${agentId}`);
     
     let emailsToSchedule;
 
@@ -1238,7 +1238,7 @@ router.post('/schedule-mass-followup', async (req, res) => {
       );
     }
 
-    console.log(`🔧 [EMAIL QUEUE] Scheduling follow-ups for ${emailsToSchedule.length} emails`);
+    console.log(`[EMAIL QUEUE] Scheduling follow-ups for ${emailsToSchedule.length} emails`);
     
     let scheduledCount = 0;
     for (const email of emailsToSchedule) {
@@ -1250,7 +1250,7 @@ router.post('/schedule-mass-followup', async (req, res) => {
       }
     }
     
-    console.log(`✅ [EMAIL QUEUE] Mass follow-up complete: ${scheduledCount}/${emailsToSchedule.length} emails scheduled`);
+    console.log(`[EMAIL QUEUE] Mass follow-up complete: ${scheduledCount}/${emailsToSchedule.length} emails scheduled`);
     
     res.json({ success: true, scheduledCount, eligibleCount: emailsToSchedule.length });
   } catch (error) {
@@ -1273,7 +1273,7 @@ router.put('/:emailId/followup', async (req, res) => {
       });
     }
     
-    console.log(`🔧 [EMAIL QUEUE] Updating follow-up for email ${emailId}`);
+    console.log(`[EMAIL QUEUE] Updating follow-up for email ${emailId}`);
     
     const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
     const awsQueue = getAWSEmailQueue();
@@ -1303,7 +1303,7 @@ router.put('/:emailId/followup', async (req, res) => {
     // Update the email
     await awsQueue.updateEmailStatus(userId, agentId, emailId, 'SENT', 'SENT', updates);
     
-    console.log(`✅ [EMAIL QUEUE] Updated follow-up details for email ${emailId}`);
+    console.log(`[EMAIL QUEUE] Updated follow-up details for email ${emailId}`);
     
     res.json({
       success: true,
@@ -1334,7 +1334,7 @@ router.post('/:emailId/followup/schedule', authenticateToken, async (req, res) =
     const result = await autoScheduleFollowUp(userId, agentId, emailForFollowUp);
 
     if (result.success) {
-      console.log(`✅ [EMAIL QUEUE] Scheduled follow-up for ${emailId}: ${result.followUpDate}`);
+      console.log(`[EMAIL QUEUE] Scheduled follow-up for ${emailId}: ${result.followUpDate}`);
       res.json({ success: true, followUpDate: result.followUpDate });
     } else {
       res.status(400).json({ success: false, reason: result.reason, error: result.error });
@@ -1359,7 +1359,7 @@ router.post('/:emailId/followup/retry', authenticateToken, async (req, res) => {
     const { fireSingleFollowUp } = await import('../utils/rebumpChecker.js');
     const result = await fireSingleFollowUp(userId, agentId, emailId);
 
-    console.log(`✅ [EMAIL QUEUE] Fired immediate follow-up for ${emailId} → ${result.to}`);
+    console.log(`[EMAIL QUEUE] Fired immediate follow-up for ${emailId} → ${result.to}`);
     res.json({ success: true, to: result.to });
   } catch (error) {
     console.error('[EMAIL QUEUE API] Error retrying follow-up:', error);
@@ -1422,7 +1422,7 @@ router.delete('/:emailId/followup', authenticateToken, async (req, res) => {
       rebumpCount: maxRebumps, // mark as fully done so cron never reschedules
     });
 
-    console.log(`✅ [EMAIL QUEUE] Canceled follow-up for email ${emailId}`);
+    console.log(`[EMAIL QUEUE] Canceled follow-up for email ${emailId}`);
     res.json({ success: true });
   } catch (error) {
     console.error('[EMAIL QUEUE API] Error canceling follow-up:', error);

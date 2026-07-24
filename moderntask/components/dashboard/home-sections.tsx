@@ -17,6 +17,7 @@ import {
   type EmailTimePoint,
 } from "@/components/dashboard/home-charts"
 import { TeamCollaboration, type AgentActivityItem } from "@/components/dashboard/team-collaboration"
+import { CompanyProfileCard } from "@/components/dashboard/company-profile-card"
 import { ScheduledActivityCalendar, type ScheduledBatch, type FollowUpItem } from "@/components/dashboard/scheduled-activity-calendar"
 import { ActivityFeed, type NotificationItem } from "@/components/dashboard/activity-feed"
 import { AnalyticsContent, type ExportState } from "@/components/analytics/analytics-content"
@@ -219,7 +220,10 @@ export function HomeSections({
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={visible} strategy={rectSortingStrategy}>
           <div className="grid grid-cols-1 gap-4 md:gap-5 @5xl:grid-cols-2 items-start">
-            <TeamCollaboration agents={agentActivity} />
+            <div className="min-w-0">
+              <TeamCollaboration agents={agentActivity} />
+              <CompanyProfileCard />
+            </div>
             {visible.map(id => (
               <SortableSection
                 key={id}

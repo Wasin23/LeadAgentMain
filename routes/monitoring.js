@@ -227,7 +227,7 @@ class MetricStore {
       try {
         client.res.write(sseData);
       } catch (error) {
-        console.error(`📡 [MONITORING] Failed to send to client ${client.id}:`, error.message);
+        console.error(`[MONITORING] Failed to send to client ${client.id}:`, error.message);
         this.removeClient(client.id);
       }
     });
@@ -235,7 +235,7 @@ class MetricStore {
   
   // Broadcast sent email
   broadcastSentEmail(emailData) {
-    console.log(`📧 [MONITORING] Broadcasting sent email:`, {
+    console.log(`[MONITORING] Broadcasting sent email:`, {
       to: emailData.to,
       company: emailData.company,
       agentId: emailData.agentId
@@ -298,7 +298,7 @@ router.get('/overview', authenticateToken, async (req, res) => {
           replied: awsStats.replied || 0,
         };
       } catch (awsError) {
-        console.error('⚠️ [MONITORING] Error fetching AWS email stats:', awsError);
+        console.error('[MONITORING] Error fetching AWS email stats:', awsError);
       }
     }
 
@@ -311,7 +311,7 @@ router.get('/overview', authenticateToken, async (req, res) => {
         const userData = await awsManagerInstance.getUserById(req.user.userId);
         activeAgents = userData?.activeAgents?.length || 0;
       } catch (agentError) {
-        console.error('⚠️ [MONITORING] Error fetching user agents:', agentError);
+        console.error('[MONITORING] Error fetching user agents:', agentError);
         // Fallback to metricStore if AWS fails
         activeAgents = Object.keys(metrics.agents || {}).length;
       }
@@ -357,7 +357,7 @@ router.get('/overview', authenticateToken, async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('❌ [MONITORING] Error getting overview:', error);
+    console.error('[MONITORING] Error getting overview:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -390,7 +390,7 @@ router.get('/metrics', async (req, res) => {
         };
         
       } catch (awsError) {
-        console.error('⚠️ [MONITORING] Error fetching AWS email stats:', awsError);
+        console.error('[MONITORING] Error fetching AWS email stats:', awsError);
         // Continue with in-memory metrics if AWS fails
       }
     }
@@ -401,7 +401,7 @@ router.get('/metrics', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('❌ [MONITORING] Error getting metrics:', error);
+    console.error('[MONITORING] Error getting metrics:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -428,7 +428,7 @@ router.get('/issues', (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('❌ [MONITORING] Error getting issues:', error);
+    console.error('[MONITORING] Error getting issues:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -488,8 +488,8 @@ router.get('/activity', authenticateToken, async (req, res) => {
           type: billingFailed ? 'error' : 'success',
           category: 'billing',
           title: billingFailed 
-            ? `💳 Payment Failed - $${cycle.metadata?.amount || 0}` 
-            : `💳 Payment Successful - $${cycle.metadata?.amount || 0}`,
+            ? `Payment Failed - $${cycle.metadata?.amount || 0}` 
+            : `Payment Successful - $${cycle.metadata?.amount || 0}`,
           message: cycle.metadata?.error || `${cycle.metadata?.action || 'Payment'} processed successfully`,
           timestamp: cycle.completedAt || cycle.timestamp || new Date().toISOString(),
           metadata: {
@@ -525,7 +525,7 @@ router.get('/activity', authenticateToken, async (req, res) => {
 
     res.json({ success: true, activities: merged, count: merged.length, timestamp: new Date().toISOString() });
   } catch (error) {
-    console.error('❌ [MONITORING] Error getting activity:', error);
+    console.error('[MONITORING] Error getting activity:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -567,7 +567,7 @@ router.get('/stream', authenticateToken, async (req, res) => {
       };
       
     } catch (awsError) {
-      console.error('⚠️ [MONITORING SSE] Error fetching AWS email stats:', awsError);
+      console.error('[MONITORING SSE] Error fetching AWS email stats:', awsError);
     }
   }
   
@@ -615,7 +615,7 @@ router.post('/issue/:id/resolve', (req, res) => {
       });
     }
   } catch (error) {
-    console.error('❌ [MONITORING] Error resolving issue:', error);
+    console.error('[MONITORING] Error resolving issue:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -643,7 +643,7 @@ router.get('/agents/:agentId/metrics', (req, res) => {
       });
     }
   } catch (error) {
-    console.error('❌ [MONITORING] Error getting agent metrics:', error);
+    console.error('[MONITORING] Error getting agent metrics:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -677,7 +677,7 @@ router.post('/metric', (req, res) => {
       value
     });
   } catch (error) {
-    console.error('❌ [MONITORING] Error updating metric:', error);
+    console.error('[MONITORING] Error updating metric:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -702,7 +702,7 @@ router.post('/activity/:issueId/mark-read', authenticateToken, async (req, res) 
       res.status(400).json({ success: false, error: result.error });
     }
   } catch (error) {
-    console.error('❌ [MONITORING] Error marking activity as read:', error);
+    console.error('[MONITORING] Error marking activity as read:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -740,7 +740,7 @@ router.delete('/activity/clear-all', authenticateToken, async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('❌ [MONITORING] Error clearing all activities:', error);
+    console.error('[MONITORING] Error clearing all activities:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -811,7 +811,7 @@ router.get('/ai-summary', authenticateToken, async (req, res) => {
     
     res.json({ success: true, summary });
   } catch (error) {
-    console.error('❌ [MONITORING] Error generating activity summary:', error);
+    console.error('[MONITORING] Error generating activity summary:', error);
     res.status(500).json({ 
       success: false, 
       summary: 'Unable to fetch agent activity',

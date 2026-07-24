@@ -215,14 +215,14 @@ class AWSManager {
       // Settings retrieved successfully (log removed for cleaner output)
       return result.Item;
     } catch (error) {
-      console.error('❌ [AWS] Error getting user settings:', error);
+      console.error('[AWS] Error getting user settings:', error);
       throw error;
     }
   }
   
   async saveUserSettings(userId, settings) {
     try {
-      console.log('💾 [AWS] Saving user settings for userId:', userId);
+      console.log('[AWS] Saving user settings for userId:', userId);
       
       const command = new PutCommand({
         TableName: this.tables.userSettings,
@@ -235,10 +235,10 @@ class AWSManager {
       });
       
       await this.dynamodb.send(command);
-      console.log('✅ [AWS] User settings saved successfully');
+      console.log('[AWS] User settings saved successfully');
       return true;
     } catch (error) {
-      console.error('❌ [AWS] Error saving user settings:', error);
+      console.error('[AWS] Error saving user settings:', error);
       throw error;
     }
   }
@@ -259,7 +259,7 @@ class AWSManager {
       const settings = await this.getUserSettings(userId);
       return Array.isArray(settings?.qualificationScoreHistory) ? settings.qualificationScoreHistory : [];
     } catch (error) {
-      console.error('❌ [AWS] Error getting qualification score history:', error);
+      console.error('[AWS] Error getting qualification score history:', error);
       return [];
     }
   }
@@ -272,7 +272,7 @@ class AWSManager {
       if (history.length > 300) history.splice(0, history.length - 300);
       await this.saveUserSettings(userId, { ...settings, qualificationScoreHistory: history });
     } catch (error) {
-      console.error('❌ [AWS] Error appending qualification score:', error);
+      console.error('[AWS] Error appending qualification score:', error);
     }
   }
 
@@ -297,7 +297,7 @@ class AWSManager {
       const rubric = settings?.qualificationRubrics?.[combo];
       return rubric || null;
     } catch (error) {
-      console.error('❌ [AWS] Error getting qualification rubric:', error);
+      console.error('[AWS] Error getting qualification rubric:', error);
       return null;
     }
   }
@@ -351,7 +351,7 @@ class AWSManager {
       }
       return { success: true, version: nextVersion };
     } catch (error) {
-      console.error('❌ [AWS] Error saving qualification rubric:', error);
+      console.error('[AWS] Error saving qualification rubric:', error);
       return { success: false, error: error.message };
     }
   }
@@ -362,7 +362,7 @@ class AWSManager {
       const rubrics = settings?.qualificationRubrics || {};
       return { success: true, rubrics: Object.values(rubrics) };
     } catch (error) {
-      console.error('❌ [AWS] Error listing qualification rubrics:', error);
+      console.error('[AWS] Error listing qualification rubrics:', error);
       return { success: false, error: error.message, rubrics: [] };
     }
   }
@@ -387,7 +387,7 @@ class AWSManager {
       if (error.name === 'ValidationException') {
         return { success: true };
       }
-      console.error('❌ [AWS] Error deleting qualification rubric:', error);
+      console.error('[AWS] Error deleting qualification rubric:', error);
       return { success: false, error: error.message };
     }
   }
@@ -551,14 +551,14 @@ class AWSManager {
       
       return user;
     } catch (error) {
-      console.error('❌ [AWS] Error getting user by ID:', error);
+      console.error('[AWS] Error getting user by ID:', error);
       throw error;
     }
   }
   
   async getUserByUsername(username) {
     try {
-      console.log('👤 [AWS] Getting user by username:', username);
+      console.log('[AWS] Getting user by username:', username);
       
       const command = new ScanCommand({
         TableName: this.tables.users,
@@ -571,21 +571,21 @@ class AWSManager {
       const result = await this.dynamodb.send(command);
       
       if (!result.Items || result.Items.length === 0) {
-        console.log('❌ [AWS] No user found with username:', username);
+        console.log('[AWS] No user found with username:', username);
         return null;
       }
       
-      console.log('✅ [AWS] User retrieved by username successfully');
+      console.log('[AWS] User retrieved by username successfully');
       return result.Items[0];
     } catch (error) {
-      console.error('❌ [AWS] Error getting user by username:', error);
+      console.error('[AWS] Error getting user by username:', error);
       throw error;
     }
   }
   
   async getUserByEmail(email) {
     try {
-      console.log('👤 [AWS] Getting user by email:', email);
+      console.log('[AWS] Getting user by email:', email);
       
       // Make email search case-insensitive by searching both formats
       const command = new ScanCommand({
@@ -601,14 +601,14 @@ class AWSManager {
       const result = await this.dynamodb.send(command);
       
       if (!result.Items || result.Items.length === 0) {
-        console.log('❌ [AWS] No user found with email:', email);
+        console.log('[AWS] No user found with email:', email);
         return null;
       }
       
-      console.log('✅ [AWS] User retrieved by email successfully');
+      console.log('[AWS] User retrieved by email successfully');
       return result.Items[0];
     } catch (error) {
-      console.error('❌ [AWS] Error getting user by email:', error);
+      console.error('[AWS] Error getting user by email:', error);
       throw error;
     }
   }
@@ -644,14 +644,14 @@ class AWSManager {
       const result = await this.dynamodb.send(command);
       return result.Items?.[0] || null;
     } catch (error) {
-      console.error('❌ [AWS] Error finding trial fingerprint match:', error);
+      console.error('[AWS] Error finding trial fingerprint match:', error);
       throw error;
     }
   }
   
   async getAllUsers() {
     try {
-      console.log('📋 [AWS] Getting all users from database');
+      console.log('[AWS] Getting all users from database');
       const params = {
         TableName: this.tables.users
       };
@@ -660,14 +660,14 @@ class AWSManager {
       // Retrieved users - silent
       return result.Items || [];
     } catch (error) {
-      console.error('❌ [AWS] Error getting all users:', error);
+      console.error('[AWS] Error getting all users:', error);
       throw error;
     }
   }
 
   async getAllUsersWithGmail() {
     try {
-      console.log('📋 [AWS] Getting all users with Gmail configured');
+      console.log('[AWS] Getting all users with Gmail configured');
       
       // Scan user settings table for users with Gmail auth
       const params = {
@@ -678,10 +678,10 @@ class AWSManager {
       const result = await this.dynamodb.send(new ScanCommand(params));
       const users = result.Items || [];
       
-      console.log(`✅ [AWS] Found ${users.length} user(s) with Gmail configured`);
+      console.log(`[AWS] Found ${users.length} user(s) with Gmail configured`);
       return users;
     } catch (error) {
-      console.error('❌ [AWS] Error getting users with Gmail:', error);
+      console.error('[AWS] Error getting users with Gmail:', error);
       throw error;
     }
   }
@@ -695,7 +695,7 @@ class AWSManager {
       const settings = await this.getUserSettings(userId);
       return settings?.gmailWatch?.historyId || null;
     } catch (error) {
-      console.error('❌ [AWS] Error getting Gmail history ID:', error);
+      console.error('[AWS] Error getting Gmail history ID:', error);
       return null;
     }
   }
@@ -713,7 +713,7 @@ class AWSManager {
       });
       return true;
     } catch (error) {
-      console.error('❌ [AWS] Error saving Gmail history ID:', error);
+      console.error('[AWS] Error saving Gmail history ID:', error);
       throw error;
     }
   }
@@ -723,7 +723,7 @@ class AWSManager {
       const tracking = await this.getEmailTracking(userId, agentId, trackingId);
       return tracking?.replyCount || 0;
     } catch (error) {
-      console.error('❌ [AWS] Error getting reply count:', error);
+      console.error('[AWS] Error getting reply count:', error);
       return 0;
     }
   }
@@ -744,7 +744,7 @@ class AWSManager {
       await this.dynamodb.send(command);
       return true;
     } catch (error) {
-      console.error('❌ [AWS] Error incrementing reply count:', error);
+      console.error('[AWS] Error incrementing reply count:', error);
       return false;
     }
   }
@@ -762,17 +762,17 @@ class AWSManager {
         }
       });
       await this.dynamodb.send(command);
-      console.log(`✅ [AWS] Marked ${email} as unsubscribed`);
+      console.log(`[AWS] Marked ${email} as unsubscribed`);
       return true;
     } catch (error) {
-      console.error('❌ [AWS] Error marking as unsubscribed:', error);
+      console.error('[AWS] Error marking as unsubscribed:', error);
       throw error;
     }
   }
   
   async createUser(userData) {
     try {
-      console.log('👤 [AWS] Creating new user:', userData.username);
+      console.log('[AWS] Creating new user:', userData.username);
       
       const command = new PutCommand({
         TableName: this.tables.users,
@@ -791,13 +791,13 @@ class AWSManager {
       });
       
       await this.dynamodb.send(command);
-      console.log('✅ [AWS] User created successfully');
+      console.log('[AWS] User created successfully');
       return true;
     } catch (error) {
       if (error.name === 'ConditionalCheckFailedException') {
         throw new Error('User already exists');
       }
-      console.error('❌ [AWS] Error creating user:', error);
+      console.error('[AWS] Error creating user:', error);
       throw error;
     }
   }
@@ -836,14 +836,14 @@ class AWSManager {
       
       return result.Attributes;
     } catch (error) {
-      console.error('❌ [AWS] Error updating user:', error);
+      console.error('[AWS] Error updating user:', error);
       throw error;
     }
   }
   
   async addAgentToUser(userId, agentData) {
     try {
-      console.log('🤖 [AWS] Adding agent to user:', userId, agentData.agentId);
+      console.log('[AWS] Adding agent to user:', userId, agentData.agentId);
 
       const user = await this.getUserById(userId);
       const activeAgents = user?.activeAgents || [];
@@ -865,17 +865,17 @@ class AWSManager {
       });
       
       await this.dynamodb.send(command);
-      console.log('✅ [AWS] Agent added to user successfully');
+      console.log('[AWS] Agent added to user successfully');
       return true;
     } catch (error) {
-      console.error('❌ [AWS] Error adding agent to user:', error);
+      console.error('[AWS] Error adding agent to user:', error);
       throw error;
     }
   }
   
   async getUserByResetToken(resetToken) {
     try {
-      console.log('👤 [AWS] Getting user by reset token:', resetToken);
+      console.log('[AWS] Getting user by reset token:', resetToken);
       let lastEvaluatedKey = undefined;
       do {
         const command = new ScanCommand({
@@ -887,22 +887,22 @@ class AWSManager {
         });
         const result = await this.dynamodb.send(command);
         if (result.Items && result.Items.length > 0) {
-          console.log('✅ [AWS] User retrieved by reset token successfully');
+          console.log('[AWS] User retrieved by reset token successfully');
           return result.Items[0];
         }
         lastEvaluatedKey = result.LastEvaluatedKey;
       } while (lastEvaluatedKey);
-      console.log('❌ [AWS] No user found with reset token');
+      console.log('[AWS] No user found with reset token');
       return null;
     } catch (error) {
-      console.error('❌ [AWS] Error getting user by reset token:', error);
+      console.error('[AWS] Error getting user by reset token:', error);
       throw error;
     }
   }
   
   async removeAgentFromUser(userId, agentId) {
     try {
-      console.log('🤖 [AWS] Removing agent from user:', userId, agentId);
+      console.log('[AWS] Removing agent from user:', userId, agentId);
       
       // First get the user to find the agent index
       const user = await this.getUserById(userId);
@@ -925,10 +925,10 @@ class AWSManager {
       });
       
       await this.dynamodb.send(command);
-      console.log('✅ [AWS] Agent removed from user successfully');
+      console.log('[AWS] Agent removed from user successfully');
       return true;
     } catch (error) {
-      console.error('❌ [AWS] Error removing agent from user:', error);
+      console.error('[AWS] Error removing agent from user:', error);
       throw error;
     }
   }
@@ -944,7 +944,7 @@ class AWSManager {
   
   async createDefaultAgent(userId, agentName = 'Lead Agent') {
     try {
-      console.log('🤖 [AWS] Creating default agent for user:', userId);
+      console.log('[AWS] Creating default agent for user:', userId);
       
       const agentId = this.generateAgentId();
       
@@ -981,18 +981,18 @@ class AWSManager {
       
       await this.addAgentToUser(userId, agentData);
       
-      console.log(`✅ [AWS] Default agent created: ${agentId} for user ${userId}`);
+      console.log(`[AWS] Default agent created: ${agentId} for user ${userId}`);
       return agentData;
       
     } catch (error) {
-      console.error('❌ [AWS] Error creating default agent:', error);
+      console.error('[AWS] Error creating default agent:', error);
       throw error;
     }
   }
   
   async createAgent(userId, agentName, agentType = 'reasoning-lead-agent') {
     try {
-      console.log('🤖 [AWS] Creating new agent for user:', userId);
+      console.log('[AWS] Creating new agent for user:', userId);
       
       const agentId = this.generateAgentId();
       
@@ -1029,11 +1029,11 @@ class AWSManager {
       
       await this.addAgentToUser(userId, agentData);
       
-      console.log(`✅ [AWS] Agent created: ${agentId} (${agentName}) for user ${userId}`);
+      console.log(`[AWS] Agent created: ${agentId} (${agentName}) for user ${userId}`);
       return agentData;
       
     } catch (error) {
-      console.error('❌ [AWS] Error creating agent:', error);
+      console.error('[AWS] Error creating agent:', error);
       throw error;
     }
   }
@@ -1046,14 +1046,14 @@ class AWSManager {
       }
       return user.activeAgents;
     } catch (error) {
-      console.error('❌ [AWS] Error getting user agents:', error);
+      console.error('[AWS] Error getting user agents:', error);
       throw error;
     }
   }
   
   async updateAgentStatus(userId, agentId, status) {
     try {
-      console.log('🤖 [AWS] Updating agent status:', userId, agentId, status);
+      console.log('[AWS] Updating agent status:', userId, agentId, status);
       
       const user = await this.getUserById(userId);
       if (!user || !user.activeAgents) {
@@ -1074,10 +1074,10 @@ class AWSManager {
         activeAgents: user.activeAgents
       });
       
-      console.log('✅ [AWS] Agent status updated successfully');
+      console.log('[AWS] Agent status updated successfully');
       return true;
     } catch (error) {
-      console.error('❌ [AWS] Error updating agent status:', error);
+      console.error('[AWS] Error updating agent status:', error);
       throw error;
     }
   }
@@ -1105,22 +1105,22 @@ class AWSManager {
       
       if (!result.Item) {
         // Only log when no settings found (reduced verbosity)
-        console.log('❌ [AWS] No lead agent settings found for userId:', userId, 'agentId:', agentId);
+        console.log('[AWS] No lead agent settings found for userId:', userId, 'agentId:', agentId);
         return null;
       }
       
       // Settings retrieved successfully (log removed for cleaner output)
       return result.Item.settings;
     } catch (error) {
-      console.error('❌ [AWS] Error getting lead agent settings:', error);
+      console.error('[AWS] Error getting lead agent settings:', error);
       throw error;
     }
   }
   
   async saveLeadAgentSettings(userId, agentId, settings) {
     try {
-      console.log('💾 [AWS] Saving lead agent settings for userId:', userId, 'agentId:', agentId);
-      console.log('💾 [AWS] EmailBuilder being saved:', JSON.stringify(settings.emailBuilder, null, 2));
+      console.log('[AWS] Saving lead agent settings for userId:', userId, 'agentId:', agentId);
+      console.log('[AWS] EmailBuilder being saved:', JSON.stringify(settings.emailBuilder, null, 2));
       
       // Ensure agentId is included in the settings and convert to string for consistency
       const agentIdToUse = String(agentId || settings.agentId || 'lead-agent');
@@ -1148,17 +1148,17 @@ class AWSManager {
       });
       
       await this.dynamodb.send(command);
-      console.log('✅ [AWS] Lead agent settings saved successfully');
+      console.log('[AWS] Lead agent settings saved successfully');
       return true;
     } catch (error) {
-      console.error('❌ [AWS] Error saving lead agent settings:', error);
+      console.error('[AWS] Error saving lead agent settings:', error);
       throw error;
     }
   }
   
   async deleteAgentSettings(userId, agentId) {
     try {
-      console.log('🗑️ [AWS] Deleting agent settings for userId:', userId, 'agentId:', agentId);
+      console.log('[AWS] Deleting agent settings for userId:', userId, 'agentId:', agentId);
       
       const command = new DeleteCommand({
         TableName: this.tables.agentSettings,
@@ -1169,10 +1169,10 @@ class AWSManager {
       });
       
       await this.dynamodb.send(command);
-      console.log('✅ [AWS] Agent settings deleted successfully');
+      console.log('[AWS] Agent settings deleted successfully');
       return true;
     } catch (error) {
-      console.error('❌ [AWS] Error deleting agent settings:', error);
+      console.error('[AWS] Error deleting agent settings:', error);
       throw error;
     }
   }
@@ -1192,7 +1192,7 @@ class AWSManager {
   
   async saveLeadData(userId, leadData) {
     try {
-      console.log('💾 [AWS] Saving lead data for userId:', userId);
+      console.log('[AWS] Saving lead data for userId:', userId);
       
       const command = new PutCommand({
         TableName: this.tables.leadData,
@@ -1205,17 +1205,17 @@ class AWSManager {
       });
       
       await this.dynamodb.send(command);
-      console.log('✅ [AWS] Lead data saved successfully');
+      console.log('[AWS] Lead data saved successfully');
       return true;
     } catch (error) {
-      console.error('❌ [AWS] Error saving lead data:', error);
+      console.error('[AWS] Error saving lead data:', error);
       throw error;
     }
   }
   
   async getLeadHistory(userId, limit = 50) {
     try {
-      console.log('📊 [AWS] Getting lead history for userId:', userId);
+      console.log('[AWS] Getting lead history for userId:', userId);
       
       const command = new QueryCommand({
         TableName: this.tables.leadData,
@@ -1229,10 +1229,10 @@ class AWSManager {
       
       const result = await this.dynamodb.send(command);
       
-      console.log(`✅ [AWS] Retrieved ${result.Items?.length || 0} lead records`);
+      console.log(`[AWS] Retrieved ${result.Items?.length || 0} lead records`);
       return result.Items || [];
     } catch (error) {
-      console.error('❌ [AWS] Error getting lead history:', error);
+      console.error('[AWS] Error getting lead history:', error);
       throw error;
     }
   }
@@ -1243,7 +1243,7 @@ class AWSManager {
   
   async trackEmailSent(userId, emailData) {
     try {
-      console.log('📧 [AWS] Tracking email sent for userId:', userId);
+      console.log('[AWS] Tracking email sent for userId:', userId);
       
       const command = new PutCommand({
         TableName: this.tables.emailTracking,
@@ -1257,17 +1257,17 @@ class AWSManager {
       });
       
       await this.dynamodb.send(command);
-      console.log('✅ [AWS] Email tracking saved successfully');
+      console.log('[AWS] Email tracking saved successfully');
       return true;
     } catch (error) {
-      console.error('❌ [AWS] Error tracking email:', error);
+      console.error('[AWS] Error tracking email:', error);
       throw error;
     }
   }
   
   async updateEmailStatus(userId, emailId, status, metadata = {}) {
     try {
-      console.log('📧 [AWS] Updating email status for emailId:', emailId, 'status:', status);
+      console.log('[AWS] Updating email status for emailId:', emailId, 'status:', status);
       
       const command = new UpdateCommand({
         TableName: this.tables.emailTracking,
@@ -1286,10 +1286,10 @@ class AWSManager {
       });
       
       await this.dynamodb.send(command);
-      console.log('✅ [AWS] Email status updated successfully');
+      console.log('[AWS] Email status updated successfully');
       return true;
     } catch (error) {
-      console.error('❌ [AWS] Error updating email status:', error);
+      console.error('[AWS] Error updating email status:', error);
       throw error;
     }
   }
@@ -1300,7 +1300,7 @@ class AWSManager {
   
   async saveAgentState(userId, agentId, state) {
     try {
-      console.log('🤖 [AWS] Saving agent state for userId:', userId, 'agentId:', agentId);
+      console.log('[AWS] Saving agent state for userId:', userId, 'agentId:', agentId);
       
       const command = new PutCommand({
         TableName: this.tables.agentState,
@@ -1313,17 +1313,17 @@ class AWSManager {
       });
       
       await this.dynamodb.send(command);
-      console.log('✅ [AWS] Agent state saved successfully');
+      console.log('[AWS] Agent state saved successfully');
       return true;
     } catch (error) {
-      console.error('❌ [AWS] Error saving agent state:', error);
+      console.error('[AWS] Error saving agent state:', error);
       throw error;
     }
   }
   
   async getAgentState(userId, agentId) {
     try {
-      console.log('🤖 [AWS] Getting agent state for userId:', userId, 'agentId:', agentId);
+      console.log('[AWS] Getting agent state for userId:', userId, 'agentId:', agentId);
       
       const command = new GetCommand({
         TableName: this.tables.agentState,
@@ -1333,21 +1333,21 @@ class AWSManager {
       const result = await this.dynamodb.send(command);
       
       if (!result.Item) {
-        console.log('❌ [AWS] No agent state found');
+        console.log('[AWS] No agent state found');
         return null;
       }
       
-      console.log('✅ [AWS] Agent state retrieved successfully');
+      console.log('[AWS] Agent state retrieved successfully');
       return result.Item;
     } catch (error) {
-      console.error('❌ [AWS] Error getting agent state:', error);
+      console.error('[AWS] Error getting agent state:', error);
       throw error;
     }
   }
 
   async getAllAgentStates(userId) {
     try {
-      console.log('🤖 [AWS] Getting all agent states for userId:', userId);
+      console.log('[AWS] Getting all agent states for userId:', userId);
       
       // Use Scan with filter instead of Query since table structure may not support querying by userId alone
       const result = await this.dynamodb.send(new ScanCommand({
@@ -1358,10 +1358,10 @@ class AWSManager {
         }
       }));
       
-      console.log(`✅ [AWS] Retrieved ${result.Items?.length || 0} agent states`);
+      console.log(`[AWS] Retrieved ${result.Items?.length || 0} agent states`);
       return { success: true, states: result.Items || [] };
     } catch (error) {
-      console.error('❌ [AWS] Error getting all agent states:', error);
+      console.error('[AWS] Error getting all agent states:', error);
       return { success: false, error: error.message, states: [] };
     }
   }
@@ -1375,7 +1375,7 @@ class AWSManager {
       const timestamp = cycleData.timestamp || new Date().toISOString();
       const cycleId = `${timestamp}#cycle${cycleData.cycleNumber}`;
       
-      console.log('📊 [AWS] Saving cycle log for userId:', userId, 'agentId:', agentId, 'cycle:', cycleData.cycleNumber);
+      console.log('[AWS] Saving cycle log for userId:', userId, 'agentId:', agentId, 'cycle:', cycleData.cycleNumber);
       
       const command = new PutCommand({
         TableName: this.tables.cycleLogs,
@@ -1394,17 +1394,17 @@ class AWSManager {
       });
       
       await this.dynamodb.send(command);
-      console.log('✅ [AWS] Cycle log saved successfully');
+      console.log('[AWS] Cycle log saved successfully');
       return true;
     } catch (error) {
-      console.error('❌ [AWS] Error saving cycle log:', error);
+      console.error('[AWS] Error saving cycle log:', error);
       throw error;
     }
   }
   
   async getCycleLogs(userId, agentId = null, limit = 100) {
     try {
-      console.log('📊 [AWS] Getting cycle logs for userId:', userId, agentId ? `agentId: ${agentId}` : '(all agents)');
+      console.log('[AWS] Getting cycle logs for userId:', userId, agentId ? `agentId: ${agentId}` : '(all agents)');
       
       const params = {
         TableName: this.tables.cycleLogs,
@@ -1425,10 +1425,10 @@ class AWSManager {
       const command = new QueryCommand(params);
       const result = await this.dynamodb.send(command);
       
-      console.log(`✅ [AWS] Retrieved ${result.Items?.length || 0} cycle logs`);
+      console.log(`[AWS] Retrieved ${result.Items?.length || 0} cycle logs`);
       return result.Items || [];
     } catch (error) {
-      console.error('❌ [AWS] Error getting cycle logs:', error);
+      console.error('[AWS] Error getting cycle logs:', error);
       throw error;
     }
   }
@@ -1439,7 +1439,7 @@ class AWSManager {
   
   async sendEmail({ to, from, subject, htmlBody, textBody, userId = null }) {
     try {
-      console.log('📧 [AWS SES] Sending email to:', to);
+      console.log('[AWS SES] Sending email to:', to);
       
       // If userId provided, try to fetch their custom domain settings
       let fromAddress = from;
@@ -1451,10 +1451,10 @@ class AWSManager {
               userSettings?.emailSettings?.fromEmail) {
             // Use custom domain if verified
             fromAddress = userSettings.emailSettings.fromEmail;
-            console.log(`📧 [AWS SES] Using custom domain email: ${fromAddress}`);
+            console.log(`[AWS SES] Using custom domain email: ${fromAddress}`);
           }
         } catch (err) {
-          console.log('⚠️ [AWS SES] Could not fetch custom domain, using default:', err.message);
+          console.log('[AWS SES] Could not fetch custom domain, using default:', err.message);
         }
       }
       
@@ -1483,13 +1483,13 @@ class AWSManager {
       
       const result = await this.ses.send(command);
       
-      console.log('✅ [AWS SES] Email sent successfully. MessageId:', result.MessageId);
+      console.log('[AWS SES] Email sent successfully. MessageId:', result.MessageId);
       return {
         success: true,
         messageId: result.MessageId
       };
     } catch (error) {
-      console.error('❌ [AWS SES] Error sending email:', error);
+      console.error('[AWS SES] Error sending email:', error);
       throw error;
     }
   }
@@ -1497,7 +1497,7 @@ class AWSManager {
   // Verify domain with AWS SES
   async verifyDomainWithSES(domain) {
     try {
-      console.log(`🔐 [AWS SES] Verifying domain: ${domain}`);
+      console.log(`[AWS SES] Verifying domain: ${domain}`);
       
       const command = new VerifyDomainIdentityCommand({
         Domain: domain
@@ -1505,7 +1505,7 @@ class AWSManager {
       
       const result = await this.ses.send(command);
       
-      console.log('✅ [AWS SES] Domain verification initiated. Verification token:', result.VerificationToken);
+      console.log('[AWS SES] Domain verification initiated. Verification token:', result.VerificationToken);
       
       return {
         success: true,
@@ -1518,7 +1518,7 @@ class AWSManager {
         }
       };
     } catch (error) {
-      console.error('❌ [AWS SES] Error verifying domain:', error);
+      console.error('[AWS SES] Error verifying domain:', error);
       throw error;
     }
   }
@@ -1526,7 +1526,7 @@ class AWSManager {
   // Check domain verification status
   async checkDomainVerificationStatus(domain) {
     try {
-      console.log(`🔍 [AWS SES] Checking verification status for: ${domain}`);
+      console.log(`[AWS SES] Checking verification status for: ${domain}`);
       
       const command = new GetIdentityVerificationAttributesCommand({
         Identities: [domain]
@@ -1554,7 +1554,7 @@ class AWSManager {
           : 'Verification failed - please check your DNS records'
       };
     } catch (error) {
-      console.error('❌ [AWS SES] Error checking domain status:', error);
+      console.error('[AWS SES] Error checking domain status:', error);
       throw error;
     }
   }
@@ -1565,7 +1565,7 @@ class AWSManager {
   
   async healthCheck() {
     try {
-      console.log('🏥 [AWS] Running health check...');
+      console.log('[AWS] Running health check...');
       
       // Test DynamoDB connection
       const testCommand = new QueryCommand({
@@ -1579,7 +1579,7 @@ class AWSManager {
       
       await this.dynamodb.send(testCommand);
       
-      console.log('✅ [AWS] Health check passed');
+      console.log('[AWS] Health check passed');
       return {
         status: 'healthy',
         region: this.region,
@@ -1587,7 +1587,7 @@ class AWSManager {
         timestamp: new Date().toISOString()
       };
     } catch (error) {
-      console.error('❌ [AWS] Health check failed:', error);
+      console.error('[AWS] Health check failed:', error);
       return {
         status: 'unhealthy',
         error: error.message,
@@ -1611,7 +1611,7 @@ class AWSManager {
    */
   async addContactedLead(userId, leadInfo, searchCombo = null) {
     try {
-      console.log('📝 [AWS] Adding contacted lead:', leadInfo.name, 'at', leadInfo.company);
+      console.log('[AWS] Adding contacted lead:', leadInfo.name, 'at', leadInfo.company);
 
       // Scoped to the keyword+position combo that found this lead — mirrors the key
       // built in checkForDuplicateContacts so the same lead can still be found again
@@ -1643,16 +1643,16 @@ class AWSManager {
 
       await this.dynamodb.send(command);
       
-      console.log('✅ [AWS] Successfully added contacted lead:', contactId);
+      console.log('[AWS] Successfully added contacted lead:', contactId);
       return { success: true, contactId };
 
     } catch (error) {
       if (error.name === 'ConditionalCheckFailedException') {
-        console.log('⚠️ [AWS] Lead already exists in contacted database:', leadInfo.email);
+        console.log('[AWS] Lead already exists in contacted database:', leadInfo.email);
         return { success: false, reason: 'already_contacted', contactId: null };
       }
       
-      console.error('❌ [AWS] Failed to add contacted lead:', error);
+      console.error('[AWS] Failed to add contacted lead:', error);
       return { success: false, error: error.message };
     }
   }
@@ -1664,7 +1664,7 @@ class AWSManager {
    */
   async removeContactedLead(userId, contactId) {
     try {
-      console.log('🗑️ [AWS] Removing contacted lead:', contactId);
+      console.log('[AWS] Removing contacted lead:', contactId);
 
       const command = new DeleteCommand({
         TableName: this.tables.contactedLeads,
@@ -1675,11 +1675,11 @@ class AWSManager {
 
       await this.dynamodb.send(command);
       
-      console.log('✅ [AWS] Successfully removed contacted lead:', contactId);
+      console.log('[AWS] Successfully removed contacted lead:', contactId);
       return { success: true };
 
     } catch (error) {
-      console.error('❌ [AWS] Failed to remove contacted lead:', error);
+      console.error('[AWS] Failed to remove contacted lead:', error);
       return { success: false, error: error.message };
     }
   }
@@ -1698,7 +1698,7 @@ class AWSManager {
    */
   async checkForDuplicateContacts(userId, leads, searchCombo = null) {
     try {
-      console.log('🔍 [AWS] Checking', leads.length, 'leads for duplicates and unsubscribes...');
+      console.log('[AWS] Checking', leads.length, 'leads for duplicates and unsubscribes...');
 
       const newLeads = [];
       const duplicateLeads = [];
@@ -1711,7 +1711,7 @@ class AWSManager {
         const leadEmail = lead.email || lead.email_address;
         
         if (!lead.name || !companyName) {
-          console.log('⚠️ [AWS] Skipping lead with missing data:', lead.name || 'MISSING', '| Company:', companyName || 'MISSING');
+          console.log('[AWS] Skipping lead with missing data:', lead.name || 'MISSING', '| Company:', companyName || 'MISSING');
           continue;
         }
 
@@ -1730,7 +1730,7 @@ class AWSManager {
             }));
             
             if (unsubResult.Items && unsubResult.Items.length > 0) {
-              console.log('🚫 [UNSUBSCRIBED]:', lead.name, '(', leadEmail, ') - BLOCKED');
+              console.log('[UNSUBSCRIBED]:', lead.name, '(', leadEmail, ') - BLOCKED');
               unsubscribedLeads.push({
                 ...lead,
                 unsubscribedAt: unsubResult.Items[0].unsubscribedAt,
@@ -1739,7 +1739,7 @@ class AWSManager {
               continue; // Skip to next lead
             }
           } catch (unsubError) {
-            console.error('❌ [AWS] Error checking unsubscribe:', leadEmail, unsubError.message);
+            console.error('[AWS] Error checking unsubscribe:', leadEmail, unsubError.message);
             // Continue to duplicate check if unsubscribe check fails
           }
         }
@@ -1764,24 +1764,24 @@ class AWSManager {
           const result = await this.dynamodb.send(command);
           
           if (result.Item) {
-            console.log('🔄 [AWS] Duplicate found:', lead.name, 'at', companyName, '(contacted:', result.Item.contactedAt, ')');
+            console.log('[AWS] Duplicate found:', lead.name, 'at', companyName, '(contacted:', result.Item.contactedAt, ')');
             duplicateLeads.push({
               ...lead,
               contactedAt: result.Item.contactedAt,
               reason: 'previously_contacted'
             });
           } else {
-            console.log('✅ [AWS] New lead:', lead.name, 'at', companyName);
+            console.log('[AWS] New lead:', lead.name, 'at', companyName);
             newLeads.push(lead);
           }
         } catch (getError) {
-          console.error('❌ [AWS] Error checking lead:', contactId, getError.message);
+          console.error('[AWS] Error checking lead:', contactId, getError.message);
           // If there's an error checking, assume it's a new lead to be safe
           newLeads.push(lead);
         }
       }
 
-      console.log(`📊 [AWS] Deduplication results: ${newLeads.length} new leads, ${duplicateLeads.length} duplicates, ${unsubscribedLeads.length} unsubscribed`);
+      console.log(`[AWS] Deduplication results: ${newLeads.length} new leads, ${duplicateLeads.length} duplicates, ${unsubscribedLeads.length} unsubscribed`);
       
       return {
         success: true,
@@ -1797,7 +1797,7 @@ class AWSManager {
       };
 
     } catch (error) {
-      console.error('❌ [AWS] Failed to check for duplicate contacts:', error);
+      console.error('[AWS] Failed to check for duplicate contacts:', error);
       return {
         success: false,
         error: error.message,
@@ -1815,7 +1815,7 @@ class AWSManager {
    */
   async getContactedLeadsHistory(userId, limit = 100) {
     try {
-      console.log('📊 [AWS] Getting contacted leads history for user:', userId);
+      console.log('[AWS] Getting contacted leads history for user:', userId);
 
       const command = new QueryCommand({
         TableName: this.tables.contactedLeads,
@@ -1830,7 +1830,7 @@ class AWSManager {
 
       const result = await this.dynamodb.send(command);
       
-      console.log('✅ [AWS] Retrieved', result.Items?.length || 0, 'contacted leads');
+      console.log('[AWS] Retrieved', result.Items?.length || 0, 'contacted leads');
       return {
         success: true,
         contacts: result.Items || [],
@@ -1838,7 +1838,7 @@ class AWSManager {
       };
 
     } catch (error) {
-      console.error('❌ [AWS] Failed to get contacted leads history:', error);
+      console.error('[AWS] Failed to get contacted leads history:', error);
       return {
         success: false,
         error: error.message,
@@ -1853,7 +1853,7 @@ class AWSManager {
    */
   async clearContactedLeads(userId) {
     try {
-      console.log('🗑️ [AWS] Clearing all contacted leads for user:', userId);
+      console.log('[AWS] Clearing all contacted leads for user:', userId);
 
       // First, get all contacts for this user
       const getCommand = new ScanCommand({
@@ -1868,7 +1868,7 @@ class AWSManager {
       const contacts = result.Items || [];
 
       if (contacts.length === 0) {
-        console.log('✅ [AWS] No contacts found to clear for user:', userId);
+        console.log('[AWS] No contacts found to clear for user:', userId);
         return {
           success: true,
           deletedCount: 0,
@@ -1889,15 +1889,15 @@ class AWSManager {
 
           await this.dynamodb.send(deleteCommand);
           deletedCount++;
-          console.log(`🗑️ [AWS] Deleted contact: ${contact.name} (${contact.email}) at ${contact.company}`);
+          console.log(`[AWS] Deleted contact: ${contact.name} (${contact.email}) at ${contact.company}`);
         } catch (deleteError) {
-          console.error('❌ [AWS] Failed to delete contact:', contact.contactId, deleteError.message);
+          console.error('[AWS] Failed to delete contact:', contact.contactId, deleteError.message);
         }
       });
 
       await Promise.all(deletePromises);
 
-      console.log(`✅ [AWS] Successfully cleared ${deletedCount} contacted leads for user: ${userId}`);
+      console.log(`[AWS] Successfully cleared ${deletedCount} contacted leads for user: ${userId}`);
       return {
         success: true,
         deletedCount: deletedCount,
@@ -1906,7 +1906,7 @@ class AWSManager {
       };
 
     } catch (error) {
-      console.error('❌ [AWS] Failed to clear contacted leads:', error);
+      console.error('[AWS] Failed to clear contacted leads:', error);
       return {
         success: false,
         error: error.message,
@@ -1993,7 +1993,7 @@ class AWSManager {
             
             // Warn when getting low
             if (newBalance <= 100 && currentBalance > 100) {
-              console.log(`⚠️ [CREDITS] Warning: User ${userId} has only ${newBalance.toFixed(2)} credits remaining`);
+              console.log(`[CREDITS] Warning: User ${userId} has only ${newBalance.toFixed(2)} credits remaining`);
             }
 
             // Fire-and-forget: charge the saved card if auto top-up is enabled and armed
@@ -2020,7 +2020,7 @@ class AWSManager {
               await this.addIssue(
                 userId,
                 'billing',
-                '🚨 Trial Credits Almost Exhausted',
+                'Trial Credits Almost Exhausted',
                 `You've used $${newCreditsUsed.toFixed(2)} of your $${creditsLimit} trial credits (${percentageUsed.toFixed(1)}%). Service will be suspended when credits are depleted.`,
                 {
                   severity: 'critical',
@@ -2036,7 +2036,7 @@ class AWSManager {
               await this.addIssue(
                 userId,
                 'billing',
-                '🚫 Trial Credits Exhausted',
+                'Trial Credits Exhausted',
                 `You've used all $${creditsLimit} of your trial credits. Add a payment method immediately to restore service.`,
                 {
                   severity: 'critical',
@@ -2054,18 +2054,18 @@ class AWSManager {
           }
         }
       } catch (creditError) {
-        console.error('❌ [CREDITS] Failed to deduct trial credits:', creditError);
+        console.error('[CREDITS] Failed to deduct trial credits:', creditError);
       }
       
       // Update summary table asynchronously (don't wait)
       this.updateApiUsageSummary(userId, service, usage, cost || 0).catch(err => {
-        console.error('⚠️  [AWS] Failed to update summary:', err.message);
+        console.error('[AWS] Failed to update summary:', err.message);
       });
       
       return { success: true };
     } catch (error) {
-      console.error('❌ [AWS] Failed to log API usage:', error);
-      console.error('❌ [AWS] Error details:', JSON.stringify(error, null, 2));
+      console.error('[AWS] Failed to log API usage:', error);
+      console.error('[AWS] Error details:', JSON.stringify(error, null, 2));
       return { success: false, error: error.message };
     }
   }
@@ -2109,7 +2109,7 @@ class AWSManager {
 
       return { success: true, creditsRefunded: creditsToRefund };
     } catch (err) {
-      console.error('❌ [REFUND] Failed to refund credits:', err);
+      console.error('[REFUND] Failed to refund credits:', err);
       return { success: false, error: err.message };
     }
   }
@@ -2150,7 +2150,7 @@ class AWSManager {
 
       await this.dynamodb.send(putCommand);
     } catch (error) {
-      console.error(`❌ [SUMMARY] Failed to update summary:`, error.message);
+      console.error(`[SUMMARY] Failed to update summary:`, error.message);
       throw error;
     }
   }
@@ -2208,7 +2208,7 @@ class AWSManager {
 
       return { success: true, stats };
     } catch (error) {
-      // console.error('❌ [SUMMARY] Failed to get user summary:', error.message);
+      // console.error('[SUMMARY] Failed to get user summary:', error.message);
       return {
         success: false,
         error: error.message,
@@ -2276,13 +2276,13 @@ class AWSManager {
       // Check if it's a throttling error
       if (error.name === 'ProvisionedThroughputExceededException' && retryCount < maxRetries) {
         const delay = baseDelay * Math.pow(2, retryCount); // Exponential backoff
-        console.log(`⚠️ [AWS] Throttled on getAgentApiUsage, retrying in ${delay}ms (attempt ${retryCount + 1}/${maxRetries})...`);
+        console.log(`[AWS] Throttled on getAgentApiUsage, retrying in ${delay}ms (attempt ${retryCount + 1}/${maxRetries})...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         return this.getAgentApiUsage(agentId, startDate, endDate, retryCount + 1);
       }
       
       // Log error but don't crash - return empty stats
-      console.error('❌ [AWS] Failed to get agent API usage:', error.message);
+      console.error('[AWS] Failed to get agent API usage:', error.message);
       return { 
         success: false, 
         error: error.message,
@@ -2357,13 +2357,13 @@ class AWSManager {
       // Check if it's a throttling error
       if (error.name === 'ProvisionedThroughputExceededException' && retryCount < maxRetries) {
         const delay = baseDelay * Math.pow(2, retryCount); // Exponential backoff
-        console.log(`⚠️ [AWS] Throttled on getUserApiUsage, retrying in ${delay}ms (attempt ${retryCount + 1}/${maxRetries})...`);
+        console.log(`[AWS] Throttled on getUserApiUsage, retrying in ${delay}ms (attempt ${retryCount + 1}/${maxRetries})...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         return this.getUserApiUsage(userId, startDate, endDate, retryCount + 1);
       }
       
       // Log error but don't crash - return empty stats
-      console.error('❌ [AWS] Failed to get user API usage:', error.message);
+      console.error('[AWS] Failed to get user API usage:', error.message);
       return { 
         success: false, 
         error: error.message,
@@ -2603,12 +2603,12 @@ class AWSManager {
 
       return { success: true, series, days, interval };
     } catch (error) {
-      console.error('❌ [AWS] Failed to get API usage time series:', error);
+      console.error('[AWS] Failed to get API usage time series:', error);
       
       // Check if it's a throughput exceeded error
       if (error.name === 'ProvisionedThroughputExceededException' || 
           error.__type?.includes('ProvisionedThroughputExceededException')) {
-        console.log('⚠️  [AWS] Throughput exceeded - returning empty data set (this is cached to prevent further queries)');
+        console.log('[AWS] Throughput exceeded - returning empty data set (this is cached to prevent further queries)');
         // Return empty data instead of error - this will be cached
         return { 
           success: true, 
@@ -2694,7 +2694,7 @@ class AWSManager {
         }
       };
     } catch (error) {
-      console.error('❌ [AWS] Error checking rate limit:', error);
+      console.error('[AWS] Error checking rate limit:', error);
       // On error, allow the request (fail open)
       return { allowed: true, reason: 'Error checking limits', error: error.message };
     }
@@ -2724,7 +2724,7 @@ class AWSManager {
 
       return { usage: totalUsage, calls: result.Items.length };
     } catch (error) {
-      console.error('❌ [AWS] Error getting usage for period:', error);
+      console.error('[AWS] Error getting usage for period:', error);
       return { usage: 0, calls: 0 };
     }
   }
@@ -2769,7 +2769,7 @@ class AWSManager {
         Item: issue
       }));
 
-      console.log(`✅ [AWS] Added ${type} issue (${severity}): ${title}`);
+      console.log(`[AWS] Added ${type} issue (${severity}): ${title}`);
 
       // Broadcast to SSE for real-time updates
       try {
@@ -2785,7 +2785,7 @@ class AWSManager {
           timestamp: Date.now()
         });
       } catch (broadcastError) {
-        console.error('⚠️ [AWS] Failed to broadcast issue to SSE:', broadcastError.message);
+        console.error('[AWS] Failed to broadcast issue to SSE:', broadcastError.message);
       }
 
       // Clean up old issues if over 100
@@ -2793,7 +2793,7 @@ class AWSManager {
 
       return { success: true, issueId };
     } catch (error) {
-      console.error('❌ [AWS] Error adding issue:', error);
+      console.error('[AWS] Error adding issue:', error);
       return { success: false, error: error.message };
     }
   }
@@ -2817,7 +2817,7 @@ class AWSManager {
       const result = await this.dynamodb.send(command);
       return result.Items || [];
     } catch (error) {
-      console.error('❌ [AWS] Error getting issues:', error);
+      console.error('[AWS] Error getting issues:', error);
       return [];
     }
   }
@@ -2850,10 +2850,10 @@ class AWSManager {
         }
       }));
 
-      console.log(`✅ [AWS] Marked issue as read: ${issueId}`);
+      console.log(`[AWS] Marked issue as read: ${issueId}`);
       return { success: true };
     } catch (error) {
-      console.error('❌ [AWS] Error marking issue as read:', error);
+      console.error('[AWS] Error marking issue as read:', error);
       return { success: false, error: error.message };
     }
   }
@@ -2867,7 +2867,7 @@ class AWSManager {
       const issues = await this.getIssues(userId, 500); // Get more items for deletion
       
       if (issues.length === 0) {
-        console.log(`✅ [AWS] No issues to clear for user ${userId}`);
+        console.log(`[AWS] No issues to clear for user ${userId}`);
         return { success: true, deleted: 0 };
       }
 
@@ -2895,10 +2895,10 @@ class AWSManager {
         deletedCount += deleteRequests.length;
       }
 
-      console.log(`✅ [AWS] Cleared ${deletedCount} issues for user ${userId}`);
+      console.log(`[AWS] Cleared ${deletedCount} issues for user ${userId}`);
       return { success: true, deleted: deletedCount };
     } catch (error) {
-      console.error('❌ [AWS] Error clearing all issues:', error);
+      console.error('[AWS] Error clearing all issues:', error);
       return { success: false, error: error.message };
     }
   }
@@ -2912,7 +2912,7 @@ class AWSManager {
       const cycleLogs = await this.getCycleLogs(userId, null, 500); // Get more items for deletion
       
       if (cycleLogs.length === 0) {
-        console.log(`✅ [AWS] No cycle logs to clear for user ${userId}`);
+        console.log(`[AWS] No cycle logs to clear for user ${userId}`);
         return { success: true, deleted: 0 };
       }
 
@@ -2940,10 +2940,10 @@ class AWSManager {
         deletedCount += deleteRequests.length;
       }
 
-      console.log(`✅ [AWS] Cleared ${deletedCount} cycle logs for user ${userId}`);
+      console.log(`[AWS] Cleared ${deletedCount} cycle logs for user ${userId}`);
       return { success: true, deleted: deletedCount };
     } catch (error) {
-      console.error('❌ [AWS] Error clearing all cycle logs:', error);
+      console.error('[AWS] Error clearing all cycle logs:', error);
       return { success: false, error: error.message };
     }
   }
@@ -2969,10 +2969,10 @@ class AWSManager {
           }));
         }
 
-        console.log(`🗑️ [AWS] Cleaned up ${toDelete.length} old issues`);
+        console.log(`[AWS] Cleaned up ${toDelete.length} old issues`);
       }
     } catch (error) {
-      console.error('❌ [AWS] Error cleaning up old issues:', error);
+      console.error('[AWS] Error cleaning up old issues:', error);
     }
   }
 
@@ -2996,10 +2996,10 @@ class AWSManager {
         }
       }));
 
-      console.log(`✅ [AWS] Deleted issue: ${issueId}`);
+      console.log(`[AWS] Deleted issue: ${issueId}`);
       return { success: true };
     } catch (error) {
-      console.error('❌ [AWS] Error deleting issue:', error);
+      console.error('[AWS] Error deleting issue:', error);
       return { success: false, error: error.message };
     }
   }
@@ -3037,7 +3037,7 @@ class AWSManager {
       console.log(`[AWS] Logged payment: ${paymentData.status} - $${paymentData.amount}`);
       return { success: true, paymentId };
     } catch (error) {
-      console.error('❌ [AWS] Error logging payment:', error);
+      console.error('[AWS] Error logging payment:', error);
       throw error;
     }
   }
@@ -3058,10 +3058,10 @@ class AWSManager {
       });
 
       const result = await this.dynamodb.send(command);
-      console.log(`✅ [AWS] Retrieved ${result.Items?.length || 0} payment records`);
+      console.log(`[AWS] Retrieved ${result.Items?.length || 0} payment records`);
       return result.Items || [];
     } catch (error) {
-      console.error('❌ [AWS] Error getting payment history:', error);
+      console.error('[AWS] Error getting payment history:', error);
       return [];
     }
   }
@@ -3160,15 +3160,15 @@ class AWSManager {
           stats.nextBillingDate = nextBillingDate.toISOString();
           stats.billingMode = 'postpaid';
         } catch (summaryError) {
-          console.error('⚠️ [AWS] Error calculating outstanding balance:', summaryError);
+          console.error('[AWS] Error calculating outstanding balance:', summaryError);
           stats.outstanding = 0;
         }
       }
 
-      console.log(`✅ [AWS] Payment stats: ${stats.successCount} successful, ${stats.failedCount} failed (unique periods), $${stats.outstanding.toFixed(2)} outstanding`);
+      console.log(`[AWS] Payment stats: ${stats.successCount} successful, ${stats.failedCount} failed (unique periods), $${stats.outstanding.toFixed(2)} outstanding`);
       return stats;
     } catch (error) {
-      console.error('❌ [AWS] Error getting payment stats:', error);
+      console.error('[AWS] Error getting payment stats:', error);
       return null;
     }
   }
@@ -3201,10 +3201,10 @@ class AWSManager {
         Item: item
       }));
 
-      console.log(`🚫 [AWS] Email unsubscribed: ${normalizedEmail}`);
+      console.log(`[AWS] Email unsubscribed: ${normalizedEmail}`);
       return { success: true, email: normalizedEmail };
     } catch (error) {
-      console.error('❌ [AWS] Error adding unsubscribe:', error);
+      console.error('[AWS] Error adding unsubscribe:', error);
       return { success: false, error: error.message };
     }
   }
@@ -3232,7 +3232,7 @@ class AWSManager {
         console.log('ℹ️ [AWS] Unsubscribe table does not exist yet - allowing email (create table: meridian-unsubscribes)');
         return false;
       }
-      console.error('❌ [AWS] Error checking unsubscribe status:', error.message);
+      console.error('[AWS] Error checking unsubscribe status:', error.message);
       return false; // Default to not unsubscribed on error
     }
   }
@@ -3250,7 +3250,7 @@ class AWSManager {
       const result = await this.dynamodb.send(new ScanCommand(params));
       return result.Items || [];
     } catch (error) {
-      console.error('❌ [AWS] Error fetching unsubscribes:', error);
+      console.error('[AWS] Error fetching unsubscribes:', error);
       return [];
     }
   }
@@ -3286,10 +3286,10 @@ class AWSManager {
         }));
       }
 
-      console.log(`✅ [AWS] Email re-subscribed: ${normalizedEmail}`);
+      console.log(`[AWS] Email re-subscribed: ${normalizedEmail}`);
       return { success: true, email: normalizedEmail };
     } catch (error) {
-      console.error('❌ [AWS] Error removing unsubscribe:', error);
+      console.error('[AWS] Error removing unsubscribe:', error);
       return { success: false, error: error.message };
     }
   }
@@ -3316,10 +3316,10 @@ class AWSManager {
         }
       }));
       
-      console.log(`📝 [SEARCH HISTORY] Recorded: ${industry} + ${position} (${leadsFound} leads)`);
+      console.log(`[SEARCH HISTORY] Recorded: ${industry} + ${position} (${leadsFound} leads)`);
       return { success: true };
     } catch (error) {
-      console.error('❌ [AWS] Error recording search history:', error);
+      console.error('[AWS] Error recording search history:', error);
       return { success: false, error: error.message };
     }
   }
@@ -3345,7 +3345,7 @@ class AWSManager {
       if (result.Items && result.Items.length > 0) {
         const lastSearch = result.Items[0];
         const daysAgo = Math.floor((Date.now() - lastSearch.timestamp) / (24 * 60 * 60 * 1000));
-        console.log(`⚠️ [DUPLICATE] Already searched ${industry} + ${position} ${daysAgo} days ago (${lastSearch.leadsFound} leads)`);
+        console.log(`[DUPLICATE] Already searched ${industry} + ${position} ${daysAgo} days ago (${lastSearch.leadsFound} leads)`);
         return {
           isDuplicate: true,
           lastSearched: lastSearch.timestamp,
@@ -3356,7 +3356,7 @@ class AWSManager {
 
       return { isDuplicate: false };
     } catch (error) {
-      console.error('❌ [AWS] Error checking search history:', error);
+      console.error('[AWS] Error checking search history:', error);
       return { isDuplicate: false }; // Don't block searches on error
     }
   }
@@ -3378,7 +3378,7 @@ class AWSManager {
         searches: result.Items || []
       };
     } catch (error) {
-      console.error('❌ [AWS] Error getting search history:', error);
+      console.error('[AWS] Error getting search history:', error);
       return { success: false, error: error.message, searches: [] };
     }
   }
@@ -3397,7 +3397,7 @@ class AWSManager {
       }));
 
       if (!result.Items || result.Items.length === 0) {
-        console.log(`📝 [AWS] No search history found for agent ${agentId}`);
+        console.log(`[AWS] No search history found for agent ${agentId}`);
         return { success: true, deletedCount: 0 };
       }
 
@@ -3412,10 +3412,10 @@ class AWSManager {
         }));
       }
 
-      console.log(`✅ [AWS] Deleted ${result.Items.length} search history entries for agent ${agentId}`);
+      console.log(`[AWS] Deleted ${result.Items.length} search history entries for agent ${agentId}`);
       return { success: true, deletedCount: result.Items.length };
     } catch (error) {
-      console.error('❌ [AWS] Error deleting search history:', error);
+      console.error('[AWS] Error deleting search history:', error);
       return { success: false, error: error.message };
     }
   }
@@ -3430,10 +3430,10 @@ class AWSManager {
         }
       }));
 
-      console.log(`✅ [AWS] Deleted agent state for ${agentId}`);
+      console.log(`[AWS] Deleted agent state for ${agentId}`);
       return { success: true };
     } catch (error) {
-      console.error('❌ [AWS] Error deleting agent state:', error);
+      console.error('[AWS] Error deleting agent state:', error);
       return { success: false, error: error.message };
     }
   }
@@ -3452,7 +3452,7 @@ class AWSManager {
       }));
 
       if (!result.Items || result.Items.length === 0) {
-        console.log(`📝 [AWS] No cycle logs found for agent ${agentId}`);
+        console.log(`[AWS] No cycle logs found for agent ${agentId}`);
         return { success: true, deletedCount: 0 };
       }
 
@@ -3467,10 +3467,10 @@ class AWSManager {
         }));
       }
 
-      console.log(`✅ [AWS] Deleted ${result.Items.length} cycle logs for agent ${agentId}`);
+      console.log(`[AWS] Deleted ${result.Items.length} cycle logs for agent ${agentId}`);
       return { success: true, deletedCount: result.Items.length };
     } catch (error) {
-      console.error('❌ [AWS] Error deleting cycle logs:', error);
+      console.error('[AWS] Error deleting cycle logs:', error);
       return { success: false, error: error.message };
     }
   }
@@ -3484,7 +3484,7 @@ class AWSManager {
       const timestamp = new Date().toISOString();
       const eventId = `${trackingId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
-      console.log(`📝 [EMAIL-TRACKING] Logging event:`, {
+      console.log(`[EMAIL-TRACKING] Logging event:`, {
         eventType: eventData.eventType,
         userId,
         agentId,
@@ -3508,10 +3508,10 @@ class AWSManager {
       });
       
       await this.dynamodb.send(command);
-      console.log(`✅ [EMAIL-TRACKING] Event logged successfully: ${eventData.eventType}`, { eventId });
+      console.log(`[EMAIL-TRACKING] Event logged successfully: ${eventData.eventType}`, { eventId });
       return { success: true, eventId };
     } catch (error) {
-      console.error('❌ [EMAIL-TRACKING] Error logging email tracking:', error);
+      console.error('[EMAIL-TRACKING] Error logging email tracking:', error);
       return { success: false, error: error.message };
     }
   }
@@ -3531,7 +3531,7 @@ class AWSManager {
       const result = await this.dynamodb.send(command);
       return result.Items || [];
     } catch (error) {
-      console.error('❌ [AWS] Error getting email tracking:', error);
+      console.error('[AWS] Error getting email tracking:', error);
       return [];
     }
   }
@@ -3595,14 +3595,14 @@ class AWSManager {
       
       return allEvents;
     } catch (error) {
-      // console.error('❌ [EMAIL-TRACKING] Error getting user email tracking:', error);
+      // console.error('[EMAIL-TRACKING] Error getting user email tracking:', error);
       return [];
     }
   }
 
   async deleteEmailTrackingEvent(event) {
     try {
-      console.log(`🗑️ [EMAIL-TRACKING] Attempting to delete event:`, {
+      console.log(`[EMAIL-TRACKING] Attempting to delete event:`, {
         userId: event.userId,
         agentId: event.agentId,
         trackingId: event.trackingId,
@@ -3623,10 +3623,10 @@ class AWSManager {
       });
       
       await this.dynamodb.send(deleteCommand);
-      console.log(`✅ [EMAIL-TRACKING] Successfully deleted event with PK: ${pk}, SK: ${sk}`);
+      console.log(`[EMAIL-TRACKING] Successfully deleted event with PK: ${pk}, SK: ${sk}`);
       return { success: true };
     } catch (error) {
-      console.error('❌ [EMAIL-TRACKING] Error deleting tracking event:', error);
+      console.error('[EMAIL-TRACKING] Error deleting tracking event:', error);
       throw error;
     }
   }
@@ -3637,7 +3637,7 @@ class AWSManager {
   
   async createAgentMetricsTable() {
     try {
-      console.log('🔧 [AWS] Creating agent metrics table...');
+      console.log('[AWS] Creating agent metrics table...');
       
       const command = new CreateTableCommand({
         TableName: this.tables.agentMetrics,
@@ -3667,21 +3667,21 @@ class AWSManager {
       
       await ddbClient.send(command);
       
-      console.log('✅ [AWS] Agent metrics table created successfully');
+      console.log('[AWS] Agent metrics table created successfully');
       return { success: true, tableName: this.tables.agentMetrics };
     } catch (error) {
       if (error.name === 'ResourceInUseException') {
         console.log('ℹ️ [AWS] Agent metrics table already exists');
         return { success: true, tableName: this.tables.agentMetrics, alreadyExists: true };
       }
-      console.error('❌ [AWS] Error creating agent metrics table:', error);
+      console.error('[AWS] Error creating agent metrics table:', error);
       return { success: false, error: error.message };
     }
   }
 
   async createSearchHistoryTable() {
     try {
-      console.log('🔧 [AWS] Creating search history table...');
+      console.log('[AWS] Creating search history table...');
       
       const command = new CreateTableCommand({
         TableName: this.tables.searchHistory,
@@ -3707,14 +3707,14 @@ class AWSManager {
       
       await ddbClient.send(command);
       
-      console.log('✅ [AWS] Search history table created successfully');
+      console.log('[AWS] Search history table created successfully');
       return { success: true, tableName: this.tables.searchHistory };
     } catch (error) {
       if (error.name === 'ResourceInUseException') {
         console.log('ℹ️ [AWS] Search history table already exists');
         return { success: true, tableName: this.tables.searchHistory, alreadyExists: true };
       }
-      console.error('❌ [AWS] Error creating search history table:', error);
+      console.error('[AWS] Error creating search history table:', error);
       return { success: false, error: error.message };
     }
   }
@@ -3722,7 +3722,7 @@ class AWSManager {
   // Set AI control state for a specific conversation
   async setConversationAIControl(userId, agentId, trackingId, enabled) {
     try {
-      console.log(`🔧 [AI-CONTROL] Setting AI control:`, {
+      console.log(`[AI-CONTROL] Setting AI control:`, {
         userId,
         agentId,
         trackingId,
@@ -3748,10 +3748,10 @@ class AWSManager {
       });
 
       await this.dynamodb.send(command);
-      console.log(`✅ [AI-CONTROL] AI control set for trackingId ${trackingId}: ${enabled ? 'ENABLED' : 'PAUSED'}`);
+      console.log(`[AI-CONTROL] AI control set for trackingId ${trackingId}: ${enabled ? 'ENABLED' : 'PAUSED'}`);
       return { success: true };
     } catch (error) {
-      console.error('❌ [AI-CONTROL] Error setting AI control:', error);
+      console.error('[AI-CONTROL] Error setting AI control:', error);
       throw error;
     }
   }
@@ -3762,7 +3762,7 @@ class AWSManager {
       const pk = `USER#${userId}#AGENT#${agentId}`;
       const sk = `AI_CONTROL#${trackingId}`;
       
-      console.log(`🔍 [AI-CONTROL] Getting AI state for:`, {
+      console.log(`[AI-CONTROL] Getting AI state for:`, {
         userId,
         agentId,
         trackingId,
@@ -3779,7 +3779,7 @@ class AWSManager {
       });
 
       const result = await this.dynamodb.send(command);
-      console.log(`📊 [AI-CONTROL] DynamoDB result:`, {
+      console.log(`[AI-CONTROL] DynamoDB result:`, {
         hasItem: !!result.Item,
         aiEnabled: result.Item?.aiEnabled
       });
@@ -3789,7 +3789,7 @@ class AWSManager {
       }
       return true; // Default to enabled if not found
     } catch (error) {
-      console.error(`❌ [AI-CONTROL] Error getting AI control state:`, error);
+      console.error(`[AI-CONTROL] Error getting AI control state:`, error);
       return true; // Default to enabled on error
     }
   }
@@ -3889,7 +3889,7 @@ class AWSManager {
         planUpdatedAt: new Date().toISOString()
       });
 
-      console.log(`📋 [PLANS] Updated user ${userId} to ${planConfig.name} plan`);
+      console.log(`[PLANS] Updated user ${userId} to ${planConfig.name} plan`);
       
       return {
         success: true,
@@ -3897,7 +3897,7 @@ class AWSManager {
         message: `Successfully upgraded to ${planConfig.name}`
       };
     } catch (error) {
-      console.error('❌ [PLANS] Error updating user plan:', error);
+      console.error('[PLANS] Error updating user plan:', error);
       throw error;
     }
   }
@@ -3923,10 +3923,10 @@ class AWSManager {
         planUpdatedAt: new Date().toISOString()
       });
 
-      console.log(`✅ [DEVELOPER] Upgraded ${user.email || userId} to Developer plan (999,999 credits)`);
+      console.log(`[DEVELOPER] Upgraded ${user.email || userId} to Developer plan (999,999 credits)`);
       return { success: true, userId, email: user.email, plan: 'developer', credits: plan.initialCredits };
     } catch (err) {
-      console.error('❌ [DEVELOPER] Upgrade failed:', err);
+      console.error('[DEVELOPER] Upgrade failed:', err);
       throw err;
     }
   }
@@ -3951,7 +3951,7 @@ class AWSManager {
       return true;
     } catch (error) {
       if (error.name === 'ConditionalCheckFailedException') return false;
-      console.error('❌ [AWS] Error claiming auto top-up lock:', error);
+      console.error('[AWS] Error claiming auto top-up lock:', error);
       return false;
     }
   }
@@ -4004,7 +4004,7 @@ class AWSManager {
         remainingPurchaseCapacity: planConfig.maxCredits - newLimit
       };
     } catch (error) {
-      console.error('❌ [CREDITS] Error purchasing credits:', error);
+      console.error('[CREDITS] Error purchasing credits:', error);
       throw error;
     }
   }
@@ -4094,7 +4094,7 @@ class AWSManager {
         maxAdditionalCredits: planConfig.canPurchaseMore ? planConfig.maxCredits - creditsLimit : 0
       };
     } catch (error) {
-      console.error('❌ [PLANS] Error getting user plan status:', error);
+      console.error('[PLANS] Error getting user plan status:', error);
       throw error;
     }
   }
@@ -4237,7 +4237,7 @@ class AWSManager {
       return result.Items || [];
     } catch (error) {
       // Table may not exist yet on first run — treat as empty
-      console.warn('⚠️ [AWS] getBanditStats failed (table may not exist yet):', error.message);
+      console.warn('[AWS] getBanditStats failed (table may not exist yet):', error.message);
       return [];
     }
   }

@@ -60,7 +60,7 @@ class OutlookManager {
 
       return response.data;
     } catch (error) {
-      console.error('❌ [OUTLOOK] Error refreshing token:', error.response?.data || error.message);
+      console.error('[OUTLOOK] Error refreshing token:', error.response?.data || error.message);
       throw error;
     }
   }
@@ -76,7 +76,7 @@ class OutlookManager {
     const currentAccount = resolvedSettings.outlookAccounts[resolvedIndex];
 
     if (!currentAccount.accessToken || this.isTokenExpired(currentAccount.expiresAt)) {
-      console.log(`🔄 [OUTLOOK] Refreshing access token for ${currentAccount.email}`);
+      console.log(`[OUTLOOK] Refreshing access token for ${currentAccount.email}`);
       let refreshed;
       try {
         refreshed = await this.refreshAccessTokenPayload(currentAccount.refreshToken);
@@ -124,7 +124,7 @@ class OutlookManager {
           headers: { Authorization: `Bearer ${accessToken}` }
         });
       } catch (error) {
-        console.log(`⚠️ [OUTLOOK] Previous subscription cleanup failed for ${account.email}:`, error.response?.data || error.message);
+        console.log(`[OUTLOOK] Previous subscription cleanup failed for ${account.email}:`, error.response?.data || error.message);
       }
     }
 
@@ -160,7 +160,7 @@ class OutlookManager {
     userSettings.outlookAccounts[resolvedIndex].replySubscription = subscription;
     await awsManager.saveUserSettings(userId, userSettings);
 
-    console.log(`✅ [OUTLOOK] Reply subscription active for ${account.email} until ${subscription.expirationDateTime}`);
+    console.log(`[OUTLOOK] Reply subscription active for ${account.email} until ${subscription.expirationDateTime}`);
     return subscription;
   }
 
@@ -180,7 +180,7 @@ class OutlookManager {
         headers: { Authorization: `Bearer ${accessToken}` }
       });
     } catch (error) {
-      console.log(`⚠️ [OUTLOOK] Subscription delete failed for ${currentAccount.email}:`, error.response?.data || error.message);
+      console.log(`[OUTLOOK] Subscription delete failed for ${currentAccount.email}:`, error.response?.data || error.message);
     }
 
     delete userSettings.outlookAccounts[resolvedIndex].replySubscription;
@@ -283,14 +283,14 @@ class OutlookManager {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
       });
 
-      console.log('✅ [OUTLOOK] Got tokens:', {
+      console.log('[OUTLOOK] Got tokens:', {
         hasAccessToken: !!response.data.access_token,
         hasRefreshToken: !!response.data.refresh_token
       });
 
       return response.data;
     } catch (error) {
-      console.error('❌ [OUTLOOK] Error getting tokens:', error.response?.data || error.message);
+      console.error('[OUTLOOK] Error getting tokens:', error.response?.data || error.message);
       throw error;
     }
   }
@@ -314,7 +314,7 @@ class OutlookManager {
       
       return response.data.mail || response.data.userPrincipalName;
     } catch (error) {
-      console.error('❌ [OUTLOOK] Error getting user email:', error.response?.data || error.message);
+      console.error('[OUTLOOK] Error getting user email:', error.response?.data || error.message);
       throw error;
     }
   }
@@ -343,10 +343,10 @@ class OutlookManager {
   async sendEmail({ userId, to, subject, htmlBody, textBody, ccEmails = null, bccEmails = null, replyTo = null, agentId = null, enableTracking = true, trackingId = null, inReplyTo = null, threadId = null }) {
     try {
       console.log('═══════════════════════════════════════════════════════════════');
-      console.log('📧 [OUTLOOK SEND] Starting Outlook send process');
-      console.log('📧 [OUTLOOK SEND] To:', to);
-      console.log('📧 [OUTLOOK SEND] Subject:', subject);
-      console.log('📧 [OUTLOOK SEND] User ID:', userId);
+      console.log('[OUTLOOK SEND] Starting Outlook send process');
+      console.log('[OUTLOOK SEND] To:', to);
+      console.log('[OUTLOOK SEND] Subject:', subject);
+      console.log('[OUTLOOK SEND] User ID:', userId);
       console.log('═══════════════════════════════════════════════════════════════');
 
       // Get user's Outlook credentials from DynamoDB
@@ -358,14 +358,14 @@ class OutlookManager {
       if (userSettings?.outlookAccounts && userSettings.outlookAccounts.length > 0) {
         outlookAccounts = userSettings.outlookAccounts;
         currentAccountIndex = this.getActiveAccountIndex(userSettings);
-        console.log('📧 [OUTLOOK ACCOUNTS] Found', outlookAccounts.length, 'accounts, active index:', currentAccountIndex);
+        console.log('[OUTLOOK ACCOUNTS] Found', outlookAccounts.length, 'accounts, active index:', currentAccountIndex);
       } else {
-        console.error('❌ [OUTLOOK ACCOUNTS] No Outlook accounts found!');
+        console.error('[OUTLOOK ACCOUNTS] No Outlook accounts found!');
         throw new Error('Outlook not connected. Please connect your Outlook account in settings.');
       }
 
       const currentAccount = outlookAccounts[currentAccountIndex];
-      console.log('📧 [OUTLOOK ACCOUNT] Using account:', currentAccount.email);
+      console.log('[OUTLOOK ACCOUNT] Using account:', currentAccount.email);
 
       const { accessToken } = await this.ensureValidAccountToken(userId, userSettings, currentAccountIndex);
 
@@ -431,13 +431,13 @@ class OutlookManager {
         }
       );
 
-      console.log('✅ [OUTLOOK] Email sent successfully');
+      console.log('[OUTLOOK] Email sent successfully');
 
       // Cycle to next account for load balancing
       if (outlookAccounts.length > 1) {
         userSettings.activeOutlookIndex = (currentAccountIndex + 1) % outlookAccounts.length;
         await awsManager.saveUserSettings(userId, userSettings);
-        console.log(`🔄 [OUTLOOK] Cycled to account ${userSettings.activeOutlookIndex + 1}/${outlookAccounts.length}`);
+        console.log(`[OUTLOOK] Cycled to account ${userSettings.activeOutlookIndex + 1}/${outlookAccounts.length}`);
       }
 
       return {
@@ -447,7 +447,7 @@ class OutlookManager {
         fromEmail: currentAccount.email
       };
     } catch (error) {
-      console.error('❌ [OUTLOOK] Send error:', error.response?.data || error.message);
+      console.error('[OUTLOOK] Send error:', error.response?.data || error.message);
       return {
         success: false,
         error: error.response?.data?.error?.message || error.message

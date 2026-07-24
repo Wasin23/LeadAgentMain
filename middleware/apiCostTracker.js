@@ -50,7 +50,7 @@ export async function trackApiUsage(userId, apiType, quantity = 1) {
         await awsManager.addIssue(
           userId,
           'billing',
-          '⚠️ Trial Credits Running Low',
+          'Trial Credits Running Low',
           `You've used ${Math.round(newCreditsUsed).toLocaleString()} of ${creditsLimit} trial credits (${percentageUsed.toFixed(1)}%), equal to $${(newCreditsUsed * 0.05).toFixed(2)} in API costs. Add a payment method to upgrade or buy more credits before you run out.`,
           {
             severity: 'warning',
@@ -66,7 +66,7 @@ export async function trackApiUsage(userId, apiType, quantity = 1) {
         await awsManager.addIssue(
           userId,
           'billing',
-          '🚨 Trial Credits Almost Exhausted',
+          'Trial Credits Almost Exhausted',
           `You've used ${Math.round(newCreditsUsed).toLocaleString()} of ${creditsLimit} trial credits (${percentageUsed.toFixed(1)}%), equal to $${(newCreditsUsed * 0.05).toFixed(2)} in API costs. Service will pause when your credits are depleted.`,
           {
             severity: 'critical',
@@ -82,7 +82,7 @@ export async function trackApiUsage(userId, apiType, quantity = 1) {
         await awsManager.addIssue(
           userId,
           'billing',
-          '🚫 Trial Credits Exhausted',
+          'Trial Credits Exhausted',
           `You've used all ${creditsLimit} trial credits. Add a payment method to restore service and purchase more credits.`,
           {
             severity: 'critical',
@@ -177,14 +177,14 @@ export async function getTrialCreditStatus(userId) {
     // MIGRATION: If user doesn't have trial credit fields, add them
     // Also normalize older trial users to the current 250-credit trial.
     if (user.trialEligible !== false && (user.trialCreditsUsed === undefined || user.trialCreditsLimit === undefined || user.paymentMethodAdded === undefined || user.trialCreditsLimit === 25 || user.trialCreditsLimit === 500 || user.trialCreditsLimit === 1000)) {
-      console.log('⚠️ [TRIAL] User missing trial fields or has old 25-credit limit, migrating...');
+      console.log('[TRIAL] User missing trial fields or has old 25-credit limit, migrating...');
       await awsManager.updateUser(userId, {
         trialCreditsUsed: user.trialCreditsUsed ?? 0,
         trialCreditsLimit: 250,
         paymentMethodAdded: user.paymentMethodAdded || false,
         stripeCustomerId: user.stripeCustomerId || null
       });
-      console.log('✅ [TRIAL] User migrated with trial fields');
+      console.log('[TRIAL] User migrated with trial fields');
       // Refetch user
       const updatedUser = await awsManager.getUserById(userId);
       Object.assign(user, updatedUser);

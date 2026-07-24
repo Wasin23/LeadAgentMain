@@ -29,11 +29,11 @@ class HealthMonitor {
   // Start monitoring
   start() {
     if (this.isRunning) {
-      console.log('⚠️ [HEALTH MONITOR] Already running');
+      console.log('[HEALTH MONITOR] Already running');
       return;
     }
     
-    console.log('🏥 [HEALTH MONITOR] Starting health monitoring');
+    console.log('[HEALTH MONITOR] Starting health monitoring');
     this.isRunning = true;
     
     // Start memory monitoring
@@ -41,12 +41,12 @@ class HealthMonitor {
       this.checkMemoryUsage();
     }, this.MEMORY_CHECK_INTERVAL_MS);
     
-    console.log('✅ [HEALTH MONITOR] Health monitoring active');
+    console.log('[HEALTH MONITOR] Health monitoring active');
   }
   
   // Stop monitoring
   stop() {
-    console.log('🛑 [HEALTH MONITOR] Stopping health monitoring');
+    console.log('[HEALTH MONITOR] Stopping health monitoring');
     this.isRunning = false;
     
     // Clear all cycle timeouts
@@ -63,7 +63,7 @@ class HealthMonitor {
   
   // Register a cycle start
   registerCycleStart(agentId, userId) {
-    console.log(`🏥 [HEALTH MONITOR] Registering cycle start for agent ${agentId}`);
+    console.log(`[HEALTH MONITOR] Registering cycle start for agent ${agentId}`);
     
     // Clear existing timeout if any
     if (this.cycleTimeouts.has(agentId)) {
@@ -83,7 +83,7 @@ class HealthMonitor {
   
   // Register a cycle completion (clear timeout)
   registerCycleComplete(agentId) {
-    console.log(`🏥 [HEALTH MONITOR] Cycle completed for agent ${agentId}`);
+    console.log(`[HEALTH MONITOR] Cycle completed for agent ${agentId}`);
     
     // Clear timeout
     if (this.cycleTimeouts.has(agentId)) {
@@ -100,7 +100,7 @@ class HealthMonitor {
     const startTime = this.cycleStartTimes.get(agentId);
     const duration = startTime ? Math.floor((Date.now() - startTime) / 1000 / 60) : 'unknown';
     
-    console.error(`🚨 [HEALTH MONITOR] Cycle timeout detected for agent ${agentId} (running for ${duration} minutes)`);
+    console.error(`[HEALTH MONITOR] Cycle timeout detected for agent ${agentId} (running for ${duration} minutes)`);
     
     try {
       // Log issue to AWS
@@ -127,9 +127,9 @@ class HealthMonitor {
       // await agent.stop();
       // await agent.start();
       
-      console.log('📧 [HEALTH MONITOR] Cycle timeout issue logged to database');
+      console.log('[HEALTH MONITOR] Cycle timeout issue logged to database');
     } catch (error) {
-      console.error('❌ [HEALTH MONITOR] Failed to log cycle timeout:', error);
+      console.error('[HEALTH MONITOR] Failed to log cycle timeout:', error);
     }
   }
   
@@ -140,20 +140,20 @@ class HealthMonitor {
     const heapTotal = memUsage.heapTotal;
     const usagePercent = heapUsed / heapTotal;
     
-    console.log(`🧠 [HEALTH MONITOR] Memory: ${Math.round(usagePercent * 100)}% (${Math.round(heapUsed / 1024 / 1024)}MB / ${Math.round(heapTotal / 1024 / 1024)}MB)`);
+    console.log(`[HEALTH MONITOR] Memory: ${Math.round(usagePercent * 100)}% (${Math.round(heapUsed / 1024 / 1024)}MB / ${Math.round(heapTotal / 1024 / 1024)}MB)`);
     
     if (usagePercent > this.MEMORY_THRESHOLD) {
-      console.warn(`⚠️ [HEALTH MONITOR] High memory usage detected: ${Math.round(usagePercent * 100)}%`);
+      console.warn(`[HEALTH MONITOR] High memory usage detected: ${Math.round(usagePercent * 100)}%`);
       
       // Clear caches to free memory
       if (global.gc) {
-        console.log('🧹 [HEALTH MONITOR] Running garbage collection...');
+        console.log('[HEALTH MONITOR] Running garbage collection...');
         global.gc();
         
         // Check memory again after GC
         const afterGC = process.memoryUsage();
         const freedMB = Math.round((heapUsed - afterGC.heapUsed) / 1024 / 1024);
-        console.log(`✅ [HEALTH MONITOR] Freed ${freedMB}MB of memory`);
+        console.log(`[HEALTH MONITOR] Freed ${freedMB}MB of memory`);
       }
       
       try {
@@ -174,7 +174,7 @@ class HealthMonitor {
           }
         );
       } catch (error) {
-        console.error('❌ [HEALTH MONITOR] Failed to log memory warning:', error);
+        console.error('[HEALTH MONITOR] Failed to log memory warning:', error);
       }
     }
   }
@@ -225,7 +225,7 @@ export default HealthMonitor;
 */
 
 // TEMPORARY PLACEHOLDER - Remove when uncommenting above
-console.log('⚠️ Health Monitor system ready but commented out');
+console.log('Health Monitor system ready but commented out');
 export function getHealthMonitor() {
   return {
     registerCycleStart: () => {},

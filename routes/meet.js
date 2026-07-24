@@ -118,7 +118,7 @@ router.get('/init/:token', async (req, res) => {
         ]);
 
         const notifSettings = userSettings?.notificationSettings || { emailEnabled: true, smsEnabled: false, phone: '' };
-        const title   = `💬 ${leadName} started a chat`;
+        const title   = `${leadName} started a chat`;
         const body    = `${leadName}${leadCompany ? ` from ${leadCompany}` : ''} just clicked their MQL Chat link and started a conversation.`;
 
         await Promise.allSettled([

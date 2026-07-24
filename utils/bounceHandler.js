@@ -17,7 +17,7 @@ async function handleMailgunEvent(eventData, userId, agentId, trackingId) {
   const recipient = eventData.recipient;
   const timestamp = eventData.timestamp;
 
-  console.log(`📧 [BOUNCE HANDLER] Processing ${eventType} event for ${recipient}`);
+  console.log(`[BOUNCE HANDLER] Processing ${eventType} event for ${recipient}`);
 
   switch (eventType) {
     case 'failed':
@@ -62,7 +62,7 @@ async function handleMailgunEvent(eventData, userId, agentId, trackingId) {
             }
           );
         } catch (error) {
-          console.error('❌ [ISSUES] Failed to log bounce to database:', error);
+          console.error('[ISSUES] Failed to log bounce to database:', error);
         }
       }
       
@@ -82,7 +82,7 @@ async function handleMailgunEvent(eventData, userId, agentId, trackingId) {
             timestamp: new Date(timestamp * 1000).toISOString()
           });
           
-          console.log(`✅ [BOUNCE] Logged bounce event to tracking for ${trackingId}`);
+          console.log(`[BOUNCE] Logged bounce event to tracking for ${trackingId}`);
           
           // Update email status to bounced
           const awsQueue = (await import('./awsEmailQueue.js')).default;
@@ -102,18 +102,18 @@ async function handleMailgunEvent(eventData, userId, agentId, trackingId) {
               bouncedAt: new Date(timestamp * 1000).toISOString()
             });
             
-            console.log(`✅ [BOUNCE] Updated email status from ${currentStatus} to BOUNCED for ${trackingId}`);
+            console.log(`[BOUNCE] Updated email status from ${currentStatus} to BOUNCED for ${trackingId}`);
           } else {
-            console.warn(`⚠️ [BOUNCE] Email not found in sent emails for trackingId: ${trackingId}`);
+            console.warn(`[BOUNCE] Email not found in sent emails for trackingId: ${trackingId}`);
           }
         } catch (error) {
-          console.error('❌ [BOUNCE] Failed to log bounce to tracking:', error);
+          console.error('[BOUNCE] Failed to log bounce to tracking:', error);
         }
       } else {
-        console.warn(`⚠️ [BOUNCE] Missing context - cannot update email status. userId: ${userId}, agentId: ${agentId}, trackingId: ${trackingId}`);
+        console.warn(`[BOUNCE] Missing context - cannot update email status. userId: ${userId}, agentId: ${agentId}, trackingId: ${trackingId}`);
       }
       
-      console.log(`⚠️ [BOUNCE] ${eventData.severity || 'Unknown'} bounce for ${recipient}: ${bounceReason}`);
+      console.log(`[BOUNCE] ${eventData.severity || 'Unknown'} bounce for ${recipient}: ${bounceReason}`);
       break;
 
     case 'complained':
@@ -148,11 +148,11 @@ async function handleMailgunEvent(eventData, userId, agentId, trackingId) {
             }
           );
         } catch (error) {
-          console.error('❌ [ISSUES] Failed to log spam complaint to database:', error);
+          console.error('[ISSUES] Failed to log spam complaint to database:', error);
         }
       }
       
-      console.log(`🚫 [SPAM COMPLAINT] ${recipient} marked email as spam`);
+      console.log(`[SPAM COMPLAINT] ${recipient} marked email as spam`);
       break;
 
     case 'unsubscribed':
@@ -187,22 +187,22 @@ async function handleMailgunEvent(eventData, userId, agentId, trackingId) {
             }
           );
         } catch (error) {
-          console.error('❌ [ISSUES] Failed to log unsubscribe to database:', error);
+          console.error('[ISSUES] Failed to log unsubscribe to database:', error);
         }
       }
       
-      console.log(`📪 [UNSUBSCRIBE] ${recipient} unsubscribed`);
+      console.log(`[UNSUBSCRIBE] ${recipient} unsubscribed`);
       break;
 
     case 'delivered':
       // Email successfully delivered - log as info only if it was previously failing
-      console.log(`✅ [DELIVERED] Email successfully delivered to ${recipient}`);
+      console.log(`[DELIVERED] Email successfully delivered to ${recipient}`);
       break;
 
     case 'opened':
     case 'clicked':
       // Engagement events - don't log as issues
-      console.log(`📊 [ENGAGEMENT] ${eventType} event for ${recipient}`);
+      console.log(`[ENGAGEMENT] ${eventType} event for ${recipient}`);
       break;
 
     default:

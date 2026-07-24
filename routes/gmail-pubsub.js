@@ -13,7 +13,7 @@ const awsManager = new AWSManager();
  */
 async function processBounce(userId, agentId, trackingId, recipient, message) {
   try {
-    console.log(`⚠️ [GMAIL BOUNCE] Processing bounce for ${recipient}`);
+    console.log(`[GMAIL BOUNCE] Processing bounce for ${recipient}`);
     
     // Log bounce event to tracking
     await awsManager.logEmailTracking(userId, agentId, trackingId, {
@@ -25,7 +25,7 @@ async function processBounce(userId, agentId, trackingId, recipient, message) {
       timestamp: new Date().toISOString()
     });
     
-    console.log(`✅ [GMAIL BOUNCE] Logged bounce event to tracking for ${trackingId}`);
+    console.log(`[GMAIL BOUNCE] Logged bounce event to tracking for ${trackingId}`);
     
     // Update email status to bounced
     const awsQueue = (await import('../utils/awsEmailQueue.js')).default;
@@ -38,7 +38,7 @@ async function processBounce(userId, agentId, trackingId, recipient, message) {
     
     while (!updateSuccessful && attempts < maxAttempts) {
       attempts++;
-      console.log(`🔍 [GMAIL BOUNCE] Looking for email, attempt ${attempts}/${maxAttempts}`);
+      console.log(`[GMAIL BOUNCE] Looking for email, attempt ${attempts}/${maxAttempts}`);
       
       try {
         const sentEmails = await queueInstance.getSentEmails(userId, agentId);
@@ -48,7 +48,7 @@ async function processBounce(userId, agentId, trackingId, recipient, message) {
           // Update from current status to BOUNCED
           const currentStatus = email.status || 'SENT';
           const emailId = email.id; // Use the actual email ID, not tracking ID
-          console.log(`📧 [GMAIL BOUNCE] Found email ${emailId} with trackingId ${trackingId}`);
+          console.log(`[GMAIL BOUNCE] Found email ${emailId} with trackingId ${trackingId}`);
           
           await queueInstance.updateEmailStatus(userId, agentId, emailId, currentStatus, 'BOUNCED', {
             bounceType: 'gmail',
@@ -57,7 +57,7 @@ async function processBounce(userId, agentId, trackingId, recipient, message) {
             bouncedAt: new Date().toISOString()
           });
           
-          console.log(`✅ [GMAIL BOUNCE] Updated email status from ${currentStatus} to BOUNCED for ${emailId}`);
+          console.log(`[GMAIL BOUNCE] Updated email status from ${currentStatus} to BOUNCED for ${emailId}`);
           updateSuccessful = true;
         } else {
           console.log(`⏳ [GMAIL BOUNCE] Email not found yet, waiting 2 seconds...`);
@@ -66,7 +66,7 @@ async function processBounce(userId, agentId, trackingId, recipient, message) {
           }
         }
       } catch (error) {
-        console.log(`⚠️ [GMAIL BOUNCE] Update attempt ${attempts} failed: ${error.message}`);
+        console.log(`[GMAIL BOUNCE] Update attempt ${attempts} failed: ${error.message}`);
         if (attempts < maxAttempts) {
           console.log(`⏳ [GMAIL BOUNCE] Retrying in 2 seconds...`);
           await new Promise(resolve => setTimeout(resolve, 2000));
@@ -77,7 +77,7 @@ async function processBounce(userId, agentId, trackingId, recipient, message) {
     }
     
     if (!updateSuccessful) {
-      console.warn(`⚠️ [GMAIL BOUNCE] Failed to update email status after ${maxAttempts} attempts for trackingId: ${trackingId}`);
+      console.warn(`[GMAIL BOUNCE] Failed to update email status after ${maxAttempts} attempts for trackingId: ${trackingId}`);
     }
     
     // Also log to issues system
@@ -96,9 +96,9 @@ async function processBounce(userId, agentId, trackingId, recipient, message) {
       }
     );
     
-    console.log(`✅ [GMAIL BOUNCE] Bounce processing complete for ${trackingId}`);
+    console.log(`[GMAIL BOUNCE] Bounce processing complete for ${trackingId}`);
   } catch (error) {
-    console.error('❌ [GMAIL BOUNCE] Error processing bounce:', error);
+    console.error('[GMAIL BOUNCE] Error processing bounce:', error);
   }
 }
 
@@ -108,7 +108,7 @@ async function processBounce(userId, agentId, trackingId, recipient, message) {
  */
 router.post('/gmail-notification', async (req, res) => {
   try {
-    console.log('📬 [GMAIL PUBSUB] Received notification');
+    console.log('[GMAIL PUBSUB] Received notification');
     
     // Acknowledge immediately (Pub/Sub expects quick response)
     res.status(200).send('OK');
@@ -116,7 +116,7 @@ router.post('/gmail-notification', async (req, res) => {
     // Parse the Pub/Sub message
     const pubsubMessage = req.body.message;
     if (!pubsubMessage || !pubsubMessage.data) {
-      console.log('⚠️ [GMAIL PUBSUB] No message data');
+      console.log('[GMAIL PUBSUB] No message data');
       return;
     }
 
@@ -124,13 +124,13 @@ router.post('/gmail-notification', async (req, res) => {
     const decodedData = Buffer.from(pubsubMessage.data, 'base64').toString('utf-8');
     const notification = JSON.parse(decodedData);
     
-    console.log('📧 [GMAIL PUBSUB] Notification data:', notification);
+    console.log('[GMAIL PUBSUB] Notification data:', notification);
 
     // Extract email address to identify user
     const emailAddress = notification.emailAddress;
     const historyId = notification.historyId;
 
-    console.log(`📧 [GMAIL PUBSUB] Looking for user with Gmail: ${emailAddress}`);
+    console.log(`[GMAIL PUBSUB] Looking for user with Gmail: ${emailAddress}`);
 
     // Find user by Gmail address
     const users = await awsManager.getAllUsers();
@@ -142,7 +142,7 @@ router.post('/gmail-notification', async (req, res) => {
       // Check user's main email first
       if (u.email === emailAddress) {
         matchedUser = u;
-        console.log(`✅ [GMAIL PUBSUB] Found user by main email: ${u.userId.substring(0, 8)}...`);
+        console.log(`[GMAIL PUBSUB] Found user by main email: ${u.userId.substring(0, 8)}...`);
         break;
       }
       
@@ -153,14 +153,14 @@ router.post('/gmail-notification', async (req, res) => {
         // Check legacy gmailAuth
         if (settings?.gmailAuth?.email === emailAddress) {
           matchedUser = u;
-          console.log(`✅ [GMAIL PUBSUB] Found user by gmailAuth: ${u.userId.substring(0, 8)}...`);
+          console.log(`[GMAIL PUBSUB] Found user by gmailAuth: ${u.userId.substring(0, 8)}...`);
           break;
         }
         
         // Check gmailAccounts array
         if (settings?.gmailAccounts && settings.gmailAccounts.some(acc => acc.email === emailAddress)) {
           matchedUser = u;
-          console.log(`✅ [GMAIL PUBSUB] Found user by gmailAccounts: ${u.userId.substring(0, 8)}...`);
+          console.log(`[GMAIL PUBSUB] Found user by gmailAccounts: ${u.userId.substring(0, 8)}...`);
           break;
         }
       } catch (err) {
@@ -170,20 +170,20 @@ router.post('/gmail-notification', async (req, res) => {
     }
 
     if (!matchedUser) {
-      console.log(`⚠️ [GMAIL PUBSUB] No user found for email: ${emailAddress}`);
+      console.log(`[GMAIL PUBSUB] No user found for email: ${emailAddress}`);
       return;
     }
     
     const user = matchedUser;
 
-    console.log(`👤 [GMAIL PUBSUB] Processing notification for user: ${user.userId}`);
+    console.log(`[GMAIL PUBSUB] Processing notification for user: ${user.userId}`);
 
     // Get user's last known historyId
     const userSettings = await awsManager.getUserSettings(user.userId);
     const lastHistoryId = userSettings?.gmailWatch?.historyId;
 
     if (!lastHistoryId) {
-      console.log('⚠️ [GMAIL PUBSUB] No lastHistoryId found, skipping');
+      console.log('[GMAIL PUBSUB] No lastHistoryId found, skipping');
       return;
     }
 
@@ -191,17 +191,17 @@ router.post('/gmail-notification', async (req, res) => {
     let history;
     try {
       history = await gmailManager.getHistory(user.userId, lastHistoryId);
-      console.log(`📜 [GMAIL PUBSUB] Found ${history.length} history items`);
+      console.log(`[GMAIL PUBSUB] Found ${history.length} history items`);
     } catch (error) {
       // If history ID is expired (404), reset to current history ID
       if (error.status === 404 || error.code === 404) {
-        console.log('⚠️ [GMAIL PUBSUB] History ID expired, resetting to current...');
+        console.log('[GMAIL PUBSUB] History ID expired, resetting to current...');
         
         // Get current profile to get fresh historyId
         const profile = await gmailManager.getUserProfile(user.userId);
         const currentHistoryId = profile.historyId;
         
-        console.log(`🔄 [GMAIL PUBSUB] Reset historyId from ${lastHistoryId} to ${currentHistoryId}`);
+        console.log(`[GMAIL PUBSUB] Reset historyId from ${lastHistoryId} to ${currentHistoryId}`);
         
         // Save the new historyId
         await awsManager.saveUserSettings(user.userId, {
@@ -238,15 +238,15 @@ router.post('/gmail-notification', async (req, res) => {
           
           // Check if this is a bounce message
           if (gmailManager.isBounceMessage(fullMessage)) {
-            console.log(`⚠️ [GMAIL PUBSUB] Detected bounce message from: ${fullMessage.from}`);
-            console.log(`📧 [GMAIL PUBSUB] Bounce subject: ${fullMessage.subject}`);
+            console.log(`[GMAIL PUBSUB] Detected bounce message from: ${fullMessage.from}`);
+            console.log(`[GMAIL PUBSUB] Bounce subject: ${fullMessage.subject}`);
             
             // Extract tracking ID from bounce
             const trackingId = gmailManager.extractTrackingIdFromBounce(fullMessage);
             const recipient = gmailManager.extractRecipientFromBounce(fullMessage);
             
             if (trackingId) {
-              console.log(`📧 [GMAIL PUBSUB] Bounce for tracking ID: ${trackingId}, recipient: ${recipient}`);
+              console.log(`[GMAIL PUBSUB] Bounce for tracking ID: ${trackingId}, recipient: ${recipient}`);
               
               // Extract userId and agentId from tracking ID
               const userIdMatch = trackingId.match(/tracking-([a-f0-9-]+)_/);
@@ -259,10 +259,10 @@ router.post('/gmail-notification', async (req, res) => {
                 // Process bounce
                 await processBounce(userId, agentId, trackingId, recipient, fullMessage);
               } else {
-                console.log(`⚠️ [GMAIL PUBSUB] Could not extract userId/agentId from tracking ID: ${trackingId}`);
+                console.log(`[GMAIL PUBSUB] Could not extract userId/agentId from tracking ID: ${trackingId}`);
               }
             } else {
-              console.log(`⚠️ [GMAIL PUBSUB] Could not extract tracking ID from bounce message`);
+              console.log(`[GMAIL PUBSUB] Could not extract tracking ID from bounce message`);
             }
             continue;
           }
@@ -281,13 +281,13 @@ router.post('/gmail-notification', async (req, res) => {
               // Gmail fires history events for outbound (sent) mail too, not just incoming replies.
               // Skip the original sent message — it has our custom header but no In-Reply-To.
               if (!fullMessage.inReplyTo) {
-                console.log(`📤 [GMAIL PUBSUB] Ignoring outbound (non-reply) message from ${fromEmail} — not a manual reply`);
+                console.log(`[GMAIL PUBSUB] Ignoring outbound (non-reply) message from ${fromEmail} — not a manual reply`);
                 continue;
               }
 
               // User sent a manual reply from Gmail — log as 'manual' event so it shows in the timeline
               // and mark the original email as REPLIED to suppress follow-ups.
-              console.log(`✍️  [GMAIL PUBSUB] Manual reply from ${fromEmail} on tracked thread — logging event`);
+              console.log(`[GMAIL PUBSUB] Manual reply from ${fromEmail} on tracked thread — logging event`);
               const manualUserId = trackingId.match(/tracking-([a-f0-9-]+)_/)?.[1] ?? null;
               const manualAgentId = trackingId.match(/tracking-[a-f0-9-]+_([^_]+)_/)?.[1] ?? null;
               if (manualUserId && manualAgentId) {
@@ -307,7 +307,7 @@ router.post('/gmail-notification', async (req, res) => {
                       messageId: fullMessage.messageId,
                       timestamp: new Date().toISOString(),
                     });
-                    console.log(`✅ [GMAIL PUBSUB] Logged manual reply event`);
+                    console.log(`[GMAIL PUBSUB] Logged manual reply event`);
                   } else {
                     console.log(`⏭️  [GMAIL PUBSUB] Manual reply already logged for messageId ${fullMessage.messageId}, skipping`);
                   }
@@ -318,14 +318,14 @@ router.post('/gmail-notification', async (req, res) => {
               continue;
             }
 
-            console.log(`📧 [GMAIL PUBSUB] Found reply to tracked email from: ${fullMessage.from} (${trackingId})`);
+            console.log(`[GMAIL PUBSUB] Found reply to tracked email from: ${fullMessage.from} (${trackingId})`);
             
             // Process through webhook logic
             const { processGmailReply } = await import('./webhooks-reply.js');
             await processGmailReply(user.userId, fullMessage);
           } else if (fullMessage.threadId) {
             // No tracking ID in body/headers — try matching by Gmail threadId
-            console.log(`🧵 [GMAIL PUBSUB] No tracking ID found, trying threadId fallback: ${fullMessage.threadId}`);
+            console.log(`[GMAIL PUBSUB] No tracking ID found, trying threadId fallback: ${fullMessage.threadId}`);
             let resolvedTrackingId = null;
 
             try {
@@ -343,21 +343,21 @@ router.post('/gmail-notification', async (req, res) => {
             }
 
             if (resolvedTrackingId) {
-              console.log(`✅ [GMAIL PUBSUB] Resolved via threadId: ${resolvedTrackingId}`);
+              console.log(`[GMAIL PUBSUB] Resolved via threadId: ${resolvedTrackingId}`);
               fullMessage.resolvedTrackingId = resolvedTrackingId;
               const { processGmailReply } = await import('./webhooks-reply.js');
               await processGmailReply(user.userId, fullMessage);
             } else {
-              console.log(`📭 [GMAIL PUBSUB] Message is not a reply to tracked email: ${fullMessage.from}`);
+              console.log(`[GMAIL PUBSUB] Message is not a reply to tracked email: ${fullMessage.from}`);
             }
           }
         }
       }
     }
 
-    console.log('✅ [GMAIL PUBSUB] Notification processed successfully');
+    console.log('[GMAIL PUBSUB] Notification processed successfully');
   } catch (error) {
-    console.error('❌ [GMAIL PUBSUB] Error processing notification:', error);
+    console.error('[GMAIL PUBSUB] Error processing notification:', error);
   }
 });
 
@@ -368,7 +368,7 @@ router.post('/setup-watch', authenticateToken, async (req, res) => {
   try {
     const { userId } = req.user;
     
-    console.log(`📬 [GMAIL PUBSUB] Manually setting up watch for user: ${userId}`);
+    console.log(`[GMAIL PUBSUB] Manually setting up watch for user: ${userId}`);
     const result = await gmailManager.setupPushNotifications(userId);
     
     res.json({
@@ -377,7 +377,7 @@ router.post('/setup-watch', authenticateToken, async (req, res) => {
       ...result
     });
   } catch (error) {
-    console.error('❌ [GMAIL PUBSUB] Error setting up watch:', error);
+    console.error('[GMAIL PUBSUB] Error setting up watch:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -418,7 +418,7 @@ router.get('/watch-status', authenticateToken, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('❌ [GMAIL PUBSUB] Error checking watch status:', error);
+    console.error('[GMAIL PUBSUB] Error checking watch status:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -440,7 +440,7 @@ router.post('/stop-watch', authenticateToken, async (req, res) => {
       message: 'Gmail push notifications disabled'
     });
   } catch (error) {
-    console.error('❌ [GMAIL PUBSUB] Error stopping watch:', error);
+    console.error('[GMAIL PUBSUB] Error stopping watch:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -456,7 +456,7 @@ router.post('/test-notification', authenticateToken, async (req, res) => {
   try {
     const { userId } = req.user;
     
-    console.log('🧪 [GMAIL PUBSUB TEST] Manually checking for new messages for user:', userId);
+    console.log('[GMAIL PUBSUB TEST] Manually checking for new messages for user:', userId);
     
     // Get user settings
     const userSettings = await awsManager.getUserSettings(userId);
@@ -470,11 +470,11 @@ router.post('/test-notification', authenticateToken, async (req, res) => {
       });
     }
     
-    console.log('🧪 [GMAIL PUBSUB TEST] Last history ID:', lastHistoryId);
+    console.log('[GMAIL PUBSUB TEST] Last history ID:', lastHistoryId);
     
     // Get history manually
     const history = await gmailManager.getHistory(userId, lastHistoryId);
-    console.log(`🧪 [GMAIL PUBSUB TEST] Found ${history.length} history items`);
+    console.log(`[GMAIL PUBSUB TEST] Found ${history.length} history items`);
     
     let bouncesFound = 0;
     let repliesFound = 0;
@@ -490,7 +490,7 @@ router.post('/test-notification', authenticateToken, async (req, res) => {
           // Fetch full message details
           const fullMessage = await gmailManager.getMessage(userId, messageId);
           
-          console.log('🧪 [GMAIL PUBSUB TEST] Message:', {
+          console.log('[GMAIL PUBSUB TEST] Message:', {
             from: fullMessage.from,
             subject: fullMessage.subject?.substring(0, 50),
             isBounce: gmailManager.isBounceMessage(fullMessage)
@@ -499,13 +499,13 @@ router.post('/test-notification', authenticateToken, async (req, res) => {
           // Check if this is a bounce message
           if (gmailManager.isBounceMessage(fullMessage)) {
             bouncesFound++;
-            console.log(`⚠️ [GMAIL PUBSUB TEST] Found bounce from: ${fullMessage.from}`);
+            console.log(`[GMAIL PUBSUB TEST] Found bounce from: ${fullMessage.from}`);
             
             const trackingId = gmailManager.extractTrackingIdFromBounce(fullMessage);
             const recipient = gmailManager.extractRecipientFromBounce(fullMessage);
             
             if (trackingId) {
-              console.log(`📧 [GMAIL PUBSUB TEST] Bounce for tracking ID: ${trackingId}`);
+              console.log(`[GMAIL PUBSUB TEST] Bounce for tracking ID: ${trackingId}`);
               
               // Extract userId and agentId
               const userIdMatch = trackingId.match(/tracking-([a-f0-9-]+)_/);
@@ -528,7 +528,7 @@ router.post('/test-notification', authenticateToken, async (req, res) => {
           
           if (hasTrackingId) {
             repliesFound++;
-            console.log(`📧 [GMAIL PUBSUB TEST] Found reply from: ${fullMessage.from}`);
+            console.log(`[GMAIL PUBSUB TEST] Found reply from: ${fullMessage.from}`);
           }
         }
       }
@@ -544,7 +544,7 @@ router.post('/test-notification', authenticateToken, async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ [GMAIL PUBSUB TEST] Error:', error);
+    console.error('[GMAIL PUBSUB TEST] Error:', error);
     res.status(500).json({
       success: false,
       error: error.message
