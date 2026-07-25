@@ -12,6 +12,15 @@ const VARIANTS: { id: Variant; label: string; desc: string }[] = [
   { id: 'modal-swoop-up', label: 'Swoop — up', desc: 'Straight up from below, no rotation' },
 ];
 
+// Full literal class names on purpose — Tailwind's build-time scanner can't see
+// through a template-interpolated class like `animate-${open}`, so that string
+// never made it into the generated CSS and the panel never actually animated.
+const ANIMATION_CLASS: Record<Variant, string> = {
+  'modal-swoop-tr': 'animate-modal-swoop-tr',
+  'modal-swoop-tl': 'animate-modal-swoop-tl',
+  'modal-swoop-up': 'animate-modal-swoop-up',
+};
+
 export function ModalSwoopDemo() {
   const [open, setOpen] = useState<Variant | null>(null);
 
@@ -45,7 +54,7 @@ export function ModalSwoopDemo() {
             onClick={e => e.stopPropagation()}
             className={cn(
               'w-full max-w-sm rounded-2xl border border-border bg-background shadow-2xl p-6',
-              `animate-${open}`,
+              ANIMATION_CLASS[open],
             )}
             style={{ transformOrigin: open === 'modal-swoop-tl' ? 'top left' : open === 'modal-swoop-tr' ? 'top right' : 'bottom center' }}
           >
