@@ -169,12 +169,14 @@ const CRM_CONFIGS = [
   { id: 'zendesksell', name: 'Zendesk Sell', fields: [{ name: 'Access Token', key: 'apiKey', type: 'password', placeholder: 'Your Zendesk Sell access token', helpText: undefined }] },
 ]
 
+const ENTERPRISE_CONTACT_EMAIL = 'colton.fidd@gmail.com'
+
 const PLANS = [
   { id: 'free-trial', name: 'Free Trial', price: 0, credits: 250, maxAgents: 1, maxConcurrency: 3, description: 'Perfect for trying out Meridian', features: ['250 free credits', '1 agent included', 'Up to 3x speed', 'No credit card required'] },
-  { id: 'basic', name: 'Basic', price: 100, credits: 1200, maxAgents: 3, maxConcurrency: 5, description: 'Get started on a budget', features: ['1,200 credits', 'Up to 3 agents', 'Up to 5x speed'] },
-  { id: 'starter', name: 'Starter', price: 500, credits: 13000, maxAgents: 5, maxConcurrency: 10, description: 'For solo entrepreneurs', features: ['13,000 credits', 'Up to 5 agents', 'Up to 10x speed'] },
-  { id: 'professional', name: 'Professional', price: 1000, credits: 30000, maxAgents: 10, maxConcurrency: 20, description: 'For growing teams', features: ['30,000 credits', 'Up to 10 agents', 'Up to 20x speed'], popular: true },
-  { id: 'enterprise', name: 'Enterprise', price: 2500, credits: 70000, maxAgents: 30, maxConcurrency: 30, description: 'High-volume operations', features: ['70,000 credits', 'Up to 30 agents', 'Up to 30x speed'] },
+  { id: 'solo', name: 'Solo', price: 100, credits: 750, maxAgents: 2, maxConcurrency: 4, description: '750 fully researched & tracked leads, 3,000 emails', features: ['750 fully researched & tracked leads', '3,000 emails (1 main + 3 follow-ups)', '2 agents', '4x speed'] },
+  { id: 'team', name: 'Team', price: 250, credits: 2100, maxAgents: 6, maxConcurrency: 8, description: '2,000 fully researched & tracked leads, 8,000 emails', features: ['2,000 fully researched & tracked leads', '8,000 emails (1 main + 3 follow-ups)', '6 agents', '8x speed'], popular: true },
+  { id: 'agency', name: 'Agency', price: 500, credits: 4200, maxAgents: 15, maxConcurrency: 12, description: '4,000 fully researched & tracked leads, 16,000 emails', features: ['4,000 fully researched & tracked leads', '16,000 emails (1 main + 3 follow-ups)', '15 agents', '12x speed'] },
+  { id: 'enterprise', name: 'Enterprise', price: null, credits: 0, maxAgents: 30, maxConcurrency: 30, description: 'Custom lead & email volume for high-volume operations', features: ['Custom lead volume', 'Custom email volume', 'Up to 30 agents', 'Up to 30x speed'] },
 ]
 
 
@@ -956,18 +958,28 @@ export default function OnboardingFlow({ onComplete }: Props) {
 
         <div className="space-y-2 mb-4">
           {PLANS.map(p => (
-            <button key={p.id} onClick={() => { setSelectedPlan(p.id); setPlanPurchased(false) }}
+            <button key={p.id}
+              onClick={() => {
+                if (p.id === 'enterprise') {
+                  window.location.href = `mailto:${ENTERPRISE_CONTACT_EMAIL}?subject=Meridian%20Enterprise`
+                  return
+                }
+                setSelectedPlan(p.id); setPlanPurchased(false)
+              }}
               className={`w-full flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all ${selectedPlan === p.id ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:border-gray-300'}`}>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-sm text-gray-900">{p.name}</span>
                   {'popular' in p && p.popular && <span className="px-1.5 py-0.5 bg-green-800 text-white text-[10px] rounded font-medium">Popular</span>}
                 </div>
-                <div className="text-xs text-gray-500 mt-0.5">{p.credits.toLocaleString()} credits · {p.maxAgents} agent{p.maxAgents > 1 ? 's' : ''} · {p.maxConcurrency}× speed</div>
+                <div className="text-xs text-gray-500 mt-0.5">
+                  {p.id === 'enterprise' ? 'Custom volume' : `${p.credits.toLocaleString()} credits`} · {p.id === 'enterprise' ? 'Up to 30 agents' : `${p.maxAgents} agent${p.maxAgents > 1 ? 's' : ''}`} · Up to {p.maxConcurrency}× speed
+                </div>
               </div>
               <div className="text-right shrink-0">
-                {p.price === 0 ? <span className="text-sm font-bold text-gray-900">Free</span>
-                  : <span className="text-sm font-bold text-gray-900">${p.price.toLocaleString()}<span className="font-normal text-gray-500 text-xs">/mo</span></span>}
+                {p.id === 'free-trial' ? <span className="text-sm font-bold text-gray-900">Free</span>
+                  : p.id === 'enterprise' ? <span className="text-sm font-bold text-gray-900">Custom</span>
+                  : <span className="text-sm font-bold text-gray-900">${(p.price as number).toLocaleString()}<span className="font-normal text-gray-500 text-xs">/mo</span></span>}
               </div>
               {selectedPlan === p.id && <div className="w-4 h-4 rounded-full bg-gray-900 flex items-center justify-center shrink-0 ml-1"><Check size={9} strokeWidth={3} className="text-white" /></div>}
             </button>
