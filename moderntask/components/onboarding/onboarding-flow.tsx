@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Check, X, CloudUpload, Loader2, Lock, XCircle, Sparkles, AlertTriangle, ChevronDown } from 'lucide-react'
+import { InfoTooltip } from '@/components/ui/info-tooltip'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import api from '@/lib/api'
@@ -700,7 +701,10 @@ export default function OnboardingFlow({ onComplete }: Props) {
             </div>
           </div>
           <div>
-            <label className={lc}>Leads per cycle</label>
+            <label className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
+              Leads per cycle
+              <InfoTooltip text="How many new leads your agent researches and contacts each time it runs a cycle. Higher numbers move faster but use more credits per cycle." />
+            </label>
             <input type="number" value={leadsPerCycle} onChange={e => setLeadsPerCycle(Number(e.target.value))} min={1} max={100} className={ic} />
             <p className="text-xs text-gray-400 mt-1">~{Math.ceil(leadsPerCycle * 2 / 3)} credits/cycle</p>
           </div>

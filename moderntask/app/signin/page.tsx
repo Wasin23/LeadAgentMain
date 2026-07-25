@@ -482,7 +482,7 @@ export default function SignInPage() {
                       <span className="bg-white px-2 text-muted-foreground">or</span>
                     </div>
                   </div>
-                  <Button type="button" variant="outline" className="signin-pressable google-auth-button w-full border-slate-200 bg-white hover:bg-white hover:text-blue-700 hover:border-blue-500" disabled={!termsAccepted} onClick={handleGoogleSignIn}>
+                  <Button type="button" variant="outline" className="signin-pressable google-auth-button w-full border-slate-200 bg-white hover:bg-white hover:text-blue-700 hover:border-blue-500" onClick={handleGoogleSignIn}>
                     <GoogleIcon /><span className="ml-2">Continue with Google</span>
                   </Button>
                 </form>
