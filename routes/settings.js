@@ -372,6 +372,15 @@ router.put('/sending-schedule', async (req, res) => {
       mainPerDay: Math.min(50, Math.max(1, parseInt(schedule.mainPerDay, 10) || 1)),
       followUpPerDay: Math.min(50, Math.max(0, parseInt(schedule.followUpPerDay, 10) || 0)),
     };
+
+    // A manual edit that no longer matches the previously-applied named schedule means
+    // the "Schedule for Send" button can no longer honestly show that name.
+    const stillMatches = userSettings.activeSavedScheduleId && (userSettings.savedSchedules || [])
+      .find(s => s.id === userSettings.activeSavedScheduleId
+        && JSON.stringify({ ...s, id: undefined, name: undefined, createdAt: undefined, updatedAt: undefined })
+           === JSON.stringify({ ...userSettings.sendingSchedule, id: undefined, name: undefined, createdAt: undefined, updatedAt: undefined }));
+    if (!stillMatches) userSettings.activeSavedScheduleId = null;
+
     await awsManager.saveUserSettings(req.user.userId, userSettings);
 
     const { syncGlobalScheduleForUser } = await import('../utils/scheduleSlots.js');
@@ -382,6 +391,168 @@ router.put('/sending-schedule', async (req, res) => {
     res.json({ success: true, schedule: userSettings.sendingSchedule });
   } catch (error) {
     console.error('Error saving sending schedule:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Saved schedules — named presets of the sending schedule, switchable at will ────────────
+// Unlike settingsPresets (copy-once, no memory of which was applied), these track which one
+// is currently live via userSettings.activeSavedScheduleId, so the "Schedule for Send"
+// button can show its real name.
+
+function normalizeScheduleFields(body) {
+  if (!Array.isArray(body?.activeDays) || !body.activeDays.length) {
+    throw Object.assign(new Error('activeDays must be a non-empty array'), { status: 400 });
+  }
+  if (typeof body.sendTime !== 'string' || !/^\d{2}:\d{2}$/.test(body.sendTime)) {
+    throw Object.assign(new Error('sendTime must be "HH:MM"'), { status: 400 });
+  }
+  return {
+    activeDays: body.activeDays,
+    sendTime: body.sendTime,
+    timezone: body.timezone || 'America/New_York',
+    mainPerDay: Math.min(50, Math.max(1, parseInt(body.mainPerDay, 10) || 1)),
+    followUpPerDay: Math.min(50, Math.max(0, parseInt(body.followUpPerDay, 10) || 0)),
+  };
+}
+
+/**
+ * GET /api/settings/saved-schedules
+ */
+router.get('/saved-schedules', async (req, res) => {
+  try {
+    const awsManager = new AWSManager();
+    const userSettings = await awsManager.getUserSettings(req.user.userId) || {};
+    res.json({
+      success: true,
+      schedules: userSettings.savedSchedules || [],
+      activeSavedScheduleId: userSettings.activeSavedScheduleId || null,
+    });
+  } catch (error) {
+    console.error('Error getting saved schedules:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * POST /api/settings/saved-schedules
+ * Body: { name: string, activeDays, sendTime, timezone, mainPerDay, followUpPerDay }
+ */
+router.post('/saved-schedules', async (req, res) => {
+  try {
+    const name = (req.body?.name || '').trim();
+    if (!name) return res.status(400).json({ success: false, error: 'Name is required' });
+
+    let fields;
+    try { fields = normalizeScheduleFields(req.body); }
+    catch (e) { return res.status(e.status || 400).json({ success: false, error: e.message }); }
+
+    const awsManager = new AWSManager();
+    const userSettings = await awsManager.getUserSettings(req.user.userId) || {};
+    const now = new Date().toISOString();
+    const newSchedule = { id: uuidv4(), name, ...fields, createdAt: now, updatedAt: now };
+
+    userSettings.savedSchedules = [...(userSettings.savedSchedules || []), newSchedule];
+    await awsManager.saveUserSettings(req.user.userId, userSettings);
+
+    res.json({ success: true, schedule: newSchedule });
+  } catch (error) {
+    console.error('Error creating saved schedule:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * PUT /api/settings/saved-schedules/:id
+ */
+router.put('/saved-schedules/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const name = req.body?.name !== undefined ? String(req.body.name).trim() : undefined;
+    if (name === '') return res.status(400).json({ success: false, error: 'Name cannot be empty' });
+
+    let fields;
+    try { fields = normalizeScheduleFields(req.body); }
+    catch (e) { return res.status(e.status || 400).json({ success: false, error: e.message }); }
+
+    const awsManager = new AWSManager();
+    const userSettings = await awsManager.getUserSettings(req.user.userId) || {};
+    const list = userSettings.savedSchedules || [];
+    const index = list.findIndex(s => s.id === id);
+    if (index === -1) return res.status(404).json({ success: false, error: 'Schedule not found' });
+
+    const updated = { ...list[index], ...fields, name: name ?? list[index].name, updatedAt: new Date().toISOString() };
+    list[index] = updated;
+    userSettings.savedSchedules = list;
+
+    // If this is the currently-applied schedule, push the edit live too — otherwise the
+    // button would keep showing this name while actually sending on stale settings.
+    if (userSettings.activeSavedScheduleId === id) {
+      userSettings.sendingSchedule = { ...fields };
+    }
+    await awsManager.saveUserSettings(req.user.userId, userSettings);
+
+    if (userSettings.activeSavedScheduleId === id) {
+      const { syncGlobalScheduleForUser } = await import('../utils/scheduleSlots.js');
+      await syncGlobalScheduleForUser(req.user.userId, { awsManager, schedule: userSettings.sendingSchedule }).catch(() => {});
+    }
+
+    res.json({ success: true, schedule: updated });
+  } catch (error) {
+    console.error('Error updating saved schedule:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * DELETE /api/settings/saved-schedules/:id
+ */
+router.delete('/saved-schedules/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const awsManager = new AWSManager();
+    const userSettings = await awsManager.getUserSettings(req.user.userId) || {};
+    userSettings.savedSchedules = (userSettings.savedSchedules || []).filter(s => s.id !== id);
+    // Deleting the applied schedule doesn't stop it from sending — just forgets its name.
+    if (userSettings.activeSavedScheduleId === id) userSettings.activeSavedScheduleId = null;
+    await awsManager.saveUserSettings(req.user.userId, userSettings);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting saved schedule:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * POST /api/settings/saved-schedules/:id/apply
+ * Copies the named schedule's fields into the live sendingSchedule and remembers the name.
+ */
+router.post('/saved-schedules/:id/apply', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const awsManager = new AWSManager();
+    const userSettings = await awsManager.getUserSettings(req.user.userId) || {};
+    const target = (userSettings.savedSchedules || []).find(s => s.id === id);
+    if (!target) return res.status(404).json({ success: false, error: 'Schedule not found' });
+
+    userSettings.sendingSchedule = {
+      activeDays: target.activeDays,
+      sendTime: target.sendTime,
+      timezone: target.timezone,
+      mainPerDay: target.mainPerDay,
+      followUpPerDay: target.followUpPerDay,
+    };
+    userSettings.activeSavedScheduleId = id;
+    await awsManager.saveUserSettings(req.user.userId, userSettings);
+
+    const { syncGlobalScheduleForUser } = await import('../utils/scheduleSlots.js');
+    await syncGlobalScheduleForUser(req.user.userId, { awsManager, schedule: userSettings.sendingSchedule }).catch(syncError => {
+      console.error('[SETTINGS] Failed to sync schedule after apply:', syncError.message);
+    });
+
+    res.json({ success: true, schedule: userSettings.sendingSchedule, appliedName: target.name });
+  } catch (error) {
+    console.error('Error applying saved schedule:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

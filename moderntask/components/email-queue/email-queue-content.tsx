@@ -21,17 +21,12 @@ import {
 import { cn } from '@/lib/utils'
 import { CopyChip } from '@/components/leads/leads-content'
 import { GmailIcon, OutlookIcon } from '@/components/ui/provider-icons'
+import { ScheduleBuilder } from '@/components/schedule/schedule-builder'
+import { DAY_LABELS, TIMEZONES, BROWSER_TZ, DEFAULT_SCHEDULE } from '@/lib/schedule-types'
+import type { SendingSchedule } from '@/lib/schedule-types'
 
 // ── types ─────────────────────────────────────────────────────────────────────
 export interface Agent { agentId: string; name: string; personality?: { avatar?: string }; settings?: { emailBuilder?: { smartRebump?: boolean } } }
-
-export interface SendingSchedule {
-  activeDays:     number[]  // 0=Sun … 6=Sat
-  sendTime:       string    // "HH:MM" e.g. "09:00"
-  mainPerDay:     number
-  followUpPerDay: number
-  timezone:       string
-}
 
 interface ScheduledBatch {
   scheduledSendTime: string  // "YYYY-MM-DDTHH:MM" UTC
@@ -200,33 +195,6 @@ function ScheduleModal({ email, onSave, onClose }: {
 }
 
 // ── agent sending schedule panel ─────────────────────────────────────────────
-const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-const TIMEZONES = [
-  'America/New_York', 'America/Chicago', 'America/Denver',
-  'America/Los_Angeles', 'America/Anchorage', 'Pacific/Honolulu',
-  'America/Toronto', 'America/Vancouver', 'America/Sao_Paulo',
-  'America/Mexico_City', 'America/Buenos_Aires',
-  'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Europe/Amsterdam',
-  'Europe/Madrid', 'Europe/Rome', 'Europe/Stockholm', 'Europe/Moscow',
-  'Africa/Cairo', 'Africa/Johannesburg',
-  'Asia/Dubai', 'Asia/Kolkata', 'Asia/Bangkok', 'Asia/Singapore',
-  'Asia/Tokyo', 'Asia/Seoul', 'Asia/Shanghai', 'Asia/Hong_Kong',
-  'Australia/Sydney', 'Australia/Melbourne', 'Pacific/Auckland',
-]
-
-// Browser's own IANA timezone - used as the default for new agents
-const BROWSER_TZ: string =
-  typeof window !== 'undefined'
-    ? Intl.DateTimeFormat().resolvedOptions().timeZone
-    : 'America/New_York'
-
-const DEFAULT_SCHEDULE: SendingSchedule = {
-  activeDays: [1, 2, 3, 4, 5],
-  sendTime: '09:00',
-  mainPerDay: 50,
-  followUpPerDay: 0,
-  timezone: BROWSER_TZ,
-}
 
 function ScheduledBatchesModal({ onClose, onChanged }: { onClose: () => void; onChanged: () => void }) {
   const { toast } = useToast()
@@ -370,204 +338,6 @@ function ScheduledBatchesModal({ onClose, onChanged }: { onClose: () => void; on
         </div>
       </div>
     </div>
-  )
-}
-
-export function AgentScheduleCard({ onSaved }: { onSaved?: (s: SendingSchedule) => void }) {
-  const { toast } = useToast()
-  const [sched, setSched]     = useState<SendingSchedule>(DEFAULT_SCHEDULE)
-  const [mainStr, setMainStr] = useState(String(DEFAULT_SCHEDULE.mainPerDay))
-  const [followUpStr, setFollowUpStr] = useState(String(DEFAULT_SCHEDULE.followUpPerDay))
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving]   = useState(false)
-  const [saved,  setSaved]    = useState(false)
-
-  useEffect(() => {
-    api.get('/api/settings/sending-schedule').then(r => {
-      const existing = r.data?.schedule
-      if (existing) {
-        setSched({ ...DEFAULT_SCHEDULE, ...existing })
-        setMainStr(String(existing.mainPerDay ?? DEFAULT_SCHEDULE.mainPerDay))
-        setFollowUpStr(String(existing.followUpPerDay ?? DEFAULT_SCHEDULE.followUpPerDay))
-      }
-    }).catch(() => {}).finally(() => setLoading(false))
-  }, [])
-
-  // parse sendTime into hour/minute parts
-  const [timeH, timeM] = sched.sendTime.split(':').map(Number)
-  const isPM = timeH >= 12
-  const hour12 = timeH % 12 || 12
-
-  const setTime = (h12: number, m: number, pm: boolean) => {
-    const h24 = pm ? (h12 === 12 ? 12 : h12 + 12) : (h12 === 12 ? 0 : h12)
-    setSched(s => ({ ...s, sendTime: `${String(h24).padStart(2,'0')}:${String(m).padStart(2,'0')}` }))
-  }
-
-  const toggleDay = (d: number) =>
-    setSched(s => ({ ...s, activeDays: s.activeDays.includes(d) ? s.activeDays.filter(x => x !== d) : [...s.activeDays, d].sort() }))
-
-  const save = async () => {
-    setSaving(true)
-    try {
-      const scheduleToSave = {
-        ...sched,
-        mainPerDay: Math.min(50, Math.max(1, parseInt(mainStr) || 1)),
-        followUpPerDay: Math.min(50, Math.max(0, parseInt(followUpStr) || 0)),
-      }
-
-      await api.put('/api/settings/sending-schedule', { schedule: scheduleToSave })
-
-      // Re-enroll any emails the user previously excluded from the batch
-      await api.post('/api/email-queue/reset-batch-excluded', {}).catch(() => {})
-
-      const saved = scheduleToSave
-      setSaved(true); setTimeout(() => setSaved(false), 2000)
-      onSaved?.(saved)
-      toast({
-        title: 'Schedule saved',
-        description: `Sending ${saved.mainPerDay}/day${saved.followUpPerDay ? ` + ${saved.followUpPerDay} follow-ups/day` : ''} on ${saved.activeDays.map(d => DAY_LABELS[d]).join(', ')} at ${saved.sendTime}`,
-        duration: 2500,
-      })
-    } catch (err: any) {
-      toast({ title: 'Failed to save schedule', variant: 'destructive', duration: 2000 })
-    }
-    finally { setSaving(false) }
-  }
-
-  return (
-    <Card className="p-4">
-      <div className="flex items-center gap-2 mb-4">
-        <Calendar className="w-4 h-4 text-primary" />
-        <h2 className="text-sm font-semibold">Sending Schedule</h2>
-        <span className="text-[10px] text-muted-foreground ml-1">applies to your whole account</span>
-      </div>
-      <div className="space-y-4">
-        {/* active days */}
-        <div className="space-y-1.5">
-          <label className="text-[11px] font-medium text-muted-foreground">Active Days</label>
-          <div className="flex gap-1.5 flex-wrap">
-            {DAY_LABELS.map((label, i) => (
-              <button
-                key={i}
-                onClick={() => toggleDay(i)}
-                className={cn(
-                  'w-10 h-8 rounded-md text-xs font-medium border transition-colors',
-                  sched.activeDays.includes(i)
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-background text-muted-foreground border-input hover:bg-muted'
-                )}
-              >{label}</button>
-            ))}
-          </div>
-        </div>
-        {/* send time + limit */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1">
-            <label className="text-[11px] font-medium text-muted-foreground">Send Time</label>
-            <div className="flex items-center gap-1">
-              <div className="relative flex-1">
-                <select
-                  className="w-full h-8 appearance-none rounded-md border border-input bg-background pl-2 pr-6 text-xs focus:outline-none"
-                  value={hour12}
-                  onChange={e => setTime(+e.target.value, timeM, isPM)}
-                >
-                  {Array.from({length:12},(_,i)=>i+1).map(h => (
-                    <option key={h} value={h}>{h}</option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
-              </div>
-              <span className="text-muted-foreground text-xs">:</span>
-              <div className="relative w-16">
-                <select
-                  className="w-full h-8 appearance-none rounded-md border border-input bg-background pl-2 pr-6 text-xs focus:outline-none"
-                  value={timeM}
-                  onChange={e => setTime(hour12, +e.target.value, isPM)}
-                >
-                  {[0,5,10,15,20,25,30,35,40,45,50,55].map(m => (
-                    <option key={m} value={m}>{String(m).padStart(2,'0')}</option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
-              </div>
-              <div className="relative w-16">
-                <select
-                  className="w-full h-8 appearance-none rounded-md border border-input bg-background pl-2 pr-6 text-xs focus:outline-none"
-                  value={isPM ? 'PM' : 'AM'}
-                  onChange={e => setTime(hour12, timeM, e.target.value === 'PM')}
-                >
-                  <option value="AM">AM</option>
-                  <option value="PM">PM</option>
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
-              </div>
-            </div>
-          </div>
-          <div className="space-y-1">
-            <label className="text-[11px] font-medium text-muted-foreground">Main Emails/Day <span className="text-muted-foreground/60">(max 50)</span></label>
-            <div className="relative">
-              <input
-                type="number" min={1} max={50}
-                className="w-full h-8 rounded-md border border-input bg-background px-3 pr-9 text-xs focus:outline-none"
-                value={mainStr}
-                onChange={e => {
-                  const v = e.target.value
-                  if (v === '') { setMainStr(''); return }
-                  setMainStr(String(Math.min(50, Math.max(1, parseInt(v) || 1))))
-                }}
-              />
-              <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground tabular-nums">/50</span>
-            </div>
-          </div>
-        </div>
-        {/* follow-up ratio */}
-        <div className="space-y-1">
-          <label className="text-[11px] font-medium text-muted-foreground">Follow-ups/Day <span className="text-muted-foreground/60">(max 50, independent of main emails — 0 to pause auto follow-ups)</span></label>
-          <div className="relative w-1/2">
-            <input
-              type="number" min={0} max={50}
-              className="w-full h-8 rounded-md border border-input bg-background px-3 pr-9 text-xs focus:outline-none"
-              value={followUpStr}
-              onChange={e => {
-                const v = e.target.value
-                if (v === '') { setFollowUpStr(''); return }
-                setFollowUpStr(String(Math.min(50, Math.max(0, parseInt(v) || 0))))
-              }}
-            />
-            <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground tabular-nums">/50</span>
-          </div>
-        </div>
-        {/* timezone + save */}
-        <div className="flex items-end gap-3">
-          <div className="flex-1 space-y-1">
-            <label className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
-              Timezone
-              {sched.timezone === BROWSER_TZ && (
-                <span className="text-[10px] text-blue-500/70">• auto-detected</span>
-              )}
-            </label>
-            <div className="relative">
-              <select
-                className="w-full h-8 appearance-none rounded-md border border-input bg-background pl-2 pr-6 text-xs focus:outline-none"
-                value={sched.timezone}
-                onChange={e => setSched(s => ({ ...s, timezone: e.target.value }))}
-              >
-                {/* Always ensure the browser's detected timezone is selectable */}
-                {!TIMEZONES.includes(BROWSER_TZ) && (
-                  <option key={BROWSER_TZ} value={BROWSER_TZ}>{BROWSER_TZ}</option>
-                )}
-                {TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-            </div>
-          </div>
-          <Button size="sm" className="h-8 gap-1.5" disabled={saving || loading} onClick={save}>
-            <Save className="w-3.5 h-3.5" />
-            {saving ? 'Saving…' : saved ? 'Saved!' : 'Save'}
-          </Button>
-        </div>
-      </div>
-    </Card>
   )
 }
 
@@ -2103,6 +1873,7 @@ export function EmailQueueContent() {
   const [fontSize, setFontSize]           = useState(12)
   const [showSchedule, setShowSchedule]   = useState(false)
   const [savedSchedule, setSavedSchedule] = useState<SendingSchedule | null>(null)
+  const [activeScheduleName, setActiveScheduleName] = useState<string | null>(null)
   const [showBatchesModal, setShowBatchesModal] = useState(false)
   const [batchCount, setBatchCount]             = useState(0)
   const [capBump, setCapBump]                   = useState(0)
@@ -2114,12 +1885,23 @@ export function EmailQueueContent() {
   const cancelSchedule = async () => {
     await api.put('/api/settings/sending-schedule', { schedule: null }).catch(() => {})
     setSavedSchedule(null)
+    setActiveScheduleName(null)
     toast({ title: 'Sending schedule cancelled', duration: 2000 })
   }
 
   const refreshBatchCount = useCallback(() => {
     api.get('/api/email-queue/scheduled-batches').then(r => {
       setBatchCount((r.data.batches ?? []).length)
+    }).catch(() => {})
+  }, [])
+
+  // Which saved schedule (if any) is currently live — shown on the "Schedule for Send"
+  // button so it's obvious which named config is actually running.
+  const refreshActiveScheduleName = useCallback(() => {
+    api.get('/api/settings/saved-schedules').then(r => {
+      const activeId = r.data?.activeSavedScheduleId
+      const match = (r.data?.schedules ?? []).find((s: { id: string }) => s.id === activeId)
+      setActiveScheduleName(match?.name ?? null)
     }).catch(() => {})
   }, [])
 
@@ -2130,6 +1912,7 @@ export function EmailQueueContent() {
     api.get('/api/settings/sending-schedule').then(r => {
       setSavedSchedule(r.data?.schedule ?? null)
     }).catch(() => {})
+    refreshActiveScheduleName()
     refreshBatchCount()
   }, [])
 
@@ -2192,9 +1975,10 @@ export function EmailQueueContent() {
             <button
               onClick={() => setShowSchedule(s => !s)}
               className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-colors"
+              title={activeScheduleName ? `Currently applied: ${activeScheduleName}` : undefined}
             >
               <Calendar className="w-3.5 h-3.5" />
-              Schedule for Send
+              {activeScheduleName ? `Schedule: ${activeScheduleName}` : 'Schedule for Send'}
             </button>
           </div>
         </div>
@@ -2212,7 +1996,7 @@ export function EmailQueueContent() {
                 >
                   <X className="w-4 h-4" />
                 </button>
-                <AgentScheduleCard onSaved={s => { setSavedSchedule(s); refreshBatchCount(); setShowSchedule(false) }} />
+                <ScheduleBuilder onSaved={s => { setSavedSchedule(s); refreshActiveScheduleName(); refreshBatchCount(); setShowSchedule(false) }} />
               </div>
             </div>
           </div>

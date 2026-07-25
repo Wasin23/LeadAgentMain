@@ -56,6 +56,7 @@ const staticItems: NavItem[] = [
       { icon: Circle, label: "Awaiting Review",      href: "/outreach?section=awaiting" },
       { icon: Circle, label: "Sent",                 href: "/outreach?section=sent" },
       { icon: Circle, label: "Chat Qualified Leads", href: "/outreach?section=sent&tab=chat-sessions" },
+      { icon: Circle, label: "Schedules",             href: "/schedules" },
     ],
   },
 ]

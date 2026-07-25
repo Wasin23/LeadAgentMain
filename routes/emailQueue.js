@@ -1449,6 +1449,58 @@ router.get('/daily-cap-status', async (req, res) => {
   }
 });
 
+// GET /schedule-preview — "what will the next N days actually look like" for the schedule
+// builder and the calendar overview. Pass `schedule` as a query param (JSON-encoded) to
+// preview a draft that hasn't been saved yet; omit it to preview the account's live schedule.
+router.get('/schedule-preview', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+    const { previewSchedule, getGlobalSchedule } = await import('../utils/scheduleSlots.js');
+    const awsManager = new AWSManager();
+    const awsQueue = getAWSEmailQueue();
+
+    let schedule = null;
+    if (req.query.schedule) {
+      try { schedule = JSON.parse(req.query.schedule); } catch { /* fall through to live schedule */ }
+    }
+    if (!schedule) {
+      schedule = await getGlobalSchedule(userId, awsManager);
+    }
+
+    const days = Math.min(90, Math.max(1, parseInt(req.query.days, 10) || 30));
+
+    // Pending mains: everything actually queued and not yet given a manual scheduledAt.
+    const { emails: queuedEmails } = await awsQueue.getAllQueuedEmailsForUser(userId, 2000, 0).catch(() => ({ emails: [] }));
+    const mainQueueCount = (queuedEmails || []).filter(e => !e.scheduledAt && !e.batchExcluded).length;
+
+    // Pending follow-ups: the full potential backlog (already-ready ones, plus anything
+    // still waiting on its interval) — an optimistic "if everything needed sending" view,
+    // since most haven't hit their followUpDate yet and this is meant to show capacity
+    // planning, not a live minute-by-minute forecast. maxRebumps lives on agent settings,
+    // not the email record, so resolve it once per agent rather than per email.
+    const sentEmails = await awsQueue.getAllSentEmailsForUser(userId).catch(() => []);
+    const maxRebumpsByAgent = {};
+    for (const agentId of new Set((sentEmails || []).map(e => e.agentId).filter(Boolean))) {
+      const agentSettings = await awsManager.getLeadAgentSettings(userId, agentId).catch(() => null);
+      maxRebumpsByAgent[agentId] = agentSettings?.emailBuilder?.maxRebumps || 1;
+    }
+    const followUpQueueCount = (sentEmails || []).filter(e =>
+      e.followUpScheduled &&
+      e.status !== 'REPLIED' && !e.replied &&
+      e.status !== 'BOUNCED' && !e.unsubscribed &&
+      (e.rebumpCount || 0) < (maxRebumpsByAgent[e.agentId] || 1)
+    ).length;
+
+    const preview = previewSchedule({ mainQueueCount, followUpQueueCount, schedule, days });
+
+    res.json({ success: true, schedule, mainQueueCount, followUpQueueCount, preview });
+  } catch (error) {
+    console.error('[EMAIL QUEUE] Error building schedule preview:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 
 // GET /scheduled-batches — server-computed send schedule grouped by time slot
 router.get('/scheduled-batches', async (req, res) => {

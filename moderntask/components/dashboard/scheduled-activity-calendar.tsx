@@ -1,11 +1,13 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronLeft, ChevronRight, CalendarClock, Send, Bot, Loader2, X } from "lucide-react"
+import { ChevronLeft, ChevronRight, CalendarClock, X, ArrowUpRight } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { AgentScheduleCard } from "@/components/email-queue/email-queue-content"
+import { ScheduleBuilder } from "@/components/schedule/schedule-builder"
+import { cn } from "@/lib/utils"
 import api from "@/lib/api"
+import type { SchedulePreviewDay } from "@/lib/schedule-types"
 
 export interface ScheduledBatch {
   scheduledSendTime: string   // ISO string
@@ -32,90 +34,35 @@ interface ScheduledActivityCalendarProps {
   onChanged?: () => void
 }
 
-type Mode = "both" | "sends" | "followups"
-
-interface DayItem {
-  kind: "send" | "followup"
-  key: string
-  time: string
-  label: string
-  sublabel?: string
-  rescheduleAction: (newIso: string) => Promise<void>
-}
-
 function dayKey(d: Date) {
   return d.toLocaleDateString("en-CA")
 }
 
-function toDatetimeLocal(d: Date) {
-  const pad = (n: number) => String(n).padStart(2, "0")
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
-
-function DayItemRow({ item, onEditTarget }: { item: DayItem; onEditTarget: string }) {
-  const router = useRouter()
-  const [editing, setEditing] = useState(false)
-  const [value, setValue] = useState(() => toDatetimeLocal(new Date()))
-  const [saving, setSaving] = useState(false)
-
-  const save = async () => {
-    setSaving(true)
-    try {
-      await item.rescheduleAction(new Date(value).toISOString())
-      setEditing(false)
-    } catch {}
-    finally { setSaving(false) }
-  }
-
-  return (
-    <div className="rounded-lg p-1.5 hover:bg-accent">
-      <div className="flex items-start gap-2">
-        <div className={`grid h-6 w-6 shrink-0 place-items-center rounded-full ${item.kind === "send" ? "bg-muted text-muted-foreground" : "bg-success-soft text-success-soft-foreground"}`}>
-          {item.kind === "send" ? <Send className="h-3 w-3" /> : <Bot className="h-3 w-3" />}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-medium text-foreground">{item.label}</p>
-          <p className="truncate text-[10px] text-muted-foreground">{item.time}{item.sublabel ? ` · ${item.sublabel}` : ""}</p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <button onClick={() => setEditing(e => !e)} className="text-[10px] font-medium text-primary hover:underline">
-            Reschedule
-          </button>
-          <button onClick={() => router.push(onEditTarget)} className="text-[10px] font-medium text-muted-foreground hover:text-foreground hover:underline">
-            Edit
-          </button>
-        </div>
-      </div>
-      {editing && (
-        <div className="mt-1.5 flex items-center gap-1.5 pl-8">
-          <input
-            type="datetime-local"
-            value={value}
-            onChange={e => setValue(e.target.value)}
-            className="h-7 flex-1 rounded-md border border-input bg-background px-2 text-[11px] focus:outline-none focus:ring-1 focus:ring-ring"
-          />
-          <button
-            onClick={save}
-            disabled={saving}
-            className="flex h-7 items-center gap-1 rounded-md bg-primary px-2 text-[11px] font-medium text-primary-foreground disabled:opacity-50"
-          >
-            {saving && <Loader2 className="h-3 w-3 animate-spin" />}
-            Save
-          </button>
-        </div>
-      )}
-    </div>
-  )
-}
-
 export function ScheduledActivityCalendar({ batches = [], followUps = [], onChanged }: ScheduledActivityCalendarProps) {
   const router = useRouter()
-  const [mode, setMode] = useState<Mode>("both")
   const [monthOffset, setMonthOffset] = useState(0)
   const [openDay, setOpenDay] = useState<string | null>(null)
   // Sending schedule is global (one per account), so "Schedule emails" opens the
   // Sending Schedule card directly — no per-agent picker step needed anymore.
   const [showScheduleCard, setShowScheduleCard] = useState(false)
+  const [preview, setPreview] = useState<SchedulePreviewDay[]>([])
+
+  // The preview endpoint is relative to "today" (it's simulating the live queue draining
+  // forward), not calendar-month-aware — fetch a 60-day rolling window once, which covers
+  // "this month" fully; older/future months fall back to the plain presence indicator
+  // below since there's no meaningful capacity data for them.
+  const loadPreview = () => {
+    api.get('/api/email-queue/schedule-preview', { params: { days: 60 } })
+      .then(r => { if (r.data.success) setPreview(r.data.preview ?? []) })
+      .catch(() => {})
+  }
+  useEffect(() => { loadPreview() }, [])
+
+  const previewByDay = useMemo(() => {
+    const map: Record<string, SchedulePreviewDay> = {}
+    preview.forEach(d => { map[d.date] = d })
+    return map
+  }, [preview])
 
   const cursor = useMemo(() => {
     const d = new Date()
@@ -124,46 +71,13 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
     return d
   }, [monthOffset])
 
-  const itemsByDay = useMemo(() => {
-    const map: Record<string, DayItem[]> = {}
-    if (mode !== "followups") {
-      batches.forEach((b, i) => {
-        const d = new Date(b.scheduledSendTime)
-        const key = dayKey(d)
-        if (!map[key]) map[key] = []
-        map[key].push({
-          kind: "send",
-          key: `send-${i}`,
-          time: d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
-          label: `${b.count} email${b.count !== 1 ? "s" : ""} scheduled`,
-          sublabel: b.agentName,
-          rescheduleAction: async (newIso: string) => {
-            await api.patch("/api/email-queue/scheduled-batches", { emailIds: b.emailIds, newScheduledAt: newIso })
-            onChanged?.()
-          },
-        })
-      })
-    }
-    if (mode !== "sends") {
-      followUps.forEach((f) => {
-        const d = new Date(f.followUpDate)
-        const key = dayKey(d)
-        if (!map[key]) map[key] = []
-        map[key].push({
-          kind: "followup",
-          key: f.id,
-          time: d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
-          label: f.leadName ?? f.leadEmail ?? "Follow-up",
-          sublabel: f.company,
-          rescheduleAction: async (newIso: string) => {
-            await api.put(`/api/email-queue/${f.id}/followup`, { agentId: f.agentId, followUpDate: newIso })
-            onChanged?.()
-          },
-        })
-      })
-    }
-    return map
-  }, [batches, followUps, mode, onChanged])
+  // Fallback presence-only signal for days outside the preview window (older/future months).
+  const hasActivityByDay = useMemo(() => {
+    const set = new Set<string>()
+    batches.forEach(b => set.add(dayKey(new Date(b.scheduledSendTime))))
+    followUps.forEach(f => set.add(dayKey(new Date(f.followUpDate))))
+    return set
+  }, [batches, followUps])
 
   const monthLabel = cursor.toLocaleDateString("en-US", { month: "long", year: "numeric" })
   const firstDow = new Date(cursor.getFullYear(), cursor.getMonth(), 1).getDay()
@@ -174,6 +88,11 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
     ...Array.from({ length: firstDow }, () => null),
     ...Array.from({ length: daysInMonth }, (_, i) => new Date(cursor.getFullYear(), cursor.getMonth(), i + 1)),
   ]
+
+  const goToSchedules = (key: string) => {
+    setOpenDay(null)
+    router.push(`/schedules?date=${key}`)
+  }
 
   return (
     <div className="rounded-2xl border border-border bg-card p-2.5 h-[440px] flex flex-col">
@@ -193,18 +112,9 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
         </div>
       </div>
 
-      <div className="mt-1.5 flex items-center gap-0.5 rounded-md border border-border bg-surface p-0.5">
-        {([["both", "Both"], ["sends", "Sends"], ["followups", "Follow-ups"]] as [Mode, string][]).map(([m, label]) => (
-          <button
-            key={m}
-            onClick={() => setMode(m)}
-            className={`flex-1 rounded px-1 py-0.5 text-[9px] font-medium transition-colors ${
-              mode === m ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+      <div className="mt-2 flex items-center gap-3 px-0.5 text-[9px] text-muted-foreground">
+        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm bg-primary/70" /> Main</span>
+        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm bg-emerald-500/70" /> Follow-ups</span>
       </div>
 
       <div className="mt-1.5 grid grid-cols-7 gap-px text-center text-[10px] font-bold text-foreground">
@@ -215,59 +125,83 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
         {cells.map((d, i) => {
           if (!d) return <div key={i} />
           const key = dayKey(d)
-          const items = itemsByDay[key] ?? []
           const isToday = key === todayKey
+          const day = previewByDay[key]
+          const hasPreview = !!day
+          const maxCap = Math.max(1, day?.mainCap || 0, day?.followUpCap || 0)
+          const mainPct = day?.active ? Math.min(100, Math.round((day.mainCount / maxCap) * 100)) : 0
+          const followUpPct = day?.active ? Math.min(100, Math.round((day.followUpCount / maxCap) * 100)) : 0
+          const fallbackActivity = !hasPreview && hasActivityByDay.has(key)
 
           return (
             <Popover key={key} open={openDay === key} onOpenChange={(o) => setOpenDay(o ? key : null)}>
               <PopoverTrigger asChild>
                 <button
-                  className={`relative w-full h-full rounded-md text-[9px] font-medium transition-colors flex flex-col items-center justify-center cursor-pointer ${
+                  className={cn(
+                    "relative w-full h-full rounded-md text-[9px] font-medium transition-colors flex flex-col items-center justify-center cursor-pointer overflow-hidden",
                     isToday ? "bg-primary text-primary-foreground" : "bg-card text-foreground/80 hover:bg-accent"
-                  }`}
+                  )}
                 >
-                  {d.getDate()}
-                  {items.length > 0 && (
-                    <span className="flex items-center gap-0.5 absolute bottom-0.5">
-                      {items.some(it => it.kind === "send") && <span className={`h-[3px] w-[3px] rounded-full ${isToday ? "bg-primary-foreground/80" : "bg-foreground/70"}`} />}
-                      {items.some(it => it.kind === "followup") && <span className="h-[3px] w-[3px] rounded-full bg-success" />}
+                  <span className="relative z-10">{d.getDate()}</span>
+                  {hasPreview && (day.mainCount > 0 || day.followUpCount > 0) && (
+                    <span className="absolute bottom-0.5 left-1 right-1 flex gap-px h-[3px] z-10">
+                      <span className="flex-1 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
+                        <span className="block h-full bg-primary rounded-full" style={{ width: `${mainPct}%` }} />
+                      </span>
+                      {day.followUpCap > 0 && (
+                        <span className="flex-1 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
+                          <span className="block h-full bg-emerald-500 rounded-full" style={{ width: `${followUpPct}%` }} />
+                        </span>
+                      )}
                     </span>
+                  )}
+                  {fallbackActivity && (
+                    <span className={cn("absolute bottom-0.5 h-[3px] w-[3px] rounded-full z-10", isToday ? "bg-primary-foreground/80" : "bg-foreground/70")} />
                   )}
                 </button>
               </PopoverTrigger>
-              <PopoverContent align="center" className="w-72 p-2">
-                <p className="px-1 text-[11px] font-semibold text-foreground">{d.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}</p>
-                {items.length === 0 ? (
-                  <div className="px-1 py-3 text-center">
-                    <p className="text-[11px] text-muted-foreground">Nothing scheduled this day.</p>
-                    <button
-                      onClick={() => { setShowScheduleCard(true); setOpenDay(null) }}
-                      className="mt-1.5 text-[11px] font-medium text-primary hover:underline"
-                    >
-                      Schedule emails →
-                    </button>
-                  </div>
+              <PopoverContent align="center" className="w-64 p-3">
+                <p className="text-[11px] font-semibold text-foreground mb-2">{d.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}</p>
+                {hasPreview ? (
+                  day.active ? (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="flex items-center gap-1.5 text-muted-foreground"><span className="w-2 h-2 rounded-sm bg-primary/70" /> Main emails</span>
+                        <span className="font-medium tabular-nums">{day.mainCount}/{day.mainCap}</span>
+                      </div>
+                      {day.followUpCap > 0 && (
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="flex items-center gap-1.5 text-muted-foreground"><span className="w-2 h-2 rounded-sm bg-emerald-500/70" /> Follow-ups</span>
+                          <span className="font-medium tabular-nums">{day.followUpCount}/{day.followUpCap}</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground">Not an active sending day.</p>
+                  )
                 ) : (
-                  <div className="mt-1.5 space-y-1 max-h-64 overflow-y-auto">
-                    {items.map(it => (
-                      <DayItemRow
-                        key={it.key}
-                        item={it}
-                        onEditTarget={it.kind === "send" ? "/outreach?section=awaiting" : "/outreach?section=sent&tab=followups"}
-                      />
-                    ))}
-                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    {fallbackActivity ? "Something's scheduled this day." : "Nothing scheduled this day."}
+                  </p>
                 )}
+                <div className="mt-2.5 pt-2 border-t border-border flex items-center justify-between">
+                  <button onClick={() => setShowScheduleCard(true)} className="text-[11px] font-medium text-primary hover:underline">
+                    Edit schedule
+                  </button>
+                  <button onClick={() => goToSchedules(key)} className="flex items-center gap-1 text-[11px] font-medium text-primary hover:underline">
+                    View in Schedules <ArrowUpRight className="w-3 h-3" />
+                  </button>
+                </div>
               </PopoverContent>
             </Popover>
           )
         })}
       </div>
 
-      {/* Sending Schedule modal - the same global schedule card used in Outreach */}
+      {/* Sending Schedule modal - the same global schedule builder used in Outreach */}
       {showScheduleCard && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-modal-swoop-backdrop" onClick={() => setShowScheduleCard(false)}>
-          <div className="w-full max-w-md animate-modal-swoop-up" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto animate-modal-swoop-up" onClick={e => e.stopPropagation()}>
             <div className="relative">
               <button
                 onClick={() => setShowScheduleCard(false)}
@@ -276,8 +210,8 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
               >
                 <X className="h-4 w-4" />
               </button>
-              <AgentScheduleCard
-                onSaved={() => { setShowScheduleCard(false); onChanged?.() }}
+              <ScheduleBuilder
+                onSaved={() => { setShowScheduleCard(false); loadPreview(); onChanged?.() }}
               />
             </div>
           </div>

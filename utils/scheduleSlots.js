@@ -165,3 +165,59 @@ export async function syncGlobalScheduleForUser(userId, options = {}) {
     }
   }
 }
+
+// Simulates what a schedule config would actually do to today's queue, day by day, for the
+// schedule-builder preview and the calendar overhaul — same day-walking rules as
+// computeSlotDate (respects activeDays, skips today if its send window already passed) but
+// bucketed per calendar day instead of resolving one exact instant. Pure function: takes
+// the CURRENT queue depth as a starting snapshot, not live data, so the caller decides what
+// "pending" means (real counts from the DB, or a hypothetical draft while editing).
+export function previewSchedule({ mainQueueCount = 0, followUpQueueCount = 0, schedule, days = 30 }) {
+  const tz = schedule?.timezone || 'America/New_York';
+  const activeDays = schedule?.activeDays?.length ? schedule.activeDays : [1, 2, 3, 4, 5];
+  const mainPerDay = Math.max(0, schedule?.mainPerDay || 0);
+  const followUpPerDay = Math.max(0, schedule?.followUpPerDay || 0);
+  const [scheduleHour, scheduleMinute] = (schedule?.sendTime || '09:00').split(':').map(Number);
+
+  const now = new Date();
+  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(now);
+  const [todayYear, todayMonth, todayDay] = todayStr.split('-').map(Number);
+
+  const nowParts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false,
+  }).formatToParts(now);
+  const nowHour = parseInt(nowParts.find(p => p.type === 'hour')?.value || '0', 10);
+  const nowMinute = parseInt(nowParts.find(p => p.type === 'minute')?.value || '0', 10);
+  const startOffset = ((nowHour === 24 ? 0 : nowHour) * 60 + nowMinute) >= (scheduleHour * 60 + scheduleMinute) ? 1 : 0;
+
+  const weekdayMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  let remainingMain = mainQueueCount;
+  let remainingFollowUp = followUpQueueCount;
+  const result = [];
+
+  for (let offset = startOffset; result.length < days; offset += 1) {
+    const probe = new Date(Date.UTC(todayYear, todayMonth - 1, todayDay + offset, 12, 0, 0));
+    const weekdayString = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short' }).format(probe);
+    const weekday = weekdayMap[weekdayString] ?? probe.getUTCDay();
+    const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(probe);
+    const active = activeDays.includes(weekday);
+
+    const mainCount = active ? Math.min(remainingMain, mainPerDay) : 0;
+    const followUpCount = active ? Math.min(remainingFollowUp, followUpPerDay) : 0;
+    if (active) {
+      remainingMain -= mainCount;
+      remainingFollowUp -= followUpCount;
+    }
+
+    result.push({
+      date: dateStr,
+      active,
+      mainCount,
+      mainCap: active ? mainPerDay : 0,
+      followUpCount,
+      followUpCap: active ? followUpPerDay : 0,
+    });
+  }
+
+  return result;
+}
