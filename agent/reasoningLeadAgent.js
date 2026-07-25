@@ -5650,9 +5650,9 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
       
       
       // Legal compliance footer (company branding + unsubscribe link) is now appended
-      // fresh at actual send time (routes/emailQueue.js, utils/sendingScheduleProcessor.js,
-      // utils/emailScheduler.js) instead of being baked into the draft here — keeps it out
-      // of the editable preview so reviewers can't accidentally edit or strip it.
+      // fresh at actual send time (routes/emailQueue.js, utils/emailScheduler.js) instead
+      // of being baked into the draft here — keeps it out of the editable preview so
+      // reviewers can't accidentally edit or strip it.
 
       return {
         success: true,

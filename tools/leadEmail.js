@@ -95,7 +95,39 @@ export async function leadEmail(to, subject, body, personInfo = null, userId = n
       console.error('[LEAD EMAIL] Error checking unsubscribe status, proceeding with send:', unsubError);
     }
   }
-  
+
+  // Enforce daily sending caps — previously these were display-only on the
+  // Outreach page and didn't actually stop anything from sending. The email
+  // stays QUEUED (nothing here marks it sent/failed), so whichever caller
+  // fired this — /approve, the auto-send scheduler, or follow-up firing —
+  // will naturally retry it on its next pass once the cap resets tomorrow.
+  if (userId) {
+    try {
+      const { getDailySendCapStatus } = await import('../utils/dailySendCaps.js');
+      const capStatus = await getDailySendCapStatus(userId);
+      if (capStatus.totalCapReached) {
+        console.warn(`[LEAD EMAIL] Daily total sending cap reached for user ${userId}: ${capStatus.sentToday}/${capStatus.totalCap}`);
+        return {
+          success: false,
+          skipped: true,
+          reason: 'daily_cap_reached',
+          error: `Daily sending limit reached (${capStatus.sentToday}/${capStatus.totalCap} today). This email stays queued and will send once the limit resets.`,
+        };
+      }
+      if (capStatus.perAccountCapReached) {
+        console.warn(`[LEAD EMAIL] Per-address sending cap reached for ${capStatus.activeAccount?.email}: ${capStatus.sentTodayByActiveAccount}/${capStatus.perAccountCap}`);
+        return {
+          success: false,
+          skipped: true,
+          reason: 'per_account_cap_reached',
+          error: `Daily sending limit reached for ${capStatus.activeAccount?.email} (${capStatus.sentTodayByActiveAccount}/${capStatus.perAccountCap} today). This email stays queued and will send once the limit resets.`,
+        };
+      }
+    } catch (capError) {
+      console.error('[LEAD EMAIL] Error checking daily send caps, proceeding with send:', capError.message);
+    }
+  }
+
   try {
     // Get company profile for sender name
     let fromName = senderName;

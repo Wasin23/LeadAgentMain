@@ -11,7 +11,7 @@ import {
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
 import { v4 as uuidv4 } from 'uuid';
 import { getScheduledEmailJobs } from './scheduledEmailJobs.js';
-import { syncAutoScheduleJobsForAgent } from './autoScheduleJobs.js';
+import { syncGlobalScheduleForUser } from './scheduleSlots.js';
 
 /**
  * AWS DynamoDB Email Queue Manager
@@ -166,8 +166,8 @@ class AWSEmailQueue {
         queuedAt: timestamp,
         createdAt: timestamp,
         updatedAt: timestamp,
-        // Only persist scheduledAt when explicitly set (manual schedule via ScheduleModal)
-        // Batch emails have no scheduledAt; sendingScheduleProcessor handles those
+        // Only persist scheduledAt when explicitly set (manual schedule via ScheduleModal).
+        // Auto-batch emails get theirs assigned later by scheduleSlots.js's global sync.
         ...(emailData.scheduledAt ? { scheduledAt: emailData.scheduledAt } : {}),
         
         // Metadata
@@ -199,7 +199,7 @@ class AWSEmailQueue {
           scheduleType: 'manual'
         });
       } else {
-        await syncAutoScheduleJobsForAgent(userId, agentId, {
+        await syncGlobalScheduleForUser(userId, {
           awsQueue: this,
           scheduledJobs: this.scheduledEmailJobs
         }).catch(error => {
@@ -702,7 +702,7 @@ class AWSEmailQueue {
         }
 
         if (!options.skipAutoScheduleSync && (Object.prototype.hasOwnProperty.call(updates, 'scheduledAt') || Object.prototype.hasOwnProperty.call(updates, 'batchExcluded'))) {
-          await syncAutoScheduleJobsForAgent(userId, agentId, {
+          await syncGlobalScheduleForUser(userId, {
             awsQueue: this,
             scheduledJobs: this.scheduledEmailJobs
           }).catch(syncError => {
@@ -862,7 +862,7 @@ class AWSEmailQueue {
 
         if (oldStatus === 'QUEUED' && newStatus !== 'QUEUED') {
           await this.scheduledEmailJobs.deleteScheduledEmail(userId, agentId, emailId);
-          await syncAutoScheduleJobsForAgent(userId, agentId, {
+          await syncGlobalScheduleForUser(userId, {
             awsQueue: this,
             scheduledJobs: this.scheduledEmailJobs
           }).catch(syncError => {
@@ -1100,7 +1100,7 @@ class AWSEmailQueue {
       }));
 
       await this.scheduledEmailJobs.deleteScheduledEmail(userId, agentId, emailId);
-      await syncAutoScheduleJobsForAgent(userId, agentId, {
+      await syncGlobalScheduleForUser(userId, {
         awsQueue: this,
         scheduledJobs: this.scheduledEmailJobs
       }).catch(syncError => {

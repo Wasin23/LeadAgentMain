@@ -23,13 +23,14 @@ import { CopyChip } from '@/components/leads/leads-content'
 import { GmailIcon, OutlookIcon } from '@/components/ui/provider-icons'
 
 // ── types ─────────────────────────────────────────────────────────────────────
-export interface Agent { agentId: string; name: string; personality?: { avatar?: string }; settings?: { sendingSchedule?: SendingSchedule; emailBuilder?: { smartRebump?: boolean } } }
+export interface Agent { agentId: string; name: string; personality?: { avatar?: string }; settings?: { emailBuilder?: { smartRebump?: boolean } } }
 
 export interface SendingSchedule {
-  activeDays:  number[]  // 0=Sun … 6=Sat
-  sendTime:    string    // "HH:MM" e.g. "09:00"
-  dailyLimit:  number
-  timezone:    string
+  activeDays:     number[]  // 0=Sun … 6=Sat
+  sendTime:       string    // "HH:MM" e.g. "09:00"
+  mainPerDay:     number
+  followUpPerDay: number
+  timezone:       string
 }
 
 interface ScheduledBatch {
@@ -222,7 +223,8 @@ const BROWSER_TZ: string =
 const DEFAULT_SCHEDULE: SendingSchedule = {
   activeDays: [1, 2, 3, 4, 5],
   sendTime: '09:00',
-  dailyLimit: 50,
+  mainPerDay: 50,
+  followUpPerDay: 0,
   timezone: BROWSER_TZ,
 }
 
@@ -371,13 +373,25 @@ function ScheduledBatchesModal({ onClose, onChanged }: { onClose: () => void; on
   )
 }
 
-export function AgentScheduleCard({ agent, onSaved }: { agent: Agent; onSaved?: (s: SendingSchedule) => void }) {
+export function AgentScheduleCard({ onSaved }: { onSaved?: (s: SendingSchedule) => void }) {
   const { toast } = useToast()
-  const initial = { ...DEFAULT_SCHEDULE, ...agent.settings?.sendingSchedule }
-  const [sched, setSched]     = useState<SendingSchedule>(initial)
-  const [limitStr, setLimitStr] = useState(String(initial.dailyLimit ?? 50))
+  const [sched, setSched]     = useState<SendingSchedule>(DEFAULT_SCHEDULE)
+  const [mainStr, setMainStr] = useState(String(DEFAULT_SCHEDULE.mainPerDay))
+  const [followUpStr, setFollowUpStr] = useState(String(DEFAULT_SCHEDULE.followUpPerDay))
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving]   = useState(false)
   const [saved,  setSaved]    = useState(false)
+
+  useEffect(() => {
+    api.get('/api/settings/sending-schedule').then(r => {
+      const existing = r.data?.schedule
+      if (existing) {
+        setSched({ ...DEFAULT_SCHEDULE, ...existing })
+        setMainStr(String(existing.mainPerDay ?? DEFAULT_SCHEDULE.mainPerDay))
+        setFollowUpStr(String(existing.followUpPerDay ?? DEFAULT_SCHEDULE.followUpPerDay))
+      }
+    }).catch(() => {}).finally(() => setLoading(false))
+  }, [])
 
   // parse sendTime into hour/minute parts
   const [timeH, timeM] = sched.sendTime.split(':').map(Number)
@@ -395,20 +409,25 @@ export function AgentScheduleCard({ agent, onSaved }: { agent: Agent; onSaved?: 
   const save = async () => {
     setSaving(true)
     try {
-      const scheduleToSave = { ...sched, dailyLimit: Math.min(50, Math.max(1, parseInt(limitStr) || 1)) }
-      
-      await api.put(`/api/auth/agents/${agent.agentId}/settings`, {
-        ...agent.settings,
-        sendingSchedule: scheduleToSave,
-      })
+      const scheduleToSave = {
+        ...sched,
+        mainPerDay: Math.min(50, Math.max(1, parseInt(mainStr) || 1)),
+        followUpPerDay: Math.min(50, Math.max(0, parseInt(followUpStr) || 0)),
+      }
+
+      await api.put('/api/settings/sending-schedule', { schedule: scheduleToSave })
 
       // Re-enroll any emails the user previously excluded from the batch
-      await api.post('/api/email-queue/reset-batch-excluded', { agentId: agent.agentId }).catch(() => {})
-      
+      await api.post('/api/email-queue/reset-batch-excluded', {}).catch(() => {})
+
       const saved = scheduleToSave
       setSaved(true); setTimeout(() => setSaved(false), 2000)
       onSaved?.(saved)
-      toast({ title: 'Schedule saved', description: `Sending ${saved.dailyLimit}/day on ${saved.activeDays.map(d => DAY_LABELS[d]).join(', ')} at ${saved.sendTime}`, duration: 2000 })
+      toast({
+        title: 'Schedule saved',
+        description: `Sending ${saved.mainPerDay}/day${saved.followUpPerDay ? ` + ${saved.followUpPerDay} follow-ups/day` : ''} on ${saved.activeDays.map(d => DAY_LABELS[d]).join(', ')} at ${saved.sendTime}`,
+        duration: 2500,
+      })
     } catch (err: any) {
       toast({ title: 'Failed to save schedule', variant: 'destructive', duration: 2000 })
     }
@@ -420,7 +439,7 @@ export function AgentScheduleCard({ agent, onSaved }: { agent: Agent; onSaved?: 
       <div className="flex items-center gap-2 mb-4">
         <Calendar className="w-4 h-4 text-primary" />
         <h2 className="text-sm font-semibold">Sending Schedule</h2>
-        <span className="text-[10px] text-muted-foreground ml-1">for {agent.name}</span>
+        <span className="text-[10px] text-muted-foreground ml-1">applies to your whole account</span>
       </div>
       <div className="space-y-4">
         {/* active days */}
@@ -485,20 +504,37 @@ export function AgentScheduleCard({ agent, onSaved }: { agent: Agent; onSaved?: 
             </div>
           </div>
           <div className="space-y-1">
-            <label className="text-[11px] font-medium text-muted-foreground">Daily Limit <span className="text-muted-foreground/60">(max 50)</span></label>
+            <label className="text-[11px] font-medium text-muted-foreground">Main Emails/Day <span className="text-muted-foreground/60">(max 50)</span></label>
             <div className="relative">
               <input
                 type="number" min={1} max={50}
                 className="w-full h-8 rounded-md border border-input bg-background px-3 pr-9 text-xs focus:outline-none"
-                value={limitStr}
+                value={mainStr}
                 onChange={e => {
                   const v = e.target.value
-                  if (v === '') { setLimitStr(''); return }
-                  setLimitStr(String(Math.min(50, Math.max(1, parseInt(v) || 1))))
+                  if (v === '') { setMainStr(''); return }
+                  setMainStr(String(Math.min(50, Math.max(1, parseInt(v) || 1))))
                 }}
               />
               <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground tabular-nums">/50</span>
             </div>
+          </div>
+        </div>
+        {/* follow-up ratio */}
+        <div className="space-y-1">
+          <label className="text-[11px] font-medium text-muted-foreground">Follow-ups/Day <span className="text-muted-foreground/60">(max 50, independent of main emails — 0 to pause auto follow-ups)</span></label>
+          <div className="relative w-1/2">
+            <input
+              type="number" min={0} max={50}
+              className="w-full h-8 rounded-md border border-input bg-background px-3 pr-9 text-xs focus:outline-none"
+              value={followUpStr}
+              onChange={e => {
+                const v = e.target.value
+                if (v === '') { setFollowUpStr(''); return }
+                setFollowUpStr(String(Math.min(50, Math.max(0, parseInt(v) || 0))))
+              }}
+            />
+            <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground tabular-nums">/50</span>
           </div>
         </div>
         {/* timezone + save */}
@@ -525,7 +561,7 @@ export function AgentScheduleCard({ agent, onSaved }: { agent: Agent; onSaved?: 
               <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             </div>
           </div>
-          <Button size="sm" className="h-8 gap-1.5" disabled={saving} onClick={save}>
+          <Button size="sm" className="h-8 gap-1.5" disabled={saving || loading} onClick={save}>
             <Save className="w-3.5 h-3.5" />
             {saving ? 'Saving…' : saved ? 'Saved!' : 'Save'}
           </Button>
@@ -1067,10 +1103,13 @@ function Skel() {
 // returns the Date when that email will be sent:
 //   - emails 0..(limit-1) → first upcoming active day
 //   - emails limit..(2*limit-1) → second active day, etc.
+// Predicts when a MAIN email at `index` in the pending queue will auto-send. Follow-ups
+// are a separate, independent slot sequence (their own followUpPerDay cap) — this preview
+// only covers main emails, matching what these queue-row badges are actually for.
 function computeAutoSendDate(index: number, schedule: SendingSchedule): Date {
-  const { activeDays, sendTime, dailyLimit, timezone } = schedule
+  const { activeDays, sendTime, mainPerDay, timezone } = schedule
   const tz = timezone || 'America/New_York'
-  const limit = Math.max(1, dailyLimit)
+  const limit = Math.max(1, mainPerDay)
   const targetSlot = Math.floor(index / limit)
   const [schedH, schedM] = sendTime.split(':').map(Number)
 
@@ -1471,7 +1510,32 @@ function QueuedList({ agentId, agentMap, fontSize, setFontSize, onCountChange, a
   const [sendingActiveId, setSendingActiveId] = useState<string | null>(null)
   const [bulkSending, setBulkSending] = useState(false)
   const [leavingIds, setLeavingIds] = useState<Set<string>>(new Set())
+  const [capStatus, setCapStatus] = useState<{ totalCapReached: boolean; perAccountCapReached: boolean; activeAccountEmail?: string } | null>(null)
   const LIMIT = 20
+
+  const loadCapStatus = useCallback(() => {
+    api.get('/api/email-queue/daily-cap-status').then(r => {
+      if (r.data.success) {
+        setCapStatus({
+          totalCapReached: !!r.data.totalCapReached,
+          perAccountCapReached: !!r.data.perAccountCapReached,
+          activeAccountEmail: r.data.activeAccount?.email,
+        })
+      }
+    }).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    loadCapStatus()
+    const iv = setInterval(loadCapStatus, 30000)
+    return () => clearInterval(iv)
+  }, [loadCapStatus])
+
+  const sendBlockedReason = capStatus?.totalCapReached
+    ? 'Daily sending limit reached — resets tomorrow'
+    : capStatus?.perAccountCapReached
+    ? `${capStatus.activeAccountEmail || 'This account'} hit its 50/day limit — switch accounts in the daily cap widget above to keep sending`
+    : null
 
   const load = useCallback(async (off = 0) => {
     setLoading(true); setSelected(new Set())
@@ -1527,38 +1591,25 @@ function QueuedList({ agentId, agentMap, fontSize, setFontSize, onCountChange, a
     })
   }, [emails, search])
 
-  // Map from email id → computed auto-send date, based on queue order + schedule
+  // Map from email id → computed auto-send date. The sending schedule is global (shared
+  // across every agent), so this is one continuous slot sequence regardless of which
+  // agent's queue view is currently selected — matching how the backend's
+  // syncGlobalScheduleForUser pools every agent's queued emails into one ordered list.
   const autoSendDates = useMemo<Map<string, Date>>(() => {
+    const map = new Map<string, Date>()
+    if (!activeSchedule) return map
     const sorted = [...emails].sort((a, b) =>
       new Date(a.createdAt ?? 0).getTime() - new Date(b.createdAt ?? 0).getTime()
     )
-    const map = new Map<string, Date>()
-    if (agentId !== 'all') {
-      // single-agent: use the passed activeSchedule
-      if (!activeSchedule) return map
-      let slotIndex = 0
-      sorted.forEach(email => {
-        if (!email.scheduledAt && !email.batchExcluded && !excludedAuto.has(email.id)) {
-          map.set(email.id, computeAutoSendDate(slotIndex, activeSchedule))
-          slotIndex++
-        }
-      })
-      return map
-    }
-    // all-agents: compute slot index independently per agent
-    const slotsByAgent: Record<string, number> = {}
+    let slotIndex = 0
     sorted.forEach(email => {
-      if (email.scheduledAt || email.batchExcluded || excludedAuto.has(email.id)) return
-      const aid = email.agentId
-      if (!aid) return
-      const sched = agentMap[aid]?.settings?.sendingSchedule
-      if (!sched) return
-      const idx = slotsByAgent[aid] ?? 0
-      map.set(email.id, computeAutoSendDate(idx, sched))
-      slotsByAgent[aid] = idx + 1
+      if (!email.scheduledAt && !email.batchExcluded && !excludedAuto.has(email.id)) {
+        map.set(email.id, computeAutoSendDate(slotIndex, activeSchedule))
+        slotIndex++
+      }
     })
     return map
-  }, [emails, activeSchedule, excludedAuto, agentId, agentMap])
+  }, [emails, activeSchedule, excludedAuto])
 
   const allSelected = filtered.length > 0 && filtered.every(e => selected.has(e.id))
   const toggleAll   = () => setSelected(allSelected ? new Set() : new Set(filtered.map(e => e.id)))
@@ -1566,8 +1617,18 @@ function QueuedList({ agentId, agentMap, fontSize, setFontSize, onCountChange, a
 
   const approve = (email: QueueEmail) => {
     // Fire the API call immediately in the background — the animation below
-    // is purely visual and shouldn't delay the actual send.
-    api.post(`/api/email-queue/${email.id}/approve`, { agentId: email.agentId }, { params: { agentId: email.agentId } }).catch(() => {})
+    // is purely visual and shouldn't delay the actual send. If it actually
+    // failed (e.g. daily cap reached), the row was already optimistically
+    // removed below — correct the UI immediately instead of waiting on the
+    // 15s poll, and tell the user why rather than letting a false "sent"
+    // toast stand uncorrected.
+    api.post(`/api/email-queue/${email.id}/approve`, { agentId: email.agentId }, { params: { agentId: email.agentId } }).catch(err => {
+      const reason = err.response?.data?.reason
+      if (reason === 'daily_cap_reached' || reason === 'per_account_cap_reached') {
+        toast({ title: 'Send blocked — daily limit reached', description: err.response?.data?.details || err.response?.data?.error, variant: 'destructive', duration: 6000 })
+      }
+      silentRefresh()
+    }).finally(loadCapStatus)
     onSent(1)
 
     // Send button plays its check/ring animation, then the row collapses
@@ -1640,10 +1701,25 @@ function QueuedList({ agentId, agentMap, fontSize, setFontSize, onCountChange, a
     const targetIds = new Set(targets.map(e => e.id))
     setSelected(new Set())
 
-    // API calls in background (don't await - fire and forget)
-    targets.forEach(email => {
+    // API calls in background (don't await - fire and forget). Track cap-blocked
+    // sends so the UI can be corrected instead of leaving a false "sent" toast
+    // standing — see the single-send `approve()` above for the same pattern.
+    let capBlocked = 0
+    Promise.allSettled(targets.map(email =>
       api.post(`/api/email-queue/${email.id}/approve`, { agentId: email.agentId }, { params: { agentId: email.agentId } })
-        .catch(() => {}) // Silent failure
+    )).then(results => {
+      capBlocked = results.filter(r => r.status === 'rejected' &&
+        ['daily_cap_reached', 'per_account_cap_reached'].includes((r.reason as any)?.response?.data?.reason)).length
+      if (capBlocked > 0) {
+        toast({
+          title: 'Some sends blocked — daily limit reached',
+          description: `${capBlocked} of ${targets.length} emails hit today's sending limit and are still queued for tomorrow.`,
+          variant: 'destructive',
+          duration: 6000,
+        })
+        silentRefresh()
+      }
+      loadCapStatus()
     })
     onSent(targets.length)
 
@@ -1694,7 +1770,8 @@ function QueuedList({ agentId, agentMap, fontSize, setFontSize, onCountChange, a
               size="sm"
               className="relative h-7 text-xs gap-1 overflow-visible bg-primary hover:bg-primary/90"
               onClick={bulkApprove}
-              disabled={bulkSending}
+              disabled={bulkSending || !!sendBlockedReason}
+              title={sendBlockedReason || undefined}
             >
               {bulkSending ? (
                 <>
@@ -1820,7 +1897,8 @@ function QueuedList({ agentId, agentMap, fontSize, setFontSize, onCountChange, a
                       size="sm"
                       className="relative h-7 text-xs gap-1 overflow-visible bg-primary hover:bg-primary/90"
                       onClick={() => approve(active)}
-                      disabled={sendingActiveId === active.id}
+                      disabled={sendingActiveId === active.id || !!sendBlockedReason}
+                      title={sendBlockedReason || undefined}
                     >
                       {sendingActiveId === active.id ? (
                         <>
@@ -1861,10 +1939,11 @@ interface CapData {
   accounts: CapAccount[]
   activeAccount: CapAccount | null
   sentToday: number
+  sentTodayByActiveAccount: number
   perAccountCap: number
   totalCap: number
-  remaining: number
-  perAccountRemaining: number
+  totalRemaining: number
+  perAccountRemaining: number | null
 }
 
 function DailyCapWidget({ bump = 0 }: { bump?: number }) {
@@ -2003,7 +2082,11 @@ function DailyCapWidget({ bump = 0 }: { bump?: number }) {
             ))}
           </div>
           <div className="border-t border-border px-3 py-2">
-            <p className="text-[10px] text-muted-foreground">{data.perAccountCap}/day limit per account</p>
+            <p className="text-[10px] text-muted-foreground">
+              {data.activeAccount
+                ? `${data.sentTodayByActiveAccount} of ${data.perAccountCap}/day sent from ${data.activeAccount.email}`
+                : `${data.perAccountCap}/day limit per email address`}
+            </p>
           </div>
         </div>
       )}
@@ -2023,21 +2106,13 @@ export function EmailQueueContent() {
   const [showBatchesModal, setShowBatchesModal] = useState(false)
   const [batchCount, setBatchCount]             = useState(0)
   const [capBump, setCapBump]                   = useState(0)
-  const activeScheduledAgentsCount = agents.filter(a => a.settings?.sendingSchedule?.activeDays?.length).length
-  const hasAnyActiveSchedules = activeScheduledAgentsCount > 0
-  const hasSelectedAgentSchedule = !!savedSchedule?.activeDays?.length
+  const hasActiveSchedule = !!savedSchedule?.activeDays?.length
 
   const agentMap: Record<string, Agent> = {}
   agents.forEach(a => { agentMap[a.agentId] = a })
 
   const cancelSchedule = async () => {
-    if (selectedAgent === 'all') return
-    const agent = agents.find(a => a.agentId === selectedAgent)
-    if (!agent) return
-    await api.put(`/api/auth/agents/${selectedAgent}/settings`, {
-      ...agent.settings,
-      sendingSchedule: null,
-    }).catch(() => {})
+    await api.put('/api/settings/sending-schedule', { schedule: null }).catch(() => {})
     setSavedSchedule(null)
     toast({ title: 'Sending schedule cancelled', duration: 2000 })
   }
@@ -2051,31 +2126,12 @@ export function EmailQueueContent() {
   useEffect(() => {
     api.get('/api/auth/agents').then(r => {
       setAgents(r.data.agents ?? [])
-
-      // Load saved schedule for current agent
-      if (selectedAgent !== 'all') {
-        const agent = r.data.agents?.find((a: Agent) => a.agentId === selectedAgent)
-        if (agent?.settings?.sendingSchedule) {
-          setSavedSchedule(agent.settings.sendingSchedule)
-        }
-      }
+    }).catch(() => {})
+    api.get('/api/settings/sending-schedule').then(r => {
+      setSavedSchedule(r.data?.schedule ?? null)
     }).catch(() => {})
     refreshBatchCount()
   }, [])
-  
-  // Load schedule when agent changes
-  useEffect(() => {
-    if (selectedAgent === 'all') {
-      setSavedSchedule(null)
-      return
-    }
-    const agent = agents.find(a => a.agentId === selectedAgent)
-    if (agent?.settings?.sendingSchedule) {
-      setSavedSchedule(agent.settings.sendingSchedule)
-    } else {
-      setSavedSchedule(null)
-    }
-  }, [selectedAgent, agents])
 
   return (
     <div className="space-y-5">
@@ -2101,20 +2157,13 @@ export function EmailQueueContent() {
               <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
             </div>
           </div>
-          {selectedAgent === 'all' && hasAnyActiveSchedules && (
-            <span className="flex items-center gap-1 text-[11px] text-primary bg-primary/10 border border-primary/20 rounded-full px-2 py-0.5">
-              <Clock className="w-2.5 h-2.5" />
-              {queuedCount > 0
-                ? `${queuedCount} email${queuedCount !== 1 ? 's' : ''} auto-sending across ${activeScheduledAgentsCount} agent${activeScheduledAgentsCount !== 1 ? 's' : ''}`
-                : `Auto-send schedule active across ${activeScheduledAgentsCount} agent${activeScheduledAgentsCount !== 1 ? 's' : ''} - waiting for queued emails`}
-            </span>
-          )}
-          {selectedAgent !== 'all' && hasSelectedAgentSchedule && (
+          {hasActiveSchedule && savedSchedule && (
             <span className="flex items-center gap-1 text-[11px] text-primary bg-primary/10 border border-primary/20 rounded-full px-2 py-0.5">
               <Clock className="w-2.5 h-2.5" />
               {queuedCount > 0
                 ? `${queuedCount} email${queuedCount !== 1 ? 's' : ''} auto-sending`
                 : 'Auto-send schedule active'}
+              {' '}({savedSchedule.mainPerDay}/day{savedSchedule.followUpPerDay ? ` + ${savedSchedule.followUpPerDay} follow-ups` : ''})
               {' '}on {savedSchedule.activeDays.map(d => DAY_LABELS[d]).join(', ')}
               {' '}at {(() => {
                 const [h, m] = savedSchedule.sendTime.split(':').map(Number)
@@ -2163,24 +2212,7 @@ export function EmailQueueContent() {
                 >
                   <X className="w-4 h-4" />
                 </button>
-                {selectedAgent === 'all' ? (
-                  <Card className="p-5">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Calendar className="w-4 h-4 text-primary" />
-                      <h2 className="text-sm font-semibold">Sending Schedule</h2>
-                    </div>
-                    <p className="text-xs text-muted-foreground py-2">
-                      Select an agent from the dropdown above to configure its sending schedule.
-                    </p>
-                  </Card>
-                ) : (
-                  (() => {
-                    const agent = agents.find(a => a.agentId === selectedAgent)
-                    return agent
-                      ? <AgentScheduleCard agent={agent} onSaved={s => { setSavedSchedule(s); refreshBatchCount(); setShowSchedule(false) }} />
-                      : null
-                  })()
-                )}
+                <AgentScheduleCard onSaved={s => { setSavedSchedule(s); refreshBatchCount(); setShowSchedule(false) }} />
               </div>
             </div>
           </div>

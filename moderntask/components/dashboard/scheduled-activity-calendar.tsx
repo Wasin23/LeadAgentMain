@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { ChevronLeft, ChevronRight, CalendarClock, Send, Bot, Loader2, X } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { AgentScheduleCard, type Agent } from "@/components/email-queue/email-queue-content"
+import { AgentScheduleCard } from "@/components/email-queue/email-queue-content"
 import api from "@/lib/api"
 
 export interface ScheduledBatch {
@@ -113,20 +113,9 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
   const [mode, setMode] = useState<Mode>("both")
   const [monthOffset, setMonthOffset] = useState(0)
   const [openDay, setOpenDay] = useState<string | null>(null)
-  // Schedule-emails flow: click "Schedule emails" → pick an agent → its Sending Schedule card opens
-  const [pickingAgent, setPickingAgent] = useState(false)
-  const [agents, setAgents] = useState<Agent[]>([])
-  const [agentsLoading, setAgentsLoading] = useState(false)
-  const [scheduleAgent, setScheduleAgent] = useState<Agent | null>(null)
-
-  useEffect(() => {
-    if (!pickingAgent || agents.length > 0) return
-    setAgentsLoading(true)
-    api.get("/api/auth/agents")
-      .then(r => setAgents((r.data?.agents ?? []).filter((a: any) => a.agentId !== "orphan")))
-      .catch(() => {})
-      .finally(() => setAgentsLoading(false))
-  }, [pickingAgent, agents.length])
+  // Sending schedule is global (one per account), so "Schedule emails" opens the
+  // Sending Schedule card directly — no per-agent picker step needed anymore.
+  const [showScheduleCard, setShowScheduleCard] = useState(false)
 
   const cursor = useMemo(() => {
     const d = new Date()
@@ -230,7 +219,7 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
           const isToday = key === todayKey
 
           return (
-            <Popover key={key} open={openDay === key} onOpenChange={(o) => { setOpenDay(o ? key : null); if (!o) setPickingAgent(false) }}>
+            <Popover key={key} open={openDay === key} onOpenChange={(o) => setOpenDay(o ? key : null)}>
               <PopoverTrigger asChild>
                 <button
                   className={`relative w-full h-full rounded-md text-[9px] font-medium transition-colors flex flex-col items-center justify-center cursor-pointer ${
@@ -251,34 +240,12 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
                 {items.length === 0 ? (
                   <div className="px-1 py-3 text-center">
                     <p className="text-[11px] text-muted-foreground">Nothing scheduled this day.</p>
-                    {!pickingAgent ? (
-                      <button
-                        onClick={() => setPickingAgent(true)}
-                        className="mt-1.5 text-[11px] font-medium text-primary hover:underline"
-                      >
-                        Schedule emails →
-                      </button>
-                    ) : (
-                      <div className="mt-2 space-y-1 text-left">
-                        <p className="px-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Pick an agent</p>
-                        {agentsLoading ? (
-                          <div className="flex justify-center py-2"><Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" /></div>
-                        ) : agents.length === 0 ? (
-                          <p className="px-1 py-1.5 text-[11px] text-muted-foreground">No agents yet.</p>
-                        ) : (
-                          agents.map(a => (
-                            <button
-                              key={a.agentId}
-                              onClick={() => { setScheduleAgent(a); setPickingAgent(false); setOpenDay(null) }}
-                              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[11px] font-medium text-foreground hover:bg-accent transition-colors"
-                            >
-                              <Bot className="h-3 w-3 shrink-0 text-muted-foreground" />
-                              <span className="truncate">{a.name}</span>
-                            </button>
-                          ))
-                        )}
-                      </div>
-                    )}
+                    <button
+                      onClick={() => { setShowScheduleCard(true); setOpenDay(null) }}
+                      className="mt-1.5 text-[11px] font-medium text-primary hover:underline"
+                    >
+                      Schedule emails →
+                    </button>
                   </div>
                 ) : (
                   <div className="mt-1.5 space-y-1 max-h-64 overflow-y-auto">
@@ -297,21 +264,20 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
         })}
       </div>
 
-      {/* Sending Schedule modal - the same card used in Outreach, opened after picking an agent */}
-      {scheduleAgent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-modal-swoop-backdrop" onClick={() => setScheduleAgent(null)}>
+      {/* Sending Schedule modal - the same global schedule card used in Outreach */}
+      {showScheduleCard && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-modal-swoop-backdrop" onClick={() => setShowScheduleCard(false)}>
           <div className="w-full max-w-md animate-modal-swoop-up" onClick={e => e.stopPropagation()}>
             <div className="relative">
               <button
-                onClick={() => setScheduleAgent(null)}
+                onClick={() => setShowScheduleCard(false)}
                 className="absolute right-3 top-3 z-10 rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                 title="Close"
               >
                 <X className="h-4 w-4" />
               </button>
               <AgentScheduleCard
-                agent={scheduleAgent}
-                onSaved={() => { setScheduleAgent(null); onChanged?.() }}
+                onSaved={() => { setShowScheduleCard(false); onChanged?.() }}
               />
             </div>
           </div>

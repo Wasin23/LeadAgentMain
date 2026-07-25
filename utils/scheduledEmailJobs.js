@@ -130,7 +130,12 @@ class ScheduledEmailJobs {
     }
   }
 
-  async upsertScheduledEmail({ userId, agentId, emailId, scheduledAt, scheduleType = 'manual' }) {
+  // `type` distinguishes a main queued email ('main', the default — unchanged behavior)
+  // from a follow-up ('followup'). Follow-ups aren't QUEUED items, so `payload` carries
+  // everything utils/emailScheduler.js needs to actually send one at fire time (to,
+  // subject, body, replyOptions, originalEmailId, stepNumber) — built once by
+  // utils/rebumpChecker.js when it decides the follow-up is eligible, not regenerated here.
+  async upsertScheduledEmail({ userId, agentId, emailId, scheduledAt, scheduleType = 'manual', type = 'main', payload = {} }) {
     if (!scheduledAt) {
       return;
     }
@@ -154,6 +159,8 @@ class ScheduledEmailJobs {
           emailId,
           scheduledAt,
           scheduleType,
+          type,
+          ...payload,
           scheduledDay: this._getScheduledDay(scheduledAt),
           updatedAt: now,
           createdAt: now,

@@ -564,6 +564,7 @@ export async function checkForRebumps() {
     }
 
     let totalRebumpsQueued = 0;
+    const usersWithNewlyReadyFollowUps = new Set();
 
     // Process each user
     for (const user of users) {
@@ -643,6 +644,18 @@ export async function checkForRebumps() {
 
           // Skip if no follow-up date set
           if (!email.followUpDate) {
+            continue;
+          }
+
+          // Skip if this follow-up is already in the new scheduling pipeline — either
+          // still awaiting slot assignment, or already assigned a future scheduledAt.
+          // Without this guard, every 6-hour pass would re-detect it as "eligible" (none
+          // of the checks above changed) and redundantly re-run AI content generation +
+          // push its slot back, since it hasn't actually sent yet (rebumpCount unchanged).
+          if (email.followUpReadyForSchedule === true) {
+            continue;
+          }
+          if (email.followUpJobScheduledAt && new Date(email.followUpJobScheduledAt).getTime() > now) {
             continue;
           }
 
@@ -739,55 +752,31 @@ export async function checkForRebumps() {
               // Gmail thread ID for threading in Gmail
               threadId: email.gmailThreadId || null
             };
-            
+
             console.log(`🧵 [REBUMP] Threading info for follow-up:`, replyOptions);
 
-            // SEND the rebump email directly (no queue - auto-send)
-            console.log(`📤 [REBUMP] Sending follow-up #${rebumpCount + 1} directly to ${email.to}`);
-            
+            // Mark ready for scheduling instead of sending directly — utils/scheduleSlots.js's
+            // syncGlobalScheduleForUser() picks up any record with followUpReadyForSchedule and
+            // gives it a real scheduledAt competing for the user's followUpPerDay slots, so
+            // follow-ups actually respect the sending schedule/cap instead of firing the instant
+            // they're due. The content built above is captured now (not regenerated at fire
+            // time) since "daysAgo"/research context are only meaningful as of this eligibility
+            // check. Actual send + rebumpCount/next-followUpDate bookkeeping happens in
+            // utils/emailScheduler.js's followup branch once the assigned slot's time arrives.
             try {
-              const sendResult = await leadEmail(
-                email.to,
-                subject,
-                body,
-                lead, // personInfo
-                userId,
-                agentId,
-                null, // ccEmails
-                null, // bccEmails
-                null, // senderName (will use agent settings)
-                replyOptions // threading info
-              );
-              
-              if (sendResult.success) {
-                console.log(`✅ [REBUMP] Successfully sent follow-up #${rebumpCount + 1} to ${email.to}`);
-                
-                // Update original email with rebump info - mark that follow-up was SENT
-                await updateEmailStatusWithDelay(userId, agentId, email.id, 'SENT', 'SENT', {
-                  rebumpCount: rebumpCount + 1,
-                  lastRebumpAt: new Date().toISOString(),
-                  lastFollowUpSentAt: new Date().toISOString(),
-                  followUpStatus: 'SENT'
-                }, 600);
-                
-                // Calculate next follow-up date if more follow-ups remaining
-                if (rebumpCount + 1 < maxRebumps) {
-                  const nextFollowUpDate = new Date(Date.now() + rebumpIntervalMs);
-                  await updateEmailStatusWithDelay(userId, agentId, email.id, 'SENT', 'SENT', {
-                    followUpDate: nextFollowUpDate.toISOString()
-                  });
-                  console.log(`📅 [REBUMP] Scheduled next follow-up for ${nextFollowUpDate.toISOString()}`);
-                }
-                
-                totalRebumpsQueued++; // Actually sent, but keeping the counter name
-              } else {
-                console.error(`❌ [REBUMP] Failed to send follow-up to ${email.to}:`, sendResult.error);
-              }
-            } catch (sendError) {
-              console.error(`❌ [REBUMP] Error sending follow-up to ${email.to}:`, sendError);
+              await updateEmailStatusWithDelay(userId, agentId, email.id, 'SENT', 'SENT', {
+                followUpReadyForSchedule: true,
+                followUpReadyContent: { subject, body },
+                followUpReadyReplyOptions: replyOptions,
+                followUpReadyStepNumber: stepNumber,
+                followUpReadySince: new Date().toISOString(),
+              }, 400);
+              console.log(`📅 [REBUMP] Marked follow-up #${stepNumber} ready for scheduling: ${email.to}`);
+              usersWithNewlyReadyFollowUps.add(userId);
+              totalRebumpsQueued++;
+            } catch (markReadyError) {
+              console.error(`❌ [REBUMP] Failed to mark follow-up ready for ${email.to}:`, markReadyError.message);
             }
-            
-            console.log(`✅ [REBUMP] Updated original email ${email.id} with rebumpCount=${rebumpCount + 1}`);
 
             // Update template rotation (only if templates exist)
             const templates = agentSettings.followUpTemplates?.templates;
@@ -803,6 +792,17 @@ export async function checkForRebumps() {
             }
           }
         }
+      }
+    }
+
+    // Give every user who got a newly-ready follow-up a real scheduled slot right away,
+    // rather than waiting for some unrelated queue mutation to trigger a resync.
+    if (usersWithNewlyReadyFollowUps.size > 0) {
+      const { syncGlobalScheduleForUser } = await import('./scheduleSlots.js');
+      for (const readyUserId of usersWithNewlyReadyFollowUps) {
+        await syncGlobalScheduleForUser(readyUserId).catch(syncError => {
+          console.error(`❌ [REBUMP] Failed to sync schedule for user ${readyUserId}:`, syncError.message);
+        });
       }
     }
 

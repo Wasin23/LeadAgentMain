@@ -328,4 +328,62 @@ router.put('/auto-topup', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/settings/sending-schedule
+ * Returns the user's global sending schedule (one per account, not per agent — every
+ * agent's queued emails and eligible follow-ups share this schedule's daily slots).
+ */
+router.get('/sending-schedule', async (req, res) => {
+  try {
+    const awsManager = new AWSManager();
+    const userSettings = await awsManager.getUserSettings(req.user.userId) || {};
+    res.json({ success: true, schedule: userSettings.sendingSchedule || null });
+  } catch (error) {
+    console.error('Error getting sending schedule:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * PUT /api/settings/sending-schedule
+ * Saves (or, with `schedule: null`, clears) the user's global sending schedule.
+ * Body: { schedule: { activeDays: number[], sendTime: string, timezone: string, mainPerDay: number, followUpPerDay: number } | null }
+ */
+router.put('/sending-schedule', async (req, res) => {
+  try {
+    const { schedule } = req.body;
+
+    if (schedule !== null) {
+      if (!Array.isArray(schedule?.activeDays) || !schedule.activeDays.length) {
+        return res.status(400).json({ success: false, error: 'activeDays must be a non-empty array' });
+      }
+      if (typeof schedule.sendTime !== 'string' || !/^\d{2}:\d{2}$/.test(schedule.sendTime)) {
+        return res.status(400).json({ success: false, error: 'sendTime must be "HH:MM"' });
+      }
+    }
+
+    const awsManager = new AWSManager();
+    const userSettings = await awsManager.getUserSettings(req.user.userId) || {};
+
+    userSettings.sendingSchedule = schedule === null ? null : {
+      activeDays: schedule.activeDays,
+      sendTime: schedule.sendTime,
+      timezone: schedule.timezone || 'America/New_York',
+      mainPerDay: Math.min(50, Math.max(1, parseInt(schedule.mainPerDay, 10) || 1)),
+      followUpPerDay: Math.min(50, Math.max(0, parseInt(schedule.followUpPerDay, 10) || 0)),
+    };
+    await awsManager.saveUserSettings(req.user.userId, userSettings);
+
+    const { syncGlobalScheduleForUser } = await import('../utils/scheduleSlots.js');
+    await syncGlobalScheduleForUser(req.user.userId, { awsManager, schedule: userSettings.sendingSchedule }).catch(syncError => {
+      console.error('[SETTINGS] Failed to sync schedule after save:', syncError.message);
+    });
+
+    res.json({ success: true, schedule: userSettings.sendingSchedule });
+  } catch (error) {
+    console.error('Error saving sending schedule:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 export default router;

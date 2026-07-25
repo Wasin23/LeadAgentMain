@@ -1382,11 +1382,8 @@ router.put('/agents/:agentId/settings', authenticateToken, async (req, res) => {
     await awsManagerInstance.saveLeadAgentSettings(userId, agentId, settings);
 
     try {
-      const { syncAutoScheduleJobsForAgent } = await import('../utils/autoScheduleJobs.js');
-      await syncAutoScheduleJobsForAgent(userId, agentId, {
-        awsManager: awsManagerInstance,
-        settings,
-      });
+      const { syncGlobalScheduleForUser } = await import('../utils/scheduleSlots.js');
+      await syncGlobalScheduleForUser(userId, { awsManager: awsManagerInstance });
     } catch (scheduleSyncError) {
       console.error('[AUTH] Failed to sync auto schedule jobs after settings update:', scheduleSyncError.message);
     }

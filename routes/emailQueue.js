@@ -860,10 +860,16 @@ router.post('/:id/approve', async (req, res) => {
         sendResult: sendResult.result 
       });
     } else {
-      console.error(`[EMAIL QUEUE] ❌ Failed to send approved email:`, sendResult.error);
-      res.status(500).json({ 
-        error: 'Email approved but failed to send', 
+      const isCapReached = sendResult.reason === 'daily_cap_reached' || sendResult.reason === 'per_account_cap_reached';
+      if (isCapReached) {
+        console.warn(`[EMAIL QUEUE] Send blocked by daily cap for ${id}:`, sendResult.error);
+      } else {
+        console.error(`[EMAIL QUEUE] ❌ Failed to send approved email:`, sendResult.error);
+      }
+      res.status(isCapReached ? 429 : 500).json({
+        error: 'Email approved but failed to send',
         details: sendResult.error,
+        reason: sendResult.reason || null,
         email: approvedEmail
       });
     }
@@ -1188,7 +1194,7 @@ router.post('/reset-batch-excluded', async (req, res) => {
     const { agentId } = req.body;
     const userId = req.user.userId;
     const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
-    const { syncAutoScheduleJobsForAgent } = await import('../utils/autoScheduleJobs.js');
+    const { syncGlobalScheduleForUser } = await import('../utils/scheduleSlots.js');
     const awsQueue = getAWSEmailQueue();
 
     const queued = agentId
@@ -1200,9 +1206,9 @@ router.post('/reset-batch-excluded', async (req, res) => {
       awsQueue.updateEmail(userId, e.agentId || agentId, e.id, { batchExcluded: false }, { skipAutoScheduleSync: true })
     ));
 
-    if (agentId) {
-      await syncAutoScheduleJobsForAgent(userId, agentId, { awsQueue });
-    }
+    // Schedule is global now — always resync regardless of whether this call was scoped
+    // to one agent, since freed-up slots are shared across the whole account's queue.
+    await syncGlobalScheduleForUser(userId, { awsQueue });
 
     res.json({ success: true, reset: excluded.length });
   } catch (error) {
@@ -1430,166 +1436,19 @@ router.delete('/:emailId/followup', authenticateToken, async (req, res) => {
   }
 });
 
-// ── Scheduled batches helper (same algorithm as email-queue-content.tsx) ───────
-// Converts HH:MM on a given calendar day (year/month/day) in `tz` to a UTC Date.
-// Uses the inverse-offset trick: build a naive UTC candidate at that clock time,
-// measure how far Intl renders it vs. the desired time, then shift to correct.
-function localTimeToUTC(year, month, day, h, m, tz) {
-  const naive = new Date(Date.UTC(year, month - 1, day, h, m, 0));
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false,
-  }).formatToParts(naive);
-  const rendH = parseInt(parts.find(p => p.type === 'hour').value, 10);
-  const rendM = parseInt(parts.find(p => p.type === 'minute').value, 10);
-  const diffMs = ((h * 60 + m) - ((rendH === 24 ? 0 : rendH) * 60 + rendM)) * 60000;
-  return new Date(naive.getTime() + diffMs);
-}
-
-function computeSlotDate(index, schedule) {
-  const { activeDays, sendTime, dailyLimit, timezone } = schedule;
-  const tz = timezone || 'America/New_York';
-  const limit = Math.max(1, dailyLimit || 50);
-  const targetSlot = Math.floor(index / limit);
-  const [schedH, schedM] = (sendTime || '09:00').split(':').map(Number);
-
-  const now = new Date();
-  // Today's date in the agent's configured timezone
-  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(now); // "YYYY-MM-DD"
-  const [todayY, todayMo, todayD] = todayStr.split('-').map(Number);
-
-  // Has today's send window already passed in the agent's timezone?
-  const nowParts = new Intl.DateTimeFormat('en-US', {
-    timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false,
-  }).formatToParts(now);
-  const nowH = parseInt(nowParts.find(p => p.type === 'hour').value, 10);
-  const nowM = parseInt(nowParts.find(p => p.type === 'minute').value, 10);
-  const startOffset = ((nowH === 24 ? 0 : nowH) * 60 + nowM) >= (schedH * 60 + schedM) ? 1 : 0;
-
-  const wdMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
-  let slotsFound = 0;
-  for (let i = startOffset; i < 400; i++) {
-    // Use UTC noon as probe to avoid DST-at-midnight edge cases
-    const probe = new Date(Date.UTC(todayY, todayMo - 1, todayD + i, 12, 0, 0));
-    const wdStr = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short' }).format(probe);
-    const wd = wdMap[wdStr] ?? probe.getUTCDay();
-    if ((activeDays || [1, 2, 3, 4, 5]).includes(wd)) {
-      if (slotsFound === targetSlot) {
-        const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(probe);
-        const [dY, dMo, dD] = dateStr.split('-').map(Number);
-        return localTimeToUTC(dY, dMo, dD, schedH, schedM, tz);
-      }
-      slotsFound++;
-    }
-  }
-  // fallback — very far future
-  const fbProbe = new Date(Date.UTC(todayY, todayMo - 1, todayD + 400, 12, 0, 0));
-  const fbStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(fbProbe);
-  const [fY, fMo, fD] = fbStr.split('-').map(Number);
-  return localTimeToUTC(fY, fMo, fD, schedH, schedM, tz);
-}
-
 // GET /daily-cap-status — connected sending accounts + how many sent today vs caps
 router.get('/daily-cap-status', async (req, res) => {
   try {
     const userId = req.user.userId;
-    const awsManager = new AWSManager();
-    const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
-    const { QueryCommand } = await import('@aws-sdk/lib-dynamodb');
-    const awsQueue = getAWSEmailQueue();
-
-    const userSettings = await awsManager.getUserSettings(userId);
-    const timezone = userSettings?.timezone || 'America/New_York';
-
-    // Build list of connected sending accounts
-    const gmailAccounts = (userSettings?.gmailAccounts || []).map((acc, i) => ({
-      email: acc.email,
-      provider: 'gmail',
-      isActive: !!acc.isActive,
-      index: i,
-    }));
-    const outlookAccounts = (userSettings?.outlookAccounts || []).map((acc, i) => ({
-      email: acc.email,
-      provider: 'outlook',
-      isActive: !!acc.isActive,
-      index: i,
-    }));
-    // Legacy accounts predating the isActive field won't have it set on any
-    // account — default to the first one so something is always shown as active.
-    if (outlookAccounts.length > 0 && !outlookAccounts.some(a => a.isActive) && !gmailAccounts.some(a => a.isActive)) {
-      outlookAccounts[0].isActive = true;
-    }
-
-    const connectedAccounts = [...gmailAccounts, ...outlookAccounts];
-
-    // Today's date string in user's timezone
-    const now = new Date();
-    const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(now);
-    // SK is SENT#<UTC-ISO-timestamp>#<emailId> — the embedded date is UTC, but
-    // "today" is local. Query all 3 UTC-dated prefixes a local day can touch
-    // and filter by the real local date parsed from each item's own timestamp,
-    // otherwise evening sends get stamped with tomorrow's UTC date and leak
-    // into the next local day's count instead of resetting cleanly.
-    const utcDateStrings = [...new Set([-1, 0, 1].map(offset =>
-      new Date(now.getTime() + offset * 86400000).toISOString().slice(0, 10)
-    ))];
-
-    // Count sent today across all agents
-    const agents = await awsManager.getUserAgents(userId);
-    const agentIds = (agents || []).map(a => a.agentId).filter(Boolean);
-    const perAgentCounts = await Promise.all(
-      agentIds.map(async agentId => {
-        const responses = await Promise.all(utcDateStrings.map(dateStr =>
-          awsQueue.dynamodb.send(new QueryCommand({
-            TableName: awsQueue.tableName,
-            KeyConditionExpression: 'PK = :pk AND begins_with(SK, :skPrefix)',
-            ExpressionAttributeValues: {
-              ':pk': `${userId}#${agentId}`,
-              ':skPrefix': `SENT#${dateStr}`,
-            },
-            ProjectionExpression: 'SK',
-          })).then(r => r.Items || []).catch(() => [])
-        ));
-        let count = 0;
-        for (const items of responses) {
-          for (const item of items) {
-            const ts = String(item.SK).split('#')[1];
-            if (ts && new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(new Date(ts)) === todayStr) count++;
-          }
-        }
-        return count;
-      })
-    );
-    const sentToday = perAgentCounts.reduce((sum, c) => sum + c, 0);
-
-    // Total daily cap scales with plan size instead of a flat number: take
-    // the plan's monthly email allowance (original sends + follow-ups —
-    // emailAllowance already bakes both in as leadAllowance x4; plans without
-    // an explicit emailAllowance spend credits 1:1 per email, so initialCredits
-    // is the equivalent monthly figure), spread it over 30 days, and round to
-    // the nearest 10. Per-account cap stays fixed regardless of plan.
-    const user = await awsManager.getUserById(userId);
-    const planConfig = awsManager.getPlanConfig(user?.plan || 'free-trial');
-    const monthlyEmailAllowance = planConfig.emailAllowance || planConfig.initialCredits || 250;
-
-    const PER_ACCOUNT_CAP = 50;
-    const TOTAL_CAP = Math.max(10, Math.round((monthlyEmailAllowance / 30) / 10) * 10);
-    const activeAccount = connectedAccounts.find(a => a.isActive) || null;
-
-    res.json({
-      success: true,
-      accounts: connectedAccounts,
-      activeAccount,
-      sentToday,
-      perAccountCap: PER_ACCOUNT_CAP,
-      totalCap: TOTAL_CAP,
-      remaining: Math.max(0, TOTAL_CAP - sentToday),
-      perAccountRemaining: Math.max(0, PER_ACCOUNT_CAP - sentToday),
-    });
+    const { getDailySendCapStatus } = await import('../utils/dailySendCaps.js');
+    const status = await getDailySendCapStatus(userId);
+    return res.json({ success: true, ...status });
   } catch (error) {
     console.error('[EMAIL QUEUE] Error getting daily cap status:', error);
-    res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: error.message });
   }
 });
+
 
 // GET /scheduled-batches — server-computed send schedule grouped by time slot
 router.get('/scheduled-batches', async (req, res) => {

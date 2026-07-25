@@ -287,8 +287,12 @@ class EmailScheduler {
     }
 
     this.processingEmails.add(emailId);
-    console.log(`[EMAIL SCHEDULER] sendScheduledEmail start — id=${emailId} userId=${userId} agentId=${agentId} scheduledAt=${scheduledAt}`);
+    console.log(`[EMAIL SCHEDULER] sendScheduledEmail start — id=${emailId} userId=${userId} agentId=${agentId} scheduledAt=${scheduledAt} type=${email.type || 'main'}`);
     try {
+      if (email.type === 'followup') {
+        return await this.sendScheduledFollowUp(email);
+      }
+
       const approvedEmail = await this.awsEmailQueue.approveEmail(userId, agentId, emailId);
       console.log(`[EMAIL SCHEDULER] approveEmail OK — keys=${Object.keys(approvedEmail).join(',')}`);
 
@@ -372,7 +376,12 @@ class EmailScheduler {
           approvedEmail,
         };
       } else {
-        console.error(`[EMAIL SCHEDULER] Send failed for ${emailId}:`, sendResult.error);
+        const isCapReached = sendResult.reason === 'daily_cap_reached' || sendResult.reason === 'per_account_cap_reached';
+        if (isCapReached) {
+          console.log(`[EMAIL SCHEDULER] ${emailId} stays queued — ${sendResult.error}`);
+        } else {
+          console.error(`[EMAIL SCHEDULER] Send failed for ${emailId}:`, sendResult.error);
+        }
         return { success: false };
       }
 
@@ -391,6 +400,72 @@ class EmailScheduler {
       this.processingEmails.delete(emailId);
     }
     return { success: false };
+  }
+
+  // Send a scheduled follow-up. Unlike a main email, there's no QUEUED item to approve —
+  // utils/rebumpChecker.js already built the subject/body/replyOptions when it decided this
+  // follow-up was eligible, and utils/scheduleSlots.js embedded them directly on this job
+  // record. On success, apply the same original-email bookkeeping (rebumpCount, next
+  // followUpDate) that used to happen inline in rebumpChecker.js's direct-send path.
+  async sendScheduledFollowUp(email) {
+    const { userId, agentId, to, subject, body, replyOptions, originalEmailId, stepNumber } = email;
+
+    if (!to || !subject || !body) {
+      console.warn(`[EMAIL SCHEDULER] ⚠️ Follow-up job for ${originalEmailId} missing required fields, skipping`);
+      return { success: false };
+    }
+
+    const recipientUnsubscribed = await this.awsManager.isUnsubscribed(to).catch(() => false);
+    if (recipientUnsubscribed) {
+      console.log(`[EMAIL SCHEDULER] Skipping follow-up for ${originalEmailId} — ${to} has unsubscribed`);
+      return { success: false };
+    }
+
+    console.log(`[EMAIL SCHEDULER] Calling leadEmail() for follow-up on ${originalEmailId}...`);
+    const sendResult = await leadEmail(to, subject, body, null, userId, agentId, null, null, null, replyOptions);
+    console.log(`[EMAIL SCHEDULER] follow-up leadEmail result — success=${sendResult.success} error=${sendResult.error || 'none'}`);
+
+    if (!sendResult.success) {
+      const isCapReached = sendResult.reason === 'daily_cap_reached' || sendResult.reason === 'per_account_cap_reached';
+      if (isCapReached) {
+        console.log(`[EMAIL SCHEDULER] Follow-up ${originalEmailId} stays pending — ${sendResult.error}`);
+      } else {
+        console.error(`[EMAIL SCHEDULER] Follow-up send failed for ${originalEmailId}:`, sendResult.error);
+      }
+      return { success: false };
+    }
+
+    console.log(`[EMAIL SCHEDULER] Sent follow-up ${originalEmailId} → ${to}`);
+
+    try {
+      const agentSettings = await this.awsManager.getLeadAgentSettings(userId, agentId);
+      const maxRebumps = agentSettings?.emailBuilder?.maxRebumps || 1;
+      const rebumpIntervalDays = parseInt(agentSettings?.emailBuilder?.rebumpIntervalDays, 10) || 7;
+
+      const updates = {
+        rebumpCount: stepNumber,
+        lastRebumpAt: new Date().toISOString(),
+        lastFollowUpSentAt: new Date().toISOString(),
+        followUpStatus: 'SENT',
+      };
+      if (stepNumber < maxRebumps) {
+        const nextFollowUpDate = new Date(Date.now() + rebumpIntervalDays * 24 * 60 * 60 * 1000);
+        updates.followUpDate = nextFollowUpDate.toISOString();
+        console.log(`[EMAIL SCHEDULER] Scheduled next follow-up for ${nextFollowUpDate.toISOString()}`);
+      }
+      await this.awsEmailQueue.updateEmailStatus(userId, agentId, originalEmailId, 'SENT', 'SENT', updates);
+    } catch (bookkeepingError) {
+      console.error(`[EMAIL SCHEDULER] Follow-up sent but bookkeeping failed for ${originalEmailId}:`, bookkeepingError.message);
+    }
+
+    return {
+      success: true,
+      emailId: originalEmailId,
+      to,
+      subject,
+      scheduledAt: email.scheduledAt,
+      approvedEmail: null,
+    };
   }
 
   // Send one batched notification for all scheduled emails that fired in this tick for a single agent
