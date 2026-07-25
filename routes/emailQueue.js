@@ -1492,9 +1492,12 @@ router.get('/schedule-preview', async (req, res) => {
       (e.rebumpCount || 0) < (maxRebumpsByAgent[e.agentId] || 1)
     ).length;
 
-    const preview = previewSchedule({ mainQueueCount, followUpQueueCount, schedule, days });
+    const { getPlanDailyCap } = await import('../utils/dailySendCaps.js');
+    const totalCapPerDay = await getPlanDailyCap(userId).catch(() => null);
 
-    res.json({ success: true, schedule, mainQueueCount, followUpQueueCount, preview });
+    const preview = previewSchedule({ mainQueueCount, followUpQueueCount, schedule, days, totalCapPerDay });
+
+    res.json({ success: true, schedule, mainQueueCount, followUpQueueCount, totalCapPerDay, preview });
   } catch (error) {
     console.error('[EMAIL QUEUE] Error building schedule preview:', error);
     res.status(500).json({ success: false, error: error.message });

@@ -14,6 +14,7 @@
 
 import AWSManager from './awsManager.js';
 import { getScheduledEmailJobs } from './scheduledEmailJobs.js';
+import { getPlanDailyCap } from './dailySendCaps.js';
 
 function localTimeToUTC(year, month, day, hour, minute, timezone) {
   const naive = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
@@ -99,6 +100,17 @@ export async function syncGlobalScheduleForUser(userId, options = {}) {
 
   const schedule = options.schedule !== undefined ? options.schedule : await getGlobalSchedule(userId, awsManager);
 
+  // Main + follow-ups share the plan's single daily sending cap (utils/dailySendCaps.js) —
+  // clamp the effective per-day limits used for slot assignment so we never schedule more
+  // for one day than the account can actually send; main gets priority for the shared cap.
+  const planDailyCap = await getPlanDailyCap(userId).catch(() => null);
+  const effectiveMainPerDay = schedule
+    ? (planDailyCap != null ? Math.min(schedule.mainPerDay, planDailyCap) : schedule.mainPerDay)
+    : 0;
+  const effectiveFollowUpPerDay = schedule
+    ? (planDailyCap != null ? Math.max(0, Math.min(schedule.followUpPerDay, planDailyCap - effectiveMainPerDay)) : schedule.followUpPerDay)
+    : 0;
+
   // ── Main emails: every QUEUED item across all agents without a manual scheduledAt ──
   const { emails: queuedEmails } = await awsQueue.getAllQueuedEmailsForUser(userId, 2000, 0).catch(() => ({ emails: [] }));
   const pendingMains = (queuedEmails || [])
@@ -118,7 +130,7 @@ export async function syncGlobalScheduleForUser(userId, options = {}) {
         await scheduledJobs.deleteScheduledEmail(userId, email.agentId, email.id).catch(() => {});
         continue;
       }
-      const scheduledAt = computeSlotDate(mainIndex, { ...schedule, dailyLimit: schedule.mainPerDay }).toISOString();
+      const scheduledAt = computeSlotDate(mainIndex, { ...schedule, dailyLimit: effectiveMainPerDay }).toISOString();
       mainIndex += 1;
       await scheduledJobs.upsertScheduledEmail({
         userId, agentId: email.agentId, emailId: email.id, scheduledAt, scheduleType: 'auto', type: 'main',
@@ -132,10 +144,10 @@ export async function syncGlobalScheduleForUser(userId, options = {}) {
     .filter(e => e.followUpReadyForSchedule === true)
     .sort((a, b) => new Date(a.followUpReadySince || 0) - new Date(b.followUpReadySince || 0));
 
-  if (isCompleteSchedule(schedule) && schedule.followUpPerDay > 0) {
+  if (isCompleteSchedule(schedule) && effectiveFollowUpPerDay > 0) {
     let followUpIndex = 0;
     for (const email of readyFollowUps) {
-      const scheduledAt = computeSlotDate(followUpIndex, { ...schedule, dailyLimit: schedule.followUpPerDay }).toISOString();
+      const scheduledAt = computeSlotDate(followUpIndex, { ...schedule, dailyLimit: effectiveFollowUpPerDay }).toISOString();
       followUpIndex += 1;
 
       await scheduledJobs.upsertScheduledEmail({
@@ -172,11 +184,16 @@ export async function syncGlobalScheduleForUser(userId, options = {}) {
 // bucketed per calendar day instead of resolving one exact instant. Pure function: takes
 // the CURRENT queue depth as a starting snapshot, not live data, so the caller decides what
 // "pending" means (real counts from the DB, or a hypothetical draft while editing).
-export function previewSchedule({ mainQueueCount = 0, followUpQueueCount = 0, schedule, days = 30 }) {
+export function previewSchedule({ mainQueueCount = 0, followUpQueueCount = 0, schedule, days = 30, totalCapPerDay = null }) {
   const tz = schedule?.timezone || 'America/New_York';
   const activeDays = schedule?.activeDays?.length ? schedule.activeDays : [1, 2, 3, 4, 5];
   const mainPerDay = Math.max(0, schedule?.mainPerDay || 0);
   const followUpPerDay = Math.max(0, schedule?.followUpPerDay || 0);
+  // Main + follow-ups share the plan's single daily sending cap (utils/dailySendCaps.js) —
+  // whatever the ratio fields say, the account can't actually send more than that combined
+  // total in one day. Main gets priority; any follow-up overflow rolls to the next day.
+  const effectiveMainPerDay = totalCapPerDay != null ? Math.min(mainPerDay, totalCapPerDay) : mainPerDay;
+  const effectiveFollowUpPerDay = totalCapPerDay != null ? Math.max(0, Math.min(followUpPerDay, totalCapPerDay - effectiveMainPerDay)) : followUpPerDay;
   const [scheduleHour, scheduleMinute] = (schedule?.sendTime || '09:00').split(':').map(Number);
 
   const now = new Date();
@@ -202,8 +219,8 @@ export function previewSchedule({ mainQueueCount = 0, followUpQueueCount = 0, sc
     const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(probe);
     const active = activeDays.includes(weekday);
 
-    const mainCount = active ? Math.min(remainingMain, mainPerDay) : 0;
-    const followUpCount = active ? Math.min(remainingFollowUp, followUpPerDay) : 0;
+    const mainCount = active ? Math.min(remainingMain, effectiveMainPerDay) : 0;
+    const followUpCount = active ? Math.min(remainingFollowUp, effectiveFollowUpPerDay) : 0;
     if (active) {
       remainingMain -= mainCount;
       remainingFollowUp -= followUpCount;
@@ -213,9 +230,9 @@ export function previewSchedule({ mainQueueCount = 0, followUpQueueCount = 0, sc
       date: dateStr,
       active,
       mainCount,
-      mainCap: active ? mainPerDay : 0,
+      mainCap: active ? effectiveMainPerDay : 0,
       followUpCount,
-      followUpCap: active ? followUpPerDay : 0,
+      followUpCap: active ? effectiveFollowUpPerDay : 0,
     });
   }
 

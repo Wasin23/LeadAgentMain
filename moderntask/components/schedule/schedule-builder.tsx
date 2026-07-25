@@ -22,18 +22,21 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
   const [sched, setSched] = useState<SendingSchedule>(editing ?? DEFAULT_SCHEDULE)
   const [mainStr, setMainStr] = useState(String(editing?.mainPerDay ?? DEFAULT_SCHEDULE.mainPerDay))
   const [followUpStr, setFollowUpStr] = useState(String(editing?.followUpPerDay ?? DEFAULT_SCHEDULE.followUpPerDay))
-  const [loading, setLoading] = useState(!editing)
+  const [planCap, setPlanCap] = useState(50)
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    if (editing) return
     api.get('/api/settings/sending-schedule').then(r => {
-      const existing = r.data?.schedule
-      if (existing) {
-        setSched({ ...DEFAULT_SCHEDULE, ...existing })
-        setMainStr(String(existing.mainPerDay ?? DEFAULT_SCHEDULE.mainPerDay))
-        setFollowUpStr(String(existing.followUpPerDay ?? DEFAULT_SCHEDULE.followUpPerDay))
+      setPlanCap(r.data?.planDailyCap ?? 50)
+      if (!editing) {
+        const existing = r.data?.schedule
+        if (existing) {
+          setSched({ ...DEFAULT_SCHEDULE, ...existing })
+          setMainStr(String(existing.mainPerDay ?? DEFAULT_SCHEDULE.mainPerDay))
+          setFollowUpStr(String(existing.followUpPerDay ?? DEFAULT_SCHEDULE.followUpPerDay))
+        }
       }
     }).catch(() => {}).finally(() => setLoading(false))
   }, [editing])
@@ -50,10 +53,16 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
   const toggleDay = (d: number) =>
     setSched(s => ({ ...s, activeDays: s.activeDays.includes(d) ? s.activeDays.filter(x => x !== d) : [...s.activeDays, d].sort() }))
 
+  // Main + follow-ups share the account's single plan-tier daily sending cap — main gets
+  // priority, follow-ups get whatever's left of it, mirroring the backend's own clamping.
+  const rawMain = Math.min(planCap, Math.max(1, parseInt(mainStr) || 1))
+  const rawFollowUp = Math.max(0, parseInt(followUpStr) || 0)
+  const followUpRoom = Math.max(0, planCap - rawMain)
+  const followUpClamped = rawFollowUp > followUpRoom
   const draftSchedule: SendingSchedule = {
     ...sched,
-    mainPerDay: Math.min(50, Math.max(1, parseInt(mainStr) || 1)),
-    followUpPerDay: Math.min(50, Math.max(0, parseInt(followUpStr) || 0)),
+    mainPerDay: rawMain,
+    followUpPerDay: Math.min(followUpRoom, rawFollowUp),
   }
 
   const save = async () => {
@@ -174,38 +183,45 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
             </div>
           </div>
           <div className="space-y-1">
-            <label className="text-[11px] font-medium text-muted-foreground">Main Emails/Day <span className="text-muted-foreground/60">(max 50)</span></label>
+            <label className="text-[11px] font-medium text-muted-foreground">Main Emails/Day <span className="text-muted-foreground/60">(max {planCap}, your plan's daily limit)</span></label>
             <div className="relative">
               <input
-                type="number" min={1} max={50}
+                type="number" min={1} max={planCap}
                 className="w-full h-8 rounded-md border border-input bg-background px-3 pr-9 text-xs focus:outline-none"
                 value={mainStr}
                 onChange={e => {
                   const v = e.target.value
                   if (v === '') { setMainStr(''); return }
-                  setMainStr(String(Math.min(50, Math.max(1, parseInt(v) || 1))))
+                  setMainStr(String(Math.min(planCap, Math.max(1, parseInt(v) || 1))))
                 }}
               />
-              <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground tabular-nums">/50</span>
+              <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground tabular-nums">/{planCap}</span>
             </div>
           </div>
         </div>
 
         <div className="space-y-1">
-          <label className="text-[11px] font-medium text-muted-foreground">Follow-ups/Day <span className="text-muted-foreground/60">(max 50, independent of main emails — 0 to pause auto follow-ups)</span></label>
+          <label className="text-[11px] font-medium text-muted-foreground">
+            Follow-ups/Day <span className="text-muted-foreground/60">(shares the {planCap}/day plan limit with main emails — 0 to pause auto follow-ups)</span>
+          </label>
           <div className="relative w-1/2">
             <input
-              type="number" min={0} max={50}
+              type="number" min={0} max={followUpRoom}
               className="w-full h-8 rounded-md border border-input bg-background px-3 pr-9 text-xs focus:outline-none"
               value={followUpStr}
               onChange={e => {
                 const v = e.target.value
                 if (v === '') { setFollowUpStr(''); return }
-                setFollowUpStr(String(Math.min(50, Math.max(0, parseInt(v) || 0))))
+                setFollowUpStr(String(Math.max(0, parseInt(v) || 0)))
               }}
             />
-            <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground tabular-nums">/50</span>
+            <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground tabular-nums">/{followUpRoom}</span>
           </div>
+          {followUpClamped && (
+            <p className="text-[10px] text-amber-600">
+              Only {followUpRoom} follow-up{followUpRoom === 1 ? '' : 's'}/day fits after {rawMain} main — the rest will be saved as {followUpRoom}/day.
+            </p>
+          )}
         </div>
 
         <div className="space-y-1">

@@ -10,6 +10,15 @@ const awsManager = new AWSManager();
 // (no single mailbox reputation to protect there).
 export const PER_ACCOUNT_DAILY_CAP = 50;
 
+// Cheap plan-only lookup (no DynamoDB scan of today's sends) — for callers that just need
+// the ceiling, not full usage (schedule validation/allocation, the builder's UI).
+export async function getPlanDailyCap(userId) {
+  const user = await awsManager.getUserById(userId);
+  const planConfig = awsManager.getPlanConfig(user?.plan || 'free-trial');
+  const monthlyEmailAllowance = planConfig.emailAllowance || planConfig.initialCredits || 250;
+  return Math.max(10, Math.round((monthlyEmailAllowance / 30) / 10) * 10);
+}
+
 // Single source of truth for both the /daily-cap-status display endpoint and
 // the actual send-time enforcement in tools/leadEmail.js — so the numbers
 // shown to the user and the numbers that block a send never drift apart.
@@ -71,13 +80,7 @@ export async function getDailySendCapStatus(userId) {
     }
   }));
 
-  const user = await awsManager.getUserById(userId);
-  const planConfig = awsManager.getPlanConfig(user?.plan || 'free-trial');
-  // emailAllowance already bakes in follow-ups (leadAllowance x4); plans without an
-  // explicit emailAllowance spend credits 1:1 per email, so initialCredits is the
-  // equivalent monthly figure.
-  const monthlyEmailAllowance = planConfig.emailAllowance || planConfig.initialCredits || 250;
-  const totalCap = Math.max(10, Math.round((monthlyEmailAllowance / 30) / 10) * 10);
+  const totalCap = await getPlanDailyCap(userId);
   const perAccountCap = PER_ACCOUNT_DAILY_CAP;
 
   return {

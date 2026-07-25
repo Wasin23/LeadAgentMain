@@ -336,8 +336,10 @@ router.put('/auto-topup', async (req, res) => {
 router.get('/sending-schedule', async (req, res) => {
   try {
     const awsManager = new AWSManager();
+    const { getPlanDailyCap } = await import('../utils/dailySendCaps.js');
     const userSettings = await awsManager.getUserSettings(req.user.userId) || {};
-    res.json({ success: true, schedule: userSettings.sendingSchedule || null });
+    const planDailyCap = await getPlanDailyCap(req.user.userId).catch(() => 50);
+    res.json({ success: true, schedule: userSettings.sendingSchedule || null, planDailyCap });
   } catch (error) {
     console.error('Error getting sending schedule:', error);
     res.status(500).json({ success: false, error: error.message });
@@ -353,25 +355,17 @@ router.put('/sending-schedule', async (req, res) => {
   try {
     const { schedule } = req.body;
 
+    const awsManager = new AWSManager();
+    let normalized = null;
     if (schedule !== null) {
-      if (!Array.isArray(schedule?.activeDays) || !schedule.activeDays.length) {
-        return res.status(400).json({ success: false, error: 'activeDays must be a non-empty array' });
-      }
-      if (typeof schedule.sendTime !== 'string' || !/^\d{2}:\d{2}$/.test(schedule.sendTime)) {
-        return res.status(400).json({ success: false, error: 'sendTime must be "HH:MM"' });
-      }
+      const { getPlanDailyCap } = await import('../utils/dailySendCaps.js');
+      const planCap = await getPlanDailyCap(req.user.userId).catch(() => 50);
+      try { normalized = normalizeScheduleFields(schedule, planCap); }
+      catch (e) { return res.status(e.status || 400).json({ success: false, error: e.message }); }
     }
 
-    const awsManager = new AWSManager();
     const userSettings = await awsManager.getUserSettings(req.user.userId) || {};
-
-    userSettings.sendingSchedule = schedule === null ? null : {
-      activeDays: schedule.activeDays,
-      sendTime: schedule.sendTime,
-      timezone: schedule.timezone || 'America/New_York',
-      mainPerDay: Math.min(50, Math.max(1, parseInt(schedule.mainPerDay, 10) || 1)),
-      followUpPerDay: Math.min(50, Math.max(0, parseInt(schedule.followUpPerDay, 10) || 0)),
-    };
+    userSettings.sendingSchedule = normalized;
 
     // A manual edit that no longer matches the previously-applied named schedule means
     // the "Schedule for Send" button can no longer honestly show that name.
@@ -400,19 +394,25 @@ router.put('/sending-schedule', async (req, res) => {
 // is currently live via userSettings.activeSavedScheduleId, so the "Schedule for Send"
 // button can show its real name.
 
-function normalizeScheduleFields(body) {
+// `planCap` is the account's actual plan-tier daily sending ceiling (utils/dailySendCaps.js)
+// — main + follow-ups share it, so it's not just "clamp each to 50" anymore. Main gets
+// priority for the shared cap; follow-ups get whatever's left over.
+function normalizeScheduleFields(body, planCap) {
   if (!Array.isArray(body?.activeDays) || !body.activeDays.length) {
     throw Object.assign(new Error('activeDays must be a non-empty array'), { status: 400 });
   }
   if (typeof body.sendTime !== 'string' || !/^\d{2}:\d{2}$/.test(body.sendTime)) {
     throw Object.assign(new Error('sendTime must be "HH:MM"'), { status: 400 });
   }
+  const cap = planCap || 50;
+  const mainPerDay = Math.min(cap, Math.max(1, parseInt(body.mainPerDay, 10) || 1));
+  const followUpPerDay = Math.min(Math.max(0, cap - mainPerDay), Math.max(0, parseInt(body.followUpPerDay, 10) || 0));
   return {
     activeDays: body.activeDays,
     sendTime: body.sendTime,
     timezone: body.timezone || 'America/New_York',
-    mainPerDay: Math.min(50, Math.max(1, parseInt(body.mainPerDay, 10) || 1)),
-    followUpPerDay: Math.min(50, Math.max(0, parseInt(body.followUpPerDay, 10) || 0)),
+    mainPerDay,
+    followUpPerDay,
   };
 }
 
@@ -422,11 +422,14 @@ function normalizeScheduleFields(body) {
 router.get('/saved-schedules', async (req, res) => {
   try {
     const awsManager = new AWSManager();
+    const { getPlanDailyCap } = await import('../utils/dailySendCaps.js');
     const userSettings = await awsManager.getUserSettings(req.user.userId) || {};
+    const planDailyCap = await getPlanDailyCap(req.user.userId).catch(() => 50);
     res.json({
       success: true,
       schedules: userSettings.savedSchedules || [],
       activeSavedScheduleId: userSettings.activeSavedScheduleId || null,
+      planDailyCap,
     });
   } catch (error) {
     console.error('Error getting saved schedules:', error);
@@ -443,8 +446,10 @@ router.post('/saved-schedules', async (req, res) => {
     const name = (req.body?.name || '').trim();
     if (!name) return res.status(400).json({ success: false, error: 'Name is required' });
 
+    const { getPlanDailyCap } = await import('../utils/dailySendCaps.js');
+    const planCap = await getPlanDailyCap(req.user.userId).catch(() => 50);
     let fields;
-    try { fields = normalizeScheduleFields(req.body); }
+    try { fields = normalizeScheduleFields(req.body, planCap); }
     catch (e) { return res.status(e.status || 400).json({ success: false, error: e.message }); }
 
     const awsManager = new AWSManager();
@@ -471,8 +476,10 @@ router.put('/saved-schedules/:id', async (req, res) => {
     const name = req.body?.name !== undefined ? String(req.body.name).trim() : undefined;
     if (name === '') return res.status(400).json({ success: false, error: 'Name cannot be empty' });
 
+    const { getPlanDailyCap } = await import('../utils/dailySendCaps.js');
+    const planCap = await getPlanDailyCap(req.user.userId).catch(() => 50);
     let fields;
-    try { fields = normalizeScheduleFields(req.body); }
+    try { fields = normalizeScheduleFields(req.body, planCap); }
     catch (e) { return res.status(e.status || 400).json({ success: false, error: e.message }); }
 
     const awsManager = new AWSManager();
