@@ -8,6 +8,7 @@ const HorizonHero = dynamic(() => import('@/components/demo/horizon-hero').then(
 const GlobeHero = dynamic(() => import('@/components/demo/globe-hero').then(m => ({ default: m.GlobeHero })), { ssr: false, loading: () => <Loading label="Loading Globe Hero…" /> });
 const ScrollGlobe = dynamic(() => import('@/components/demo/scroll-globe').then(m => ({ default: m.ScrollGlobe })), { ssr: false, loading: () => <Loading label="Loading ScrollGlobe…" /> });
 const ProspectGlobe = dynamic(() => import('@/components/demo/prospect-globe').then(m => ({ default: m.ProspectGlobe })), { ssr: false, loading: () => <Loading label="Loading Prospect Globe…" /> });
+const ModalSwoopDemo = dynamic(() => import('@/components/demo/modal-swoop-demo').then(m => ({ default: m.ModalSwoopDemo })), { ssr: false, loading: () => <Loading label="Loading Modal Swoop…" /> });
 
 function Loading({ label }: { label: string }) {
   return (
@@ -17,13 +18,14 @@ function Loading({ label }: { label: string }) {
   );
 }
 
-type Demo = 'horizon' | 'globe' | 'scroll' | 'prospects';
+type Demo = 'horizon' | 'globe' | 'scroll' | 'prospects' | 'modal-swoop';
 
 const DEMOS: { id: Demo; label: string; desc: string }[] = [
   { id: 'prospects', label: '🛰 Prospect Globe', desc: 'Geolocation → globe → animated lead beams' },
   { id: 'horizon', label: '🌌 Horizon', desc: 'Three.js stars, nebula & mountains with GSAP scroll' },
   { id: 'globe',   label: '🔮 Globe Hero', desc: 'React Three Fiber wireframe globe' },
   { id: 'scroll',  label: '🌍 ScrollGlobe', desc: 'CSS rotating Earth with scroll sections' },
+  { id: 'modal-swoop', label: '🪄 Modal Swoop', desc: 'Modal open animation variants for global use' },
 ];
 
 export default function DemoPage() {
@@ -58,10 +60,11 @@ export default function DemoPage() {
 
       {/* Component */}
       <div className="pt-[52px]">
-        {active === 'prospects' && <ProspectGlobe />}
-        {active === 'horizon'   && <HorizonHero />}
-        {active === 'globe'     && <GlobeHero />}
-        {active === 'scroll'    && <ScrollGlobe />}
+        {active === 'prospects'   && <ProspectGlobe />}
+        {active === 'horizon'     && <HorizonHero />}
+        {active === 'globe'       && <GlobeHero />}
+        {active === 'scroll'      && <ScrollGlobe />}
+        {active === 'modal-swoop' && <ModalSwoopDemo />}
       </div>
     </div>
   );

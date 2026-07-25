@@ -192,6 +192,11 @@
   --animate-send-fly: send-fly 520ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
   --animate-row-out: row-out 380ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
 
+  --animate-modal-swoop-tr: modal-swoop-tr 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-modal-swoop-tl: modal-swoop-tl 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-modal-swoop-up: modal-swoop-up 480ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-modal-swoop-backdrop: modal-swoop-backdrop 220ms ease-out forwards;
+
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -333,6 +338,28 @@
 @keyframes row-out {
   0%   { transform: translateX(0); opacity: 1; max-height: 120px; }
   100% { transform: translateX(24px); opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; margin: 0; border-width: 0; }
+}
+
+/* Modal "swoop" open animations — panel swoops in from a corner/edge with a slight
+   overshoot settle, rather than a plain fade/zoom. Direction variants for comparison. */
+@keyframes modal-swoop-tr {
+  0%   { opacity: 0; transform: translate3d(22%, -18%, 0) scale(0.88) rotate(7deg); }
+  55%  { opacity: 1; transform: translate3d(-1.5%, 1%, 0) scale(1.015) rotate(-1.5deg); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+}
+@keyframes modal-swoop-tl {
+  0%   { opacity: 0; transform: translate3d(-22%, -18%, 0) scale(0.88) rotate(-7deg); }
+  55%  { opacity: 1; transform: translate3d(1.5%, 1%, 0) scale(1.015) rotate(1.5deg); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+}
+@keyframes modal-swoop-up {
+  0%   { opacity: 0; transform: translate3d(0, 26%, 0) scale(0.9) rotate(0deg); }
+  55%  { opacity: 1; transform: translate3d(0, -2%, 0) scale(1.015) rotate(0deg); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+}
+@keyframes modal-swoop-backdrop {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
 }
 
 @keyframes star-pop {
