@@ -54,20 +54,22 @@ export default function SignInPage() {
   const [resetForm, setResetForm] = useState({ code: '', newPassword: '', confirmPassword: '' })
   const [pendingRedirect, setPendingRedirect] = useState<string | null>(null)
 
-  const { login, register, isAuthenticated } = useAuth()
+  const { login, register, isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated — play the mailbox loader instead of
+  // an instant router.push, otherwise the sign-in form flashes for a frame
+  // before the app cuts straight to the dashboard.
   useEffect(() => {
     if (isAuthenticated) {
       const justLoggedOut = localStorage.getItem('justLoggedOut')
       if (justLoggedOut !== 'true') {
-        router.push('/home')
+        setPendingRedirect('/home')
         return
       }
       localStorage.removeItem('justLoggedOut')
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated])
 
   // Handle Google OAuth callback via hash params
   useEffect(() => {
@@ -225,6 +227,18 @@ export default function SignInPage() {
 
   const pwStrength = getPasswordStrength(signUpForm.password)
   const resetPwStrength = getPasswordStrength(resetForm.newPassword)
+
+  // While auth status is still being read, or once we know the user is
+  // already signed in, skip painting the sign-in form entirely — otherwise
+  // it flashes for a frame before the redirect below cuts to the dashboard.
+  const justLoggedOut = typeof window !== 'undefined' && localStorage.getItem('justLoggedOut') === 'true'
+  if (authLoading || (isAuthenticated && !justLoggedOut)) {
+    return (
+      <div className="min-h-screen" style={{ background: '#f4efe6' }}>
+        {pendingRedirect && <MailboxLoader onComplete={() => router.push(pendingRedirect)} />}
+      </div>
+    )
+  }
 
   return (
     <>

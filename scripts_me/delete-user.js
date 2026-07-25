@@ -67,7 +67,7 @@ async function deleteUser() {
             TableName: TEAMS_TABLE,
             Key: { teamId: team.teamId },
           }));
-          console.log('✅ Team record deleted');
+          console.log('Team record deleted');
         } else {
           // Member deleted — splice them out of the members array
           console.log(`Removing user from team ${team.teamId} (user was member)…`);
@@ -78,17 +78,17 @@ async function deleteUser() {
             UpdateExpression: 'SET members = :m',
             ExpressionAttributeValues: { ':m': updatedMembers },
           }));
-          console.log('✅ Removed from team members list');
+          console.log('Removed from team members list');
         }
       } else {
-        console.log(`⚠️  teamId ${user.teamId} points to non-existent team — skipping`);
+        console.log(`teamId ${user.teamId} points to non-existent team — skipping`);
       }
     } else {
       // Also scan teams table for any orphaned references to this userId
       const orphanScan = await awsManager.dynamodb.send(new ScanCommand({ TableName: TEAMS_TABLE }));
       for (const team of (orphanScan.Items || [])) {
         if (team.ownerId === userId) {
-          console.log(`⚠️  Found orphaned team ${team.teamId} owned by this user — deleting…`);
+          console.log(`Found orphaned team ${team.teamId} owned by this user — deleting…`);
           for (const m of (team.members || [])) {
             try {
               await awsManager.dynamodb.send(new UpdateCommand({
@@ -99,9 +99,9 @@ async function deleteUser() {
             } catch {}
           }
           await awsManager.dynamodb.send(new DeleteCommand({ TableName: TEAMS_TABLE, Key: { teamId: team.teamId } }));
-          console.log(`✅ Orphaned team ${team.teamId} deleted`);
+          console.log(`Orphaned team ${team.teamId} deleted`);
         } else if ((team.members || []).some(m => m.userId === userId)) {
-          console.log(`⚠️  Found orphaned membership in team ${team.teamId} — removing…`);
+          console.log(`Found orphaned membership in team ${team.teamId} — removing…`);
           const updatedMembers = (team.members || []).filter(m => m.userId !== userId);
           await awsManager.dynamodb.send(new UpdateCommand({
             TableName: TEAMS_TABLE,
@@ -121,7 +121,7 @@ async function deleteUser() {
       TableName: awsManager.tables.users,
       Key: { userId }
     }));
-    console.log('✅ User record deleted');
+    console.log('User record deleted');
 
     // Scrub IP/device hashes from any OTHER users that share the same values.
     const hashesToScrub = [
@@ -139,7 +139,7 @@ async function deleteUser() {
 
       const others = (scanResult.Items || []).filter(u => u.userId !== userId);
       if (others.length === 0) {
-        console.log(`ℹ️  No other users share ${field} — nothing extra to scrub`);
+        console.log(`No other users share ${field} — nothing extra to scrub`);
         continue;
       }
 
@@ -149,7 +149,7 @@ async function deleteUser() {
           Key: { userId: other.userId },
           UpdateExpression: 'REMOVE signupIpHash, signupDeviceHash',
         }));
-        console.log(`🧹 Scrubbed signupIpHash + signupDeviceHash from user ${other.userId} (${other.email || 'no email'})`);
+        console.log(`Scrubbed signupIpHash + signupDeviceHash from user ${other.userId} (${other.email || 'no email'})`);
       }
     }
 
@@ -160,9 +160,9 @@ async function deleteUser() {
         TableName: awsManager.tables.userSettings,
         Key: { userId }
       }));
-      console.log('✅ User settings deleted');
+      console.log('User settings deleted');
     } catch {
-      console.log('⚠️ No user settings found (or already deleted)');
+      console.log('No user settings found (or already deleted)');
     }
 
     // Clear all AWS database tables
