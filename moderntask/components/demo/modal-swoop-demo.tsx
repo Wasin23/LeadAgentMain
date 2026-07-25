@@ -45,7 +45,7 @@ export function ModalSwoopDemo() {
             onClick={e => e.stopPropagation()}
             className={cn(
               'w-full max-w-sm rounded-2xl border border-border bg-background shadow-2xl p-6',
-              open,
+              `animate-${open}`,
             )}
             style={{ transformOrigin: open === 'modal-swoop-tl' ? 'top left' : open === 'modal-swoop-tr' ? 'top right' : 'bottom center' }}
           >
