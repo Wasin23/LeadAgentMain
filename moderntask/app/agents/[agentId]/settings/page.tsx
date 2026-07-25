@@ -85,7 +85,7 @@ interface AgentSettings {
     ccEmails: string; bccEmails: string; enableAutoResponse: boolean;
     rebumpIntervalDays: number; useCustomSignature: boolean;
     signatureName: string; signatureTitle: string;
-    useGmail: boolean; useOutlook: boolean; useLinkedIn?: boolean;
+    useLinkedIn?: boolean;
     templates: Array<{ id: string; name: string; subject: string; body: string }>;
     useTemplates: boolean;
     smartRebump?: boolean;
@@ -117,7 +117,7 @@ const defaultSettings: AgentSettings = {
   researchFocus: { focusAreas: [], researchDepth: 'standard', includeCompanyNews: true, includePersonalInfo: false, includeSocialMedia: false },
   timelineResearchCriteria: '',
   rubricEvaluationMode: 'strict',
-  emailBuilder: { emailTemplate: 'professional', customPrompt: '', emailResponsePrompt: '', tone: 'professional', length: 'medium', maxWords: null, callToAction: 'meeting', personalization: 'high', ccEmails: '', bccEmails: '', enableAutoResponse: false, rebumpIntervalDays: 3, useCustomSignature: false, signatureName: '', signatureTitle: '', useGmail: false, useOutlook: false, useLinkedIn: false, templates: [], useTemplates: false, smartRebump: false, rebumpLinkedinScrape: true, includeChatLink: false, chatLinkInstructions: '' }
+  emailBuilder: { emailTemplate: 'professional', customPrompt: '', emailResponsePrompt: '', tone: 'professional', length: 'medium', maxWords: null, callToAction: 'meeting', personalization: 'high', ccEmails: '', bccEmails: '', enableAutoResponse: false, rebumpIntervalDays: 3, useCustomSignature: false, signatureName: '', signatureTitle: '', useLinkedIn: false, templates: [], useTemplates: false, smartRebump: false, rebumpLinkedinScrape: true, includeChatLink: false, chatLinkInstructions: '' }
 };
 
 // ─────────────────────────────────────────────────────
@@ -920,8 +920,6 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
             useCustomSignature: e.useCustomSignature ?? e.emailBuilder?.useCustomSignature ?? false,
             signatureName: e.signatureName || e.emailBuilder?.signatureName || '',
             signatureTitle: e.signatureTitle || e.emailBuilder?.signatureTitle || '',
-            useGmail: e.useGmail ?? e.emailBuilder?.useGmail ?? false,
-            useOutlook: e.useOutlook ?? e.emailBuilder?.useOutlook ?? false,
             templates: e.templates || e.emailBuilder?.templates || [],
             useTemplates: e.useTemplates ?? e.emailBuilder?.useTemplates ?? false,
             smartRebump: e.smartRebump ?? e.emailBuilder?.smartRebump ?? false,
@@ -1612,36 +1610,11 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                 <p className="text-xs text-muted-foreground">Days before sending a follow-up</p>
               </div>
 
-              {/* Gmail */}
-              <div className="border-t border-border pt-4 space-y-3">
-                <ToggleRow
-                  label="Use Gmail for Sending"
-                  checked={settings.emailBuilder.useGmail}
-                  onChange={v => { updateEmail('useGmail', v); if (v) updateEmail('useOutlook', false); }}
-                  description="Send from your connected Gmail account instead of Mailgun (better deliverability)"
-                />
-                {settings.emailBuilder.useGmail && (
-                  <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                    <p className="text-sm text-blue-500 font-medium flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4" /> Emails will be sent from your connected Gmail account</p>
-                    <p className="text-xs text-blue-500/70 mt-1">Make sure Gmail is connected in Settings → Outreach → Gmail Connection</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Outlook */}
-              <div className="border-t border-border pt-4 space-y-3">
-                <ToggleRow
-                  label="Use Outlook for Sending"
-                  checked={settings.emailBuilder.useOutlook}
-                  onChange={v => { updateEmail('useOutlook', v); if (v) updateEmail('useGmail', false); }}
-                  description="Send from your connected Outlook account instead of Mailgun (better deliverability)"
-                />
-                {settings.emailBuilder.useOutlook && (
-                  <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-                    <p className="text-sm text-blue-500 font-medium flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4" /> Emails will be sent from your connected Outlook account</p>
-                    <p className="text-xs text-blue-500/70 mt-1">Make sure Outlook is connected in Settings → Outreach → Outlook Connection</p>
-                  </div>
-                )}
+              {/* Gmail/Outlook — sending account is chosen once for all agents in Outreach, not per-agent */}
+              <div className="border-t border-border pt-4">
+                <div className="p-3 bg-muted/40 border border-border rounded-lg text-sm text-muted-foreground">
+                  Which account this agent sends from (Gmail, Outlook, or Meridian's default) is controlled in one place for every agent — see the sending-account switcher in Outreach.
+                </div>
               </div>
 
               {/* LinkedIn */}

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CopyChip } from '@/components/leads/leads-content'
+import { GmailIcon, OutlookIcon } from '@/components/ui/provider-icons'
 
 // ── types ─────────────────────────────────────────────────────────────────────
 export interface Agent { agentId: string; name: string; personality?: { avatar?: string }; settings?: { sendingSchedule?: SendingSchedule; emailBuilder?: { smartRebump?: boolean } } }
@@ -1447,11 +1448,12 @@ function ContextPane({ email, agentMap }: { email: QueueEmail | null; agentMap: 
 }
 
 // ── queued list ───────────────────────────────────────────────────────────────
-function QueuedList({ agentId, agentMap, fontSize, setFontSize, onCountChange, activeSchedule }: {
+function QueuedList({ agentId, agentMap, fontSize, setFontSize, onCountChange, activeSchedule, onSent }: {
   agentId: string; agentMap: Record<string, Agent>; fontSize: number
   setFontSize: (fn: (s: number) => number) => void
   onCountChange: (n: number) => void
   activeSchedule?: SendingSchedule | null
+  onSent: (count: number) => void
 }) {
   const { toast } = useToast()
   const [excludedAuto, setExcludedAuto] = useState<Set<string>>(new Set())
@@ -1566,6 +1568,7 @@ function QueuedList({ agentId, agentMap, fontSize, setFontSize, onCountChange, a
     // Fire the API call immediately in the background — the animation below
     // is purely visual and shouldn't delay the actual send.
     api.post(`/api/email-queue/${email.id}/approve`, { agentId: email.agentId }, { params: { agentId: email.agentId } }).catch(() => {})
+    onSent(1)
 
     // Send button plays its check/ring animation, then the row collapses
     // out, then it's actually removed from state.
@@ -1642,6 +1645,7 @@ function QueuedList({ agentId, agentMap, fontSize, setFontSize, onCountChange, a
       api.post(`/api/email-queue/${email.id}/approve`, { agentId: email.agentId }, { params: { agentId: email.agentId } })
         .catch(() => {}) // Silent failure
     })
+    onSent(targets.length)
 
     setBulkSending(true)
     setTimeout(() => {
@@ -1863,20 +1867,36 @@ interface CapData {
   perAccountRemaining: number
 }
 
-function DailyCapWidget() {
+function DailyCapWidget({ bump = 0 }: { bump?: number }) {
+  const { toast } = useToast()
   const [data, setData] = useState<CapData | null>(null)
+  const [optimistic, setOptimistic] = useState(0)
   const [open, setOpen]   = useState(false)
   const [switching, setSwitching] = useState(false)
   const dropRef = useRef<HTMLDivElement>(null)
+  const lastBump = useRef(0)
+  const notifiedRef = useRef(false)
 
   const load = useCallback(async () => {
     try {
       const r = await api.get('/api/email-queue/daily-cap-status')
-      if (r.data.success) setData(r.data)
+      if (r.data.success) { setData(r.data); setOptimistic(0) }
     } catch {}
   }, [])
 
   useEffect(() => { load(); const iv = setInterval(load, 30000); return () => clearInterval(iv) }, [load])
+
+  // Bump the visible count the instant a send is triggered (parent increments
+  // `bump` on click), then reconcile with the real server count shortly after
+  // instead of waiting on the 30s poll.
+  useEffect(() => {
+    const delta = bump - lastBump.current
+    if (delta === 0) return
+    lastBump.current = bump
+    setOptimistic(o => o + delta)
+    const t = setTimeout(load, 1200)
+    return () => clearTimeout(t)
+  }, [bump, load])
 
   useEffect(() => {
     if (!open) return
@@ -1887,10 +1907,27 @@ function DailyCapWidget() {
     return () => document.removeEventListener('mousedown', handle)
   }, [open])
 
+  const sentToday = (data?.sentToday ?? 0) + optimistic
+
+  useEffect(() => {
+    if (!data) return
+    if (sentToday >= data.totalCap && !notifiedRef.current) {
+      notifiedRef.current = true
+      toast({
+        title: 'Daily sending limit reached',
+        description: `You've sent ${sentToday} of ${data.totalCap} emails allowed today on your plan. Remaining sends will queue until tomorrow.`,
+        variant: 'destructive',
+        duration: 6000,
+      })
+    } else if (sentToday < data.totalCap) {
+      notifiedRef.current = false
+    }
+  }, [sentToday, data, toast])
+
   if (!data) return null
 
-  const near = data.sentToday >= data.totalCap * 0.8
-  const hit  = data.sentToday >= data.totalCap
+  const near = sentToday >= data.totalCap * 0.8
+  const hit  = sentToday >= data.totalCap
   const displayEmail = data.activeAccount?.email || 'Mailgun (default)'
   const displayProvider = data.activeAccount?.provider || null
   const hasAccounts = data.accounts.length > 0
@@ -1917,19 +1954,25 @@ function DailyCapWidget() {
         className={cn('flex w-full items-center justify-between gap-3 py-1 text-left', hasAccounts && 'cursor-pointer')}
       >
         <div className="flex items-center gap-2 min-w-0">
-          <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
+          {displayProvider === 'gmail' ? (
+            <GmailIcon className="w-4 h-4 shrink-0" />
+          ) : displayProvider === 'outlook' ? (
+            <OutlookIcon className="w-4 h-4 shrink-0" />
+          ) : (
+            <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
+          )}
           <span className="text-sm text-muted-foreground truncate max-w-[220px]">
             {displayProvider && <span className="capitalize mr-1">{displayProvider}:</span>}
             {displayEmail}
           </span>
           {hasAccounts && <ArrowLeftRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
+          {hasAccounts && <ChevronRight className={cn('w-4 h-4 text-muted-foreground shrink-0 transition-transform', open && 'rotate-90')} />}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <span className={cn('text-xl font-semibold tabular-nums', hit ? 'text-destructive' : near ? 'text-yellow-500' : 'text-foreground')}>
-            {data.sentToday}
+            {sentToday}
             <span className="text-sm font-normal text-muted-foreground">/{data.totalCap} sent today</span>
           </span>
-          {hasAccounts && <ChevronRight className={cn('w-4 h-4 text-muted-foreground shrink-0 transition-transform', open && 'rotate-90')} />}
         </div>
       </button>
 
@@ -1953,8 +1996,8 @@ function DailyCapWidget() {
                   'w-1.5 h-1.5 rounded-full shrink-0',
                   acc.isActive ? 'bg-green-500' : 'bg-muted-foreground/30'
                 )} />
+                {acc.provider === 'gmail' ? <GmailIcon className="w-3.5 h-3.5 shrink-0" /> : <OutlookIcon className="w-3.5 h-3.5 shrink-0" />}
                 <span className="flex-1 truncate text-foreground">{acc.email}</span>
-                <span className="text-[10px] text-muted-foreground capitalize shrink-0">{acc.provider}</span>
                 {acc.isActive && <CheckCircle2 className="w-3 h-3 text-green-500 shrink-0" />}
               </button>
             ))}
@@ -1979,6 +2022,7 @@ export function EmailQueueContent() {
   const [savedSchedule, setSavedSchedule] = useState<SendingSchedule | null>(null)
   const [showBatchesModal, setShowBatchesModal] = useState(false)
   const [batchCount, setBatchCount]             = useState(0)
+  const [capBump, setCapBump]                   = useState(0)
   const activeScheduledAgentsCount = agents.filter(a => a.settings?.sendingSchedule?.activeDays?.length).length
   const hasAnyActiveSchedules = activeScheduledAgentsCount > 0
   const hasSelectedAgentSchedule = !!savedSchedule?.activeDays?.length
@@ -2106,7 +2150,7 @@ export function EmailQueueContent() {
           </div>
         </div>
 
-        <DailyCapWidget />
+        <DailyCapWidget bump={capBump} />
 
         {showSchedule && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowSchedule(false)}>
@@ -2148,6 +2192,7 @@ export function EmailQueueContent() {
           setFontSize={setFontSize}
           onCountChange={setQueuedCount}
           activeSchedule={savedSchedule}
+          onSent={n => setCapBump(b => b + n)}
         />
       </div>
 

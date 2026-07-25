@@ -143,11 +143,6 @@ export function SettingsContent() {
   const [linkedinConnected, setLinkedinConnected] = useState(false)
   const [linkedinAccountId, setLinkedinAccountId] = useState<string | null>(null)
   const [linkedinConnecting, setLinkedinConnecting] = useState(false)
-  const [defaultUseGmail, setDefaultUseGmail] = useState(false)
-  const [defaultUseOutlook, setDefaultUseOutlook] = useState(false)
-  const [revertedAgents, setRevertedAgents] = useState<{ agentId: string; name: string }[]>([])
-  const [reassigning, setReassigning] = useState(false)
-  const [reassignProvider, setReassignProvider] = useState<'gmail' | 'outlook' | 'mailgun'>('mailgun')
 
   // ── Domain health ─────────────────────────────────────────────────────────
   const [customDomain, setCustomDomain] = useState("")
@@ -179,7 +174,6 @@ export function SettingsContent() {
   const [analyzeWebsiteUrl, setAnalyzeWebsiteUrl] = useState("")
 
   // ── Email settings ────────────────────────────────────────────────────────
-  const [defaultEmailSource, setDefaultEmailSource] = useState<"meridian" | "gmail" | "outlook">("meridian")
   const [defaultRebumpEnabled, setDefaultRebumpEnabled] = useState(true)
 
   // ── CRM ───────────────────────────────────────────────────────────────────
@@ -351,15 +345,12 @@ export function SettingsContent() {
       if (settingsRes.status === "fulfilled") {
         const s = settingsRes.value.data.settings
         if (s?.preferences) {
-          setDefaultUseGmail(s.preferences.defaultUseGmail || false)
-          setDefaultUseOutlook(s.preferences.defaultUseOutlook || false)
           if (s.preferences.targetIndustries) setTargeting(prev => ({ ...prev, targetIndustries: s.preferences.targetIndustries }))
           if (s.preferences.targetPositions)  setTargeting(prev => ({ ...prev, targetPositions:  s.preferences.targetPositions }))
           if (s.preferences.companySizeMin)   setTargeting(prev => ({ ...prev, companySizeMin:   s.preferences.companySizeMin }))
           if (s.preferences.companySizeMax)   setTargeting(prev => ({ ...prev, companySizeMax:   s.preferences.companySizeMax }))
           if (s.preferences.defaultLeadLimit) setTargeting(prev => ({ ...prev, defaultLeadLimit: s.preferences.defaultLeadLimit }))
           if (s.preferences.notifPrefs)       setNotifPrefs(prev => ({ ...prev, ...s.preferences.notifPrefs }))
-          if (s.preferences.defaultEmailSource) setDefaultEmailSource(s.preferences.defaultEmailSource)
           if (typeof s.preferences.defaultRebumpEnabled === "boolean") setDefaultRebumpEnabled(s.preferences.defaultRebumpEnabled)
         }
         if (s?.emailSettings) {
@@ -468,32 +459,18 @@ export function SettingsContent() {
   const disconnectGmail = async (email: string) => {
     if (!confirm(`Disconnect ${email}?`)) return
     try {
-      const r = await api.post("/api/auth/gmail/disconnect", { email })
+      await api.post("/api/auth/gmail/disconnect", { email })
       setGmailAccounts(a => a.filter(x => x.email !== email))
-      const reverted = r.data?.revertedAgents || []
-      if (reverted.length > 0) {
-        setRevertedAgents(reverted)
-        setReassignProvider(outlookAccounts.length > 0 ? 'outlook' : 'mailgun')
-        toast({ title: `${reverted.length} agent${reverted.length !== 1 ? 's' : ''} reverted to Mailgun`, duration: 2500 })
-      } else {
-        toast({ title: "Disconnected", duration: 2500 })
-      }
+      toast({ title: "Disconnected", duration: 2500 })
     } catch { toast({ title: "Failed to disconnect", variant: 'destructive', duration: 2500 }) }
   }
 
   const disconnectOutlook = async (email: string) => {
     if (!confirm(`Disconnect ${email}?`)) return
     try {
-      const r = await api.post("/api/auth/outlook/disconnect", { email })
+      await api.post("/api/auth/outlook/disconnect", { email })
       setOutlookAccounts(a => a.filter(x => x.email !== email))
-      const reverted = r.data?.revertedAgents || []
-      if (reverted.length > 0) {
-        setRevertedAgents(reverted)
-        setReassignProvider(gmailAccounts.length > 0 ? 'gmail' : 'mailgun')
-        toast({ title: `${reverted.length} agent${reverted.length !== 1 ? 's' : ''} reverted to Mailgun`, duration: 2500 })
-      } else {
-        toast({ title: "Disconnected", duration: 2500 })
-      }
+      toast({ title: "Disconnected", duration: 2500 })
     } catch { toast({ title: "Failed to disconnect", variant: 'destructive', duration: 2500 }) }
   }
 
@@ -534,21 +511,6 @@ export function SettingsContent() {
       setLinkedinAccountId(null)
       toast({ title: "LinkedIn disconnected", duration: 2500 })
     } catch { toast({ title: "Failed to disconnect LinkedIn", variant: 'destructive', duration: 2500 }) }
-  }
-
-  const reassignAgents = async () => {
-    if (revertedAgents.length === 0) return
-    setReassigning(true)
-    try {
-      await api.post("/api/settings/reassign-agents", {
-        agentIds: revertedAgents.map(a => a.agentId),
-        provider: reassignProvider,
-      })
-      setRevertedAgents([])
-      const label = reassignProvider === 'gmail' ? 'Gmail' : reassignProvider === 'outlook' ? 'Outlook' : 'Mailgun'
-      toast({ title: `Agents updated to use ${label}`, duration: 2500 })
-    } catch { toast({ title: "Failed to update agents", variant: 'destructive', duration: 2500 }) }
-    finally { setReassigning(false) }
   }
 
   const checkDomainHealth = async () => {
@@ -1205,109 +1167,10 @@ export function SettingsContent() {
               )}
             </div>
 
-            {/* Reverted agents banner */}
-            {revertedAgents.length > 0 && (
-              <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-4 space-y-3">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">{revertedAgents.length} agent{revertedAgents.length !== 1 ? 's' : ''} reverted to Mailgun</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{revertedAgents.map(a => a.name).join(', ')}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 ml-7">
-                  <p className="text-xs text-muted-foreground">Reassign to:</p>
-                  <div className="relative">
-                    <select
-                      value={reassignProvider}
-                      onChange={e => setReassignProvider(e.target.value as 'gmail' | 'outlook' | 'mailgun')}
-                      className="text-xs appearance-none rounded-md border border-border bg-background pl-2 pr-6 py-1 focus:outline-none"
-                    >
-                      {gmailAccounts.length > 0 && <option value="gmail">Gmail</option>}
-                      {outlookAccounts.length > 0 && <option value="outlook">Outlook</option>}
-                      <option value="mailgun">Mailgun (keep as-is)</option>
-                    </select>
-                    <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
-                  </div>
-                  <Button size="sm" className="h-7 text-xs" onClick={reassignAgents} disabled={reassigning}>
-                    {reassigning ? <Loader2 className="w-3 h-3 animate-spin" /> : "Update Agents"}
-                  </Button>
-                  <Button size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground" onClick={() => setRevertedAgents([])}>
-                    Dismiss
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            <Separator />
-
-            {/* Default sending toggles */}
-            <div className="space-y-3">
-              <div>
-                <p className="text-sm font-medium">Default Sending for New Agents</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Choose which sender new agents should use by default. Only one default sender can be active at a time.</p>
-              </div>
-
-              <div className="flex items-center justify-between py-2">
-                <div>
-                  <p className="text-sm">Meridian Sending</p>
-                  <p className="text-xs text-muted-foreground">Use Meridian-managed sending for new agents</p>
-                </div>
-                <Switch
-                  checked={defaultEmailSource === "meridian"}
-                  onCheckedChange={async v => {
-                    if (!v) return
-                    setDefaultEmailSource("meridian")
-                    setDefaultUseGmail(false)
-                    setDefaultUseOutlook(false)
-                    await savePrefs({ defaultEmailSource: "meridian", defaultUseGmail: false, defaultUseOutlook: false })
-                  }}
-                />
-              </div>
-
-              <div className="flex items-center justify-between py-2">
-                <div>
-                  <p className="text-sm">Gmail Sending</p>
-                  <p className="text-xs text-muted-foreground">
-                    {gmailAccounts.length > 0
-                      ? "Use your connected Gmail account as the default sender for new agents"
-                      : "Connect a Gmail account above to enable this default"}
-                  </p>
-                </div>
-                <Switch
-                  checked={defaultUseGmail}
-                  disabled={gmailAccounts.length === 0}
-                  onCheckedChange={async v => {
-                    const nextSource = v ? "gmail" : (defaultUseOutlook ? "outlook" : "meridian")
-                    setDefaultUseGmail(v)
-                    if (v) setDefaultUseOutlook(false)
-                    setDefaultEmailSource(nextSource)
-                    await savePrefs({ defaultUseGmail: v, defaultUseOutlook: v ? false : defaultUseOutlook, defaultEmailSource: nextSource })
-                  }}
-                />
-              </div>
-
-              <div className="flex items-center justify-between py-2">
-                <div>
-                  <p className="text-sm">Outlook Sending</p>
-                  <p className="text-xs text-muted-foreground">
-                    {outlookAccounts.length > 0
-                      ? "Use your connected Outlook account as the default sender for new agents"
-                      : "Connect an Outlook account above to enable this default"}
-                  </p>
-                </div>
-                <Switch
-                  checked={defaultUseOutlook}
-                  disabled={outlookAccounts.length === 0}
-                  onCheckedChange={async v => {
-                    const nextSource = v ? "outlook" : (defaultUseGmail ? "gmail" : "meridian")
-                    setDefaultUseOutlook(v)
-                    if (v) setDefaultUseGmail(false)
-                    setDefaultEmailSource(nextSource)
-                    await savePrefs({ defaultUseOutlook: v, defaultUseGmail: v ? false : defaultUseGmail, defaultEmailSource: nextSource })
-                  }}
-                />
-              </div>
+            <div className="rounded-lg border border-border bg-muted/40 p-3">
+              <p className="text-xs text-muted-foreground">
+                Which connected account (Gmail, Outlook, or Meridian's default) actually sends your outreach is chosen from the Outreach page, not here — every agent shares that one active sender.
+              </p>
             </div>
 
             <Separator />

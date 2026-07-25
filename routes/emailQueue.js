@@ -1510,11 +1510,12 @@ router.get('/daily-cap-status', async (req, res) => {
     const outlookAccounts = (userSettings?.outlookAccounts || []).map((acc, i) => ({
       email: acc.email,
       provider: 'outlook',
-      isActive: false, // Outlook doesn't have per-account isActive; first is default
+      isActive: !!acc.isActive,
       index: i,
     }));
-    // Mark first Outlook account active if no Gmail active account
-    if (outlookAccounts.length > 0 && !gmailAccounts.some(a => a.isActive)) {
+    // Legacy accounts predating the isActive field won't have it set on any
+    // account — default to the first one so something is always shown as active.
+    if (outlookAccounts.length > 0 && !outlookAccounts.some(a => a.isActive) && !gmailAccounts.some(a => a.isActive)) {
       outlookAccounts[0].isActive = true;
     }
 

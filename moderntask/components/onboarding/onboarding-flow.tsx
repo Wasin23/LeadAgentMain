@@ -291,14 +291,20 @@ export default function OnboardingFlow({ onComplete }: Props) {
   const planDetails = PLANS.find(p => p.id === selectedPlan) || PLANS[0]
 
   useEffect(() => {
-    api.get('/api/auth/gmail/status').then(r => { if (r.data?.connected) { setGmailConnected(true); setUseGmail(true) } }).catch(() => {})
-    api.get('/api/auth/outlook/status').then(r => { if (r.data?.connected) { setOutlookConnected(true); setUseOutlook(true) } }).catch(() => {})
+    api.get('/api/auth/gmail/status').then(r => {
+      if (r.data?.connected) {
+        setGmailConnected(true)
+        if (r.data.accounts?.some((a: { isActive?: boolean }) => a.isActive)) setUseGmail(true)
+      }
+    }).catch(() => {})
+    api.get('/api/auth/outlook/status').then(r => {
+      if (r.data?.connected) {
+        setOutlookConnected(true)
+        if (r.data.accounts?.some((a: { isActive?: boolean }) => a.isActive)) setUseOutlook(true)
+      }
+    }).catch(() => {})
     api.get('/api/auth/linkedin/status').then(r => { if (r.data?.connected) setLinkedinConnected(true) }).catch(() => {})
     api.get('/api/auth/profile').then(r => { if (r.data?.user?.paymentMethodAdded) setPaymentAdded(true) }).catch(() => {})
-    api.get('/api/auth/settings').then(r => {
-      if (r.data?.preferences?.defaultUseGmail) setUseGmail(true)
-      if (r.data?.preferences?.defaultUseOutlook) setUseOutlook(true)
-    }).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -380,6 +386,19 @@ export default function OnboardingFlow({ onComplete }: Props) {
     finally { setAutofilling(false) }
   }
 
+  // Activating a provider here sets it as the ONE globally active sending
+  // account (shared by every agent, controlled from Outreach) — not a
+  // per-agent preference baked into the agent this wizard is about to create.
+  const activateGmail = async () => {
+    await api.post('/api/auth/gmail/set-active', { accountIndex: 0 }).catch(() => {})
+    setUseGmail(true); setUseOutlook(false)
+  }
+
+  const activateOutlook = async () => {
+    await api.post('/api/auth/outlook/set-active', { accountIndex: 0 }).catch(() => {})
+    setUseOutlook(true); setUseGmail(false)
+  }
+
   const connectGmail = async () => {
     try {
       const r = await api.get('/api/auth/gmail/oauth-url')
@@ -388,9 +407,11 @@ export default function OnboardingFlow({ onComplete }: Props) {
         if (w?.closed) {
           clearInterval(check)
           await new Promise(res => setTimeout(res, 1000))
-          api.get('/api/auth/gmail/status').then(sr => {
-            if (sr.data?.connected) { setGmailConnected(true); setUseGmail(true); setUseOutlook(false) }
-          }).catch(() => {})
+          const sr = await api.get('/api/auth/gmail/status').catch(() => null)
+          if (sr?.data?.connected) {
+            setGmailConnected(true)
+            await activateGmail()
+          }
         }
       }, 500)
     } catch {}
@@ -398,17 +419,17 @@ export default function OnboardingFlow({ onComplete }: Props) {
 
   const connectOutlook = async () => {
     try {
-      setUseOutlook(true); setUseGmail(false)
-      await api.post('/api/auth/settings/preferences', { preferences: { defaultUseOutlook: true, defaultUseGmail: false } }).catch(() => {})
       const r = await api.get('/api/auth/outlook/oauth-url')
       const w = window.open(r.data.authUrl, 'Outlook OAuth', 'width=600,height=700')
       const check = setInterval(async () => {
         if (w?.closed) {
           clearInterval(check)
           await new Promise(res => setTimeout(res, 1000))
-          api.get('/api/auth/outlook/status').then(sr => {
-            if (sr.data?.connected) { setOutlookConnected(true); setUseOutlook(true); setUseGmail(false) }
-          }).catch(() => {})
+          const sr = await api.get('/api/auth/outlook/status').catch(() => null)
+          if (sr?.data?.connected) {
+            setOutlookConnected(true)
+            await activateOutlook()
+          }
         }
       }, 500)
     } catch {}
@@ -489,8 +510,6 @@ export default function OnboardingFlow({ onComplete }: Props) {
         name: agentName,
         type: 'reasoning-lead-agent',
         specialInstructions,
-        useGmail,
-        useOutlook,
         concurrencyLevel,
         personality: personality ? {
           type: personality.id, name: personality.name, description: personality.description,
@@ -769,7 +788,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
         <p className="text-base text-gray-500 mb-8">Your agent sends from your real email address - your name, your domain.</p>
 
         <div className="space-y-2.5 mb-5">
-          <button onClick={() => { setUseGmail(true); setUseOutlook(false); if (!gmailConnected) connectGmail() }}
+          <button onClick={() => { if (!gmailConnected) connectGmail(); else if (!useGmail) activateGmail() }}
             className={`w-full flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${gmailConnected && useGmail ? 'border-green-400 bg-green-50' : 'border-gray-200 hover:border-gray-300'}`}>
             <img src="/gmail.png" alt="Gmail" className="w-9 h-9 rounded-xl object-contain shrink-0" />
             <div className="flex-1">
@@ -781,7 +800,7 @@ export default function OnboardingFlow({ onComplete }: Props) {
               : <span className="text-gray-400 text-xs">Connect →</span>}
           </button>
 
-          <button onClick={() => { if (!outlookConnected) connectOutlook(); else { setUseOutlook(true); setUseGmail(false) } }}
+          <button onClick={() => { if (!outlookConnected) connectOutlook(); else if (!useOutlook) activateOutlook() }}
             className={`w-full flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${outlookConnected && useOutlook ? 'border-green-400 bg-green-50' : 'border-gray-200 hover:border-gray-300'}`}>
             <img src="/outlook.png" alt="Outlook" className="w-9 h-9 rounded-xl object-contain shrink-0" />
             <div className="flex-1">
@@ -793,15 +812,14 @@ export default function OnboardingFlow({ onComplete }: Props) {
               : <span className="text-gray-400 text-xs">Connect →</span>}
           </button>
 
-          <button onClick={() => { setUseGmail(false); setUseOutlook(false) }}
-            className={`w-full flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${!useGmail && !useOutlook ? 'border-gray-900 bg-gray-50' : 'border-gray-200 hover:border-gray-300'}`}>
+          <div className={`w-full flex items-center gap-3 p-4 rounded-xl border ${!useGmail && !useOutlook ? 'border-gray-900 bg-gray-50' : 'border-gray-200'}`}>
             <div className="w-9 h-9 rounded-xl bg-[#C13B3B] flex items-center justify-center text-white text-sm font-bold shrink-0">M</div>
             <div className="flex-1">
-              <div className="font-semibold text-sm text-gray-900">Mailgun <span className="text-gray-400 font-normal text-xs">(default)</span></div>
-              <div className="text-xs text-gray-500">Replies tracked via webhooks</div>
+              <div className="font-semibold text-sm text-gray-900">Mailgun <span className="text-gray-400 font-normal text-xs">(fallback)</span></div>
+              <div className="text-xs text-gray-500">Used automatically whenever Gmail/Outlook isn't active. Replies tracked via webhooks.</div>
             </div>
             {!useGmail && !useOutlook && <span className="text-gray-900 text-xs font-semibold inline-flex items-center gap-1">Active <Check className="w-3 h-3" /></span>}
-          </button>
+          </div>
 
           <button onClick={() => { if (!linkedinConnected) connectLinkedIn() }} disabled={linkedinConnected || linkedinConnecting}
             className={`w-full flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${linkedinConnected ? 'border-green-400 bg-green-50' : 'border-gray-200 hover:border-gray-300'} disabled:cursor-default`}>

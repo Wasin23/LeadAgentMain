@@ -148,7 +148,7 @@ Meridian is an AI-powered lead research and email automation platform. Users cre
 
 ## Emails Not Sending:
 - Check payment status (subscription active)
-- Verify agent has "useGmail" enabled or Mailgun configured
+- Verify a Gmail/Outlook account is connected and active in Outreach, or Mailgun is configured
 - Ensure email queue has approved emails
 - Check for bounced/failed emails in outreach page
 

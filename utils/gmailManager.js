@@ -299,22 +299,9 @@ class GmailManager {
       console.log('[GMAIL] Thread ID:', result.data.threadId);
       console.log('[GMAIL] Email will appear in user\'s Gmail Sent folder');
 
-      // Cycle to next account for future emails (if multiple accounts)
-      if (gmailAccounts.length > 1) {
-        const nextIndex = (currentAccountIndex + 1) % gmailAccounts.length;
-        console.log(`[GMAIL] Cycling to account ${nextIndex + 1}/${gmailAccounts.length} for next email`);
-        
-        // Update active account
-        gmailAccounts.forEach((acc, i) => {
-          acc.isActive = (i === nextIndex);
-        });
-        
-        await awsManager.saveUserSettings(userId, {
-          ...userSettings,
-          gmailAccounts,
-          activeGmailIndex: nextIndex
-        });
-      }
+      // The active account is a manual choice made in Outreach — it no
+      // longer auto-cycles after each send, otherwise it silently fights
+      // whatever the user just picked there.
 
       // Log Gmail API usage
       await awsManager.logApiUsage({

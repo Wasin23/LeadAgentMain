@@ -433,12 +433,9 @@ class OutlookManager {
 
       console.log('[OUTLOOK] Email sent successfully');
 
-      // Cycle to next account for load balancing
-      if (outlookAccounts.length > 1) {
-        userSettings.activeOutlookIndex = (currentAccountIndex + 1) % outlookAccounts.length;
-        await awsManager.saveUserSettings(userId, userSettings);
-        console.log(`[OUTLOOK] Cycled to account ${userSettings.activeOutlookIndex + 1}/${outlookAccounts.length}`);
-      }
+      // The active account is a manual choice made in Outreach — it no
+      // longer auto-cycles after each send, otherwise it silently fights
+      // whatever the user just picked there.
 
       return {
         success: true,
