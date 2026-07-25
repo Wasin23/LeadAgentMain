@@ -230,7 +230,6 @@ export default function OnboardingFlow({ onComplete }: Props) {
   const [services, setServices] = useState('')
   const [coreOffering, setCoreOffering] = useState('')
   const [keyAdvantages, setKeyAdvantages] = useState('')
-  const [termsAccepted, setTermsAccepted] = useState(false)
   const [step1Details, setStep1Details] = useState(false)
   const [scraping, setScraping] = useState(false)
   const [scrapeError, setScrapeError] = useState<string | null>(null)
@@ -479,7 +478,6 @@ export default function OnboardingFlow({ onComplete }: Props) {
           email: companyEmail, phone, companyAddress, location, founded, employees,
           companySize, targetMarket, services: services || coreOffering, coreOffering, keyAdvantages,
           logo: '',
-          termsAccepted, termsAcceptedAt: termsAccepted ? new Date().toISOString() : undefined,
         },
         recommendedPreset: null,
       })
@@ -626,18 +624,6 @@ export default function OnboardingFlow({ onComplete }: Props) {
           </div>
         </div>
 
-        <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input type="checkbox" checked={termsAccepted} onChange={e => setTermsAccepted(e.target.checked)}
-              className="mt-0.5 w-4 h-4 rounded border-gray-300 text-green-800 focus:ring-green-700 shrink-0" />
-            <span className="text-xs text-gray-600">
-              I agree to the{' '}
-              <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-green-700 hover:underline font-medium">Terms of Service</a>{' '}and{' '}
-              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-green-700 hover:underline font-medium">Privacy Policy</a>.
-            </span>
-          </label>
-        </div>
-
         <div className="flex justify-end">
           <button onClick={async () => {
             try {
@@ -646,13 +632,13 @@ export default function OnboardingFlow({ onComplete }: Props) {
                   companyName, tagline, description, industry, website, linkedinProfile,
                   email: companyEmail, phone, companyAddress, location, founded, employees,
                   companySize, targetMarket, services: services || coreOffering, coreOffering, keyAdvantages,
-                  logo: '', termsAccepted, termsAcceptedAt: termsAccepted ? new Date().toISOString() : undefined,
+                  logo: '',
                 },
                 recommendedPreset: null,
               })
             } catch {}
             setStep(2)
-          }} disabled={!companyName.trim() || !services.trim() || !termsAccepted} className={bp}>
+          }} disabled={!companyName.trim() || !services.trim()} className={bp}>
             Continue →
           </button>
         </div>

@@ -198,27 +198,33 @@ router.post('/register', credentialLimiter, async (req, res) => {
   console.log('[AUTH] Request body:', { username: req.body.username, email: req.body.email, hasPassword: !!req.body.password });
   
   try {
-    const { username, email, password } = req.body;
-    
+    const { username, email, password, termsAccepted } = req.body;
+
     if (!username || !email || !password) {
       console.log('[AUTH] Missing required fields');
       return res.status(400).json({ error: 'Username, email, and password are required' });
     }
-    
+
+    if (!termsAccepted) {
+      console.log('[AUTH] Terms not accepted');
+      return res.status(400).json({ error: 'You must agree to the Terms of Service and Privacy Policy' });
+    }
+
     if (username.length > 24) {
       console.log('[AUTH] Username too long:', username.length);
       return res.status(400).json({ error: 'Username must be 24 characters or less' });
     }
-    
+
     if (password.length < 6) {
       console.log('[AUTH] Password too short');
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
-    
+
     console.log('[AUTH] Calling registerUser...');
     const user = await registerUser(username, email, password, {
       signupIpHash: hashSignupSignal(getRequestIp(req)),
-      signupDeviceHash: getRequestDeviceHash(req)
+      signupDeviceHash: getRequestDeviceHash(req),
+      termsAcceptedAt: new Date().toISOString()
     });
     console.log(`[AUTH] ✅ New user registered: ${username} (${email})`);
     

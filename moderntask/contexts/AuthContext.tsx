@@ -17,7 +17,7 @@ interface AuthContextType {
   isLoading: boolean
   isAuthenticated: boolean
   login: (username: string, password: string) => Promise<boolean>
-  register: (username: string, email: string, password: string) => Promise<boolean>
+  register: (username: string, email: string, password: string, termsAccepted: boolean) => Promise<boolean>
   logout: () => void
 }
 
@@ -58,9 +58,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const register = async (username: string, email: string, password: string): Promise<boolean> => {
+  const register = async (username: string, email: string, password: string, termsAccepted: boolean): Promise<boolean> => {
     try {
-      const response = await authAPI.register({ username, email, password })
+      const response = await authAPI.register({ username, email, password, termsAccepted })
       if (response.data.success) {
         const { user, token } = response.data
         localStorage.setItem('currentUser', JSON.stringify(user))

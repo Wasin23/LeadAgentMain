@@ -50,6 +50,7 @@ export default function SignInPage() {
 
   const [signInForm, setSignInForm] = useState({ username: '', password: '' })
   const [signUpForm, setSignUpForm] = useState({ username: '', email: '', password: '', confirmPassword: '' })
+  const [termsAccepted, setTermsAccepted] = useState(false)
   const [forgotForm, setForgotForm] = useState({ email: '' })
   const [resetForm, setResetForm] = useState({ code: '', newPassword: '', confirmPassword: '' })
   const [pendingRedirect, setPendingRedirect] = useState<string | null>(null)
@@ -131,10 +132,14 @@ export default function SignInPage() {
       setError('Passwords do not match')
       return
     }
+    if (!termsAccepted) {
+      setError('You must agree to the Terms of Service and Privacy Policy')
+      return
+    }
     setIsLoading(true)
     setError('')
     try {
-      const ok = await register(signUpForm.username, signUpForm.email, signUpForm.password)
+      const ok = await register(signUpForm.username, signUpForm.email, signUpForm.password, termsAccepted)
       if (ok) {
         setSuccessMsg('Account created! Redirecting...')
         setPendingRedirect('/onboarding?new=1')
@@ -286,7 +291,7 @@ export default function SignInPage() {
         }
       `}</style>
 
-    <div className="min-h-screen relative flex items-center justify-center overflow-hidden p-4" style={{ background: '#f4efe6' }}>
+    <div className="min-h-screen relative flex flex-col items-center justify-center overflow-y-auto py-8 px-4" style={{ background: '#f4efe6' }}>
 
       {/* Back to landing - top left */}
       <Button
@@ -315,12 +320,12 @@ export default function SignInPage() {
       {/* ── Card panel - centered ── */}
       <div className="relative w-full max-w-md signin-card-anim" style={{ zIndex: 10, padding: '12px', background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(16px)', borderRadius: '28px', border: '1px solid rgba(255,255,255,0.8)' }}>
         {/* Logo */}
-        <div className="text-center mb-7">
-          <div className="flex justify-center mb-4">
-            <Image src="/MeridianM.png" alt="Meridian" width={200} height={200} className="drop-shadow-2xl" />
+        <div className="text-center mb-4">
+          <div className="flex justify-center mb-2">
+            <Image src="/MeridianM.png" alt="Meridian" width={104} height={104} className="drop-shadow-2xl" />
           </div>
-          <MeridianWordmark className="h-7 w-auto mx-auto" color="#111111" />
-          <p className="text-sm mt-2 text-black/40">AI-Powered Lead Research & Automation</p>
+          <MeridianWordmark className="h-6 w-auto mx-auto" color="#111111" />
+          <p className="text-xs mt-1.5 text-black/40">AI-Powered Lead Research & Automation</p>
         </div>
 
         {/* Alerts */}
@@ -352,20 +357,20 @@ export default function SignInPage() {
           '--accent-foreground': 'oklch(0.98 0.01 255)',
           colorScheme: 'light',
         } as React.CSSProperties}>
-          <CardHeader className="pb-3">
+          <CardHeader className="pb-2">
             <CardTitle className="text-lg">Welcome back</CardTitle>
             <CardDescription>Sign in to your account or create a new one</CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="signin">
-              <TabsList className="w-full mb-5">
+              <TabsList className="w-full mb-4">
                 <TabsTrigger value="signin" className="signin-tab-trigger signin-pressable flex-1">Sign In</TabsTrigger>
                 <TabsTrigger value="signup" className="signin-tab-trigger signin-pressable flex-1">Sign Up</TabsTrigger>
               </TabsList>
 
               {/* Sign In */}
               <TabsContent value="signin">
-                <form onSubmit={handleSignIn} className="space-y-4">
+                <form onSubmit={handleSignIn} className="space-y-3">
                   <div className="space-y-1.5">
                     <Label htmlFor="si-email">Email</Label>
                     <Input id="si-email" type="email" required placeholder="you@example.com"
@@ -411,7 +416,7 @@ export default function SignInPage() {
               {/* Sign Up */}
               <TabsContent value="signup">
                 <div className="max-h-[52vh] overflow-y-auto pr-1">
-                <form onSubmit={handleSignUp} className="space-y-4">
+                <form onSubmit={handleSignUp} className="space-y-3">
                   <div className="space-y-1.5">
                     <Label htmlFor="su-username">Username</Label>
                     <Input id="su-username" type="text" required minLength={3} placeholder="yourname"
@@ -458,7 +463,16 @@ export default function SignInPage() {
                       </p>
                     )}
                   </div>
-                  <Button type="submit" className="signin-primary-button signin-pressable w-full" disabled={isLoading || signUpForm.password !== signUpForm.confirmPassword}>
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input type="checkbox" checked={termsAccepted} onChange={e => setTermsAccepted(e.target.checked)}
+                      className="mt-0.5 w-3.5 h-3.5 rounded border-input shrink-0" />
+                    <span className="text-xs text-muted-foreground">
+                      I agree to the{' '}
+                      <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">Terms of Service</a>{' '}and{' '}
+                      <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">Privacy Policy</a>.
+                    </span>
+                  </label>
+                  <Button type="submit" className="signin-primary-button signin-pressable w-full" disabled={isLoading || signUpForm.password !== signUpForm.confirmPassword || !termsAccepted}>
                     {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                     {isLoading ? 'Creating account...' : 'Create Account'}
                   </Button>
@@ -468,7 +482,7 @@ export default function SignInPage() {
                       <span className="bg-white px-2 text-muted-foreground">or</span>
                     </div>
                   </div>
-                  <Button type="button" variant="outline" className="signin-pressable google-auth-button w-full border-slate-200 bg-white hover:bg-white hover:text-blue-700 hover:border-blue-500" onClick={handleGoogleSignIn}>
+                  <Button type="button" variant="outline" className="signin-pressable google-auth-button w-full border-slate-200 bg-white hover:bg-white hover:text-blue-700 hover:border-blue-500" disabled={!termsAccepted} onClick={handleGoogleSignIn}>
                     <GoogleIcon /><span className="ml-2">Continue with Google</span>
                   </Button>
                 </form>
@@ -479,8 +493,8 @@ export default function SignInPage() {
         </Card>
       </div>
 
-      {/* Privacy / Terms links */}
-      <div className="absolute bottom-5 left-0 right-0 flex justify-center gap-6 text-xs" style={{ zIndex: 10 }}>
+      {/* Privacy / Terms links — normal flow beneath the card, never overlaps it */}
+      <div className="mt-4 flex justify-center gap-6 text-xs pb-2" style={{ zIndex: 10 }}>
         <a href="/privacy" className="text-black/40 hover:text-black transition-colors">Privacy Policy</a>
         <span className="text-black/20">·</span>
         <a href="/terms" className="text-black/40 hover:text-black transition-colors">Terms of Service</a>

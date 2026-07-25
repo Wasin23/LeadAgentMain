@@ -36,6 +36,6 @@ export default api
 export const authAPI = {
   login: (credentials: { username: string; password: string }) =>
     api.post('/api/auth/login', credentials),
-  register: (userData: { username: string; email: string; password: string }) =>
+  register: (userData: { username: string; email: string; password: string; termsAccepted: boolean }) =>
     api.post('/api/auth/register', userData),
 }

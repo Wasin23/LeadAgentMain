@@ -343,7 +343,7 @@ export default function TermsOfServicePage() {
               </div>
               <div>
                 <h3 className="font-semibold text-foreground mb-1.5">20.5 Opt-Out and Court Venue</h3>
-                <p>You may opt out of the arbitration agreement, class action waiver, and jury trial waiver in this Section 20 by sending written notice to legal@getmeridian.ai within 30 days of first accepting these Terms. If you opt out, or in any case where arbitration does not apply, the state and federal courts located in New York County, New York will have exclusive jurisdiction, and each party consents to personal jurisdiction and venue there.</p>
+                <p>You may opt out of the arbitration agreement, class action waiver, and jury trial waiver in this Section 20 by sending written notice to coltonfidelman@g.ucla.edu within 30 days of first accepting these Terms. If you opt out, or in any case where arbitration does not apply, the state and federal courts located in New York County, New York will have exclusive jurisdiction, and each party consents to personal jurisdiction and venue there.</p>
               </div>
             </div>
           </section>
@@ -353,7 +353,7 @@ export default function TermsOfServicePage() {
             <p className="text-muted-foreground mb-3">For questions about these Terms, please contact us at:</p>
             <div className="p-4 bg-muted rounded-lg">
               <p className="font-medium text-foreground">Meridian Legal Team</p>
-              <p className="text-muted-foreground">Email: legal@getmeridian.ai</p>
+              <p className="text-muted-foreground">Email: coltonfidelman@g.ucla.edu</p>
               <p className="text-muted-foreground">Address: 35 S Village Dr, Cazenovia, NY 13035</p>
             </div>
           </section>
