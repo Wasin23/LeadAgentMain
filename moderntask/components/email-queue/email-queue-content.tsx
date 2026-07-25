@@ -1889,8 +1889,8 @@ function DailyCapWidget() {
 
   if (!data) return null
 
-  const near = data.sentToday >= data.perAccountCap * 0.8
-  const hit  = data.sentToday >= data.perAccountCap
+  const near = data.sentToday >= data.totalCap * 0.8
+  const hit  = data.sentToday >= data.totalCap
   const displayEmail = data.activeAccount?.email || 'Mailgun (default)'
   const displayProvider = data.activeAccount?.provider || null
   const hasAccounts = data.accounts.length > 0
@@ -1910,25 +1910,27 @@ function DailyCapWidget() {
   }
 
   return (
-    <div className="relative" ref={dropRef}>
+    <div className="relative mb-4" ref={dropRef}>
       <button
         onClick={() => setOpen(o => !o)}
         disabled={!hasAccounts}
-        className={cn(
-          'flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs transition-colors',
-          hasAccounts ? 'border-border bg-muted/30 hover:bg-muted/60 cursor-pointer' : 'border-border bg-muted/20 cursor-default'
-        )}
+        className={cn('flex w-full items-center justify-between gap-3 py-1 text-left', hasAccounts && 'cursor-pointer')}
       >
-        <Mail className="w-3 h-3 text-muted-foreground shrink-0" />
-        <span className="text-muted-foreground truncate max-w-[140px]">
-          {displayProvider && <span className="capitalize mr-1">{displayProvider}:</span>}
-          {displayEmail}
-        </span>
-        <ArrowLeftRight className="w-3 h-3 text-muted-foreground shrink-0" />
-        <span className={cn('font-semibold tabular-nums shrink-0', hit ? 'text-destructive' : near ? 'text-yellow-500' : 'text-foreground')}>
-          {data.sentToday}<span className="font-normal text-muted-foreground">/{data.perAccountCap}</span>
-        </span>
-        {hasAccounts && <ChevronRight className={cn('w-3 h-3 text-muted-foreground shrink-0 transition-transform', open && 'rotate-90')} />}
+        <div className="flex items-center gap-2 min-w-0">
+          <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
+          <span className="text-sm text-muted-foreground truncate max-w-[220px]">
+            {displayProvider && <span className="capitalize mr-1">{displayProvider}:</span>}
+            {displayEmail}
+          </span>
+          {hasAccounts && <ArrowLeftRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className={cn('text-xl font-semibold tabular-nums', hit ? 'text-destructive' : near ? 'text-yellow-500' : 'text-foreground')}>
+            {data.sentToday}
+            <span className="text-sm font-normal text-muted-foreground">/{data.totalCap} sent today</span>
+          </span>
+          {hasAccounts && <ChevronRight className={cn('w-4 h-4 text-muted-foreground shrink-0 transition-transform', open && 'rotate-90')} />}
+        </div>
       </button>
 
       {open && hasAccounts && (
@@ -1958,7 +1960,7 @@ function DailyCapWidget() {
             ))}
           </div>
           <div className="border-t border-border px-3 py-2">
-            <p className="text-[10px] text-muted-foreground">{data.sentToday}/{data.totalCap} total sent today</p>
+            <p className="text-[10px] text-muted-foreground">{data.perAccountCap}/day limit per account</p>
           </div>
         </div>
       )}
@@ -2084,7 +2086,6 @@ export function EmailQueueContent() {
               </button>
             </span>
           )}
-          <DailyCapWidget />
           <div className="ml-auto flex items-center gap-2">
             {batchCount > 0 && (
               <button
@@ -2104,6 +2105,8 @@ export function EmailQueueContent() {
             </button>
           </div>
         </div>
+
+        <DailyCapWidget />
 
         {showSchedule && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowSchedule(false)}>

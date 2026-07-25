@@ -1560,8 +1560,18 @@ router.get('/daily-cap-status', async (req, res) => {
     );
     const sentToday = perAgentCounts.reduce((sum, c) => sum + c, 0);
 
+    // Total daily cap scales with plan size instead of a flat number: take
+    // the plan's monthly email allowance (original sends + follow-ups —
+    // emailAllowance already bakes both in as leadAllowance x4; plans without
+    // an explicit emailAllowance spend credits 1:1 per email, so initialCredits
+    // is the equivalent monthly figure), spread it over 30 days, and round to
+    // the nearest 10. Per-account cap stays fixed regardless of plan.
+    const user = await awsManager.getUserById(userId);
+    const planConfig = awsManager.getPlanConfig(user?.plan || 'free-trial');
+    const monthlyEmailAllowance = planConfig.emailAllowance || planConfig.initialCredits || 250;
+
     const PER_ACCOUNT_CAP = 50;
-    const TOTAL_CAP = 250;
+    const TOTAL_CAP = Math.max(10, Math.round((monthlyEmailAllowance / 30) / 10) * 10);
     const activeAccount = connectedAccounts.find(a => a.isActive) || null;
 
     res.json({
