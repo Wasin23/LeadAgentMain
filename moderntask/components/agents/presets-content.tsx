@@ -565,8 +565,8 @@ export function PresetsContent() {
   return (
     <div className="space-y-5">
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <Card className="p-6 w-full max-w-sm space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-modal-swoop-backdrop">
+          <Card className="p-6 w-full max-w-sm space-y-4 animate-modal-swoop-up">
             <h3 className="text-sm font-semibold">Delete &ldquo;{deleteTarget.name}&rdquo;?</h3>
             <p className="text-xs text-muted-foreground">This cannot be undone. Agents already using this preset keep their current settings.</p>
             <div className="flex justify-end gap-2">
@@ -619,8 +619,8 @@ export function PresetsContent() {
       </div>
 
       {showEditor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={closeEditor}>
-          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-modal-swoop-backdrop" onClick={closeEditor}>
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-modal-swoop-up" onClick={e => e.stopPropagation()}>
             <PresetEditorPanel
               form={form}
               setForm={setForm}

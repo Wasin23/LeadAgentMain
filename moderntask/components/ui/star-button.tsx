@@ -35,20 +35,22 @@ export function StarButton({
     >
       <Star
         key={burst}
+        fill={starred ? "url(#gold-metallic-fill)" : "none"}
+        stroke={starred ? "url(#gold-metallic-fill)" : "currentColor"}
         className={cn(
           size,
           "transition-colors",
-          starred ? cn("text-amber-400 fill-amber-400", burst > 0 && "star-pop") : "text-muted-foreground",
+          starred ? cn(burst > 0 && "star-pop") : "text-muted-foreground",
           iconClassName,
         )}
       />
       {starred && burst > 0 && (
         <span key={`ring-${burst}`} className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <span className="absolute w-3.5 h-3.5 rounded-full border-2 border-amber-400 star-ring" />
+          <span className="absolute w-3.5 h-3.5 rounded-full border-2 border-[#d4af37] star-ring" />
           {[...Array(6)].map((_, k) => (
             <span
               key={k}
-              className="absolute w-1 h-1 rounded-full bg-amber-400 star-spark"
+              className="absolute w-1 h-1 rounded-full bg-[#d4af37] star-spark"
               style={{ "--angle": `${k * 60}deg` } as React.CSSProperties}
             />
           ))}

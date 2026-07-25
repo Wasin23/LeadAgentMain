@@ -772,8 +772,8 @@ export function SettingsContent() {
 
             {/* Reset confirmation modal */}
             {showResetModal && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                <div className="bg-background border border-destructive/40 rounded-xl shadow-2xl p-6 w-full max-w-md mx-4">
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-modal-swoop-backdrop">
+                <div className="bg-background border border-destructive/40 rounded-xl shadow-2xl p-6 w-full max-w-md mx-4 animate-modal-swoop-up">
                   <h3 className="font-bold text-lg text-destructive mb-1">Reset Account Data</h3>
                   <p className="text-sm text-muted-foreground mb-4">
                     This will permanently delete all agents, emails, leads, analytics, CRM contacts, memory, and company profile. Billing data is preserved.

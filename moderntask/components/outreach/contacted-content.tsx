@@ -512,8 +512,8 @@ function ReplyRow({ reply, highlighted, onOpen }: { reply: ReplyConversation; hi
 
 function ReplyDetailModal({ reply, onClose }: { reply: ReplyConversation; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <Card className="max-w-4xl w-full max-h-[88vh] overflow-hidden p-0" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-modal-swoop-backdrop" onClick={onClose}>
+      <Card className="max-w-4xl w-full max-h-[88vh] overflow-hidden p-0 animate-modal-swoop-up" onClick={e => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-4 p-5 border-b border-border bg-background">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-1.5">
@@ -572,8 +572,8 @@ function EditFollowUpModal({ email, onClose, onSaved }: { email: AnalyticsEmail;
     setSaving(false)
   }
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <Card className="p-6 max-w-lg w-full space-y-4 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-modal-swoop-backdrop" onClick={onClose}>
+      <Card className="p-6 max-w-lg w-full space-y-4 max-h-[90vh] overflow-y-auto animate-modal-swoop-up" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between"><h3 className="font-semibold">Edit Follow-up</h3><button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button></div>
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground">Send date</label>
@@ -603,8 +603,8 @@ function MassRescheduleModal({ emails, onClose, onSaved }: { emails: AnalyticsEm
     setSaving(false)
   }
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <Card className="p-6 max-w-sm w-full space-y-4" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-modal-swoop-backdrop" onClick={onClose}>
+      <Card className="p-6 max-w-sm w-full space-y-4 animate-modal-swoop-up" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between"><h3 className="font-semibold">Reschedule {emails.length} follow-ups</h3><button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button></div>
         <input type="datetime-local" value={date} onChange={e => setDate(e.target.value)} className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
         <div className="flex gap-2"><Button variant="ghost" className="flex-1" onClick={onClose}>Cancel</Button><Button className="flex-1" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Reschedule All'}</Button></div>
@@ -624,8 +624,8 @@ function MassFollowUpModal({ agent, templates, eligibleEmails, onClose, onSent }
     setSending(false)
   }
   return (
-    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <Card className="p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto space-y-4" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-modal-swoop-backdrop" onClick={onClose}>
+      <Card className="p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto space-y-4 animate-modal-swoop-up" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <div><h3 className="font-semibold">Schedule Mass Follow-up</h3><p className="text-xs text-muted-foreground mt-0.5">{eligibleEmails.length} eligible · {agent.name}</p></div>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>

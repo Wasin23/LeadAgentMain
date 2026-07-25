@@ -962,11 +962,11 @@ function BillingTabInner() {
       {/* ── Add Card Modal ── */}
       {showAddCard && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-modal-swoop-backdrop"
           onClick={() => setShowAddCard(false)}
         >
           <div
-            className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-md p-6"
+            className="bg-background rounded-2xl border border-border shadow-2xl w-full max-w-md p-6 animate-modal-swoop-up"
             onClick={(e: React.MouseEvent) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-6">

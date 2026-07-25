@@ -134,8 +134,8 @@ function ScheduleModal({ email, onSave, onClose }: {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <Card className="w-full max-w-sm p-5 space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-modal-swoop-backdrop">
+      <Card className="w-full max-w-sm p-5 space-y-4 animate-modal-swoop-up">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-semibold">Schedule Send</h3>
@@ -293,8 +293,8 @@ function ScheduledBatchesModal({ onClose, onChanged }: { onClose: () => void; on
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-background rounded-xl shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-modal-swoop-backdrop">
+      <div className="bg-background rounded-xl shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col animate-modal-swoop-up">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div className="flex items-center gap-2">
             <ListChecks className="w-4 h-4 text-primary" />
@@ -551,8 +551,8 @@ function EditModal({ email, onSave, onClose }: {
   const [body, setBody]       = useState(fields.body)
   const [saving, setSaving]   = useState(false)
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-background border border-border rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-modal-swoop-backdrop">
+      <div className="bg-background border border-border rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl animate-modal-swoop-up">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
           <p className="text-xs font-semibold">Edit Email</p>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="w-4 h-4" /></button>
@@ -635,8 +635,8 @@ function MassReEditModal({ emails, onSave, onClose }: {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <Card className="w-full max-w-md p-5 space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-modal-swoop-backdrop">
+      <Card className="w-full max-w-md p-5 space-y-4 animate-modal-swoop-up">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-semibold flex items-center gap-2">
@@ -988,8 +988,8 @@ function RebuildModal({ email, onSave, onClose }: {
   // ── post-rebuild: save prompt? ───────────────────────────────────────────
   if (pendingSave) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-        <Card className="w-full max-w-sm p-5 space-y-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-modal-swoop-backdrop">
+        <Card className="w-full max-w-sm p-5 space-y-4 animate-modal-swoop-up">
           <div>
             <h3 className="text-sm font-semibold">Save to agent settings?</h3>
             <p className="text-xs text-muted-foreground mt-1">Add <span className="italic">&ldquo;{instruction.trim()}&rdquo;</span> to this agent&apos;s Writing Rules so future emails follow the same guidance.</p>
@@ -1007,8 +1007,8 @@ function RebuildModal({ email, onSave, onClose }: {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <Card className="w-full max-w-md p-5 space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-modal-swoop-backdrop">
+      <Card className="w-full max-w-md p-5 space-y-4 animate-modal-swoop-up">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-semibold flex items-center gap-2">
@@ -1221,9 +1221,9 @@ export function AIReportModal({ report, onClose, leadId }: { report: AIReport; o
   }
   return (
     <>
-      <div className="fixed inset-0 bg-black/60 z-50" onClick={onClose} />
+      <div className="fixed inset-0 bg-black/60 z-50 animate-modal-swoop-backdrop" onClick={onClose} />
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
-        <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col pointer-events-auto">
+        <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col pointer-events-auto animate-modal-swoop-up">
           {/* Header */}
           <div className="flex items-start justify-between p-6 border-b border-border">
             <div className="flex-1">
@@ -2153,8 +2153,8 @@ export function EmailQueueContent() {
         <DailyCapWidget bump={capBump} />
 
         {showSchedule && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setShowSchedule(false)}>
-            <div className="w-full max-w-md" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-modal-swoop-backdrop" onClick={() => setShowSchedule(false)}>
+            <div className="w-full max-w-md animate-modal-swoop-up" onClick={e => e.stopPropagation()}>
               <div className="relative">
                 <button
                   onClick={() => setShowSchedule(false)}

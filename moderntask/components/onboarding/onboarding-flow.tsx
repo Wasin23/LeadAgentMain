@@ -95,8 +95,8 @@ function AddCardForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel:
 
 function AddPaymentModal({ onSuccess, onClose }: { onSuccess: () => void; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-modal-swoop-backdrop">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 animate-modal-swoop-up">
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-lg font-semibold text-gray-900">Add payment method</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700 transition-colors">

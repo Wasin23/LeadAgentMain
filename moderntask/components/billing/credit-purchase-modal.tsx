@@ -5,6 +5,7 @@ import { X, Sparkles, ArrowUpCircle, Check, Plus, Loader2 } from "lucide-react"
 import api from "@/lib/api"
 import { PaymentHistorySection } from "./payment-history-section"
 import { useToast } from "@/hooks/use-toast"
+import { GOLD_METALLIC_GRADIENT } from "@/lib/gold-metallic"
 
 const ENTERPRISE_CONTACT_EMAIL = "colton.fidd@gmail.com"
 
@@ -149,35 +150,44 @@ export function CreditPurchaseModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-modal-swoop-backdrop"
       onClick={onClose}
     >
       <div
-        className="bg-background border border-border rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+        className="bg-background border border-border rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-modal-swoop-up"
         onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-background/95 backdrop-blur-md border-b border-border p-6 flex items-center justify-between z-10">
-          <div>
-            <h2 className="text-2xl font-bold flex items-center gap-3">
-              <ArrowUpCircle className="w-7 h-7 text-muted-foreground" />
-              {mode === "upgrade" ? "Upgrade Plan" : "Buy More Credits"}
-            </h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              {mode === "upgrade" ? "Pick the plan that matches your expected monthly volume." : "Add more credits to your existing plan"}
-            </p>
-            {mode === "topup" && userPlanInfo?.plan && (
-              <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-muted border border-border rounded-full">
-                <Check className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-xs text-foreground font-medium">
-                  Current Plan: {userPlanInfo.plan.name}
-                </span>
-              </div>
-            )}
+        <div className="sticky top-0 z-10 rounded-t-2xl overflow-hidden">
+          {/* Gold metallic top bar */}
+          <div
+            className="relative h-2.5 overflow-hidden animate-metallic-drift"
+            style={{ backgroundImage: GOLD_METALLIC_GRADIENT, backgroundSize: '320% 320%' }}
+          >
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-1/4 bg-gradient-to-r from-transparent via-white/60 to-transparent animate-metallic-sweep" />
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
-            <X className="w-7 h-7" />
-          </button>
+          <div className="bg-background/95 backdrop-blur-md border-b border-border p-6 flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold flex items-center gap-3">
+                <ArrowUpCircle className="w-7 h-7 text-muted-foreground" />
+                {mode === "upgrade" ? "Upgrade Plan" : "Buy More Credits"}
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                {mode === "upgrade" ? "Pick the plan that matches your expected monthly volume." : "Add more credits to your existing plan"}
+              </p>
+              {mode === "topup" && userPlanInfo?.plan && (
+                <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-muted border border-border rounded-full">
+                  <Check className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-xs text-foreground font-medium">
+                    Current Plan: {userPlanInfo.plan.name}
+                  </span>
+                </div>
+              )}
+            </div>
+            <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+              <X className="w-7 h-7" />
+            </button>
+          </div>
         </div>
 
         {/* Content */}

@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext"
 import { getSiteUrl } from "@/lib/site-url"
 import { Toaster } from "@/components/ui/toaster"
 import { NotificationListener } from "@/components/notification-listener"
+import { GoldMetallicDefs } from "@/components/ui/gold-metallic-defs"
 import "./globals.css"
 
 const fraunces = Fraunces({ subsets: ["latin"], variable: "--font-fraunces", display: "swap" })
@@ -60,6 +61,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${fraunces.variable} font-sans antialiased`}>
+        <GoldMetallicDefs />
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem storageKey="tasko-theme">
           <AuthProvider>
             {children}

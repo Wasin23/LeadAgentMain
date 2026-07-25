@@ -299,8 +299,8 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
 
       {/* Sending Schedule modal - the same card used in Outreach, opened after picking an agent */}
       {scheduleAgent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setScheduleAgent(null)}>
-          <div className="w-full max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-modal-swoop-backdrop" onClick={() => setScheduleAgent(null)}>
+          <div className="w-full max-w-md animate-modal-swoop-up" onClick={e => e.stopPropagation()}>
             <div className="relative">
               <button
                 onClick={() => setScheduleAgent(null)}

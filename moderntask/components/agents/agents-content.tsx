@@ -469,8 +469,8 @@ function CreateAgentModal({ onClose, onCreated, atLimit = false }: { onClose: ()
 
   if (atLimit) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-        <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-sm p-8 flex flex-col items-center text-center gap-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-modal-swoop-backdrop">
+        <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-sm p-8 flex flex-col items-center text-center gap-4 animate-modal-swoop-up">
           <div className="w-14 h-14 rounded-full bg-green-900/20 border border-green-800/30 flex items-center justify-center">
             <Crown className="w-7 h-7 text-green-700 dark:text-green-500" />
           </div>
@@ -596,8 +596,8 @@ function CreateAgentModal({ onClose, onCreated, atLimit = false }: { onClose: ()
   // gradientStyle removed - now using p.ringStyle and p.pillStyle directly
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-background border border-border rounded-xl shadow-xl p-8 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-modal-swoop-backdrop">
+      <div className="bg-background border border-border rounded-xl shadow-xl p-8 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto animate-modal-swoop-up">
 
         {maxAgents > 0 && (
           <div className="mb-6 rounded-xl border border-border bg-muted/35 p-4">
@@ -814,8 +814,8 @@ function CreateAgentModal({ onClose, onCreated, atLimit = false }: { onClose: ()
 // ── delete confirm modal ──────────────────────────────────────────────────────
 function DeleteModal({ name, onConfirm, onCancel }: { name: string; onConfirm: () => void; onCancel: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <Card className="p-6 max-w-sm w-full mx-4 space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-modal-swoop-backdrop">
+      <Card className="p-6 max-w-sm w-full mx-4 space-y-4 animate-modal-swoop-up">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-destructive/15 flex items-center justify-center">
             <AlertCircle className="w-5 h-5 text-destructive" />

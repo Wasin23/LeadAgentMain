@@ -822,8 +822,8 @@ export default function AgentDashboardPage({ params }: { params: Promise<{ agent
 
           {/* Conversation Detail Modal */}
           {selectedConversation && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setSelectedConversation(null)}>
-              <div className="bg-background border border-border rounded-xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-modal-swoop-backdrop" onClick={() => setSelectedConversation(null)}>
+              <div className="bg-background border border-border rounded-xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl animate-modal-swoop-up" onClick={e => e.stopPropagation()}>
                 <div className="p-5 border-b">
                   <div className="flex items-center justify-between mb-3">
                     <div>
@@ -1171,8 +1171,8 @@ export default function AgentDashboardPage({ params }: { params: Promise<{ agent
 
         {/* ── Cycle Interval Modal ── */}
         {showIntervalModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-background border border-border rounded-xl w-full max-w-sm shadow-2xl p-6">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-modal-swoop-backdrop">
+            <div className="bg-background border border-border rounded-xl w-full max-w-sm shadow-2xl p-6 animate-modal-swoop-up">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-base font-semibold text-foreground">Change Cycle Interval</h3>
                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setShowIntervalModal(false)}><X className="h-4 w-4" /></Button>
@@ -1198,8 +1198,8 @@ export default function AgentDashboardPage({ params }: { params: Promise<{ agent
 
         {/* ── Recent Contact Detail Modal ── */}
         {selectedRecentEmail && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setSelectedRecentEmail(null)}>
-            <div className="bg-background border border-border rounded-xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-modal-swoop-backdrop" onClick={() => setSelectedRecentEmail(null)}>
+            <div className="bg-background border border-border rounded-xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl animate-modal-swoop-up" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between p-5 border-b">
                 <div>
                   <h2 className="text-base font-semibold text-foreground">{selectedRecentEmail.name}</h2>
@@ -1232,8 +1232,8 @@ export default function AgentDashboardPage({ params }: { params: Promise<{ agent
 
         {/* ── Email Queue Modal ── */}
         {showEmailQueue && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-background border border-border rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-modal-swoop-backdrop">
+            <div className="bg-background border border-border rounded-xl shadow-2xl w-full max-w-6xl max-h-[95vh] flex flex-col animate-modal-swoop-up">
               {/* header */}
               <div className="flex items-center justify-between p-5 border-b">
                 <div>

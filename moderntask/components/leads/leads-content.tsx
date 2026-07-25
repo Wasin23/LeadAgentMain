@@ -370,7 +370,7 @@ export function LeadsContent() {
           <span className="flex-1">
             Select a lead to view its research report, sources, and outreach draft.{' '}
             <span className="inline-flex items-center gap-1">
-              <Star className="inline w-3 h-3 text-amber-400 fill-amber-400" />
+              <Star className="inline w-3 h-3" fill="url(#gold-metallic-fill)" stroke="url(#gold-metallic-fill)" />
               <span>Star a lead</span>
             </span>
             {' '}to add it to your favorites and start automatic background research. Meridian will continuously scan the web for news, funding signals, and hiring activity and surface findings in a live timeline.
@@ -394,7 +394,7 @@ export function LeadsContent() {
                 <>
                   <span className="text-border">|</span>
                   <span className="flex items-center gap-1" title={`Starred leads: ${starredIds.size} of ${starLimit} allowed on your plan`}>
-                    <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                    <Star className="w-3 h-3" fill="url(#gold-metallic-fill)" stroke="url(#gold-metallic-fill)" />
                     <span className={cn('tabular-nums font-semibold', starredIds.size >= starLimit ? 'text-destructive' : 'text-foreground')}>{starredIds.size}/{starLimit}</span>
                   </span>
                 </>
@@ -572,7 +572,7 @@ export function LeadsContent() {
                   {t === 'draft' ? 'Outreach Draft' : t === 'timeline' ? (
                     <span className="flex items-center gap-1">
                       <Clock className="w-3 h-3" />Timeline
-                      {starredIds.has(selected?.id ?? '') && <Star className="w-2.5 h-2.5 text-amber-400 fill-amber-400" />}
+                      {starredIds.has(selected?.id ?? '') && <Star className="w-2.5 h-2.5" fill="url(#gold-metallic-fill)" stroke="url(#gold-metallic-fill)" />}
                     </span>
                   ) : t}
                   {detailTab === t && <span className="absolute inset-x-0 -bottom-px h-[2px] rounded-full bg-primary" />}
@@ -800,9 +800,9 @@ export function LeadsContent() {
 
       {showVenn && selected && selected.aiReport && (
         <>
-          <div className="fixed inset-0 bg-black/60 z-50" onClick={() => setShowVenn(false)} />
+          <div className="fixed inset-0 bg-black/60 z-50 animate-modal-swoop-backdrop" onClick={() => setShowVenn(false)} />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
-            <div className="bg-card border border-border rounded-2xl shadow-2xl max-w-[90vw] max-h-[90vh] overflow-auto pointer-events-auto p-6">
+            <div className="bg-card border border-border rounded-2xl shadow-2xl max-w-[90vw] max-h-[90vh] overflow-auto pointer-events-auto p-6 animate-modal-swoop-up">
               <div className="flex items-center justify-between mb-4">
                 <p className="text-sm font-semibold text-foreground">{selected.company} • {selected.contactName}</p>
                 <button onClick={() => setShowVenn(false)} className="p-1.5 hover:bg-muted rounded-lg transition-colors">
