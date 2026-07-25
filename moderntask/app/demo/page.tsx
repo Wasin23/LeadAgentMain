@@ -9,6 +9,7 @@ const GlobeHero = dynamic(() => import('@/components/demo/globe-hero').then(m =>
 const ScrollGlobe = dynamic(() => import('@/components/demo/scroll-globe').then(m => ({ default: m.ScrollGlobe })), { ssr: false, loading: () => <Loading label="Loading ScrollGlobe…" /> });
 const ProspectGlobe = dynamic(() => import('@/components/demo/prospect-globe').then(m => ({ default: m.ProspectGlobe })), { ssr: false, loading: () => <Loading label="Loading Prospect Globe…" /> });
 const ModalSwoopDemo = dynamic(() => import('@/components/demo/modal-swoop-demo').then(m => ({ default: m.ModalSwoopDemo })), { ssr: false, loading: () => <Loading label="Loading Modal Swoop…" /> });
+const MetallicDemo = dynamic(() => import('@/components/demo/metallic-demo').then(m => ({ default: m.MetallicDemo })), { ssr: false, loading: () => <Loading label="Loading Metallic…" /> });
 
 function Loading({ label }: { label: string }) {
   return (
@@ -18,7 +19,7 @@ function Loading({ label }: { label: string }) {
   );
 }
 
-type Demo = 'horizon' | 'globe' | 'scroll' | 'prospects' | 'modal-swoop';
+type Demo = 'horizon' | 'globe' | 'scroll' | 'prospects' | 'modal-swoop' | 'metallic';
 
 const DEMOS: { id: Demo; label: string; desc: string }[] = [
   { id: 'prospects', label: '🛰 Prospect Globe', desc: 'Geolocation → globe → animated lead beams' },
@@ -26,6 +27,7 @@ const DEMOS: { id: Demo; label: string; desc: string }[] = [
   { id: 'globe',   label: '🔮 Globe Hero', desc: 'React Three Fiber wireframe globe' },
   { id: 'scroll',  label: '🌍 ScrollGlobe', desc: 'CSS rotating Earth with scroll sections' },
   { id: 'modal-swoop', label: '🪄 Modal Swoop', desc: 'Modal open animation variants for global use' },
+  { id: 'metallic', label: '🔩 Metallic', desc: 'Brushed-metal surfaces, sheen sweep, chrome text' },
 ];
 
 export default function DemoPage() {
@@ -65,6 +67,7 @@ export default function DemoPage() {
         {active === 'globe'       && <GlobeHero />}
         {active === 'scroll'      && <ScrollGlobe />}
         {active === 'modal-swoop' && <ModalSwoopDemo />}
+        {active === 'metallic'    && <MetallicDemo />}
       </div>
     </div>
   );

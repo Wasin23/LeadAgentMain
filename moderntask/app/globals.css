@@ -197,6 +197,11 @@
   --animate-modal-swoop-up: modal-swoop-up 480ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
   --animate-modal-swoop-backdrop: modal-swoop-backdrop 220ms ease-out forwards;
 
+  --animate-metallic-drift: metallic-drift 7s ease-in-out infinite;
+  --animate-metallic-sweep: metallic-sweep 3.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  --animate-metallic-sweep-fast: metallic-sweep 1.1s cubic-bezier(0.4, 0, 0.2, 1);
+  --animate-metallic-text: metallic-drift 4s linear infinite;
+
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -360,6 +365,20 @@
 @keyframes modal-swoop-backdrop {
   0%   { opacity: 0; }
   100% { opacity: 1; }
+}
+
+/* Metallic surfaces — a slow-drifting brushed-metal gradient plus a diagonal
+   specular sheen that sweeps across on a loop, layered with a cursor-tracked
+   highlight (set inline via --mx/--my) for a less "flat plastic" feel. */
+@keyframes metallic-drift {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+@keyframes metallic-sweep {
+  0%   { transform: translateX(-60%) skewX(-20deg); opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { transform: translateX(220%) skewX(-20deg); opacity: 0; }
 }
 
 @keyframes star-pop {
