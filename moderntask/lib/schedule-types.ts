@@ -1,12 +1,14 @@
 // Shared between the schedule builder, the Outreach "Schedule for Send" modal, the
 // Schedules page, and both dashboard calendars — one global schedule per account (not
-// per agent), extended with a follow-up ratio and (optionally) a name if saved.
+// per agent). Main emails are the only thing configured here (capped by the plan's daily
+// send cap); follow-ups are never configured as a ratio — they're predicted, driven off
+// how many mains go out shifted forward by the global follow-up interval, and capped by
+// the per-mailbox (50/day) limit, not by anything in this schedule.
 
 export interface SendingSchedule {
   activeDays:     number[]  // 0=Sun … 6=Sat
   sendTime:       string    // "HH:MM" e.g. "09:00"
   mainPerDay:     number
-  followUpPerDay: number
   timezone:       string
 }
 
@@ -17,13 +19,29 @@ export interface SavedSchedule extends SendingSchedule {
   updatedAt?: string
 }
 
+// Global, not per-agent — configured once in the Outreach/Schedules page and applied
+// across every agent's follow-ups.
+export interface FollowUpSettings {
+  enabled:      boolean
+  intervalDays: number
+  maxRebumps:   number
+  smartRebump:  boolean
+}
+
+export const DEFAULT_FOLLOWUP_SETTINGS: FollowUpSettings = {
+  enabled: true,
+  intervalDays: 7,
+  maxRebumps: 1,
+  smartRebump: false,
+}
+
 export interface SchedulePreviewDay {
   date: string        // "YYYY-MM-DD"
   active: boolean
   mainCount: number
   mainCap: number
-  followUpCount: number
-  followUpCap: number
+  followUpCount: number  // predicted, not configured
+  followUpCap: number    // per-mailbox cap (50/day), not the plan's main cap
 }
 
 export const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -50,6 +68,5 @@ export const DEFAULT_SCHEDULE: SendingSchedule = {
   activeDays: [1, 2, 3, 4, 5],
   sendTime: '09:00',
   mainPerDay: 50,
-  followUpPerDay: 0,
   timezone: BROWSER_TZ,
 }

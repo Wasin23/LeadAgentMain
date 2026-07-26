@@ -232,6 +232,40 @@ class ScheduledEmailJobs {
     return items;
   }
 
+  // Every job scheduled for one specific local calendar day, for the calendar's day
+  // drill-down panel — uses the DueDateIndex GSI (GSIPK = DAY#<date>) so it's a direct
+  // query, not a full-table scan like getScheduledJobsForUser.
+  async getScheduledJobsForDay(userId, date) {
+    await this.ensureTableExists();
+
+    const items = [];
+    let lastEvaluatedKey = null;
+
+    do {
+      const queryInput = {
+        TableName: this.tableName,
+        IndexName: this.dueDateIndex,
+        KeyConditionExpression: 'GSIPK = :gsipk',
+        FilterExpression: 'userId = :userId',
+        ExpressionAttributeValues: {
+          ':gsipk': `DAY#${date}`,
+          ':userId': userId,
+        },
+      };
+      if (lastEvaluatedKey) queryInput.ExclusiveStartKey = lastEvaluatedKey;
+
+      const response = await this._retryWithBackoff(async () => {
+        return this.dynamodb.send(new QueryCommand(queryInput));
+      });
+
+      items.push(...(response.Items || []));
+      lastEvaluatedKey = response.LastEvaluatedKey;
+    } while (lastEvaluatedKey);
+
+    items.sort((left, right) => new Date(left.scheduledAt).getTime() - new Date(right.scheduledAt).getTime());
+    return items;
+  }
+
   async getScheduledJobsForUser(userId, options = {}) {
     await this.ensureTableExists();
 

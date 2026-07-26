@@ -349,7 +349,7 @@ router.get('/sending-schedule', async (req, res) => {
 /**
  * PUT /api/settings/sending-schedule
  * Saves (or, with `schedule: null`, clears) the user's global sending schedule.
- * Body: { schedule: { activeDays: number[], sendTime: string, timezone: string, mainPerDay: number, followUpPerDay: number } | null }
+ * Body: { schedule: { activeDays: number[], sendTime: string, timezone: string, mainPerDay: number } | null }
  */
 router.put('/sending-schedule', async (req, res) => {
   try {
@@ -395,8 +395,9 @@ router.put('/sending-schedule', async (req, res) => {
 // button can show its real name.
 
 // `planCap` is the account's actual plan-tier daily sending ceiling (utils/dailySendCaps.js)
-// — main + follow-ups share it, so it's not just "clamp each to 50" anymore. Main gets
-// priority for the shared cap; follow-ups get whatever's left over.
+// — mainPerDay is main emails only, bounded by it. Follow-ups are never configured here;
+// they're predicted from main volume and bounded by mailbox capacity instead (see
+// utils/scheduleSlots.js).
 function normalizeScheduleFields(body, planCap) {
   if (!Array.isArray(body?.activeDays) || !body.activeDays.length) {
     throw Object.assign(new Error('activeDays must be a non-empty array'), { status: 400 });
@@ -406,13 +407,11 @@ function normalizeScheduleFields(body, planCap) {
   }
   const cap = planCap || 50;
   const mainPerDay = Math.min(cap, Math.max(1, parseInt(body.mainPerDay, 10) || 1));
-  const followUpPerDay = Math.min(Math.max(0, cap - mainPerDay), Math.max(0, parseInt(body.followUpPerDay, 10) || 0));
   return {
     activeDays: body.activeDays,
     sendTime: body.sendTime,
     timezone: body.timezone || 'America/New_York',
     mainPerDay,
-    followUpPerDay,
   };
 }
 
@@ -439,7 +438,7 @@ router.get('/saved-schedules', async (req, res) => {
 
 /**
  * POST /api/settings/saved-schedules
- * Body: { name: string, activeDays, sendTime, timezone, mainPerDay, followUpPerDay }
+ * Body: { name: string, activeDays, sendTime, timezone, mainPerDay }
  */
 router.post('/saved-schedules', async (req, res) => {
   try {
@@ -547,7 +546,6 @@ router.post('/saved-schedules/:id/apply', async (req, res) => {
       sendTime: target.sendTime,
       timezone: target.timezone,
       mainPerDay: target.mainPerDay,
-      followUpPerDay: target.followUpPerDay,
     };
     userSettings.activeSavedScheduleId = id;
     await awsManager.saveUserSettings(req.user.userId, userSettings);
@@ -560,6 +558,94 @@ router.post('/saved-schedules/:id/apply', async (req, res) => {
     res.json({ success: true, schedule: userSettings.sendingSchedule, appliedName: target.name });
   } catch (error) {
     console.error('Error applying saved schedule:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ── Global follow-up settings — one config for the whole account, not per agent ────────────
+// Timing/behavior (interval, how many follow-ups per lead, on/off, smart vs. template) live
+// here now; per-agent follow-up *content* templates (utils/rebumpChecker.js's
+// followUpTemplates) are untouched — those are legitimately agent-specific writing style,
+// not a scheduling setting.
+
+const DEFAULT_FOLLOWUP_SETTINGS = {
+  enabled: true,
+  intervalDays: 7,
+  maxRebumps: 1,
+  smartRebump: false,
+};
+
+/**
+ * GET /api/settings/followup-settings
+ */
+router.get('/followup-settings', async (req, res) => {
+  try {
+    const awsManager = new AWSManager();
+    const userSettings = await awsManager.getUserSettings(req.user.userId) || {};
+    res.json({
+      success: true,
+      settings: { ...DEFAULT_FOLLOWUP_SETTINGS, ...(userSettings.followUpSettings || {}) },
+    });
+  } catch (error) {
+    console.error('Error getting follow-up settings:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * PUT /api/settings/followup-settings
+ * Body: { enabled: boolean, intervalDays: number, maxRebumps: number, smartRebump: boolean }
+ */
+router.put('/followup-settings', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const intervalDays = Math.min(60, Math.max(1, parseInt(body.intervalDays, 10) || DEFAULT_FOLLOWUP_SETTINGS.intervalDays));
+    const maxRebumps = Math.min(10, Math.max(1, parseInt(body.maxRebumps, 10) || DEFAULT_FOLLOWUP_SETTINGS.maxRebumps));
+
+    const awsManager = new AWSManager();
+    const userSettings = await awsManager.getUserSettings(req.user.userId) || {};
+    const previous = { ...DEFAULT_FOLLOWUP_SETTINGS, ...(userSettings.followUpSettings || {}) };
+
+    userSettings.followUpSettings = {
+      enabled: body.enabled !== false,
+      intervalDays,
+      maxRebumps,
+      smartRebump: !!body.smartRebump,
+    };
+    await awsManager.saveUserSettings(req.user.userId, userSettings);
+
+    // Follow-ups were on and just got turned off — cancel anything currently scheduled,
+    // same as the old per-agent toggle used to (routes/auth.js previously did this per
+    // agent; it's a single account-wide action now).
+    if (previous.enabled && !userSettings.followUpSettings.enabled) {
+      const { cancelScheduledFollowUps } = await import('../utils/rebumpChecker.js');
+      const agents = await awsManager.getUserAgents(req.user.userId).catch(() => []);
+      await Promise.all((agents || []).map(a => cancelScheduledFollowUps(req.user.userId, a.agentId).catch(() => {})));
+    }
+
+    // Interval changed — push out any already-scheduled-but-not-yet-sent follow-ups to
+    // match the new cadence (same retroactive behavior the old per-agent editor had).
+    if (previous.intervalDays !== intervalDays) {
+      const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+      const awsQueue = getAWSEmailQueue();
+      const sentEmails = await awsQueue.getAllSentEmailsForUser(req.user.userId).catch(() => []);
+      const intervalMs = intervalDays * 24 * 60 * 60 * 1000;
+      await Promise.all((sentEmails || [])
+        .filter(e => e.followUpScheduled && !e.followUpReadyForSchedule && e.status !== 'REPLIED' && !e.replied)
+        .map(e => {
+          const base = new Date(e.lastRebumpAt || e.sentAt || e.timestamp || Date.now()).getTime();
+          return awsQueue.updateEmailStatus(req.user.userId, e.agentId, e.id, 'SENT', 'SENT', {
+            followUpDate: new Date(base + intervalMs).toISOString(),
+          }).catch(() => {});
+        }));
+    }
+
+    const { syncGlobalScheduleForUser } = await import('../utils/scheduleSlots.js');
+    await syncGlobalScheduleForUser(req.user.userId, { awsManager }).catch(() => {});
+
+    res.json({ success: true, settings: userSettings.followUpSettings });
+  } catch (error) {
+    console.error('Error saving follow-up settings:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

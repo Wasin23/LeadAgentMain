@@ -18,7 +18,8 @@ export function SchedulePreviewCalendar({ schedule, days = 30, highlightDate }: 
   highlightDate?: string | null
 }) {
   const [preview, setPreview] = useState<SchedulePreviewDay[]>([])
-  const [counts, setCounts] = useState<{ mainQueueCount: number; followUpQueueCount: number } | null>(null)
+  const [counts, setCounts] = useState<{ mainQueueCount: number } | null>(null)
+  const [followUpsEnabled, setFollowUpsEnabled] = useState(true)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -30,7 +31,8 @@ export function SchedulePreviewCalendar({ schedule, days = 30, highlightDate }: 
       }).then(r => {
         if (r.data.success) {
           setPreview(r.data.preview ?? [])
-          setCounts({ mainQueueCount: r.data.mainQueueCount ?? 0, followUpQueueCount: r.data.followUpQueueCount ?? 0 })
+          setCounts({ mainQueueCount: r.data.mainQueueCount ?? 0 })
+          setFollowUpsEnabled(r.data.followUpSettings?.enabled !== false)
         }
       }).catch(() => {}).finally(() => setLoading(false))
     }, 350)
@@ -57,7 +59,7 @@ export function SchedulePreviewCalendar({ schedule, days = 30, highlightDate }: 
         <p className="text-sm font-medium text-muted-foreground">Preview (next {days} days)</p>
         {counts && (
           <p className="text-xs text-muted-foreground tabular-nums">
-            {counts.mainQueueCount} queued{counts.followUpQueueCount ? ` · ${counts.followUpQueueCount} follow-ups pending` : ''}
+            {counts.mainQueueCount} queued
           </p>
         )}
       </div>
@@ -92,13 +94,15 @@ export function SchedulePreviewCalendar({ schedule, days = 30, highlightDate }: 
               </span>
               {d.active && (d.mainCap > 0 || d.followUpCap > 0) ? (
                 <div className="space-y-1">
-                  {/* The track itself is always a visible colored outline the moment that
-                      day has capacity (so "there's room here" never disappears), with the
-                      real backlog filled in solid on top so you can still see how full
-                      today actually is. Hover each bar for the exact count. */}
+                  {/* Plain gray-track-plus-solid-fill, the standard progress-bar pattern —
+                      a colored border/tint on the empty track looked "full" regardless of
+                      real count at this size, which was actively misleading. A day that
+                      genuinely has 0 follow-ups queued should look empty, not colored: that's
+                      accurate, not a bug. The type is identified by fixed row position (main
+                      always first, follow-ups always second) plus the legend below. */}
                   {d.mainCap > 0 && (
                     <div
-                      className="h-2 rounded-full border border-primary bg-primary/15 overflow-hidden"
+                      className="h-2 rounded-full bg-muted overflow-hidden"
                       title={`${d.mainCount} email${d.mainCount === 1 ? '' : 's'} sending`}
                     >
                       <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${mainPct}%` }} />
@@ -106,7 +110,7 @@ export function SchedulePreviewCalendar({ schedule, days = 30, highlightDate }: 
                   )}
                   {d.followUpCap > 0 && (
                     <div
-                      className="h-2 rounded-full border border-emerald-500 bg-emerald-500/15 overflow-hidden"
+                      className="h-2 rounded-full bg-muted overflow-hidden"
                       title={`${d.followUpCount} follow-up${d.followUpCount === 1 ? '' : 's'} sending`}
                     >
                       <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${followUpPct}%` }} />
@@ -123,7 +127,7 @@ export function SchedulePreviewCalendar({ schedule, days = 30, highlightDate }: 
 
       <div className="flex items-center gap-4 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-primary/70" /> Main</span>
-        {schedule.followUpPerDay > 0 && <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500/70" /> Follow-ups</span>}
+        {followUpsEnabled && <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500/70" /> Follow-ups (predicted)</span>}
         {lastActiveIdx >= 0 && lastActiveIdx < preview.length - 1 && (
           <span className="ml-auto">Queue clears in ~{lastActiveIdx + 1} day{lastActiveIdx === 0 ? '' : 's'}</span>
         )}

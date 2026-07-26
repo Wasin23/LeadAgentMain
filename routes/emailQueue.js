@@ -1418,8 +1418,8 @@ router.delete('/:emailId/followup', authenticateToken, async (req, res) => {
 
     const AWSManager = (await import('../utils/awsManager.js')).default;
     const awsManager = new AWSManager();
-    const agentSettings = await awsManager.getLeadAgentSettings(userId, agentId);
-    const maxRebumps = agentSettings?.emailBuilder?.maxRebumps ?? 1;
+    const userSettings = await awsManager.getUserSettings(userId).catch(() => null);
+    const maxRebumps = userSettings?.followUpSettings?.maxRebumps ?? 1;
 
     await awsQueue.updateEmailStatus(userId, agentId, emailId, 'SENT', 'SENT', {
       followUpScheduled: false,
@@ -1474,36 +1474,137 @@ router.get('/schedule-preview', async (req, res) => {
     const { emails: queuedEmails } = await awsQueue.getAllQueuedEmailsForUser(userId, 2000, 0).catch(() => ({ emails: [] }));
     const mainQueueCount = (queuedEmails || []).filter(e => !e.scheduledAt && !e.batchExcluded).length;
 
-    // Pending follow-ups: the full potential backlog (already-ready ones, plus anything
-    // still waiting on its interval) — an optimistic "if everything needed sending" view,
-    // since most haven't hit their followUpDate yet and this is meant to show capacity
-    // planning, not a live minute-by-minute forecast. maxRebumps lives on agent settings,
-    // not the email record, so resolve it once per agent rather than per email.
-    const sentEmails = await awsQueue.getAllSentEmailsForUser(userId).catch(() => []);
-    const maxRebumpsByAgent = {};
-    for (const agentId of new Set((sentEmails || []).map(e => e.agentId).filter(Boolean))) {
-      const agentSettings = await awsManager.getLeadAgentSettings(userId, agentId).catch(() => null);
-      maxRebumpsByAgent[agentId] = agentSettings?.emailBuilder?.maxRebumps || 1;
-    }
-    const followUpQueueCount = (sentEmails || []).filter(e =>
-      e.followUpScheduled &&
-      e.status !== 'REPLIED' && !e.replied &&
-      e.status !== 'BOUNCED' && !e.unsubscribed &&
-      (e.rebumpCount || 0) < (maxRebumpsByAgent[e.agentId] || 1)
-    ).length;
-
-    const { getPlanDailyCap } = await import('../utils/dailySendCaps.js');
+    // Follow-ups are predicted from main volume now, not a separate configured backlog —
+    // fetch the global cadence settings and per-mailbox capacity that drive the projection.
+    const userSettingsForFollowUp = await awsManager.getUserSettings(userId).catch(() => null);
+    const followUpSettings = {
+      enabled: true,
+      intervalDays: 7,
+      maxRebumps: 1,
+      smartRebump: false,
+      ...(userSettingsForFollowUp?.followUpSettings || {}),
+    };
+    const numSendingAccounts = (userSettingsForFollowUp?.gmailAccounts?.length || 0) + (userSettingsForFollowUp?.outlookAccounts?.length || 0);
+    const { PER_ACCOUNT_DAILY_CAP, getPlanDailyCap } = await import('../utils/dailySendCaps.js');
+    const followUpCapacityPerDay = Math.max(1, numSendingAccounts) * PER_ACCOUNT_DAILY_CAP;
     const totalCapPerDay = await getPlanDailyCap(userId).catch(() => null);
 
-    const preview = previewSchedule({ mainQueueCount, followUpQueueCount, schedule, days, totalCapPerDay });
+    const preview = previewSchedule({ mainQueueCount, schedule, days, totalCapPerDay, followUpCapacityPerDay, followUpSettings });
 
-    res.json({ success: true, schedule, mainQueueCount, followUpQueueCount, totalCapPerDay, preview });
+    res.json({ success: true, schedule, mainQueueCount, totalCapPerDay, followUpCapacityPerDay, followUpSettings, preview });
   } catch (error) {
     console.error('[EMAIL QUEUE] Error building schedule preview:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
+// GET /month-activity — actual (not predicted) per-day send counts for a calendar month,
+// for the schedule calendar's history view. Backed by the permanent send-event log
+// (utils/awsEmailQueue.js's logSendEvent) rather than the mutable SENT record, so every
+// follow-up in a multi-step sequence counts on its own real date — not just the latest one.
+router.get('/month-activity', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const year = parseInt(req.query.year, 10);
+    const month = parseInt(req.query.month, 10); // 1-12
+    if (!year || !month) return res.status(400).json({ success: false, error: 'year and month are required' });
+
+    const awsManager = new AWSManager();
+    const userSettings = await awsManager.getUserSettings(userId).catch(() => null);
+    const timezone = userSettings?.timezone || 'America/New_York';
+
+    const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+    const awsQueue = getAWSEmailQueue();
+
+    const daysInMonth = new Date(year, month, 0).getDate();
+    // Padded by a day on each side — local timezone offsets can push a day's real UTC
+    // instants just outside the UTC calendar-month boundary; extra events get bucketed
+    // by local day below and anything outside the actual month is simply never read.
+    const fromIso = new Date(Date.UTC(year, month - 1, 1) - 86400000).toISOString();
+    const toIso = new Date(Date.UTC(year, month - 1, daysInMonth, 23, 59, 59, 999) + 86400000).toISOString();
+    const events = await awsQueue.getSentEventsForUser(userId, { fromIso, toIso }).catch(() => []);
+
+    const dayFmt = new Intl.DateTimeFormat('en-CA', { timeZone: timezone });
+    const counts = {};
+
+    for (const event of (events || [])) {
+      const day = dayFmt.format(new Date(event.sentAt));
+      if (!counts[day]) counts[day] = { mainSentCount: 0, followUpSentCount: 0 };
+      if (event.sendType === 'followup') counts[day].followUpSentCount += 1;
+      else counts[day].mainSentCount += 1;
+    }
+
+    const activity = Array.from({ length: daysInMonth }, (_, i) => {
+      const date = `${year}-${String(month).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`;
+      return { date, mainSentCount: counts[date]?.mainSentCount || 0, followUpSentCount: counts[date]?.followUpSentCount || 0 };
+    });
+
+    res.json({ success: true, activity });
+  } catch (error) {
+    console.error('[EMAIL QUEUE] Error building month activity:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// GET /day-detail — everything scheduled or actually sent on one specific local calendar
+// day, for the calendar's day drill-down panel (view + cancel + reschedule individual items).
+router.get('/day-detail', async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { date } = req.query; // "YYYY-MM-DD"
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ success: false, error: 'date must be "YYYY-MM-DD"' });
+    }
+
+    const awsManager = new AWSManager();
+    const userSettings = await awsManager.getUserSettings(userId).catch(() => null);
+    const timezone = userSettings?.timezone || 'America/New_York';
+    const dayFmt = new Intl.DateTimeFormat('en-CA', { timeZone: timezone });
+
+    const { getScheduledEmailJobs } = await import('../utils/scheduledEmailJobs.js');
+    const { getAWSEmailQueue } = await import('../utils/awsEmailQueue.js');
+    const scheduledJobs = getScheduledEmailJobs();
+    const awsQueue = getAWSEmailQueue();
+
+    // Scheduled (not yet sent) items due this day
+    const jobs = await scheduledJobs.getScheduledJobsForDay(userId, date);
+
+    // Main jobs only carry emailId/agentId — resolve subject/to from the live queue.
+    const { emails: queuedEmails } = await awsQueue.getAllQueuedEmailsForUser(userId, 2000, 0).catch(() => ({ emails: [] }));
+    const queuedById = new Map((queuedEmails || []).map(e => [e.id, e]));
+
+    const scheduled = jobs.map(job => {
+      if (job.type === 'followup') {
+        return {
+          id: job.emailId, agentId: job.agentId, type: 'followup',
+          to: job.to, subject: job.subject, scheduledAt: job.scheduledAt,
+          payload: { to: job.to, subject: job.subject, body: job.body, replyOptions: job.replyOptions, originalEmailId: job.originalEmailId, stepNumber: job.stepNumber },
+        };
+      }
+      const queued = queuedById.get(job.emailId);
+      return {
+        id: job.emailId, agentId: job.agentId, type: 'main',
+        to: queued?.to, subject: queued?.subject, scheduledAt: job.scheduledAt,
+      };
+    });
+
+    // Actually sent items this day — from the permanent send-event log, so a lead with
+    // several follow-ups shows each one on its own real send date, not just the latest.
+    const fromIso = new Date(`${date}T00:00:00Z`).getTime() - 86400000;
+    const toIso = new Date(`${date}T00:00:00Z`).getTime() + 2 * 86400000;
+    const events = await awsQueue.getSentEventsForUser(userId, {
+      fromIso: new Date(fromIso).toISOString(), toIso: new Date(toIso).toISOString(),
+    }).catch(() => []);
+    const sent = (events || [])
+      .filter(e => dayFmt.format(new Date(e.sentAt)) === date)
+      .map(e => ({ id: e.emailId, agentId: e.agentId, type: e.sendType, to: e.to, subject: e.subject, sentAt: e.sentAt, stepNumber: e.stepNumber }));
+
+    res.json({ success: true, date, scheduled, sent });
+  } catch (error) {
+    console.error('[EMAIL QUEUE] Error building day detail:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 // GET /scheduled-batches — server-computed send schedule grouped by time slot
 router.get('/scheduled-batches', async (req, res) => {
@@ -1561,7 +1662,11 @@ router.get('/scheduled-batches', async (req, res) => {
   }
 });
 
-// PATCH /scheduled-batches — reschedule all emails in a batch to a new time
+// PATCH /scheduled-batches — reschedule emails in a batch (or a single item, from the
+// calendar's day drill-down) to a new time. `type`/`payload` are optional per-item and
+// only matter for follow-ups (a follow-up job's payload carries the to/subject/body/
+// replyOptions it needs at fire time, since it's not a QUEUED item) — omit them for a
+// main email and they default harmlessly.
 router.patch('/scheduled-batches', async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -1574,9 +1679,14 @@ router.patch('/scheduled-batches', async (req, res) => {
     const awsQueue = (await import('../utils/awsEmailQueue.js')).default;
     const queue = new awsQueue();
 
-    await Promise.all(emailIds.map(async ({ id, agentId }) => {
-      await queue.updateEmail(userId, agentId, id, { scheduledAt: newScheduledAt });
-      await scheduledJobs.upsertScheduledEmail({ userId, agentId, emailId: id, scheduledAt: newScheduledAt, scheduleType: 'manual' });
+    await Promise.all(emailIds.map(async ({ id, agentId, type, payload }) => {
+      if (type === 'followup') {
+        // Follow-ups aren't QUEUED items — only the scheduled job needs updating.
+        await scheduledJobs.upsertScheduledEmail({ userId, agentId, emailId: id, scheduledAt: newScheduledAt, scheduleType: 'manual', type: 'followup', payload: payload || {} });
+      } else {
+        await queue.updateEmail(userId, agentId, id, { scheduledAt: newScheduledAt });
+        await scheduledJobs.upsertScheduledEmail({ userId, agentId, emailId: id, scheduledAt: newScheduledAt, scheduleType: 'manual', type: 'main' });
+      }
     }));
 
     res.json({ success: true, updated: emailIds.length });

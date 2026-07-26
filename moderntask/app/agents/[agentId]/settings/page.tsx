@@ -1604,10 +1604,10 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <Label>Follow-up Interval (days)</Label>
-                <Input type="number" min={1} max={30} value={settings.emailBuilder.rebumpIntervalDays} onChange={e => updateEmail('rebumpIntervalDays', parseInt(e.target.value) || 3)} />
-                <p className="text-xs text-muted-foreground">Days before sending a follow-up</p>
+              {/* Follow-up cadence (interval/max sends/smart) is global now — configured once
+                  for every agent in Outreach → Schedules, not per agent. */}
+              <div className="p-3 bg-muted/40 border border-border rounded-lg text-sm text-muted-foreground">
+                Follow-up timing and behavior (interval, max sends, smart follow-ups) are configured once for every agent — see Follow-up Settings in Outreach → Schedules.
               </div>
 
               {/* Gmail/Outlook — sending account is chosen once for all agents in Outreach, not per-agent */}

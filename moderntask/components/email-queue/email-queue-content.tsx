@@ -874,8 +874,8 @@ function Skel() {
 //   - emails 0..(limit-1) → first upcoming active day
 //   - emails limit..(2*limit-1) → second active day, etc.
 // Predicts when a MAIN email at `index` in the pending queue will auto-send. Follow-ups
-// are a separate, independent slot sequence (their own followUpPerDay cap) — this preview
-// only covers main emails, matching what these queue-row badges are actually for.
+// are predicted separately from mailbox capacity, not this schedule — this preview only
+// covers main emails, matching what these queue-row badges are actually for.
 function computeAutoSendDate(index: number, schedule: SendingSchedule): Date {
   const { activeDays, sendTime, mainPerDay, timezone } = schedule
   const tz = timezone || 'America/New_York'
@@ -1946,7 +1946,7 @@ export function EmailQueueContent() {
               {queuedCount > 0
                 ? `${queuedCount} email${queuedCount !== 1 ? 's' : ''} auto-sending`
                 : 'Auto-send schedule active'}
-              {' '}({savedSchedule.mainPerDay}/day{savedSchedule.followUpPerDay ? ` + ${savedSchedule.followUpPerDay} follow-ups` : ''})
+              {' '}({savedSchedule.mainPerDay}/day)
               {' '}on {savedSchedule.activeDays.map(d => DAY_LABELS[d]).join(', ')}
               {' '}at {(() => {
                 const [h, m] = savedSchedule.sendTime.split(':').map(Number)

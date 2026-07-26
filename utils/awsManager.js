@@ -70,12 +70,21 @@ class AWSManager {
         maxAgents: 1,
         maxConcurrency: 3,
         maxStarredLeads: 3,
+        // Formula (ceil(totalMonthlyEmails / 30 / 50)) gives 0 here — trial volume is too
+        // low to justify a dedicated inbox. Floored to 1 anyway so a trial user can still
+        // connect one personal Gmail/Outlook instead of only the shared Mailgun fallback.
+        maxSendingAddresses: 1,
         description: 'Try Meridian with 250 free credits'
       },
       // current plan names — leadAllowance/emailAllowance are marketing-facing counts
       // (1 fully-researched lead = 1 initial email + 3 follow-ups = 4 sends).
       // Backed by initialCredits, which already covers the allowance with headroom
       // left over for chat, extra research, and other credit-metered features.
+      //
+      // maxSendingAddresses = ceil(emailAllowance / 30 / 50) — 50 is the flat per-mailbox
+      // daily deliverability cap (utils/dailySendCaps.js's PER_ACCOUNT_DAILY_CAP), so this
+      // is "how many mailboxes would it take to actually clear a full day's allowance at
+      // that flat per-mailbox rate," rounded up.
       'solo': {
         name: 'Solo',
         initialCredits: 750,
@@ -87,6 +96,7 @@ class AWSManager {
         maxStarredLeads: 20,
         leadAllowance: 750,
         emailAllowance: 3000, // 750 leads x (1 main + 3 follow-ups)
+        maxSendingAddresses: 2, // ceil(3000 / 30 / 50)
         description: '750 fully researched & tracked leads, 3,000 emails'
       },
       'team': {
@@ -100,6 +110,7 @@ class AWSManager {
         maxStarredLeads: 50,
         leadAllowance: 2000,
         emailAllowance: 8000, // 2000 leads x (1 main + 3 follow-ups)
+        maxSendingAddresses: 6, // ceil(8000 / 30 / 50)
         description: '2,000 fully researched & tracked leads, 8,000 emails'
       },
       'agency': {
@@ -113,6 +124,7 @@ class AWSManager {
         maxStarredLeads: 100,
         leadAllowance: 4000,
         emailAllowance: 16000, // 4000 leads x (1 main + 3 follow-ups)
+        maxSendingAddresses: 11, // ceil(16000 / 30 / 50)
         description: '4,000 fully researched & tracked leads, 16,000 emails'
       },
       // legacy plan names — kept so existing users are unaffected
@@ -125,6 +137,7 @@ class AWSManager {
         maxAgents: 3,
         maxConcurrency: 5,
         maxStarredLeads: 20,
+        maxSendingAddresses: 1, // ceil(1200 / 30 / 50) — no emailAllowance split, uses initialCredits
         description: 'Get started with outreach on a budget'
       },
       'starter': {
@@ -136,6 +149,7 @@ class AWSManager {
         maxAgents: 5,
         maxConcurrency: 10,
         maxStarredLeads: 50,
+        maxSendingAddresses: 9, // ceil(13000 / 30 / 50)
         description: 'Perfect for small teams and solo entrepreneurs'
       },
       'professional': {
@@ -147,6 +161,7 @@ class AWSManager {
         maxAgents: 10,
         maxConcurrency: 20,
         maxStarredLeads: 100,
+        maxSendingAddresses: 20, // ceil(30000 / 30 / 50)
         description: 'Ideal for growing businesses and agencies'
       },
       'enterprise': {
@@ -158,6 +173,7 @@ class AWSManager {
         maxAgents: 30,
         maxConcurrency: 30,
         maxStarredLeads: 100,
+        maxSendingAddresses: 47, // ceil(70000 / 30 / 50)
         description: 'Unlimited scale for large organizations'
       },
       'developer': {
@@ -169,6 +185,7 @@ class AWSManager {
         maxAgents: 999,
         maxConcurrency: 999,
         maxStarredLeads: 999,
+        maxSendingAddresses: 999,
         description: 'Internal developer account — all limits lifted'
       }
     };
@@ -185,11 +202,25 @@ class AWSManager {
     return {
       maxAgents: planConfig.maxAgents || 1,
       maxConcurrency: planConfig.maxConcurrency || 1,
+      maxSendingAddresses: planConfig.maxSendingAddresses || 1,
     };
   }
 
   isTrialBlockedUser(user) {
     return user?.plan === 'free-trial' && user?.trialEligible === false;
+  }
+
+  // Whether the user can connect one more distinct Gmail/Outlook address — checked at OAuth
+  // callback time (routes/gmailAuth.js, routes/outlookAuth.js). Re-authorizing an already-
+  // connected address never counts against this; only genuinely new additions do.
+  async canConnectNewSendingAddress(userId) {
+    const [user, userSettings] = await Promise.all([
+      this.getUserById(userId),
+      this.getUserSettings(userId),
+    ]);
+    const { maxSendingAddresses } = this.getPlanLimits(user?.plan || 'free-trial');
+    const current = (userSettings?.gmailAccounts?.length || 0) + (userSettings?.outlookAccounts?.length || 0);
+    return { allowed: current < maxSendingAddresses, limit: maxSendingAddresses, current };
   }
 
   // =====================

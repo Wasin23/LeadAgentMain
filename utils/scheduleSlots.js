@@ -6,15 +6,16 @@
 // utils/dailySendCaps.js are already computed user-wide, so a per-agent schedule was the
 // odd one out.
 //
-// Main emails and follow-ups are two fully independent slot sequences, each with its own
-// per-day cap (mainPerDay / followUpPerDay) and its own running index — a light day for one
-// type does not donate its unused capacity to the other. That keeps "N mains + M follow-ups
-// per day" literal: once the main queue runs dry, the following days are follow-ups only,
-// same as a day with no follow-ups ready is mains-only.
+// Main emails are the only thing configured here — "Max Emails/Day", bounded by the plan's
+// total daily cap. Follow-ups are never configured as a ratio: they are PREDICTED, derived
+// from how many mains go out shifted forward by the global follow-up interval, and bounded
+// by the per-mailbox (50/day) cap across all connected sending accounts — not by the main
+// cap. That's the whole point of the structural redesign: the main cap is the bottleneck for
+// mains, mailbox capacity is the bottleneck for follow-ups, and the two never compete.
 
 import AWSManager from './awsManager.js';
 import { getScheduledEmailJobs } from './scheduledEmailJobs.js';
-import { getPlanDailyCap } from './dailySendCaps.js';
+import { getPlanDailyCap, PER_ACCOUNT_DAILY_CAP } from './dailySendCaps.js';
 
 function localTimeToUTC(year, month, day, hour, minute, timezone) {
   const naive = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
@@ -31,8 +32,6 @@ function localTimeToUTC(year, month, day, hour, minute, timezone) {
 }
 
 // `schedule` here is the generic per-type shape: { activeDays, sendTime, timezone, dailyLimit }
-// — callers pass mainPerDay or followUpPerDay in as `dailyLimit` since the two types never
-// share a day's capacity.
 export function computeSlotDate(index, schedule) {
   const { activeDays, sendTime, dailyLimit, timezone } = schedule;
   const tz = timezone || 'America/New_York';
@@ -78,7 +77,8 @@ export function computeSlotDate(index, schedule) {
 }
 
 // The global schedule lives on the user's settings item (parallel to how settingsPresets
-// already lives there) — { activeDays, sendTime, timezone, mainPerDay, followUpPerDay }.
+// already lives there) — { activeDays, sendTime, timezone, mainPerDay }. Main emails only —
+// follow-ups are never configured here, see header comment.
 export async function getGlobalSchedule(userId, awsManager) {
   const userSettings = await awsManager.getUserSettings(userId).catch(() => null);
   return userSettings?.sendingSchedule || null;
@@ -86,6 +86,26 @@ export async function getGlobalSchedule(userId, awsManager) {
 
 function isCompleteSchedule(schedule) {
   return !!(schedule && schedule.activeDays?.length && schedule.sendTime && schedule.mainPerDay);
+}
+
+// Total across-all-mailboxes follow-up capacity per day — independent of the main cap.
+// Follow-ups only answer to the per-mailbox limit ("the rule of sending limits for the
+// email address being sent from"), never to the plan's max-emails-per-day.
+async function getFollowUpCapacityPerDay(userId, awsManager) {
+  const userSettings = await awsManager.getUserSettings(userId).catch(() => null);
+  const numAccounts = (userSettings?.gmailAccounts?.length || 0) + (userSettings?.outlookAccounts?.length || 0);
+  return Math.max(1, numAccounts) * PER_ACCOUNT_DAILY_CAP;
+}
+
+async function getFollowUpSettings(userId, awsManager) {
+  const userSettings = await awsManager.getUserSettings(userId).catch(() => null);
+  return {
+    enabled: true,
+    intervalDays: 7,
+    maxRebumps: 1,
+    smartRebump: false,
+    ...(userSettings?.followUpSettings || {}),
+  };
 }
 
 // Recomputes every unscheduled main email's and every ready follow-up's scheduledAt across
@@ -100,16 +120,14 @@ export async function syncGlobalScheduleForUser(userId, options = {}) {
 
   const schedule = options.schedule !== undefined ? options.schedule : await getGlobalSchedule(userId, awsManager);
 
-  // Main + follow-ups share the plan's single daily sending cap (utils/dailySendCaps.js) —
-  // clamp the effective per-day limits used for slot assignment so we never schedule more
-  // for one day than the account can actually send; main gets priority for the shared cap.
+  // Main emails are bounded only by the plan's total daily cap — never shared with follow-ups.
   const planDailyCap = await getPlanDailyCap(userId).catch(() => null);
   const effectiveMainPerDay = schedule
     ? (planDailyCap != null ? Math.min(schedule.mainPerDay, planDailyCap) : schedule.mainPerDay)
     : 0;
-  const effectiveFollowUpPerDay = schedule
-    ? (planDailyCap != null ? Math.max(0, Math.min(schedule.followUpPerDay, planDailyCap - effectiveMainPerDay)) : schedule.followUpPerDay)
-    : 0;
+
+  // Follow-ups are bounded only by aggregate per-mailbox capacity — never by the main cap.
+  const followUpCapacityPerDay = await getFollowUpCapacityPerDay(userId, awsManager);
 
   // ── Main emails: every QUEUED item across all agents without a manual scheduledAt ──
   const { emails: queuedEmails } = await awsQueue.getAllQueuedEmailsForUser(userId, 2000, 0).catch(() => ({ emails: [] }));
@@ -144,10 +162,17 @@ export async function syncGlobalScheduleForUser(userId, options = {}) {
     .filter(e => e.followUpReadyForSchedule === true)
     .sort((a, b) => new Date(a.followUpReadySince || 0) - new Date(b.followUpReadySince || 0));
 
-  if (isCompleteSchedule(schedule) && effectiveFollowUpPerDay > 0) {
+  if (followUpCapacityPerDay > 0) {
+    // Follow-ups use the schedule's active days/send time/timezone (when to send), but their
+    // own independent daily capacity (how many) — mains never gate this.
+    const followUpSchedule = {
+      activeDays: schedule?.activeDays?.length ? schedule.activeDays : [1, 2, 3, 4, 5],
+      sendTime: schedule?.sendTime || '09:00',
+      timezone: schedule?.timezone,
+    };
     let followUpIndex = 0;
     for (const email of readyFollowUps) {
-      const scheduledAt = computeSlotDate(followUpIndex, { ...schedule, dailyLimit: effectiveFollowUpPerDay }).toISOString();
+      const scheduledAt = computeSlotDate(followUpIndex, { ...followUpSchedule, dailyLimit: followUpCapacityPerDay }).toISOString();
       followUpIndex += 1;
 
       await scheduledJobs.upsertScheduledEmail({
@@ -178,23 +203,35 @@ export async function syncGlobalScheduleForUser(userId, options = {}) {
   }
 }
 
-// Simulates what a schedule config would actually do to today's queue, day by day, for the
-// schedule-builder preview and the calendar overhaul — same day-walking rules as
-// computeSlotDate (respects activeDays, skips today if its send window already passed) but
-// bucketed per calendar day instead of resolving one exact instant. Pure function: takes
-// the CURRENT queue depth as a starting snapshot, not live data, so the caller decides what
-// "pending" means (real counts from the DB, or a hypothetical draft while editing).
-export function previewSchedule({ mainQueueCount = 0, followUpQueueCount = 0, schedule, days = 30, totalCapPerDay = null }) {
+// Simulates what a schedule config would actually do to today's queue AND predicts follow-up
+// volume, day by day, for the schedule-builder preview and the calendar overhaul. Main volume
+// is a real backlog count draining against mainPerDay (bounded by the plan cap). Follow-up
+// volume is PREDICTED, not configured: every main sent on day D is projected to produce a
+// follow-up on day D + intervalDays (and, if maxRebumps > 1, additional follow-ups at each
+// further interval), bounded by aggregate per-mailbox capacity for that day — never by the
+// main cap. Pure function: takes the CURRENT queue depth as a starting snapshot, not live
+// data, so the caller decides what "pending" means (real counts from the DB, or a
+// hypothetical draft while editing).
+export function previewSchedule({
+  mainQueueCount = 0,
+  schedule,
+  days = 30,
+  totalCapPerDay = null,
+  followUpCapacityPerDay = PER_ACCOUNT_DAILY_CAP,
+  followUpSettings = null,
+}) {
   const tz = schedule?.timezone || 'America/New_York';
   const activeDays = schedule?.activeDays?.length ? schedule.activeDays : [1, 2, 3, 4, 5];
   const mainPerDay = Math.max(0, schedule?.mainPerDay || 0);
-  const followUpPerDay = Math.max(0, schedule?.followUpPerDay || 0);
-  // Main + follow-ups share the plan's single daily sending cap (utils/dailySendCaps.js) —
-  // whatever the ratio fields say, the account can't actually send more than that combined
-  // total in one day. Main gets priority; any follow-up overflow rolls to the next day.
   const effectiveMainPerDay = totalCapPerDay != null ? Math.min(mainPerDay, totalCapPerDay) : mainPerDay;
-  const effectiveFollowUpPerDay = totalCapPerDay != null ? Math.max(0, Math.min(followUpPerDay, totalCapPerDay - effectiveMainPerDay)) : followUpPerDay;
   const [scheduleHour, scheduleMinute] = (schedule?.sendTime || '09:00').split(':').map(Number);
+
+  const fu = {
+    enabled: true,
+    intervalDays: 7,
+    maxRebumps: 1,
+    ...(followUpSettings || {}),
+  };
 
   const now = new Date();
   const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(now);
@@ -209,30 +246,64 @@ export function previewSchedule({ mainQueueCount = 0, followUpQueueCount = 0, sc
 
   const weekdayMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
   let remainingMain = mainQueueCount;
-  let remainingFollowUp = followUpQueueCount;
-  const result = [];
 
-  for (let offset = startOffset; result.length < days; offset += 1) {
+  // mainCountByOffset[offset] = how many mains actually went out that day — used to project
+  // follow-ups forward. Computed for the full walk up front so a follow-up predicted beyond
+  // the visible `days` window still gets counted if it lands within it.
+  const walkLength = Math.max(days, days + fu.maxRebumps * fu.intervalDays + 7);
+  const mainCountByOffset = {};
+  const activeByOffset = {};
+  const dateByOffset = {};
+
+  for (let offset = startOffset; offset < walkLength; offset += 1) {
     const probe = new Date(Date.UTC(todayYear, todayMonth - 1, todayDay + offset, 12, 0, 0));
     const weekdayString = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short' }).format(probe);
     const weekday = weekdayMap[weekdayString] ?? probe.getUTCDay();
-    const dateStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(probe);
     const active = activeDays.includes(weekday);
+    activeByOffset[offset] = active;
+    dateByOffset[offset] = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(probe);
 
     const mainCount = active ? Math.min(remainingMain, effectiveMainPerDay) : 0;
-    const followUpCount = active ? Math.min(remainingFollowUp, effectiveFollowUpPerDay) : 0;
-    if (active) {
-      remainingMain -= mainCount;
-      remainingFollowUp -= followUpCount;
+    if (active) remainingMain -= mainCount;
+    mainCountByOffset[offset] = mainCount;
+  }
+
+  // Predicted follow-up demand per offset, before capping by mailbox capacity — a main sent
+  // on offset O predicts a follow-up on O + intervalDays, and (if maxRebumps > 1) another at
+  // each further interval, up to maxRebumps steps.
+  const followUpDemandByOffset = {};
+  if (fu.enabled && fu.intervalDays > 0) {
+    for (let offset = startOffset; offset < walkLength; offset += 1) {
+      const mains = mainCountByOffset[offset] || 0;
+      if (!mains) continue;
+      for (let step = 1; step <= fu.maxRebumps; step += 1) {
+        const targetOffset = offset + step * fu.intervalDays;
+        if (targetOffset >= walkLength) continue;
+        followUpDemandByOffset[targetOffset] = (followUpDemandByOffset[targetOffset] || 0) + mains;
+      }
     }
+  }
+
+  // Walk again, this time draining predicted follow-up demand against daily mailbox capacity,
+  // with overflow rolling forward to the next active day (same as main backlog draining).
+  let followUpBacklog = 0;
+  const result = [];
+  for (let offset = startOffset; result.length < days; offset += 1) {
+    const active = activeByOffset[offset];
+    followUpBacklog += followUpDemandByOffset[offset] || 0;
+
+    const mainCount = mainCountByOffset[offset] || 0;
+    const followUpCap = active ? followUpCapacityPerDay : 0;
+    const followUpCount = active ? Math.min(followUpBacklog, followUpCap) : 0;
+    if (active) followUpBacklog -= followUpCount;
 
     result.push({
-      date: dateStr,
+      date: dateByOffset[offset],
       active,
       mainCount,
       mainCap: active ? effectiveMainPerDay : 0,
       followUpCount,
-      followUpCap: active ? effectiveFollowUpPerDay : 0,
+      followUpCap,
     });
   }
 

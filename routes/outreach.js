@@ -48,23 +48,32 @@ router.post('/send-overdue', async (req, res) => {
     let totalSent = 0;
     const results = [];
 
+    // Follow-up cadence is global per user now, not per agent
+    const userSettings = await awsManager.getUserSettings(userId).catch(() => null);
+    const followUpSettings = {
+      enabled: true,
+      intervalDays: 7,
+      maxRebumps: 1,
+      smartRebump: false,
+      ...(userSettings?.followUpSettings || {}),
+    };
+    if (!followUpSettings.enabled) {
+      return res.json({ success: true, sent: 0, results: [] });
+    }
+
     for (const agent of agents) {
       const currentAgentId = agent.agentId;
-      
-      // Get agent settings
+
+      // Get agent settings (template content only — cadence is global)
       const agentSettings = await awsManager.getLeadAgentSettings(userId, currentAgentId);
       if (!agentSettings || !agentSettings.emailBuilder) continue;
-
-      const rebumpEnabled = agentSettings.emailBuilder.enableRebump !== false;
-      if (!rebumpEnabled) continue;
 
       // Get sent emails with scheduled follow-ups
       const sentEmails = await emailQueue.getSentEmails(userId, currentAgentId);
       if (!sentEmails || sentEmails.length === 0) continue;
 
       const now = Date.now();
-      const rebumpIntervalDays = agentSettings.emailBuilder.rebumpIntervalDays || 7;
-      const rebumpIntervalMs = rebumpIntervalDays * 24 * 60 * 60 * 1000;
+      const rebumpIntervalMs = followUpSettings.intervalDays * 24 * 60 * 60 * 1000;
 
       for (const email of sentEmails) {
         // Only process emails with scheduled follow-ups that are overdue
@@ -78,7 +87,7 @@ router.post('/send-overdue', async (req, res) => {
         }
 
         const rebumpCount = email.rebumpCount || 0;
-        const maxRebumps = agentSettings.emailBuilder.maxRebumps || 1;
+        const maxRebumps = followUpSettings.maxRebumps;
         if (rebumpCount >= maxRebumps) {
           console.log(`[SEND-OVERDUE] Skipping ${email.to}: Already sent ${rebumpCount}/${maxRebumps} follow-ups`);
           continue;
@@ -95,7 +104,7 @@ router.post('/send-overdue', async (req, res) => {
         console.log(`📤 [SEND-OVERDUE] Sending overdue follow-up to ${email.to}`);
 
         // Smart mode: delegate entirely to fireSingleFollowUp which handles both smart and template paths
-        const useSmartRebump = agentSettings.emailBuilder?.smartRebump === true;
+        const useSmartRebump = followUpSettings.smartRebump === true;
 
         if (useSmartRebump) {
           try {
@@ -174,7 +183,8 @@ router.post('/send-overdue', async (req, res) => {
 
           if (sendResult.success) {
             console.log(`✅ [SEND-OVERDUE] Sent follow-up to ${email.to}`);
-            
+            emailQueue.logSendEvent(userId, currentAgentId, { emailId: email.id, sendType: 'followup', to: email.to, subject, stepNumber: rebumpCount + 1 }).catch(() => {});
+
             // Update email status
             await emailQueue.updateEmailStatus(userId, currentAgentId, email.id, 'SENT', 'SENT', {
               rebumpCount: rebumpCount + 1,

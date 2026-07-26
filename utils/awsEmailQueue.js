@@ -619,6 +619,68 @@ class AWSEmailQueue {
   }
 
   /**
+   * Append-only log of actual send events — one permanent, separately-dated record per real
+   * send, main or follow-up. The mutable SENT record for an email (updateEmailStatus) gets
+   * overwritten in place on every follow-up, so its own timestamp only ever reflects the MOST
+   * RECENT event — this log is what lets the calendar's history view show every follow-up in
+   * a multi-step sequence on its own actual date, not just the latest one. Uses the same
+   * table/GSI as everything else (SK prefix "SENTEVENT#" never collides with the
+   * QUEUED#/SENT#/REPLIED#/BOUNCED# lifecycle prefixes on the mutable record for that emailId).
+   */
+  async logSendEvent(userId, agentId, { emailId, sendType, to, subject, stepNumber = 0, sentAt }) {
+    try {
+      const timestamp = sentAt || new Date().toISOString();
+      await this.dynamodb.send(new PutCommand({
+        TableName: this.tableName,
+        Item: {
+          PK: this._getPK(userId, agentId),
+          SK: `SENTEVENT#${timestamp}#${emailId}#${stepNumber}`,
+          GSIPK: `${userId}#SENTEVENT`,
+          GSISK: `${timestamp}#${emailId}#${stepNumber}`,
+          userId,
+          agentId,
+          emailId,
+          sendType, // 'main' | 'followup'
+          to,
+          subject,
+          stepNumber,
+          sentAt: timestamp,
+        }
+      }));
+    } catch (error) {
+      console.error('[AWS EMAIL QUEUE] Failed to log send event (non-fatal):', error.message);
+    }
+  }
+
+  /**
+   * All logged send events for a user across every agent, optionally bounded to a date range
+   * (ISO strings, inclusive) — for the schedule calendar's history view.
+   */
+  async getSentEventsForUser(userId, { fromIso, toIso } = {}) {
+    return this._fetch(`${userId}:sentEvents`, async () => {
+      try {
+        const KeyConditionExpression = fromIso && toIso
+          ? 'GSIPK = :gsipk AND GSISK BETWEEN :from AND :to'
+          : 'GSIPK = :gsipk';
+        const ExpressionAttributeValues = fromIso && toIso
+          ? { ':gsipk': `${userId}#SENTEVENT`, ':from': fromIso, ':to': `${toIso}~` }
+          : { ':gsipk': `${userId}#SENTEVENT` };
+
+        const response = await this.dynamodb.send(new QueryCommand({
+          TableName: this.tableName,
+          IndexName: this.gsiName,
+          KeyConditionExpression,
+          ExpressionAttributeValues,
+        }));
+        return response.Items || [];
+      } catch (error) {
+        console.error('[AWS EMAIL QUEUE] Error getting sent events for user:', error);
+        return [];
+      }
+    });
+  }
+
+  /**
    * Get ALL replied emails across ALL agents for a user (using GSI)
    */
   async getAllRepliedEmailsForUser(userId) {
@@ -933,7 +995,7 @@ class AWSEmailQueue {
    * Mark email as sent (moves from QUEUED to SENT)
    */
   async markEmailAsSent(userId, agentId, emailId, mailgunData = {}) {
-    return this.updateEmailStatus(userId, agentId, emailId, 'QUEUED', 'SENT', {
+    const newItem = await this.updateEmailStatus(userId, agentId, emailId, 'QUEUED', 'SENT', {
       mailgunId: mailgunData.id,
       mailgunMessage: mailgunData.message,
       trackingId: mailgunData.trackingId,  // Store the tracking ID for correlation with Zilliz events!
@@ -943,6 +1005,8 @@ class AWSEmailQueue {
       gmailMessageId: mailgunData.messageId || null,
       gmailThreadId: mailgunData.threadId || null
     });
+    this.logSendEvent(userId, agentId, { emailId, sendType: 'main', to: newItem?.to, subject: newItem?.subject, stepNumber: 0, sentAt: newItem?.sentAt }).catch(() => {});
+    return newItem;
   }
 
   /**

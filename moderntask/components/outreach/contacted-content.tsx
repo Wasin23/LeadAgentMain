@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import {
   Mail, Eye, MessageSquare, MousePointer,
   RefreshCw, Bot, Building2, Clock, Search, X, ChevronDown,
-  UserCheck, FileText, CalendarClock, Check, Settings2, ChevronLeft, ChevronRight, Sparkles, RotateCcw,
+  UserCheck, FileText, CalendarClock, Check, ChevronLeft, ChevronRight, Sparkles, RotateCcw,
   MoreHorizontal, Zap,
 } from 'lucide-react'
 import {
@@ -836,9 +836,14 @@ export function ContactedContent() {
   const [showMassReschedule, setShowMassReschedule]       = useState(false)
   const [showMassFollowUpModal, setShowMassFollowUpModal] = useState(false)
   const [saved, setSaved]                 = useState(false)
-  const [pendingInterval, setPendingInterval]   = useState<number | null>(null)
-  const [pendingMaxRebumps, setPendingMaxRebumps] = useState<number | null>(null)
-  useEffect(() => { setPendingInterval(null); setPendingMaxRebumps(null) }, [selectedAgent?.agentId])
+  // Follow-up cadence (interval/max sends/smart) is global now — edited on the Schedules
+  // page, not here — but the mass follow-up eligibility check still needs the current cap.
+  const [globalMaxRebumps, setGlobalMaxRebumps] = useState(1)
+  useEffect(() => {
+    api.get('/api/settings/followup-settings').then(r => {
+      if (r.data?.success) setGlobalMaxRebumps(r.data.settings?.maxRebumps ?? 1)
+    }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (agentIdFromUrl) {
@@ -976,9 +981,8 @@ export function ContactedContent() {
 
   const eligibleForMassFollowUp = useMemo(() => {
     if (!selectedAgent) return []
-    const max = selectedAgent.settings?.emailBuilder?.maxRebumps ?? 1
-    return sent.filter(e => e.agentId === selectedAgent.agentId && (e.rebumpCount ?? 0) < max)
-  }, [sent, selectedAgent])
+    return sent.filter(e => e.agentId === selectedAgent.agentId && (e.rebumpCount ?? 0) < globalMaxRebumps)
+  }, [sent, selectedAgent, globalMaxRebumps])
 
   const updateAgentSettings = async (agentId: string, settings: AgentFull['settings']) => {
     try {
@@ -1163,8 +1167,7 @@ export function ContactedContent() {
 
       {/* ── FOLLOW-UPS ───────────────────────────────────────────────────── */}
       {tab === 'followups' && (
-        <div className="@container">
-        <div className="grid grid-cols-1 @3xl:grid-cols-[1fr_280px] gap-4 items-start">
+        <div>
           {/* list */}
           <Card className="min-w-0 p-5">
             <div className="relative mb-4">
@@ -1192,112 +1195,6 @@ export function ContactedContent() {
               </>
             )}
           </Card>
-
-          {/* settings sidebar */}
-          {selectedAgent && (
-            <div className="min-w-0 space-y-3">
-              <p className="text-sm font-semibold flex items-center gap-1.5 px-1"><Settings2 className="w-4 h-4" /> Follow-up Settings</p>
-
-              <Card className="p-4 divide-y divide-border">
-                <div className="flex items-center justify-between pb-4">
-                  <div>
-                    <p className="text-sm font-medium">Auto Follow-ups</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Send rebumps automatically</p>
-                  </div>
-                  <button onClick={() => mutateSelected(selectedAgent, { enableRebump: !(selectedAgent.settings?.emailBuilder?.enableRebump !== false) })}
-                    className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0', (selectedAgent.settings?.emailBuilder?.enableRebump !== false) ? 'bg-green-500' : 'bg-muted')}>
-                    <span className={cn('inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform', (selectedAgent.settings?.emailBuilder?.enableRebump !== false) ? 'translate-x-6' : 'translate-x-1')} />
-                  </button>
-                </div>
-
-                <div className="py-4 space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <p className="text-xs font-medium mb-1.5">Interval</p>
-                      <div className="flex items-center gap-1.5">
-                        <input type="number" min={1} max={30}
-                          value={pendingInterval ?? selectedAgent.settings?.emailBuilder?.rebumpIntervalDays ?? 7}
-                          onChange={e => setPendingInterval(parseInt(e.target.value) || 7)}
-                          className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">days</span>
-                      </div>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium mb-1.5">Max sends</p>
-                      <input type="number" min={1} max={5}
-                        value={pendingMaxRebumps ?? selectedAgent.settings?.emailBuilder?.maxRebumps ?? 1}
-                        onChange={e => setPendingMaxRebumps(parseInt(e.target.value) || 1)}
-                        className="w-full h-8 rounded-md border border-input bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
-                    </div>
-                  </div>
-                  {(pendingInterval !== null || pendingMaxRebumps !== null) && (
-                    <button
-                      onClick={async () => {
-                        const newInterval = pendingInterval ?? selectedAgent.settings?.emailBuilder?.rebumpIntervalDays ?? 7
-                        const newMax = pendingMaxRebumps ?? selectedAgent.settings?.emailBuilder?.maxRebumps ?? 1
-                        mutateSelected(selectedAgent, { rebumpIntervalDays: newInterval, maxRebumps: newMax })
-                        if (pendingInterval !== null) {
-                          await api.post('/api/email-queue/reschedule-pending-followups', { agentId: selectedAgent.agentId, intervalDays: newInterval }).catch(() => {})
-                          load()
-                        }
-                        setPendingInterval(null)
-                        setPendingMaxRebumps(null)
-                      }}
-                      className="w-full h-8 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
-                    >
-                      Save &amp; update scheduled
-                    </button>
-                  )}
-                </div>
-
-                <div className="pt-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5 text-purple-400" /> Smart Follow-ups</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">AI-written per lead · real cost</p>
-                    </div>
-                    <button onClick={() => mutateSelected(selectedAgent, { smartRebump: !selectedAgent.settings?.emailBuilder?.smartRebump })}
-                      className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0', selectedAgent.settings?.emailBuilder?.smartRebump ? 'bg-purple-500' : 'bg-muted')}>
-                      <span className={cn('inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform', selectedAgent.settings?.emailBuilder?.smartRebump ? 'translate-x-6' : 'translate-x-1')} />
-                    </button>
-                  </div>
-                </div>
-              </Card>
-
-              {(() => {
-                const pending = sent.filter(e =>
-                  e.agentId === selectedAgent.agentId && e.followUpScheduled && (e.rebumpCount ?? 0) === 0
-                )
-                if (pending.length === 0) return null
-                return (
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground px-1 mb-2">Pending follow-ups ({pending.length})</p>
-                    <div className="relative" style={{ height: Math.min(pending.length, 4) * 8 + 52 }}>
-                      {pending.slice(0, 5).map((e, i) => (
-                        <div key={e.id || e.trackingId}
-                          className="absolute w-full bg-card border border-border rounded-lg px-3 py-2 flex items-center justify-between shadow-sm"
-                          style={{ top: i * 8, zIndex: pending.length - i }}>
-                          <div className="min-w-0">
-                            <p className="text-xs font-medium truncate">{leadName(e)}</p>
-                            <p className="text-[10px] text-muted-foreground truncate">
-                              {leadCompany(e) && `${leadCompany(e)} · `}
-                              {e.followUpDate ? new Date(e.followUpDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'scheduled'}
-                            </p>
-                          </div>
-                          <button onClick={() => cancelFollowUp(e)} className="shrink-0 ml-2 text-muted-foreground hover:text-destructive transition-colors">
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )
-              })()}
-
-              {saved && <div className="flex items-center gap-1.5 text-green-500 text-xs px-1"><Check className="w-3.5 h-3.5" /> Saved</div>}
-            </div>
-          )}
-        </div>
         </div>
       )}
 

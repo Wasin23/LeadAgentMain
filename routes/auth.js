@@ -1376,8 +1376,6 @@ router.put('/agents/:agentId/settings', authenticateToken, async (req, res) => {
       });
     }
 
-    const currentSettings = await awsManagerInstance.getLeadAgentSettings(userId, agentId);
-    
     // Save the updated settings
     await awsManagerInstance.saveLeadAgentSettings(userId, agentId, settings);
 
@@ -1387,19 +1385,11 @@ router.put('/agents/:agentId/settings', authenticateToken, async (req, res) => {
     } catch (scheduleSyncError) {
       console.error('[AUTH] Failed to sync auto schedule jobs after settings update:', scheduleSyncError.message);
     }
-    
-    // Check if rebump was disabled
-    const wasEnabled = currentSettings?.emailBuilder?.enableRebump !== false;
-    const isEnabled = settings?.emailBuilder?.enableRebump !== false;
-    
-    if (wasEnabled && !isEnabled) {
-      // Rebump was just disabled - cancel scheduled follow-ups
-      console.log(`[REBUMP] Auto-followup disabled for agent ${agentId}, canceling scheduled follow-ups`);
-      const { cancelScheduledFollowUps } = await import('../utils/rebumpChecker.js');
-      await cancelScheduledFollowUps(userId, agentId);
-    }
-    
-    res.json({ 
+
+    // Follow-up enable/disable is a global setting now (routes/settings.js's
+    // PUT /followup-settings already handles cancel-on-disable there).
+
+    res.json({
       success: true, 
       message: 'Agent settings updated successfully'
     });

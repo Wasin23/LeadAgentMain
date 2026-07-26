@@ -146,12 +146,12 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
                   {hasPreview && day.active && (day.mainCap > 0 || day.followUpCap > 0) && (
                     <span className="absolute bottom-0.5 left-1 right-1 flex flex-col gap-px z-10">
                       {day.mainCap > 0 && (
-                        <span className="h-[4px] rounded-full bg-primary/30 overflow-hidden">
+                        <span className="h-[4px] rounded-full bg-black/10 dark:bg-white/15 overflow-hidden">
                           <span className="block h-full bg-primary rounded-full" style={{ width: `${mainPct}%` }} />
                         </span>
                       )}
                       {day.followUpCap > 0 && (
-                        <span className="h-[4px] rounded-full bg-emerald-500/30 overflow-hidden">
+                        <span className="h-[4px] rounded-full bg-black/10 dark:bg-white/15 overflow-hidden">
                           <span className="block h-full bg-emerald-500 rounded-full" style={{ width: `${followUpPct}%` }} />
                         </span>
                       )}

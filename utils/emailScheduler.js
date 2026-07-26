@@ -436,11 +436,13 @@ class EmailScheduler {
     }
 
     console.log(`[EMAIL SCHEDULER] Sent follow-up ${originalEmailId} → ${to}`);
+    this.awsEmailQueue.logSendEvent(userId, agentId, { emailId: originalEmailId, sendType: 'followup', to, subject, stepNumber }).catch(() => {});
 
     try {
-      const agentSettings = await this.awsManager.getLeadAgentSettings(userId, agentId);
-      const maxRebumps = agentSettings?.emailBuilder?.maxRebumps || 1;
-      const rebumpIntervalDays = parseInt(agentSettings?.emailBuilder?.rebumpIntervalDays, 10) || 7;
+      // Follow-up cadence is global per user now, not per agent
+      const userSettings = await this.awsManager.getUserSettings(userId).catch(() => null);
+      const maxRebumps = userSettings?.followUpSettings?.maxRebumps || 1;
+      const rebumpIntervalDays = parseInt(userSettings?.followUpSettings?.intervalDays, 10) || 7;
 
       const updates = {
         rebumpCount: stepNumber,

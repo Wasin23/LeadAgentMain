@@ -14,7 +14,7 @@ import { ScheduleBuilder } from '@/components/schedule/schedule-builder'
 import { SchedulePreviewCalendar } from '@/components/schedule/schedule-preview-calendar'
 
 function summarize(s: SendingSchedule) {
-  return `${s.mainPerDay}/day${s.followUpPerDay ? ` + ${s.followUpPerDay} follow-ups` : ''} · ${s.activeDays.map(d => DAY_LABELS[d]).join(', ')} · ${(() => {
+  return `${s.mainPerDay}/day · ${s.activeDays.map(d => DAY_LABELS[d]).join(', ')} · ${(() => {
     const [h, m] = s.sendTime.split(':').map(Number)
     const pm = h >= 12; const h12 = h % 12 || 12
     return `${h12}:${String(m).padStart(2, '0')} ${pm ? 'PM' : 'AM'}`

@@ -96,10 +96,20 @@ router.get('/callback', async (req, res) => {
     // Get existing settings
     const existingSettings = await awsManager.getUserSettings(userId) || {};
     const existingAccounts = existingSettings.gmailAccounts || [];
-    
+
     // Check if account already exists
     const existingIndex = existingAccounts.findIndex(acc => acc.email === gmailAddress);
-    
+
+    // Re-authorizing an already-connected address is always fine — only block genuinely
+    // new additions once the plan's sending-address limit is reached.
+    if (existingIndex < 0) {
+      const { allowed, limit } = await awsManager.canConnectNewSendingAddress(userId);
+      if (!allowed) {
+        console.log(`❌ [GMAIL AUTH] Sending address limit reached (${limit}) for user ${userId}`);
+        return res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard?gmailAuth=error&reason=address_limit&limit=${limit}`);
+      }
+    }
+
     if (existingIndex >= 0) {
       // Update existing account
       existingAccounts[existingIndex] = {

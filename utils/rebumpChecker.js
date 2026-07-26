@@ -16,6 +16,20 @@ const mistral = new OpenAI({
 const MISTRAL_INPUT_COST_PER_TOKEN = (0.40 / 1_000_000) * 1.2;
 const MISTRAL_OUTPUT_COST_PER_TOKEN = (2.40 / 1_000_000) * 1.2;
 
+const DEFAULT_FOLLOWUP_SETTINGS = {
+  enabled: true,
+  intervalDays: 7,
+  maxRebumps: 1,
+  smartRebump: false,
+};
+
+// Follow-up cadence (enabled, interval, max sends, smart-vs-template) is global per user
+// now, not per agent — only the generated template content stays on agentSettings.
+async function getFollowUpSettings(userId) {
+  const userSettings = await awsManager.getUserSettings(userId).catch(() => null);
+  return { ...DEFAULT_FOLLOWUP_SETTINGS, ...(userSettings?.followUpSettings || {}) };
+}
+
 /**
  * Extract 3-5 disambiguation keywords for a company from all available research
  * (Apollo org data, AI report, email body) so Serper doesn't return the wrong company.
@@ -426,16 +440,16 @@ Return ONLY valid JSON with this structure:
 export async function autoScheduleFollowUp(userId, agentId, sentEmail) {
   try {
     
-    // Get agent settings
+    // Get agent settings (template content only — cadence is global now)
     const agentSettings = await awsManager.getLeadAgentSettings(userId, agentId);
-    
+
     if (!agentSettings || !agentSettings.emailBuilder) {
       return { success: false, reason: 'no_settings' };
     }
 
-    const rebumpEnabled = agentSettings.emailBuilder.enableRebump !== false;
-    
-    if (!rebumpEnabled) {
+    const followUpSettings = await getFollowUpSettings(userId);
+
+    if (!followUpSettings.enabled) {
       return { success: false, reason: 'disabled' };
     }
 
@@ -460,21 +474,20 @@ export async function autoScheduleFollowUp(userId, agentId, sentEmail) {
       if (newTemplates) templates = newTemplates;
     }
 
-    // Get interval days from settings
-    const rawIntervalDays = agentSettings.emailBuilder.rebumpIntervalDays;
-    const intervalDays = parseInt(rawIntervalDays, 10) || 7;
-    
+    // Interval days now come from the global follow-up settings
+    const intervalDays = followUpSettings.intervalDays;
+
     // Calculate exact follow-up date - use current time since email was just sent
     const sentDate = new Date(); // Use NOW since email was just sent moments ago
     const followUpDate = new Date(sentDate.getTime() + (intervalDays * 24 * 60 * 60 * 1000));
-    
-    
+
+
     // Get selected default template or use first one
     const selectedTemplateId = agentSettings.emailBuilder.selectedFollowUpTemplate || 0;
     const templateToUse = templates?.[selectedTemplateId] || templates?.[0];
-    
 
-    const useSmartRebump = agentSettings.emailBuilder.smartRebump === true;
+
+    const useSmartRebump = followUpSettings.smartRebump === true;
 
     // For smart mode: generate the follow-up NOW so the preview shows real content
     let assignedTemplate = templateToUse;
@@ -579,17 +592,18 @@ export async function checkForRebumps() {
       const agents = await awsManager.getUserAgents(userId);
       if (!agents || agents.length === 0) continue;
 
+      // Follow-up cadence is global per user now — fetch once, applies to every agent
+      const followUpSettings = await getFollowUpSettings(userId);
+      if (!followUpSettings.enabled) continue;
+
       for (const agent of agents) {
         const agentId = agent.agentId;
-        
-        // Get agent settings
+
+        // Get agent settings (template content only)
         const agentSettings = await awsManager.getLeadAgentSettings(userId, agentId);
         if (!agentSettings || !agentSettings.emailBuilder) continue;
 
-        const rebumpIntervalDays = agentSettings.emailBuilder.rebumpIntervalDays || 7;
-        const rebumpEnabled = agentSettings.emailBuilder.enableRebump !== false; // Default true
-        
-        if (!rebumpEnabled) continue;
+        const rebumpIntervalDays = followUpSettings.intervalDays;
 
         // Check if templates need regeneration (weekly)
         const templates = agentSettings.followUpTemplates?.templates;
@@ -637,7 +651,7 @@ export async function checkForRebumps() {
           
           // Skip if already rebumped (check rebumpCount)
           const rebumpCount = email.rebumpCount || 0;
-          const maxRebumps = agentSettings.emailBuilder.maxRebumps || 1;
+          const maxRebumps = followUpSettings.maxRebumps;
           if (rebumpCount >= maxRebumps) {
             continue;
           }
@@ -693,7 +707,7 @@ export async function checkForRebumps() {
             console.log(`📧 [REBUMP] Queueing rebump for ${email.to} (scheduled: ${followUpDate.toISOString()})`);
 
             const stepNumber = rebumpCount + 1;
-            const useSmartRebump = agentSettings.emailBuilder?.smartRebump === true;
+            const useSmartRebump = followUpSettings.smartRebump === true;
 
             let subject, body;
             let templateIndex = email.assignedTemplateId || 0;
@@ -824,10 +838,11 @@ export async function fireSingleFollowUp(userId, agentId, emailId) {
   const email = sentEmails.find(e => e.id === emailId || e.trackingId === emailId);
   if (!email) throw new Error('Email not found');
 
+  const followUpSettings = await getFollowUpSettings(userId);
   const rebumpCount = 0; // always fire as step 1 on retry
   const stepNumber = 1;
   const timeSinceLastContact = Date.now() - new Date(email.sentAt || email.timestamp || Date.now()).getTime();
-  const useSmartRebump = agentSettings.emailBuilder?.smartRebump === true;
+  const useSmartRebump = followUpSettings.smartRebump === true;
   const lead = email.lead || {};
   let subject, body;
 
@@ -864,9 +879,10 @@ export async function fireSingleFollowUp(userId, agentId, emailId) {
 
   const sendResult = await leadEmail(email.to, subject, body, lead, userId, agentId, null, null, null, replyOptions);
   if (!sendResult.success) throw new Error(sendResult.error || 'Send failed');
+  emailQueue.logSendEvent(userId, agentId, { emailId, sendType: 'followup', to: email.to, subject, stepNumber }).catch(() => {});
 
-  const maxRebumps = agentSettings.emailBuilder?.maxRebumps || 1;
-  const rebumpIntervalMs = (agentSettings.emailBuilder?.rebumpIntervalDays || 7) * 24 * 60 * 60 * 1000;
+  const maxRebumps = followUpSettings.maxRebumps;
+  const rebumpIntervalMs = followUpSettings.intervalDays * 24 * 60 * 60 * 1000;
   const updates = { rebumpCount: 1, lastRebumpAt: new Date().toISOString(), lastFollowUpSentAt: new Date().toISOString(), followUpStatus: 'SENT' };
   if (1 < maxRebumps) updates.followUpDate = new Date(Date.now() + rebumpIntervalMs).toISOString();
   await emailQueue.updateEmailStatus(userId, agentId, emailId, 'SENT', 'SENT', updates);
