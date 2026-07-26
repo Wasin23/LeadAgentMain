@@ -9,8 +9,20 @@ import { useEffect } from 'react'
 export function useBodyScrollLock(active: boolean) {
   useEffect(() => {
     if (!active) return
-    const previous = document.body.style.overflow
+    // Hiding the scrollbar (below) frees up its width, which shifts all fixed/body content
+    // rightward by that amount — pad it back so the page doesn't visibly shift when a modal
+    // opens/closes.
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
+    const previousOverflow = document.body.style.overflow
+    const previousPaddingRight = document.body.style.paddingRight
     document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = previous }
+    if (scrollbarWidth > 0) {
+      const currentPaddingRight = parseFloat(previousPaddingRight || '0') || 0
+      document.body.style.paddingRight = `${currentPaddingRight + scrollbarWidth}px`
+    }
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.body.style.paddingRight = previousPaddingRight
+    }
   }, [active])
 }
