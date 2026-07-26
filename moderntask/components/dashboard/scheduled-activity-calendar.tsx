@@ -33,13 +33,16 @@ interface ScheduledActivityCalendarProps {
   batches?: ScheduledBatch[]
   followUps?: FollowUpItem[]
   onChanged?: () => void
+  // The full scheduler modal lives on the Outreach page only — elsewhere (Home), this
+  // calendar just links there instead of opening it in place.
+  linkToOutreach?: boolean
 }
 
 function dayKey(d: Date) {
   return d.toLocaleDateString("en-CA")
 }
 
-export function ScheduledActivityCalendar({ batches = [], followUps = [], onChanged }: ScheduledActivityCalendarProps) {
+export function ScheduledActivityCalendar({ batches = [], followUps = [], onChanged, linkToOutreach = false }: ScheduledActivityCalendarProps) {
   const router = useRouter()
   const [monthOffset, setMonthOffset] = useState(0)
   const [openDay, setOpenDay] = useState<string | null>(null)
@@ -98,12 +101,21 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
 
   return (
     <div className="rounded-2xl border border-border bg-card p-2.5 h-[440px] flex flex-col">
-      <button
-        onClick={() => setShowScheduleCard(true)}
-        className="flex items-center justify-center gap-2 w-full h-10 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold transition-colors shrink-0"
-      >
-        <CalendarClock className="w-4 h-4" /> Outreach Scheduler
-      </button>
+      {linkToOutreach ? (
+        <button
+          onClick={() => router.push('/outreach')}
+          className="flex items-center justify-center gap-1.5 text-xs font-medium text-primary hover:underline shrink-0 pb-1"
+        >
+          Take to Outreach Scheduler <ArrowUpRight className="w-3 h-3" />
+        </button>
+      ) : (
+        <button
+          onClick={() => setShowScheduleCard(true)}
+          className="flex items-center justify-center gap-2 w-full h-10 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold transition-colors shrink-0"
+        >
+          <CalendarClock className="w-4 h-4" /> Outreach Scheduler
+        </button>
+      )}
 
       <div className="mt-2.5 flex items-center justify-between gap-1.5">
         <div className="flex items-center gap-1.5 min-w-0">
@@ -198,7 +210,10 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
                   </p>
                 )}
                 <div className="mt-2.5 pt-2 border-t border-border flex items-center justify-between">
-                  <button onClick={() => setShowScheduleCard(true)} className="text-[11px] font-medium text-primary hover:underline">
+                  <button
+                    onClick={() => linkToOutreach ? router.push('/outreach') : setShowScheduleCard(true)}
+                    className="text-[11px] font-medium text-primary hover:underline"
+                  >
                     Edit schedule
                   </button>
                   <button onClick={() => goToSchedules(key)} className="flex items-center gap-1 text-[11px] font-medium text-primary hover:underline">
@@ -212,8 +227,9 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
       </div>
 
       {/* Sending Schedule modal - lands on the saved-schedules list first, only dropping
-          into the full builder form when you choose to create or edit one */}
-      {showScheduleCard && (
+          into the full builder form when you choose to create or edit one. Only rendered
+          on the Outreach page — Home links out to it instead (see linkToOutreach). */}
+      {!linkToOutreach && showScheduleCard && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-modal-swoop-backdrop" onClick={() => setShowScheduleCard(false)}>
           <div className="w-full max-w-5xl max-h-[90vh] overflow-y-auto animate-modal-swoop-up" onClick={e => e.stopPropagation()}>
             <div className="relative">

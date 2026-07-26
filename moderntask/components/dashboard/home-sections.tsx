@@ -169,7 +169,7 @@ export function HomeSections({
       {/* Hero row - scheduled calendar / chart / activity feed, side by side, all the same fixed height */}
       <div className="grid grid-cols-1 gap-4 md:gap-5 @5xl:grid-cols-3 items-start">
         <div className="min-w-0">
-          <ScheduledActivityCalendar batches={scheduledBatches} followUps={followUps} onChanged={onScheduleChanged} />
+          <ScheduledActivityCalendar batches={scheduledBatches} followUps={followUps} onChanged={onScheduleChanged} linkToOutreach />
         </div>
         <div className="min-w-0">
           <EmailActivityCard emailTimeSeries={emailTimeSeries} />

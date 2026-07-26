@@ -190,12 +190,16 @@ export function Header({
   ]
 
   return (
-    <header className="space-y-3 md:space-y-4 mb-4 md:mb-5 animate-slide-in-up relative z-10">
+    <header className="space-y-3 md:space-y-4 mb-4 md:mb-5">
       {/* Sticky top bar — pinned to the viewport while the page scrolls. The negative
           margin/matching padding cancels out <main>'s own edge padding so the sticky bar's
           background spans flush to the screen edges once it engages, instead of leaving a
-          visible gap on the sides. */}
-      <div className="sticky top-0 z-30 -mx-3 md:-mx-4 lg:-mx-5 -mt-3 md:-mt-4 lg:-mt-5 px-3 md:px-4 lg:px-5 pt-3 md:pt-4 lg:pt-5 pb-3 md:pb-4 bg-background/95 backdrop-blur-sm">
+          visible gap on the sides. The entrance animation lives on THIS element (not an
+          ancestor) deliberately — a lingering `transform: translateY(0)` on an ancestor after
+          a `forwards`-filled animation silently breaks position:sticky for its descendants,
+          since any non-`none` transform establishes a new containing block. A transform on
+          the sticky element itself doesn't have that problem. */}
+      <div className="sticky top-0 z-30 -mx-3 md:-mx-4 lg:-mx-5 -mt-3 md:-mt-4 lg:-mt-5 px-3 md:px-4 lg:px-5 pt-3 md:pt-4 lg:pt-5 pb-3 md:pb-4 bg-background/95 backdrop-blur-sm animate-slide-in-up">
       <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-2.5">
         <div className="flex items-center gap-2 flex-1">
           <MobileNav />
