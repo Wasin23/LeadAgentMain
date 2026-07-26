@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 import { DAY_LABELS, TIMEZONES, BROWSER_TZ, DEFAULT_SCHEDULE } from '@/lib/schedule-types'
 import type { SendingSchedule, SavedSchedule } from '@/lib/schedule-types'
-import { SchedulePreviewBars } from './schedule-preview-bars'
+import { SchedulePreviewCalendar } from './schedule-preview-calendar'
 
 export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel }: {
   editing?: SavedSchedule | null
@@ -31,27 +31,26 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
     api.get('/api/settings/sending-schedule').then(r => {
       const cap = r.data?.planDailyCap ?? 50
       setPlanCap(cap)
-      const half = { main: Math.ceil(cap / 2), followUp: Math.floor(cap / 2) }
 
       if (editing) {
         // Re-clamp against the current plan cap in case it changed since this was saved.
-        const clampedMain = Math.min(cap, editing.mainPerDay || half.main)
-        setMainStr(String(clampedMain))
-        setFollowUpStr(String(Math.min(Math.max(0, cap - clampedMain), editing.followUpPerDay ?? 0)))
+        setMainStr(String(Math.min(cap, editing.mainPerDay || cap)))
+        setFollowUpStr(String(Math.min(cap, editing.followUpPerDay ?? 0)))
         return
       }
 
       const existing = r.data?.schedule
       if (existing) {
         setSched({ ...DEFAULT_SCHEDULE, ...existing })
-        setMainStr(String(existing.mainPerDay ?? half.main))
-        setFollowUpStr(String(existing.followUpPerDay ?? half.followUp))
+        setMainStr(String(existing.mainPerDay ?? cap))
+        setFollowUpStr(String(existing.followUpPerDay ?? cap))
       } else {
-        // No schedule yet — default to an even split of the plan's actual daily cap,
-        // not a flat 50 (that number only means something for the separate
-        // per-email-address cap shown in the Outreach daily-cap widget).
-        setMainStr(String(half.main))
-        setFollowUpStr(String(half.followUp))
+        // No schedule yet — both default to the plan's actual daily cap (not a flat 50,
+        // which only means something for the separate per-email-address cap shown in the
+        // Outreach daily-cap widget). Main gets priority when both are maxed — see the
+        // note under Follow-ups/Day below.
+        setMainStr(String(cap))
+        setFollowUpStr(String(cap))
       }
     }).catch(() => {}).finally(() => setLoading(false))
   }, [editing])
@@ -68,16 +67,19 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
   const toggleDay = (d: number) =>
     setSched(s => ({ ...s, activeDays: s.activeDays.includes(d) ? s.activeDays.filter(x => x !== d) : [...s.activeDays, d].sort() }))
 
-  // Main + follow-ups share the account's single plan-tier daily sending cap — main gets
-  // priority, follow-ups get whatever's left of it, mirroring the backend's own clamping.
+  // Each field is independently settable up to the plan's full daily cap — main and
+  // follow-ups aren't forced to split it. The allocator (utils/scheduleSlots.js) still
+  // gives main priority for whatever the account can actually send each day, so setting
+  // both to the max just means "use all available room for main first, follow-ups get
+  // whatever main didn't use" rather than silently truncating what you type here.
   const rawMain = Math.min(planCap, Math.max(1, parseInt(mainStr) || 1))
-  const rawFollowUp = Math.max(0, parseInt(followUpStr) || 0)
+  const rawFollowUp = Math.min(planCap, Math.max(0, parseInt(followUpStr) || 0))
   const followUpRoom = Math.max(0, planCap - rawMain)
   const followUpClamped = rawFollowUp > followUpRoom
   const draftSchedule: SendingSchedule = {
     ...sched,
     mainPerDay: rawMain,
-    followUpPerDay: Math.min(followUpRoom, rawFollowUp),
+    followUpPerDay: rawFollowUp,
   }
 
   const save = async () => {
@@ -218,24 +220,24 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
 
         <div className="space-y-1">
           <label className="text-[11px] font-medium text-muted-foreground">
-            Follow-ups/Day <span className="text-muted-foreground/60">(shares the {planCap}/day plan limit with main emails — 0 to pause auto follow-ups)</span>
+            Follow-ups/Day <span className="text-muted-foreground/60">(max {planCap}, your plan's daily limit — 0 to pause auto follow-ups)</span>
           </label>
           <div className="relative">
             <input
-              type="number" min={0} max={followUpRoom}
+              type="number" min={0} max={planCap}
               className="w-full h-8 rounded-md border border-input bg-background px-3 pr-9 text-xs focus:outline-none"
               value={followUpStr}
               onChange={e => {
                 const v = e.target.value
                 if (v === '') { setFollowUpStr(''); return }
-                setFollowUpStr(String(Math.max(0, parseInt(v) || 0)))
+                setFollowUpStr(String(Math.min(planCap, Math.max(0, parseInt(v) || 0))))
               }}
             />
-            <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground tabular-nums">/{followUpRoom}</span>
+            <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground tabular-nums">/{planCap}</span>
           </div>
           {followUpClamped && (
             <p className="text-[10px] text-amber-600">
-              Only {followUpRoom} follow-up{followUpRoom === 1 ? '' : 's'}/day fits after {rawMain} main — the rest will be saved as {followUpRoom}/day.
+              Main emails get priority for the shared {planCap}/day cap — on a day with {rawMain} main, only {followUpRoom} follow-up{followUpRoom === 1 ? '' : 's'} will actually go out, even though {rawFollowUp} is set.
             </p>
           )}
         </div>
@@ -261,7 +263,7 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
       </div>
 
       <div className="flex flex-col justify-between md:border-l md:border-border md:pl-6">
-        <SchedulePreviewBars schedule={draftSchedule} days={30} />
+        <SchedulePreviewCalendar schedule={draftSchedule} days={30} />
 
         <div className="flex items-center justify-end gap-2 mt-4">
           {onCancel && (

@@ -11,7 +11,7 @@ import { Plus, Pencil, Trash2, CheckCircle2, Calendar, X } from 'lucide-react'
 import { DAY_LABELS } from '@/lib/schedule-types'
 import type { SavedSchedule, SendingSchedule } from '@/lib/schedule-types'
 import { ScheduleBuilder } from '@/components/schedule/schedule-builder'
-import { SchedulePreviewBars } from '@/components/schedule/schedule-preview-bars'
+import { SchedulePreviewCalendar } from '@/components/schedule/schedule-preview-calendar'
 
 function summarize(s: SendingSchedule) {
   return `${s.mainPerDay}/day${s.followUpPerDay ? ` + ${s.followUpPerDay} follow-ups` : ''} · ${s.activeDays.map(d => DAY_LABELS[d]).join(', ')} · ${(() => {
@@ -91,7 +91,7 @@ export function SchedulesContent() {
         {liveSchedule ? (
           <>
             <p className="text-xs text-muted-foreground mb-4">{summarize(liveSchedule)}</p>
-            <SchedulePreviewBars schedule={liveSchedule} days={30} highlightDate={highlightDate} />
+            <SchedulePreviewCalendar schedule={liveSchedule} days={30} highlightDate={highlightDate} />
           </>
         ) : (
           <p className="text-xs text-muted-foreground py-2">
