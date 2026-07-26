@@ -5332,7 +5332,7 @@ RULES:
 - Never use the em dash character (—). Never.
 - Never reference unnamed client groups. No unverifiable social proof.
 - Everything after the opener must come from provided facts. No invented stats or results.
-- End with a single short CTA — one sentence asking for a call or conversation, specific enough to feel human ("Open to a 15-minute call next week", "Happy to walk you through it this Thursday"). Never a bare "Let's talk" or "Let's connect". Not a question with a question mark, just a direct ask.
+- End with a single short CTA — one QUESTION (ending in "?") asking for a call or conversation, specific enough to feel human ("Open to a 15-minute call next week?", "Free to walk through it this Thursday?"). Never a bare "Let's talk?" or "Let's connect?".
 - Do not use the "not X, it's Y" sentence structure. No contrast pivots. Just say the thing.
 - ${{
   'short': 'Write one paragraph only. 3-4 sentences maximum. Target under 60 words for the body. The greeting ("Hi [FirstName],") goes on its own line, then ONE tight block of text, then the signature. Cut ruthlessly.',

@@ -215,7 +215,7 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
           into the full builder form when you choose to create or edit one */}
       {showScheduleCard && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-modal-swoop-backdrop" onClick={() => setShowScheduleCard(false)}>
-          <div className="w-full max-w-5xl max-h-[90vh] overflow-y-auto animate-modal-swoop-up [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-5xl max-h-[90vh] overflow-y-auto animate-modal-swoop-up" onClick={e => e.stopPropagation()}>
             <div className="relative">
               <button
                 onClick={() => setShowScheduleCard(false)}

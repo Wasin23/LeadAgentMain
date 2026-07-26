@@ -135,7 +135,7 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
         <span className="text-sm text-muted-foreground ml-1">applies to your whole account</span>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-[340px_1fr] gap-8">
-      <div className="space-y-5">
+      <div className="space-y-5 md:max-h-[70vh] md:overflow-y-auto md:pr-3 [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full">
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-muted-foreground">Name <span className="text-muted-foreground/60">(optional, save it to switch back later)</span></label>
           <input
@@ -267,22 +267,22 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
         {/* Follow-up settings — global for the whole account, not per agent. Saved
             independently (on blur / toggle) so it's not tied to the main schedule's Save
             button. Enable toggle first, then everything else laid out to its right. */}
-        <div className="space-y-2 border-t border-border pt-4">
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex items-center gap-2 shrink-0">
-              <p className="text-sm font-medium">Follow-ups</p>
-              <button
-                onClick={() => saveFollowUp({ ...followUp, enabled: !followUp.enabled })}
-                className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0', followUp.enabled ? 'bg-green-500' : 'bg-muted')}
-              >
-                <span className={cn('inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform', followUp.enabled ? 'translate-x-6' : 'translate-x-1')} />
-              </button>
-            </div>
+        <div className="space-y-3 border-t border-border pt-4">
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium">Follow-ups</p>
+            <button
+              onClick={() => saveFollowUp({ ...followUp, enabled: !followUp.enabled })}
+              className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0', followUp.enabled ? 'bg-green-500' : 'bg-muted')}
+            >
+              <span className={cn('inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform', followUp.enabled ? 'translate-x-6' : 'translate-x-1')} />
+            </button>
+          </div>
 
-            {followUp.enabled && (
-              <>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">every</span>
+          {followUp.enabled && (
+            <div className="flex items-start gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground whitespace-nowrap w-9">every</span>
                   <input
                     type="number" min={1} max={60}
                     value={followUp.intervalDays}
@@ -293,8 +293,8 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
                   <span className="text-xs text-muted-foreground whitespace-nowrap">days</span>
                 </div>
 
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">max</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground whitespace-nowrap w-9">max</span>
                   <input
                     type="number" min={1} max={10}
                     value={followUp.maxRebumps}
@@ -304,20 +304,23 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
                   />
                   <span className="text-xs text-muted-foreground whitespace-nowrap">per lead</span>
                 </div>
+              </div>
 
-                <button
-                  onClick={() => saveFollowUp({ ...followUp, smartRebump: !followUp.smartRebump })}
-                  className="flex items-center gap-1.5 shrink-0"
-                  title="Smart Follow-ups — AI-written, real cost"
-                >
-                  <Sparkles className={cn('w-3.5 h-3.5', followUp.smartRebump ? 'text-purple-400' : 'text-muted-foreground')} />
-                  <span className={cn('relative inline-flex h-5 w-9 items-center rounded-full transition-colors', followUp.smartRebump ? 'bg-purple-500' : 'bg-muted')}>
-                    <span className={cn('inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform', followUp.smartRebump ? 'translate-x-4' : 'translate-x-0.5')} />
-                  </span>
-                </button>
-              </>
-            )}
-          </div>
+              <button
+                onClick={() => saveFollowUp({ ...followUp, smartRebump: !followUp.smartRebump })}
+                className="flex-1 flex items-center gap-2 rounded-md border border-input p-2 text-left hover:bg-muted/50 transition-colors"
+              >
+                <Sparkles className={cn('w-4 h-4 shrink-0', followUp.smartRebump ? 'text-purple-400' : 'text-muted-foreground')} />
+                <span className="min-w-0">
+                  <span className="block text-xs font-medium">Smart Follow-ups</span>
+                  <span className="block text-[10px] text-muted-foreground">AI writes each follow-up from scratch per lead, instead of a template. Costs a bit of credit per send.</span>
+                </span>
+                <span className={cn('relative inline-flex h-5 w-9 items-center rounded-full transition-colors shrink-0 ml-auto', followUp.smartRebump ? 'bg-purple-500' : 'bg-muted')}>
+                  <span className={cn('inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform', followUp.smartRebump ? 'translate-x-4' : 'translate-x-0.5')} />
+                </span>
+              </button>
+            </div>
+          )}
           <p className="text-xs text-muted-foreground/80">Applies to every agent · sends respect each mailbox's own daily limit</p>
           {savingFollowUp && <p className="text-xs text-muted-foreground/70">Saving…</p>}
         </div>
