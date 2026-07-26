@@ -31,26 +31,29 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
     api.get('/api/settings/sending-schedule').then(r => {
       const cap = r.data?.planDailyCap ?? 50
       setPlanCap(cap)
+      // Default split: half the plan's daily cap to each — not a flat 50 (that number only
+      // means something for the separate per-email-address cap in the Outreach widget), and
+      // not each independently maxed out either. Rounds up for main so the two always sum
+      // to the full cap (e.g. cap=9 → 5 main / 4 follow-ups).
+      const halfMain = Math.ceil(cap / 2)
+      const halfFollowUp = Math.floor(cap / 2)
 
       if (editing) {
         // Re-clamp against the current plan cap in case it changed since this was saved.
-        setMainStr(String(Math.min(cap, editing.mainPerDay || cap)))
-        setFollowUpStr(String(Math.min(cap, editing.followUpPerDay ?? 0)))
+        setMainStr(String(Math.min(cap, editing.mainPerDay || halfMain)))
+        setFollowUpStr(String(Math.min(cap, editing.followUpPerDay ?? halfFollowUp)))
         return
       }
 
       const existing = r.data?.schedule
       if (existing) {
         setSched({ ...DEFAULT_SCHEDULE, ...existing })
-        setMainStr(String(existing.mainPerDay ?? cap))
-        setFollowUpStr(String(existing.followUpPerDay ?? cap))
+        setMainStr(String(existing.mainPerDay ?? halfMain))
+        setFollowUpStr(String(existing.followUpPerDay ?? halfFollowUp))
       } else {
-        // No schedule yet — both default to the plan's actual daily cap (not a flat 50,
-        // which only means something for the separate per-email-address cap shown in the
-        // Outreach daily-cap widget). Main gets priority when both are maxed — see the
-        // note under Follow-ups/Day below.
-        setMainStr(String(cap))
-        setFollowUpStr(String(cap))
+        // No schedule yet — default to an even 50/50 split of the plan's actual cap.
+        setMainStr(String(halfMain))
+        setFollowUpStr(String(halfFollowUp))
       }
     }).catch(() => {}).finally(() => setLoading(false))
   }, [editing])
@@ -121,34 +124,34 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
   }
 
   return (
-    <Card className="p-4">
-      <div className="flex items-center gap-2 mb-4">
-        <Calendar className="w-4 h-4 text-primary" />
-        <h2 className="text-sm font-semibold">{editing ? 'Edit Schedule' : 'Sending Schedule'}</h2>
-        <span className="text-[10px] text-muted-foreground ml-1">applies to your whole account</span>
+    <Card className="p-6">
+      <div className="flex items-center gap-2.5 mb-5">
+        <Calendar className="w-5 h-5 text-primary" />
+        <h2 className="text-lg font-semibold">{editing ? 'Edit Schedule' : 'Sending Schedule'}</h2>
+        <span className="text-sm text-muted-foreground ml-1">applies to your whole account</span>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6">
-      <div className="space-y-4">
-        <div className="space-y-1">
-          <label className="text-[11px] font-medium text-muted-foreground">Name <span className="text-muted-foreground/60">(optional — save it to switch back later)</span></label>
+      <div className="grid grid-cols-1 md:grid-cols-[340px_1fr] gap-8">
+      <div className="space-y-5">
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-muted-foreground">Name <span className="text-muted-foreground/60">(optional — save it to switch back later)</span></label>
           <input
             type="text"
-            className="w-full h-8 rounded-md border border-input bg-background px-3 text-xs focus:outline-none"
+            className="w-full h-11 rounded-md border border-input bg-background px-3.5 text-sm focus:outline-none"
             placeholder="e.g. Aggressive outreach, Slow & steady…"
             value={name}
             onChange={e => setName(e.target.value)}
           />
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-[11px] font-medium text-muted-foreground">Active Days</label>
-          <div className="flex gap-1.5 flex-wrap">
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-muted-foreground">Active Days</label>
+          <div className="flex gap-2 flex-wrap">
             {DAY_LABELS.map((label, i) => (
               <button
                 key={i}
                 onClick={() => toggleDay(i)}
                 className={cn(
-                  'w-10 h-8 rounded-md text-xs font-medium border transition-colors',
+                  'w-12 h-11 rounded-md text-sm font-medium border transition-colors',
                   sched.activeDays.includes(i)
                     ? 'bg-primary text-primary-foreground border-primary'
                     : 'bg-background text-muted-foreground border-input hover:bg-muted'
@@ -158,13 +161,13 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
           </div>
         </div>
 
-        <div className="space-y-3">
-          <div className="space-y-1">
-            <label className="text-[11px] font-medium text-muted-foreground">Send Time</label>
-            <div className="flex items-center gap-1">
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-muted-foreground">Send Time</label>
+            <div className="flex items-center gap-1.5">
               <div className="relative flex-1">
                 <select
-                  className="w-full h-8 appearance-none rounded-md border border-input bg-background pl-2 pr-6 text-xs focus:outline-none"
+                  className="w-full h-11 appearance-none rounded-md border border-input bg-background pl-3 pr-7 text-sm focus:outline-none"
                   value={hour12}
                   onChange={e => setTime(+e.target.value, timeM, isPM)}
                 >
@@ -172,12 +175,12 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
                     <option key={h} value={h}>{h}</option>
                   ))}
                 </select>
-                <ChevronDown className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
+                <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               </div>
-              <span className="text-muted-foreground text-xs">:</span>
-              <div className="relative w-16">
+              <span className="text-muted-foreground text-sm">:</span>
+              <div className="relative w-20">
                 <select
-                  className="w-full h-8 appearance-none rounded-md border border-input bg-background pl-2 pr-6 text-xs focus:outline-none"
+                  className="w-full h-11 appearance-none rounded-md border border-input bg-background pl-3 pr-7 text-sm focus:outline-none"
                   value={timeM}
                   onChange={e => setTime(hour12, +e.target.value, isPM)}
                 >
@@ -185,27 +188,27 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
                     <option key={m} value={m}>{String(m).padStart(2, '0')}</option>
                   ))}
                 </select>
-                <ChevronDown className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
+                <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               </div>
-              <div className="relative w-16">
+              <div className="relative w-20">
                 <select
-                  className="w-full h-8 appearance-none rounded-md border border-input bg-background pl-2 pr-6 text-xs focus:outline-none"
+                  className="w-full h-11 appearance-none rounded-md border border-input bg-background pl-3 pr-7 text-sm focus:outline-none"
                   value={isPM ? 'PM' : 'AM'}
                   onChange={e => setTime(hour12, timeM, e.target.value === 'PM')}
                 >
                   <option value="AM">AM</option>
                   <option value="PM">PM</option>
                 </select>
-                <ChevronDown className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 w-3 h-3 text-muted-foreground" />
+                <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               </div>
             </div>
           </div>
-          <div className="space-y-1">
-            <label className="text-[11px] font-medium text-muted-foreground">Main Emails/Day <span className="text-muted-foreground/60">(max {planCap}, your plan's daily limit)</span></label>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-muted-foreground">Main Emails/Day <span className="text-muted-foreground/60">(max {planCap}, your plan's daily limit)</span></label>
             <div className="relative">
               <input
                 type="number" min={1} max={planCap}
-                className="w-full h-8 rounded-md border border-input bg-background px-3 pr-9 text-xs focus:outline-none"
+                className="w-full h-11 rounded-md border border-input bg-background px-3.5 pr-12 text-sm focus:outline-none"
                 value={mainStr}
                 onChange={e => {
                   const v = e.target.value
@@ -213,19 +216,19 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
                   setMainStr(String(Math.min(planCap, Math.max(1, parseInt(v) || 1))))
                 }}
               />
-              <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground tabular-nums">/{planCap}</span>
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground tabular-nums">/{planCap}</span>
             </div>
           </div>
         </div>
 
-        <div className="space-y-1">
-          <label className="text-[11px] font-medium text-muted-foreground">
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-muted-foreground">
             Follow-ups/Day <span className="text-muted-foreground/60">(max {planCap}, your plan's daily limit — 0 to pause auto follow-ups)</span>
           </label>
           <div className="relative">
             <input
               type="number" min={0} max={planCap}
-              className="w-full h-8 rounded-md border border-input bg-background px-3 pr-9 text-xs focus:outline-none"
+              className="w-full h-11 rounded-md border border-input bg-background px-3.5 pr-12 text-sm focus:outline-none"
               value={followUpStr}
               onChange={e => {
                 const v = e.target.value
@@ -233,44 +236,44 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
                 setFollowUpStr(String(Math.min(planCap, Math.max(0, parseInt(v) || 0))))
               }}
             />
-            <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground tabular-nums">/{planCap}</span>
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground tabular-nums">/{planCap}</span>
           </div>
           {followUpClamped && (
-            <p className="text-[10px] text-amber-600">
+            <p className="text-xs text-amber-600">
               Main emails get priority for the shared {planCap}/day cap — on a day with {rawMain} main, only {followUpRoom} follow-up{followUpRoom === 1 ? '' : 's'} will actually go out, even though {rawFollowUp} is set.
             </p>
           )}
         </div>
 
-        <div className="space-y-1">
-          <label className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
             Timezone
-            {sched.timezone === BROWSER_TZ && <span className="text-[10px] text-blue-500/70">• auto-detected</span>}
+            {sched.timezone === BROWSER_TZ && <span className="text-xs text-blue-500/70">• auto-detected</span>}
           </label>
           <div className="relative">
             <select
-              className="w-full h-8 appearance-none rounded-md border border-input bg-background pl-2 pr-6 text-xs focus:outline-none"
+              className="w-full h-11 appearance-none rounded-md border border-input bg-background pl-3 pr-7 text-sm focus:outline-none"
               value={sched.timezone}
               onChange={e => setSched(s => ({ ...s, timezone: e.target.value }))}
             >
               {!TIMEZONES.includes(BROWSER_TZ) && <option key={BROWSER_TZ} value={BROWSER_TZ}>{BROWSER_TZ}</option>}
               {TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
             </select>
-            <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           </div>
         </div>
 
       </div>
 
-      <div className="flex flex-col justify-between md:border-l md:border-border md:pl-6">
+      <div className="flex flex-col justify-between md:border-l md:border-border md:pl-8">
         <SchedulePreviewCalendar schedule={draftSchedule} days={30} />
 
-        <div className="flex items-center justify-end gap-2 mt-4">
+        <div className="flex items-center justify-end gap-3 mt-5">
           {onCancel && (
-            <Button size="sm" variant="ghost" className="h-8" onClick={onCancel}>Cancel</Button>
+            <Button size="default" variant="ghost" className="h-11 text-sm" onClick={onCancel}>Cancel</Button>
           )}
-          <Button size="sm" className="h-8 gap-1.5" disabled={saving || loading} onClick={save}>
-            <Save className="w-3.5 h-3.5" />
+          <Button size="default" className="h-11 text-sm gap-2" disabled={saving || loading} onClick={save}>
+            <Save className="w-4 h-4" />
             {saving ? 'Saving…' : saved ? 'Saved!' : name.trim() ? `Save${applyOnSave ? ' & Apply' : ''}` : 'Save'}
           </Button>
         </div>

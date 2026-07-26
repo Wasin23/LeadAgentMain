@@ -201,11 +201,11 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
       {/* Sending Schedule modal - the same global schedule builder used in Outreach */}
       {showScheduleCard && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-modal-swoop-backdrop" onClick={() => setShowScheduleCard(false)}>
-          <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto animate-modal-swoop-up" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-5xl max-h-[90vh] overflow-y-auto animate-modal-swoop-up" onClick={e => e.stopPropagation()}>
             <div className="relative">
               <button
                 onClick={() => setShowScheduleCard(false)}
-                className="absolute right-3 top-3 z-10 rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                className="absolute right-3 top-3 z-10 rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                 title="Close"
               >
                 <X className="h-4 w-4" />

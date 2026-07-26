@@ -5,7 +5,7 @@ import api from '@/lib/api'
 import { cn } from '@/lib/utils'
 import type { SendingSchedule, SchedulePreviewDay } from '@/lib/schedule-types'
 
-const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 // Real calendar grid (not a horizontal strip) — each day cell keeps the same two-color
 // fill language (primary = main, emerald = follow-ups), driven by the server's
@@ -38,7 +38,7 @@ export function SchedulePreviewCalendar({ schedule, days = 30, highlightDate }: 
   }, [JSON.stringify(schedule), days])
 
   if (!schedule?.activeDays?.length) {
-    return <p className="text-[11px] text-muted-foreground py-2">Set active days and a send time to preview.</p>
+    return <p className="text-sm text-muted-foreground py-2">Set active days and a send time to preview.</p>
   }
 
   // Pad the front of the grid so the first real day lands in its correct weekday column.
@@ -52,21 +52,21 @@ export function SchedulePreviewCalendar({ schedule, days = 30, highlightDate }: 
   })()
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-medium text-muted-foreground">Preview — next {days} days</p>
+        <p className="text-sm font-medium text-muted-foreground">Preview — next {days} days</p>
         {counts && (
-          <p className="text-[10px] text-muted-foreground tabular-nums">
+          <p className="text-xs text-muted-foreground tabular-nums">
             {counts.mainQueueCount} queued{counts.followUpQueueCount ? ` · ${counts.followUpQueueCount} follow-ups pending` : ''}
           </p>
         )}
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-center text-[9px] font-semibold text-muted-foreground">
+      <div className="grid grid-cols-7 gap-1.5 text-center text-xs font-semibold text-muted-foreground">
         {WEEKDAY_LABELS.map((l, i) => <div key={i}>{l}</div>)}
       </div>
 
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-1.5">
         {cells.map((d, i) => {
           if (!d) return <div key={`blank-${i}`} />
           const dateObj = new Date(d.date + 'T12:00:00Z')
@@ -80,7 +80,7 @@ export function SchedulePreviewCalendar({ schedule, days = 30, highlightDate }: 
             <div
               key={d.date}
               className={cn(
-                'aspect-square rounded-md border border-border p-1 flex flex-col justify-between',
+                'aspect-square rounded-lg border border-border p-1.5 flex flex-col justify-between min-h-[52px]',
                 d.active ? 'bg-card' : 'bg-muted/30',
                 highlightDate === d.date && 'ring-2 ring-primary'
               )}
@@ -88,33 +88,37 @@ export function SchedulePreviewCalendar({ schedule, days = 30, highlightDate }: 
                 ? `${d.date}: ${d.mainCount}/${d.mainCap} main${d.followUpCap ? `, ${d.followUpCount}/${d.followUpCap} follow-ups` : ''}`
                 : `${d.date}: not an active sending day`}
             >
-              <span className="text-[9px] text-foreground/70 tabular-nums">
+              <span className="text-xs text-foreground/80 font-medium tabular-nums">
                 {isFirstOfMonth ? dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : dayNum}
               </span>
               {d.active && (d.mainCap > 0 || d.followUpCap > 0) ? (
-                <div className="space-y-[2px]">
+                <div className="space-y-1">
+                  {/* Each track always shows its full configured capacity as a light fill
+                      (so a day with room for follow-ups always reads as green, even before
+                      any are actually queued) with the real backlog as a solid overlay on
+                      top of that, proportional to how much of today's slots are really used. */}
                   {d.mainCap > 0 && (
-                    <div className="h-[3px] rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
+                    <div className="h-1.5 rounded-full bg-primary/25 overflow-hidden">
                       <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${mainPct}%` }} />
                     </div>
                   )}
                   {d.followUpCap > 0 && (
-                    <div className="h-[3px] rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
+                    <div className="h-1.5 rounded-full bg-emerald-500/25 overflow-hidden">
                       <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${followUpPct}%` }} />
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="h-[3px]" />
+                <div className="h-1.5" />
               )}
             </div>
           )
         })}
       </div>
 
-      <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-primary/70" /> Main</span>
-        {schedule.followUpPerDay > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-emerald-500/70" /> Follow-ups</span>}
+      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-primary/70" /> Main</span>
+        {schedule.followUpPerDay > 0 && <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-500/70" /> Follow-ups</span>}
         {lastActiveIdx >= 0 && lastActiveIdx < preview.length - 1 && (
           <span className="ml-auto">Queue clears in ~{lastActiveIdx + 1} day{lastActiveIdx === 0 ? '' : 's'}</span>
         )}
