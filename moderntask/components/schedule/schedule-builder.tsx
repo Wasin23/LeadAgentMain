@@ -29,14 +29,29 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
 
   useEffect(() => {
     api.get('/api/settings/sending-schedule').then(r => {
-      setPlanCap(r.data?.planDailyCap ?? 50)
-      if (!editing) {
-        const existing = r.data?.schedule
-        if (existing) {
-          setSched({ ...DEFAULT_SCHEDULE, ...existing })
-          setMainStr(String(existing.mainPerDay ?? DEFAULT_SCHEDULE.mainPerDay))
-          setFollowUpStr(String(existing.followUpPerDay ?? DEFAULT_SCHEDULE.followUpPerDay))
-        }
+      const cap = r.data?.planDailyCap ?? 50
+      setPlanCap(cap)
+      const half = { main: Math.ceil(cap / 2), followUp: Math.floor(cap / 2) }
+
+      if (editing) {
+        // Re-clamp against the current plan cap in case it changed since this was saved.
+        const clampedMain = Math.min(cap, editing.mainPerDay || half.main)
+        setMainStr(String(clampedMain))
+        setFollowUpStr(String(Math.min(Math.max(0, cap - clampedMain), editing.followUpPerDay ?? 0)))
+        return
+      }
+
+      const existing = r.data?.schedule
+      if (existing) {
+        setSched({ ...DEFAULT_SCHEDULE, ...existing })
+        setMainStr(String(existing.mainPerDay ?? half.main))
+        setFollowUpStr(String(existing.followUpPerDay ?? half.followUp))
+      } else {
+        // No schedule yet — default to an even split of the plan's actual daily cap,
+        // not a flat 50 (that number only means something for the separate
+        // per-email-address cap shown in the Outreach daily-cap widget).
+        setMainStr(String(half.main))
+        setFollowUpStr(String(half.followUp))
       }
     }).catch(() => {}).finally(() => setLoading(false))
   }, [editing])
@@ -110,6 +125,7 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
         <h2 className="text-sm font-semibold">{editing ? 'Edit Schedule' : 'Sending Schedule'}</h2>
         <span className="text-[10px] text-muted-foreground ml-1">applies to your whole account</span>
       </div>
+      <div className="grid grid-cols-1 md:grid-cols-[300px_1fr] gap-6">
       <div className="space-y-4">
         <div className="space-y-1">
           <label className="text-[11px] font-medium text-muted-foreground">Name <span className="text-muted-foreground/60">(optional — save it to switch back later)</span></label>
@@ -140,7 +156,7 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-3">
           <div className="space-y-1">
             <label className="text-[11px] font-medium text-muted-foreground">Send Time</label>
             <div className="flex items-center gap-1">
@@ -204,7 +220,7 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
           <label className="text-[11px] font-medium text-muted-foreground">
             Follow-ups/Day <span className="text-muted-foreground/60">(shares the {planCap}/day plan limit with main emails — 0 to pause auto follow-ups)</span>
           </label>
-          <div className="relative w-1/2">
+          <div className="relative">
             <input
               type="number" min={0} max={followUpRoom}
               className="w-full h-8 rounded-md border border-input bg-background px-3 pr-9 text-xs focus:outline-none"
@@ -242,11 +258,12 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
           </div>
         </div>
 
-        <div className="border-t border-border pt-3">
-          <SchedulePreviewBars schedule={draftSchedule} days={21} compact />
-        </div>
+      </div>
 
-        <div className="flex items-center justify-end gap-2">
+      <div className="flex flex-col justify-between md:border-l md:border-border md:pl-6">
+        <SchedulePreviewBars schedule={draftSchedule} days={30} />
+
+        <div className="flex items-center justify-end gap-2 mt-4">
           {onCancel && (
             <Button size="sm" variant="ghost" className="h-8" onClick={onCancel}>Cancel</Button>
           )}
@@ -255,6 +272,7 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
             {saving ? 'Saving…' : saved ? 'Saved!' : name.trim() ? `Save${applyOnSave ? ' & Apply' : ''}` : 'Save'}
           </Button>
         </div>
+      </div>
       </div>
     </Card>
   )

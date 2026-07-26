@@ -150,7 +150,7 @@ export function SchedulesContent() {
 
       {showBuilder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-modal-swoop-backdrop" onClick={() => setShowBuilder(false)}>
-          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto animate-modal-swoop-up" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto animate-modal-swoop-up" onClick={e => e.stopPropagation()}>
             <div className="relative">
               <button
                 onClick={() => setShowBuilder(false)}
