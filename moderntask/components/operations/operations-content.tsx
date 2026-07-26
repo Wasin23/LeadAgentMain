@@ -10,11 +10,11 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import {
   Play, Square, RefreshCw, Bot, Mail, Clock,
-  MessageSquare, Activity,
+  Activity,
   ChevronRight, ChevronDown, CheckCircle2, Send,
   Target, ExternalLink, User,
   UserCheck, Search, Settings, FileText, Users, Globe, Cpu,
-  MoreHorizontal, Zap, Trash2, RotateCcw, Inbox,
+  MoreHorizontal, Trash2, RotateCcw,
   type LucideIcon
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -33,6 +33,7 @@ interface Agent {
   replied?: number
   queued?: number
   nextCycleTime?: string | null
+  lastRun?: string | null
   isCrmMode?: boolean
   targeting?: { location?: string; industry?: string; keywords?: string[] }
   emailStats?: { built: number; queued: number; sent: number }
@@ -78,6 +79,17 @@ interface PlanStatus {
 // ── helpers ───────────────────────────────────────────────────────────────
 const EMOJI_RE = /[\u{1F000}-\u{1FFFF}\u{2300}-\u{27BF}\u{2B00}-\u{2BFF}\uFE0F]/gu
 function stripEmoji(s: string) { return s.replace(EMOJI_RE, '').replace(/\s{2,}/g, ' ').trim() }
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  const hours = Math.floor(diff / 3600000)
+  const days = Math.floor(diff / 86400000)
+  if (days > 0) return `${days}d ago`
+  if (hours > 0) return `${hours}h ago`
+  if (mins > 0) return `${mins}m ago`
+  return 'just now'
+}
 
 // ── countdown timer ─────────────────────────────────────────────────────
 function Countdown({ target }: { target: string }) {
@@ -160,7 +172,6 @@ export function OperationsContent() {
   const [savingInline, setSavingInline] = useState<Record<string, boolean>>({})
   const [planStatus, setPlanStatus] = useState<PlanStatus | null>(null)
   const [loading, setLoading] = useState(true)
-  const [agentDetailTab, setAgentDetailTab] = useState<'overview' | 'activity' | 'queue' | 'settings'>('overview')
   const [showAgentMenu, setShowAgentMenu] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [runCycleCounts, setRunCycleCounts] = useState<Record<string, number>>({})
@@ -168,7 +179,6 @@ export function OperationsContent() {
 
   function selectAgent(agentId: string) {
     setSelectedAgent(agentId)
-    setAgentDetailTab('overview')
     setShowAgentMenu(false)
     setConfirmingDelete(false)
   }
@@ -667,11 +677,7 @@ export function OperationsContent() {
       {selectedAgent !== 'all' && agents.find(a => a.agentId === selectedAgent) ? (
         <AgentDetailPanel
           agent={agents.find(a => a.agentId === selectedAgent)!}
-          activity={agentActivities[selectedAgent]}
-          logs={filteredLogs}
           avatarUrl={avatarUrl}
-          tab={agentDetailTab}
-          setTab={setAgentDetailTab}
           showMenu={showAgentMenu}
           setShowMenu={setShowAgentMenu}
           confirmingDelete={confirmingDelete}
@@ -825,18 +831,14 @@ export function OperationsContent() {
   )
 }
 
-// ── Selected-agent detail panel (Overview / Activity / Queue / Settings) ─────
+// ── Selected-agent detail panel ───────────────────────────────────────────
 function AgentDetailPanel({
-  agent, activity, logs, avatarUrl, tab, setTab,
+  agent, avatarUrl,
   showMenu, setShowMenu, confirmingDelete, setConfirmingDelete,
   onDelete, onReset, onToggle, isToggling,
 }: {
   agent: Agent
-  activity?: { status: string; timestamp: number }
-  logs: ActivityLog[]
   avatarUrl: (a: Agent) => string | undefined
-  tab: 'overview' | 'activity' | 'queue' | 'settings'
-  setTab: (t: 'overview' | 'activity' | 'queue' | 'settings') => void
   showMenu: boolean
   setShowMenu: (v: boolean) => void
   confirmingDelete: boolean
@@ -856,15 +858,6 @@ function AgentDetailPanel({
   const leadLimit = agent.settings?.targeting?.leadLimit ?? agent.settings?.geographicSettings?.leadLimit ?? 0
   const industries = agent.settings?.companyCriteria?.companyIndustries ?? []
   const positions = agent.settings?.contactCriteria?.targetPositions ?? []
-  // Live per-cycle counter - sourced from the agent's own cycle tracker (reasoningLeadAgent.js
-  // resets this.memory.currentCycle.leadsProcessed to 0 at cycle start), broadcast via SSE on
-  // each 'Lead Complete' log entry. Falls back to a queued+sent approximation until the first
-  // lead of the cycle completes.
-  const latestCycleLog = logs.find(l => l.data?.leadsProcessed !== undefined && l.data?.targetLeads !== undefined)
-  const cycleTarget = latestCycleLog?.data?.targetLeads ?? leadLimit
-  const cycleProgress = latestCycleLog
-    ? latestCycleLog.data!.leadsProcessed as number
-    : (leadLimit > 0 ? Math.min(queued + sent, leadLimit) : 0)
 
   return (
     <div className="flex flex-col gap-3">
@@ -898,6 +891,9 @@ function AgentDetailPanel({
             </Button>
             <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => router.push(`/agents/${agent.agentId}`)}>
               <ExternalLink className="w-3 h-3" /> Open Dashboard
+            </Button>
+            <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => router.push(`/agents/${agent.agentId}/settings`)}>
+              <Settings className="w-3 h-3" /> Settings
             </Button>
             <div className="relative">
               <button onClick={() => setShowMenu(!showMenu)} className="h-7 w-7 flex items-center justify-center rounded-md border border-border hover:bg-muted">
@@ -934,7 +930,7 @@ function AgentDetailPanel({
             { label: 'Replied', value: replied },
             { label: 'Reply %', value: replyRate },
             { label: 'Leads/cycle', value: leadLimit || '-' },
-            { label: 'Last run', value: agent.nextCycleTime ? '-' : '-' },
+            { label: 'Last run', value: agent.lastRun ? timeAgo(agent.lastRun) : 'Never' },
           ].map(s => (
             <div key={s.label} className="rounded-lg bg-muted/50 px-2 py-1.5 text-center">
               <p className="text-sm font-bold tabular-nums">{s.value}</p>
@@ -944,103 +940,23 @@ function AgentDetailPanel({
         </div>
 
         {(industries.length > 0 || positions.length > 0) && (
-          <div className="flex flex-wrap gap-1.5 mt-3">
-            {industries.map(i => <Badge key={i} variant="secondary" className="text-[10px]">{i}</Badge>)}
-            {positions.map(p => <Badge key={p} variant="outline" className="text-[10px]">{p}</Badge>)}
+          <div className="mt-3 space-y-1.5">
+            {industries.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] text-muted-foreground shrink-0" title="This agent only targets companies in these industries">Industries:</span>
+                {industries.map(i => <Badge key={i} variant="secondary" className="text-[10px]" title={`Targets companies in the "${i}" industry`}>{i}</Badge>)}
+              </div>
+            )}
+            {positions.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] text-muted-foreground shrink-0" title="This agent only targets contacts with these job titles">Job titles:</span>
+                {positions.map(p => <Badge key={p} variant="outline" className="text-[10px]" title={`Targets contacts with the job title "${p}"`}>{p}</Badge>)}
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      <div className="border-b border-border">
-        <div className="flex items-center gap-6 text-sm">
-          {(['overview', 'activity', 'queue', 'settings'] as const).map(t => (
-            <button
-              key={t}
-              onClick={() => t === 'settings' ? router.push(`/agents/${agent.agentId}/settings`) : setTab(t)}
-              className={cn(
-                'relative -mb-px py-2.5 capitalize transition-colors',
-                tab === t && t !== 'settings' ? 'border-b-2 border-primary font-semibold text-foreground' : 'border-b-2 border-transparent text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {tab === 'overview' && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="rounded-xl border border-border bg-surface/40 p-4">
-            <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2"><Activity className="w-4 h-4 text-muted-foreground" /> Recent Activity</h4>
-            {logs.slice(0, 5).length === 0 ? (
-              <p className="text-xs text-muted-foreground">No recent activity</p>
-            ) : (
-              <div className="space-y-1.5">
-                {logs.slice(0, 5).map(l => (
-                  <p key={l.id} className="text-[11px] text-muted-foreground truncate">{stripEmoji(l.message)}</p>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="rounded-xl border border-border bg-surface/40 p-4">
-            <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2"><Inbox className="w-4 h-4 text-muted-foreground" /> Queue Summary</h4>
-            <div className="space-y-1.5 text-xs">
-              <div className="flex items-center justify-between"><span className="text-muted-foreground">Leads found</span><span className="font-semibold">{queued + sent}</span></div>
-              <div className="flex items-center justify-between"><span className="text-muted-foreground">Drafts ready</span><span className="font-semibold">{queued}</span></div>
-            </div>
-          </div>
-          <div className="rounded-xl border border-border bg-surface/40 p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-semibold text-foreground flex items-center gap-2"><Zap className="w-4 h-4 text-muted-foreground" /> Live Status</h4>
-              <Badge variant={isRunning ? 'default' : 'secondary'} className="text-[9px]">{isRunning ? 'Running' : 'Idle'}</Badge>
-            </div>
-            <p className="text-[11px] text-muted-foreground mb-2 truncate">{activity?.status || 'Not running'}</p>
-            {cycleTarget > 0 && (
-              <>
-                <div className="h-1.5 rounded-full bg-muted overflow-hidden mb-1">
-                  <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${Math.min(100, (cycleProgress / cycleTarget) * 100)}%` }} />
-                </div>
-                <p className="text-[10px] text-muted-foreground">{cycleProgress}/{cycleTarget} leads found this cycle</p>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      {tab === 'activity' && (
-        <Card className="flex-1 min-h-0 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto max-h-[420px]">
-            {logs.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <RefreshCw className="w-6 h-6 text-muted-foreground mb-3" />
-                <p className="text-sm text-muted-foreground">No activity yet</p>
-              </div>
-            ) : (
-              <div className="pt-1 px-3 pb-3 space-y-1">
-                {logs.map(log => (
-                  <div key={log.id} className="rounded-lg bg-secondary/40 border border-border/50 p-3">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <span className="text-[10px] text-muted-foreground">
-                        {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{stripEmoji(log.message)}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </Card>
-      )}
-
-      {tab === 'queue' && (
-        <Card className="p-4">
-          <p className="text-xs text-muted-foreground mb-2">Showing the full email queue - filter by this agent using the selector inside.</p>
-          <Button size="sm" variant="outline" onClick={() => router.push('/outreach?section=awaiting')}>
-            Open Awaiting Review →
-          </Button>
-        </Card>
-      )}
     </div>
   )
 }

@@ -121,7 +121,7 @@ function SortableCard({
           href={stat.href}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
-          className="group block rounded-2xl border border-border bg-card p-3 transition-colors hover:border-foreground/15"
+          className="press-effect group block rounded-2xl border border-border bg-card p-3 transition-colors hover:border-foreground/15"
         >
           <CardInner stat={stat} hovered={hovered} />
         </Link>
@@ -244,7 +244,7 @@ export function StatsCards({ sent = 0, queued = 0, runningAgents = 0, cyclesComp
         <div className="flex items-center justify-end gap-2 mb-2">
           <button
             onClick={() => setIsEditing(!isEditing)}
-            className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md transition-colors ${
+            className={`press-effect flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md transition-colors ${
               isEditing ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-secondary"
             }`}
           >
@@ -255,7 +255,7 @@ export function StatsCards({ sent = 0, queued = 0, runningAgents = 0, cyclesComp
       )}
       {isEditing && (
         <div className="flex items-center justify-end mb-1">
-          <button onClick={reset} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+          <button onClick={reset} className="press-effect flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
             <RotateCcw className="w-3 h-3" /> Reset stat cards
           </button>
         </div>
@@ -268,7 +268,7 @@ export function StatsCards({ sent = 0, queued = 0, runningAgents = 0, cyclesComp
             <button
               key={id}
               onClick={() => addCard(id)}
-              className="text-xs px-2.5 py-1 rounded-md border border-dashed border-border text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-colors"
+              className="press-effect text-xs px-2.5 py-1 rounded-md border border-dashed border-border text-muted-foreground hover:text-foreground hover:border-foreground/40 transition-colors"
             >
               + {allStats[id].title}
             </button>

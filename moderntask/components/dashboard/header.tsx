@@ -44,7 +44,7 @@ function CrmBadge({ name }: { name: string | null }) {
     return (
       <button
         onClick={handleClick}
-        className="flex items-center gap-1 px-2 py-1 rounded-md border border-border text-[11px] text-muted-foreground hover:bg-muted cursor-pointer transition-colors select-none"
+        className="press-effect flex items-center gap-1 px-2 py-1 rounded-md border border-border text-[11px] text-muted-foreground hover:bg-muted cursor-pointer transition-colors select-none"
         title="Connect a CRM"
       >
         <Link2Off className="w-3 h-3" />
@@ -56,7 +56,7 @@ function CrmBadge({ name }: { name: string | null }) {
   return (
     <button
       onClick={handleClick}
-      className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-border text-[11px] font-medium hover:bg-muted cursor-pointer transition-colors select-none"
+      className="press-effect flex items-center gap-1.5 px-2 py-1 rounded-md border border-border text-[11px] font-medium hover:bg-muted cursor-pointer transition-colors select-none"
       title={`${name} connected - click to manage`}
     >
       <span
@@ -191,6 +191,11 @@ export function Header({
 
   return (
     <header className="space-y-3 md:space-y-4 mb-4 md:mb-5 animate-slide-in-up relative z-10">
+      {/* Sticky top bar — pinned to the viewport while the page scrolls. The negative
+          margin/matching padding cancels out <main>'s own edge padding so the sticky bar's
+          background spans flush to the screen edges once it engages, instead of leaving a
+          visible gap on the sides. */}
+      <div className="sticky top-0 z-30 -mx-3 md:-mx-4 lg:-mx-5 -mt-3 md:-mt-4 lg:-mt-5 px-3 md:px-4 lg:px-5 pt-3 md:pt-4 lg:pt-5 pb-3 md:pb-4 bg-background/95 backdrop-blur-sm">
       <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-2.5">
         <div className="flex items-center gap-2 flex-1">
           <MobileNav />
@@ -212,30 +217,28 @@ export function Header({
           {/* CRM connection status */}
           {crmName !== undefined && <CrmBadge name={crmName} />}
 
-          {/* Credit balance */}
-          <button
-            title="AI Credits remaining"
-            className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-foreground/80 hover:bg-accent transition-colors"
-          >
-            <Coins className="w-3.5 h-3.5 text-brass" strokeWidth={2} />
-            <span className="text-muted-foreground">Credits</span>
-            <span className="tabular-nums text-foreground">{credits.toLocaleString()}</span>
-          </button>
-
-          {maxAgents > 0 && (
+          {/* Credits + plan — merged into one pill, both surfaced by the same popover */}
+          {maxAgents > 0 ? (
             <Popover>
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className="relative h-8 px-2.5 rounded-md border border-border bg-background/70 text-[11px] font-medium text-foreground hover:bg-secondary transition-colors"
-                  title="View plan limits and what they mean"
+                  className="press-effect relative h-8 pl-2.5 pr-3 rounded-lg border border-border bg-surface text-[11px] font-medium text-foreground hover:bg-accent transition-colors"
+                  title="AI Credits remaining · click to view plan limits"
                 >
                   <span className="flex items-center gap-2">
-                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/12 text-primary">
-                      <Info className="w-3 h-3" />
+                    <span className="flex items-center gap-1.5">
+                      <Coins className="w-3.5 h-3.5 text-brass" strokeWidth={2} />
+                      <span className="tabular-nums text-foreground">{credits.toLocaleString()}</span>
                     </span>
-                    <span className="hidden sm:inline">{planName}</span>
-                    <span className="text-muted-foreground">{totalAgents}/{maxAgents}</span>
+                    <span className="hidden sm:block w-px h-4 bg-border" />
+                    <span className="hidden sm:flex items-center gap-1.5">
+                      <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/12 text-primary">
+                        <Info className="w-3 h-3" />
+                      </span>
+                      <span>{planName}</span>
+                      <span className="text-muted-foreground">{totalAgents}/{maxAgents}</span>
+                    </span>
                   </span>
                 </button>
               </PopoverTrigger>
@@ -246,7 +249,9 @@ export function Header({
                       <p className="text-sm font-semibold text-foreground">{planName} limits</p>
                       <p className="text-xs text-muted-foreground">{totalAgents}/{maxAgents} agents used · up to {maxConcurrency}x speed</p>
                     </div>
-                    <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-semibold text-primary">Click for limits</span>
+                    <span className="flex items-center gap-1 rounded-full bg-primary/10 px-2 py-1 text-[10px] font-semibold text-primary">
+                      <Coins className="w-3 h-3" /> {credits.toLocaleString()}
+                    </span>
                   </div>
                 </div>
 
@@ -306,6 +311,15 @@ export function Header({
                 </div>
               </PopoverContent>
             </Popover>
+          ) : (
+            <button
+              title="AI Credits remaining"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-foreground/80"
+            >
+              <Coins className="w-3.5 h-3.5 text-brass" strokeWidth={2} />
+              <span className="text-muted-foreground">Credits</span>
+              <span className="tabular-nums text-foreground">{credits.toLocaleString()}</span>
+            </button>
           )}
 
           {/* Notifications dropdown */}
@@ -324,6 +338,7 @@ export function Header({
             </Link>
           </div>
         </div>
+      </div>
       </div>
 
       {title && (

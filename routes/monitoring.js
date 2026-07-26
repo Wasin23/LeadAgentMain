@@ -443,39 +443,19 @@ router.get('/activity', authenticateToken, async (req, res) => {
     const AWSManager = (await import('../utils/awsManager.js')).default;
     const awsManager = new AWSManager();
 
-    // Fetch persistent issues (from DynamoDB)
-    const persistentIssues = await awsManager.getIssues(userId, 200).catch(err => {
-      console.error('[MONITORING] Failed to fetch persistent issues:', err);
-      return [];
-    });
-
     // Fetch recent cycle logs
     const cycleLogs = await awsManager.getCycleLogs(userId, null, 200).catch(err => {
       console.error('[MONITORING] Failed to fetch cycle logs:', err);
       return [];
     });
 
-    // Normalize persistentIssues to unified activity shape
-    const issuesActivity = (persistentIssues || []).map(item => {
-      // Map severity to display type for styling
-      let displayType = 'info';
-      if (item.severity === 'critical' || item.severity === 'high') {
-        displayType = 'error';
-      } else if (item.severity === 'medium') {
-        displayType = 'warning';
-      }
-      
-      return {
-        type: displayType,
-        category: 'issue',
-        severity: item.severity, // Keep original severity
-        title: item.title || item.issueId || 'Issue',
-        message: item.message || '',
-        timestamp: item.timestamp || item.createdAt || new Date().toISOString(),
-        metadata: item.metadata || {},
-        raw: item
-      };
-    });
+    // Persistent issues (email sends, CRM failures, etc.) are NOT re-included here —
+    // the frontend's ActivityFeed already gets them via /api/notifications/recent and
+    // merges them client-side. Duplicating them here under category:'issue' regardless
+    // of actual severity used to (a) show every routine "Email sent" success twice, once
+    // from each source, and (b) make the Issues filter tab include low-severity successes
+    // alongside real problems, since this endpoint tagged all of them 'issue' no matter
+    // what. This endpoint now only contributes what nothing else surfaces: cycle logs.
 
     // Normalize cycle logs
     const cyclesActivity = (cycleLogs || []).map(cycle => {
@@ -521,7 +501,7 @@ router.get('/activity', authenticateToken, async (req, res) => {
     });
 
     // Merge and sort by timestamp desc
-    const merged = [...issuesActivity, ...cyclesActivity].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    const merged = [...cyclesActivity].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
     res.json({ success: true, activities: merged, count: merged.length, timestamp: new Date().toISOString() });
   } catch (error) {

@@ -112,8 +112,8 @@ export function ActivityFeed({ notifications = [], exportState = null }: Activit
       return {
         kind: "activity",
         id: `act-${i}-${a.timestamp}`,
-        title: a.title || a.message || "Activity",
-        message: a.details,
+        title: a.title || "Activity",
+        message: a.message,
         timestamp: a.timestamp,
         isIssue: a.activityType === "issue" || a.category === "issue",
         isCycle,

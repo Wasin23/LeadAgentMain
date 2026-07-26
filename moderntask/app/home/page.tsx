@@ -331,7 +331,7 @@ export default function DashboardPage() {
               <HomeActions mode="create-agent" />
               <button
                 onClick={() => setEditMode(e => !e)}
-                className={`inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium border transition-all ${
+                className={`press-effect inline-flex items-center gap-1.5 h-8 px-3 rounded-lg text-xs font-medium border transition-all ${
                   editMode
                     ? "bg-primary text-primary-foreground border-primary"
                     : "bg-muted/60 text-muted-foreground border-border hover:text-foreground"
