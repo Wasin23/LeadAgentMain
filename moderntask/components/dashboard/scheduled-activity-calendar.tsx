@@ -98,7 +98,14 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
 
   return (
     <div className="rounded-2xl border border-border bg-card p-2.5 h-[440px] flex flex-col">
-      <div className="flex items-center justify-between gap-1.5">
+      <button
+        onClick={() => setShowScheduleCard(true)}
+        className="flex items-center justify-center gap-2 w-full h-10 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold transition-colors shrink-0"
+      >
+        <CalendarClock className="w-4 h-4" /> Schedule for Send
+      </button>
+
+      <div className="mt-2.5 flex items-center justify-between gap-1.5">
         <div className="flex items-center gap-1.5 min-w-0">
           <CalendarClock className="h-3.5 w-3.5 text-foreground/70 shrink-0" strokeWidth={1.75} />
           <h3 className="font-display text-xs text-foreground truncate">Scheduled Emails</h3>
@@ -117,12 +124,6 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
       <div className="mt-2 flex items-center gap-3 px-0.5 text-[9px] text-muted-foreground">
         <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm bg-primary/70" /> Main</span>
         <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm bg-emerald-500/70" /> Follow-ups</span>
-        <button
-          onClick={() => setShowScheduleCard(true)}
-          className="ml-auto flex items-center gap-1 text-[10px] font-medium text-primary hover:underline"
-        >
-          <CalendarClock className="w-2.5 h-2.5" /> Schedule for Send
-        </button>
       </div>
 
       <div className="mt-1.5 grid grid-cols-7 gap-px text-center text-[10px] font-bold text-foreground">
