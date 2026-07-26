@@ -27,33 +27,49 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
+  const [backlog, setBacklog] = useState<{ main: number; followUp: number } | null>(null)
+
   useEffect(() => {
-    api.get('/api/settings/sending-schedule').then(r => {
+    Promise.all([
+      api.get('/api/settings/sending-schedule'),
+      // Real current backlog composition — a follow-up-heavy account (each main can spawn
+      // several follow-ups via maxRebumps) should default the split toward follow-ups, not
+      // an arbitrary 50/50. days=1 here since we only want mainQueueCount/followUpQueueCount.
+      api.get('/api/email-queue/schedule-preview', { params: { days: 1 } }).catch(() => null),
+    ]).then(([r, previewRes]) => {
       const cap = r.data?.planDailyCap ?? 50
       setPlanCap(cap)
-      // Default split: half the plan's daily cap to each — not a flat 50 (that number only
-      // means something for the separate per-email-address cap in the Outreach widget), and
-      // not each independently maxed out either. Rounds up for main so the two always sum
-      // to the full cap (e.g. cap=9 → 5 main / 4 follow-ups).
-      const halfMain = Math.ceil(cap / 2)
-      const halfFollowUp = Math.floor(cap / 2)
+
+      const backlogMain = previewRes?.data?.mainQueueCount ?? 0
+      const backlogFollowUp = previewRes?.data?.followUpQueueCount ?? 0
+      setBacklog({ main: backlogMain, followUp: backlogFollowUp })
+
+      // Proportional default: split the cap the same way the real backlog is split, so an
+      // account where follow-ups outnumber new mains starts with a schedule that actually
+      // matches that reality instead of an even split. Falls back to 50/50 with no data yet.
+      const total = backlogMain + backlogFollowUp
+      const suggestedMain = total > 0 ? Math.round(cap * (backlogMain / total)) : Math.ceil(cap / 2)
+      const clampedSuggestedMain = Math.min(cap, Math.max(0, suggestedMain))
 
       if (editing) {
-        // Re-clamp against the current plan cap in case it changed since this was saved.
-        setMainStr(String(Math.min(cap, editing.mainPerDay || halfMain)))
-        setFollowUpStr(String(Math.min(cap, editing.followUpPerDay ?? halfFollowUp)))
+        // Re-clamp against the current plan cap in case it changed since this was saved —
+        // main wins the clamp, follow-ups take whatever's left so the two still sum to cap.
+        const clampedMain = Math.min(cap, editing.mainPerDay ?? clampedSuggestedMain)
+        setMainStr(String(clampedMain))
+        setFollowUpStr(String(cap - clampedMain))
         return
       }
 
       const existing = r.data?.schedule
       if (existing) {
         setSched({ ...DEFAULT_SCHEDULE, ...existing })
-        setMainStr(String(existing.mainPerDay ?? halfMain))
-        setFollowUpStr(String(existing.followUpPerDay ?? halfFollowUp))
+        const clampedMain = Math.min(cap, existing.mainPerDay ?? clampedSuggestedMain)
+        setMainStr(String(clampedMain))
+        setFollowUpStr(String(cap - clampedMain))
       } else {
-        // No schedule yet — default to an even 50/50 split of the plan's actual cap.
-        setMainStr(String(halfMain))
-        setFollowUpStr(String(halfFollowUp))
+        // No schedule yet — default to the backlog-proportional split computed above.
+        setMainStr(String(clampedSuggestedMain))
+        setFollowUpStr(String(cap - clampedSuggestedMain))
       }
     }).catch(() => {}).finally(() => setLoading(false))
   }, [editing])
@@ -70,15 +86,11 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
   const toggleDay = (d: number) =>
     setSched(s => ({ ...s, activeDays: s.activeDays.includes(d) ? s.activeDays.filter(x => x !== d) : [...s.activeDays, d].sort() }))
 
-  // Each field is independently settable up to the plan's full daily cap — main and
-  // follow-ups aren't forced to split it. The allocator (utils/scheduleSlots.js) still
-  // gives main priority for whatever the account can actually send each day, so setting
-  // both to the max just means "use all available room for main first, follow-ups get
-  // whatever main didn't use" rather than silently truncating what you type here.
-  const rawMain = Math.min(planCap, Math.max(1, parseInt(mainStr) || 1))
+  // Main and follow-ups split the plan's daily cap on a single scale (dragging the slider
+  // above keeps them always summing to planCap), so there's no separate "does follow-up
+  // fit" case to warn about anymore — the split itself is the whole cap by construction.
+  const rawMain = Math.min(planCap, Math.max(0, parseInt(mainStr) || 0))
   const rawFollowUp = Math.min(planCap, Math.max(0, parseInt(followUpStr) || 0))
-  const followUpRoom = Math.max(0, planCap - rawMain)
-  const followUpClamped = rawFollowUp > followUpRoom
   const draftSchedule: SendingSchedule = {
     ...sched,
     mainPerDay: rawMain,
@@ -133,7 +145,7 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
       <div className="grid grid-cols-1 md:grid-cols-[340px_1fr] gap-8">
       <div className="space-y-5">
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-muted-foreground">Name <span className="text-muted-foreground/60">(optional — save it to switch back later)</span></label>
+          <label className="text-sm font-medium text-muted-foreground">Name <span className="text-muted-foreground/60">(optional, save it to switch back later)</span></label>
           <input
             type="text"
             className="w-full h-11 rounded-md border border-input bg-background px-3.5 text-sm focus:outline-none"
@@ -203,44 +215,40 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
               </div>
             </div>
           </div>
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-muted-foreground">Main Emails/Day <span className="text-muted-foreground/60">(max {planCap}, your plan's daily limit)</span></label>
-            <div className="relative">
-              <input
-                type="number" min={1} max={planCap}
-                className="w-full h-11 rounded-md border border-input bg-background px-3.5 pr-12 text-sm focus:outline-none"
-                value={mainStr}
-                onChange={e => {
-                  const v = e.target.value
-                  if (v === '') { setMainStr(''); return }
-                  setMainStr(String(Math.min(planCap, Math.max(1, parseInt(v) || 1))))
-                }}
-              />
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground tabular-nums">/{planCap}</span>
-            </div>
-          </div>
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-muted-foreground">
-            Follow-ups/Day <span className="text-muted-foreground/60">(max {planCap}, your plan's daily limit — 0 to pause auto follow-ups)</span>
-          </label>
-          <div className="relative">
-            <input
-              type="number" min={0} max={planCap}
-              className="w-full h-11 rounded-md border border-input bg-background px-3.5 pr-12 text-sm focus:outline-none"
-              value={followUpStr}
-              onChange={e => {
-                const v = e.target.value
-                if (v === '') { setFollowUpStr(''); return }
-                setFollowUpStr(String(Math.min(planCap, Math.max(0, parseInt(v) || 0))))
-              }}
-            />
-            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground tabular-nums">/{planCap}</span>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-2xl font-bold text-primary tabular-nums">{rawMain}</p>
+              <p className="text-xs text-muted-foreground">Main Emails/Day</p>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-bold text-emerald-600 tabular-nums">{rawFollowUp}</p>
+              <p className="text-xs text-muted-foreground">Follow-ups/Day</p>
+            </div>
           </div>
-          {followUpClamped && (
-            <p className="text-xs text-amber-600">
-              Main emails get priority for the shared {planCap}/day cap — on a day with {rawMain} main, only {followUpRoom} follow-up{followUpRoom === 1 ? '' : 's'} will actually go out, even though {rawFollowUp} is set.
+          <input
+            type="range"
+            min={0}
+            max={planCap}
+            step={1}
+            value={rawMain}
+            onChange={e => {
+              const m = Math.min(planCap, Math.max(0, parseInt(e.target.value, 10) || 0))
+              setMainStr(String(m))
+              setFollowUpStr(String(planCap - m))
+            }}
+            className="w-full h-3 rounded-full appearance-none cursor-pointer accent-primary"
+            style={{ background: `linear-gradient(to right, var(--primary) 0%, var(--primary) ${planCap ? (rawMain / planCap) * 100 : 50}%, #10b981 ${planCap ? (rawMain / planCap) * 100 : 50}%, #10b981 100%)` }}
+            aria-label="Split today's sending cap between main emails and follow-ups"
+          />
+          <p className="text-xs text-muted-foreground text-center">
+            Main and follow-ups split your plan's {planCap}/day limit. Drag to rebalance.
+          </p>
+          {backlog && (backlog.main > 0 || backlog.followUp > 0) && (
+            <p className="text-xs text-muted-foreground/80 text-center">
+              Starting split matches your current backlog ({backlog.main} queued main, {backlog.followUp} pending follow-ups). Each main email can spawn several follow-ups, so that number tends to outgrow new mains over time. Worth rechecking this split periodically.
             </p>
           )}
         </div>

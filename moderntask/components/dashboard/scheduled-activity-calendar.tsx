@@ -128,10 +128,10 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
           const isToday = key === todayKey
           const day = previewByDay[key]
           const hasPreview = !!day
-          const maxCap = Math.max(1, day?.mainCap || 0, day?.followUpCap || 0)
-          const mainPct = day?.active ? Math.min(100, Math.round((day.mainCount / maxCap) * 100)) : 0
-          const followUpPct = day?.active ? Math.min(100, Math.round((day.followUpCount / maxCap) * 100)) : 0
           const fallbackActivity = !hasPreview && hasActivityByDay.has(key)
+          const maxCap = Math.max(1, day?.mainCap || 0, day?.followUpCap || 0)
+          const mainPct = day?.active && day.mainCap ? Math.min(100, Math.round((day.mainCount / maxCap) * 100)) : 0
+          const followUpPct = day?.active && day.followUpCap ? Math.min(100, Math.round((day.followUpCount / maxCap) * 100)) : 0
 
           return (
             <Popover key={key} open={openDay === key} onOpenChange={(o) => setOpenDay(o ? key : null)}>
@@ -143,13 +143,15 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
                   )}
                 >
                   <span className="relative z-10">{d.getDate()}</span>
-                  {hasPreview && (day.mainCount > 0 || day.followUpCount > 0) && (
-                    <span className="absolute bottom-0.5 left-1 right-1 flex gap-px h-[3px] z-10">
-                      <span className="flex-1 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
-                        <span className="block h-full bg-primary rounded-full" style={{ width: `${mainPct}%` }} />
-                      </span>
+                  {hasPreview && day.active && (day.mainCap > 0 || day.followUpCap > 0) && (
+                    <span className="absolute bottom-0.5 left-1 right-1 flex flex-col gap-px z-10">
+                      {day.mainCap > 0 && (
+                        <span className="h-[4px] rounded-full bg-primary/30 overflow-hidden">
+                          <span className="block h-full bg-primary rounded-full" style={{ width: `${mainPct}%` }} />
+                        </span>
+                      )}
                       {day.followUpCap > 0 && (
-                        <span className="flex-1 rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
+                        <span className="h-[4px] rounded-full bg-emerald-500/30 overflow-hidden">
                           <span className="block h-full bg-emerald-500 rounded-full" style={{ width: `${followUpPct}%` }} />
                         </span>
                       )}

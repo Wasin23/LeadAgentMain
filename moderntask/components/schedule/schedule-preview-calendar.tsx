@@ -54,7 +54,7 @@ export function SchedulePreviewCalendar({ schedule, days = 30, highlightDate }: 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-muted-foreground">Preview — next {days} days</p>
+        <p className="text-sm font-medium text-muted-foreground">Preview (next {days} days)</p>
         {counts && (
           <p className="text-xs text-muted-foreground tabular-nums">
             {counts.mainQueueCount} queued{counts.followUpQueueCount ? ` · ${counts.followUpQueueCount} follow-ups pending` : ''}
@@ -72,6 +72,7 @@ export function SchedulePreviewCalendar({ schedule, days = 30, highlightDate }: 
           const dateObj = new Date(d.date + 'T12:00:00Z')
           const dayNum = dateObj.getUTCDate()
           const isFirstOfMonth = dayNum === 1
+
           const maxCap = Math.max(1, d.mainCap, d.followUpCap)
           const mainPct = d.mainCap ? Math.min(100, Math.round((d.mainCount / maxCap) * 100)) : 0
           const followUpPct = d.followUpCap ? Math.min(100, Math.round((d.followUpCount / maxCap) * 100)) : 0
@@ -84,32 +85,36 @@ export function SchedulePreviewCalendar({ schedule, days = 30, highlightDate }: 
                 d.active ? 'bg-card' : 'bg-muted/30',
                 highlightDate === d.date && 'ring-2 ring-primary'
               )}
-              title={d.active
-                ? `${d.date}: ${d.mainCount}/${d.mainCap} main${d.followUpCap ? `, ${d.followUpCount}/${d.followUpCap} follow-ups` : ''}`
-                : `${d.date}: not an active sending day`}
+              title={!d.active ? `${d.date}: not an active sending day` : undefined}
             >
               <span className="text-xs text-foreground/80 font-medium tabular-nums">
                 {isFirstOfMonth ? dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : dayNum}
               </span>
               {d.active && (d.mainCap > 0 || d.followUpCap > 0) ? (
                 <div className="space-y-1">
-                  {/* Each track always shows its full configured capacity as a light fill
-                      (so a day with room for follow-ups always reads as green, even before
-                      any are actually queued) with the real backlog as a solid overlay on
-                      top of that, proportional to how much of today's slots are really used. */}
+                  {/* The track itself is always a visible colored outline the moment that
+                      day has capacity (so "there's room here" never disappears), with the
+                      real backlog filled in solid on top so you can still see how full
+                      today actually is. Hover each bar for the exact count. */}
                   {d.mainCap > 0 && (
-                    <div className="h-1.5 rounded-full bg-primary/25 overflow-hidden">
+                    <div
+                      className="h-2 rounded-full border border-primary bg-primary/15 overflow-hidden"
+                      title={`${d.mainCount} email${d.mainCount === 1 ? '' : 's'} sending`}
+                    >
                       <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${mainPct}%` }} />
                     </div>
                   )}
                   {d.followUpCap > 0 && (
-                    <div className="h-1.5 rounded-full bg-emerald-500/25 overflow-hidden">
+                    <div
+                      className="h-2 rounded-full border border-emerald-500 bg-emerald-500/15 overflow-hidden"
+                      title={`${d.followUpCount} follow-up${d.followUpCount === 1 ? '' : 's'} sending`}
+                    >
                       <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${followUpPct}%` }} />
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="h-1.5" />
+                <div className="h-2" />
               )}
             </div>
           )

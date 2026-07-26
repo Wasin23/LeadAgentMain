@@ -95,7 +95,7 @@ export function SchedulesContent() {
           </>
         ) : (
           <p className="text-xs text-muted-foreground py-2">
-            No sending schedule is active yet — emails won't auto-send until you create and apply one below.
+            No sending schedule is active yet. Emails won't auto-send until you create and apply one below.
           </p>
         )}
       </Card>
@@ -176,7 +176,7 @@ export function SchedulesContent() {
             <h3 className="text-sm font-semibold">Delete "{deleteTarget.name}"?</h3>
             <p className="text-xs text-muted-foreground">
               {deleteTarget.id === activeSavedScheduleId
-                ? "This is your currently active schedule — deleting it won't stop sending, it'll just forget the name."
+                ? "This is your currently active schedule. Deleting it won't stop sending, it'll just forget the name."
                 : 'This cannot be undone.'}
             </p>
             <div className="flex justify-end gap-2">
