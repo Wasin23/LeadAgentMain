@@ -8764,6 +8764,16 @@ Target Positions:`;
         } catch (memError) {
           console.error('[MEMORY] Failed to load memory, continuing without it:', memError.message);
           this.logOperation('Memory Error', `Failed to load memory: ${memError.message}`, 'warning');
+          // logOperation above only reaches whoever has this agent's live activity view open
+          // right now — persist it too so it survives, shows in Issues, and (medium severity)
+          // triggers a live toast, rather than silently degrading with no visible trace.
+          this.awsManager.addIssue(
+            this.userId,
+            'system',
+            'Agent Memory Unavailable',
+            `"${this.agentId}" couldn't load its learning memory this cycle (the memory service is temporarily unreachable) — the agent keeps running normally, just without prior-cycle optimizations.`,
+            { severity: 'medium', agentId: this.agentId }
+          ).catch(err => console.error('[MEMORY] Failed to persist memory issue:', err.message));
         }
       }
 

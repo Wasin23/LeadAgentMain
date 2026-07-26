@@ -56,9 +56,14 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
+// Unlike uncaughtException (which usually means the process is in a genuinely corrupted
+// state), an unhandled rejection is almost always scoped to one request/agent/background job
+// — a third-party SDK's internal promise chain (e.g. a paused/unreachable vector DB, a flaky
+// external API) rejecting somewhere we don't have a direct .catch() on. Killing the entire
+// multi-tenant server over that takes down every connected user for one degraded feature.
+// Log it with full detail so it's actually visible/fixable, but don't exit.
 process.on('unhandledRejection', (reason, promise) => {
   logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  process.exit(1);
 });
 
 // Import email routes
