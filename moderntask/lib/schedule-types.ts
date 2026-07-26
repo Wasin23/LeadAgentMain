@@ -6,10 +6,11 @@
 // the per-mailbox (50/day) limit, not by anything in this schedule.
 
 export interface SendingSchedule {
-  activeDays:     number[]  // 0=Sun … 6=Sat
-  sendTime:       string    // "HH:MM" e.g. "09:00"
-  mainPerDay:     number
-  timezone:       string
+  activeDays:            number[]  // 0=Sun … 6=Sat
+  sendTime:              string    // "HH:MM" e.g. "09:00" — center of the send window
+  sendTimeJitterMinutes?: number   // spread sends ± this many minutes around sendTime instead of firing every email at the exact same instant
+  mainPerDay:            number
+  timezone:              string
 }
 
 export interface SavedSchedule extends SendingSchedule {
@@ -67,6 +68,7 @@ export const BROWSER_TZ: string =
 export const DEFAULT_SCHEDULE: SendingSchedule = {
   activeDays: [1, 2, 3, 4, 5],
   sendTime: '09:00',
+  sendTimeJitterMinutes: 30,
   mainPerDay: 50,
   timezone: BROWSER_TZ,
 }

@@ -5,7 +5,7 @@ import api from '@/lib/api'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
-import { Plus, Pencil, Trash2, CheckCircle2, Calendar } from 'lucide-react'
+import { Plus, Pencil, Trash2, CheckCircle2, Calendar, X } from 'lucide-react'
 import { DAY_LABELS } from '@/lib/schedule-types'
 import type { SavedSchedule, SendingSchedule } from '@/lib/schedule-types'
 import { ScheduleBuilder } from './schedule-builder'
@@ -15,7 +15,7 @@ function summarize(s: SendingSchedule) {
     const [h, m] = s.sendTime.split(':').map(Number)
     const pm = h >= 12; const h12 = h % 12 || 12
     return `${h12}:${String(m).padStart(2, '0')} ${pm ? 'PM' : 'AM'}`
-  })()}`
+  })()}${s.sendTimeJitterMinutes ? ` (± ${s.sendTimeJitterMinutes}m)` : ''}`
 }
 
 // Two-step content for the "Schedule for Send" modal: land on the list of saved schedules
@@ -62,6 +62,17 @@ export function ScheduleModal({ onChanged }: { onChanged?: () => void }) {
     }
   }
 
+  const cancelSchedule = async () => {
+    try {
+      await api.put('/api/settings/sending-schedule', { schedule: null })
+      toast({ title: 'Sending schedule cancelled', duration: 2000 })
+      load()
+      onChanged?.()
+    } catch {
+      toast({ title: 'Failed to cancel schedule', variant: 'destructive', duration: 2500 })
+    }
+  }
+
   const deleteSchedule = async () => {
     if (!deleteTarget) return
     try {
@@ -94,12 +105,19 @@ export function ScheduleModal({ onChanged }: { onChanged?: () => void }) {
 
       {/* Currently live */}
       <div className="rounded-lg border border-border p-4">
-        <div className="flex items-center gap-2 mb-1">
-          <p className="text-sm font-medium text-foreground">Currently sending</p>
-          {activeSavedScheduleId && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-border text-muted-foreground">
-              {schedules.find(s => s.id === activeSavedScheduleId)?.name ?? 'Named schedule'}
-            </span>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 mb-1 min-w-0">
+            <p className="text-sm font-medium text-foreground">Currently sending</p>
+            {activeSavedScheduleId && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-border text-muted-foreground shrink-0">
+                {schedules.find(s => s.id === activeSavedScheduleId)?.name ?? 'Named schedule'}
+              </span>
+            )}
+          </div>
+          {liveSchedule && (
+            <Button size="sm" variant="ghost" className="h-7 text-xs gap-1 text-destructive hover:text-destructive shrink-0" onClick={cancelSchedule}>
+              <X className="w-3 h-3" /> Cancel schedule
+            </Button>
           )}
         </div>
         {liveSchedule ? (

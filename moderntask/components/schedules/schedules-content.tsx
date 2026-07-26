@@ -19,7 +19,7 @@ function summarize(s: SendingSchedule) {
     const [h, m] = s.sendTime.split(':').map(Number)
     const pm = h >= 12; const h12 = h % 12 || 12
     return `${h12}:${String(m).padStart(2, '0')} ${pm ? 'PM' : 'AM'}`
-  })()}`
+  })()}${s.sendTimeJitterMinutes ? ` (± ${s.sendTimeJitterMinutes}m)` : ''}`
 }
 
 export function SchedulesContent() {
@@ -152,7 +152,7 @@ export function SchedulesContent() {
 
       {showBuilder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-modal-swoop-backdrop" onClick={() => setShowBuilder(false)}>
-          <div className="w-full max-w-5xl max-h-[90vh] overflow-y-auto animate-modal-swoop-up" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-5xl max-h-[90vh] overflow-y-auto animate-modal-swoop-up [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full" onClick={e => e.stopPropagation()}>
             <div className="relative">
               <button
                 onClick={() => setShowBuilder(false)}

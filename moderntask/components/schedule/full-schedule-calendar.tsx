@@ -222,7 +222,7 @@ export function FullScheduleCalendar({ schedule, followUpSettings }: { schedule:
           ) : !dayDetail || (dayDetail.scheduled.length === 0 && dayDetail.sent.length === 0) ? (
             <p className="text-xs text-muted-foreground">Nothing {selectedDate < todayStr ? 'sent' : 'scheduled'} this day.</p>
           ) : (
-            <div className="space-y-1.5 max-h-64 overflow-y-auto">
+            <div className="space-y-1.5 max-h-64 overflow-y-auto [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full">
               {dayDetail.sent.map(item => (
                 <div key={`sent-${item.type}-${item.id}`} className="flex items-center justify-between gap-2 text-xs px-2 py-1.5 rounded-md bg-muted/40">
                   <div className="min-w-0 flex items-center gap-1.5">

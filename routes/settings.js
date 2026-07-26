@@ -407,9 +407,11 @@ function normalizeScheduleFields(body, planCap) {
   }
   const cap = planCap || 50;
   const mainPerDay = Math.min(cap, Math.max(1, parseInt(body.mainPerDay, 10) || 1));
+  const sendTimeJitterMinutes = Math.min(180, Math.max(0, parseInt(body.sendTimeJitterMinutes, 10) || 0));
   return {
     activeDays: body.activeDays,
     sendTime: body.sendTime,
+    sendTimeJitterMinutes,
     timezone: body.timezone || 'America/New_York',
     mainPerDay,
   };
@@ -544,6 +546,7 @@ router.post('/saved-schedules/:id/apply', async (req, res) => {
     userSettings.sendingSchedule = {
       activeDays: target.activeDays,
       sendTime: target.sendTime,
+      sendTimeJitterMinutes: target.sendTimeJitterMinutes,
       timezone: target.timezone,
       mainPerDay: target.mainPerDay,
     };

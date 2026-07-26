@@ -31,13 +31,31 @@ function localTimeToUTC(year, month, day, hour, minute, timezone) {
   return new Date(naive.getTime() + diffMs);
 }
 
+// Spreads a day's batch across a window around the base send time instead of firing every
+// item at the exact same instant — a bunch of emails going out at 09:00:00.000 sharp every
+// day is itself a spam signal. Items are ordered across the window by their position in the
+// day (`indexWithinDay`), plus a small extra wobble so it doesn't look like a perfectly even
+// robotic spacing either. Clamped to the same calendar day (never spills into the next/prior
+// day's window).
+function applyJitter(hour, minute, jitterMinutes, indexWithinDay, limit) {
+  if (!jitterMinutes) return { hour, minute };
+  const fraction = limit > 1 ? indexWithinDay / (limit - 1) : 0.5; // 0..1 across the day's batch
+  const spread = (fraction - 0.5) * 2 * jitterMinutes; // -jitter..+jitter, ordered by position
+  const wobble = (Math.random() - 0.5) * (jitterMinutes / Math.max(1, limit));
+  const totalMinutes = Math.max(0, Math.min(1439, hour * 60 + minute + Math.round(spread + wobble)));
+  return { hour: Math.floor(totalMinutes / 60), minute: totalMinutes % 60 };
+}
+
 // `schedule` here is the generic per-type shape: { activeDays, sendTime, timezone, dailyLimit }
 export function computeSlotDate(index, schedule) {
-  const { activeDays, sendTime, dailyLimit, timezone } = schedule;
+  const { activeDays, sendTime, dailyLimit, timezone, sendTimeJitterMinutes } = schedule;
   const tz = timezone || 'America/New_York';
   const limit = Math.max(1, dailyLimit || 50);
   const targetSlot = Math.floor(index / limit);
-  const [scheduleHour, scheduleMinute] = (sendTime || '09:00').split(':').map(Number);
+  const indexWithinDay = index % limit;
+  const jitterMinutes = Math.max(0, Math.min(180, sendTimeJitterMinutes || 0));
+  const [baseHour, baseMinute] = (sendTime || '09:00').split(':').map(Number);
+  const { hour: scheduleHour, minute: scheduleMinute } = applyJitter(baseHour, baseMinute, jitterMinutes, indexWithinDay, limit);
 
   const now = new Date();
   const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(now);
@@ -51,7 +69,11 @@ export function computeSlotDate(index, schedule) {
   }).formatToParts(now);
   const nowHour = parseInt(nowParts.find(part => part.type === 'hour')?.value || '0', 10);
   const nowMinute = parseInt(nowParts.find(part => part.type === 'minute')?.value || '0', 10);
-  const startOffset = ((nowHour === 24 ? 0 : nowHour) * 60 + nowMinute) >= (scheduleHour * 60 + scheduleMinute) ? 1 : 0;
+  // Decided off the BASE (non-jittered) time, not this item's own jittered instant — every
+  // item sharing a targetSlot must agree on which calendar day that is, and a per-item jitter
+  // roll could otherwise push some items over the "has today's window passed" line and not
+  // others, splitting one slot across two different days.
+  const startOffset = ((nowHour === 24 ? 0 : nowHour) * 60 + nowMinute) >= (baseHour * 60 + baseMinute) ? 1 : 0;
 
   const weekdayMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
   let slotsFound = 0;
