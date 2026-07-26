@@ -102,7 +102,7 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
         onClick={() => setShowScheduleCard(true)}
         className="flex items-center justify-center gap-2 w-full h-10 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-semibold transition-colors shrink-0"
       >
-        <CalendarClock className="w-4 h-4" /> Schedule for Send
+        <CalendarClock className="w-4 h-4" /> Outreach Scheduler
       </button>
 
       <div className="mt-2.5 flex items-center justify-between gap-1.5">

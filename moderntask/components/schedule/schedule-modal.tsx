@@ -100,7 +100,7 @@ export function ScheduleModal({ onChanged }: { onChanged?: () => void }) {
     <Card className="p-6 w-full space-y-5">
       <div className="flex items-center gap-2">
         <Calendar className="w-5 h-5 text-primary" />
-        <h2 className="text-lg font-semibold">Schedule for Send</h2>
+        <h2 className="text-lg font-semibold">Outreach Scheduler</h2>
       </div>
 
       {/* Currently live */}
