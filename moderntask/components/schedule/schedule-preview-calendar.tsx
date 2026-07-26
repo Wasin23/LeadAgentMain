@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import api from '@/lib/api'
 import { cn } from '@/lib/utils'
-import type { SendingSchedule, SchedulePreviewDay } from '@/lib/schedule-types'
+import type { SendingSchedule, SchedulePreviewDay, FollowUpSettings } from '@/lib/schedule-types'
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -12,10 +12,13 @@ const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 // /schedule-preview (the same allocator the real scheduler uses). Every cell shows a
 // visible capacity track for each type even at 0 count, so a day with follow-up room but
 // nothing queued yet still reads as "follow-ups can land here" instead of looking blank.
-export function SchedulePreviewCalendar({ schedule, days = 30, highlightDate }: {
+// `followUpSettings`, if passed, previews an UNSAVED draft (e.g. while the interval/max-per-
+// lead inputs are being edited in the builder) — omit it to preview the account's live settings.
+export function SchedulePreviewCalendar({ schedule, days = 30, highlightDate, followUpSettings }: {
   schedule: SendingSchedule | null
   days?: number
   highlightDate?: string | null
+  followUpSettings?: FollowUpSettings
 }) {
   const [preview, setPreview] = useState<SchedulePreviewDay[]>([])
   const [counts, setCounts] = useState<{ mainQueueCount: number } | null>(null)
@@ -27,7 +30,11 @@ export function SchedulePreviewCalendar({ schedule, days = 30, highlightDate }: 
     const t = setTimeout(() => {
       setLoading(true)
       api.get('/api/email-queue/schedule-preview', {
-        params: { schedule: JSON.stringify(schedule), days },
+        params: {
+          schedule: JSON.stringify(schedule),
+          days,
+          ...(followUpSettings ? { followUpSettings: JSON.stringify(followUpSettings) } : {}),
+        },
       }).then(r => {
         if (r.data.success) {
           setPreview(r.data.preview ?? [])
@@ -37,7 +44,7 @@ export function SchedulePreviewCalendar({ schedule, days = 30, highlightDate }: 
       }).catch(() => {}).finally(() => setLoading(false))
     }, 350)
     return () => clearTimeout(t)
-  }, [JSON.stringify(schedule), days])
+  }, [JSON.stringify(schedule), days, JSON.stringify(followUpSettings)])
 
   if (!schedule?.activeDays?.length) {
     return <p className="text-sm text-muted-foreground py-2">Set active days and a send time to preview.</p>
@@ -75,9 +82,12 @@ export function SchedulePreviewCalendar({ schedule, days = 30, highlightDate }: 
           const dayNum = dateObj.getUTCDate()
           const isFirstOfMonth = dayNum === 1
 
-          const maxCap = Math.max(1, d.mainCap, d.followUpCap)
-          const mainPct = d.mainCap ? Math.min(100, Math.round((d.mainCount / maxCap) * 100)) : 0
-          const followUpPct = d.followUpCap ? Math.min(100, Math.round((d.followUpCount / maxCap) * 100)) : 0
+          // Each bar scales against its OWN cap, not a shared max — main is bounded by the
+          // plan's total daily send limit, follow-ups by mailbox capacity, and those two
+          // numbers can be very different sizes. Sharing one scale made the main bar look
+          // artificially short whenever follow-up capacity outsized it.
+          const mainPct = d.mainCap ? Math.min(100, Math.round((d.mainCount / d.mainCap) * 100)) : 0
+          const followUpPct = d.followUpCap ? Math.min(100, Math.round((d.followUpCount / d.followUpCap) * 100)) : 0
 
           return (
             <div

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { ChevronLeft, ChevronRight, CalendarClock, X, ArrowUpRight } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ScheduleBuilder } from "@/components/schedule/schedule-builder"
+import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock"
 import { cn } from "@/lib/utils"
 import api from "@/lib/api"
 import type { SchedulePreviewDay } from "@/lib/schedule-types"
@@ -45,6 +46,7 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
   // Sending schedule is global (one per account), so "Schedule emails" opens the
   // Sending Schedule card directly — no per-agent picker step needed anymore.
   const [showScheduleCard, setShowScheduleCard] = useState(false)
+  useBodyScrollLock(showScheduleCard)
   const [preview, setPreview] = useState<SchedulePreviewDay[]>([])
 
   // The preview endpoint is relative to "today" (it's simulating the live queue draining
@@ -115,6 +117,12 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
       <div className="mt-2 flex items-center gap-3 px-0.5 text-[9px] text-muted-foreground">
         <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm bg-primary/70" /> Main</span>
         <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-sm bg-emerald-500/70" /> Follow-ups</span>
+        <button
+          onClick={() => setShowScheduleCard(true)}
+          className="ml-auto flex items-center gap-1 text-[10px] font-medium text-primary hover:underline"
+        >
+          <CalendarClock className="w-2.5 h-2.5" /> Schedule for Send
+        </button>
       </div>
 
       <div className="mt-1.5 grid grid-cols-7 gap-px text-center text-[10px] font-bold text-foreground">
@@ -129,9 +137,11 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
           const day = previewByDay[key]
           const hasPreview = !!day
           const fallbackActivity = !hasPreview && hasActivityByDay.has(key)
-          const maxCap = Math.max(1, day?.mainCap || 0, day?.followUpCap || 0)
-          const mainPct = day?.active && day.mainCap ? Math.min(100, Math.round((day.mainCount / maxCap) * 100)) : 0
-          const followUpPct = day?.active && day.followUpCap ? Math.min(100, Math.round((day.followUpCount / maxCap) * 100)) : 0
+          // Each bar scales against its own cap (main = plan's daily send limit, follow-up =
+          // mailbox capacity) — sharing one scale made the main bar look artificially short
+          // whenever follow-up capacity outsized it.
+          const mainPct = day?.active && day.mainCap ? Math.min(100, Math.round((day.mainCount / day.mainCap) * 100)) : 0
+          const followUpPct = day?.active && day.followUpCap ? Math.min(100, Math.round((day.followUpCount / day.followUpCap) * 100)) : 0
 
           return (
             <Popover key={key} open={openDay === key} onOpenChange={(o) => setOpenDay(o ? key : null)}>

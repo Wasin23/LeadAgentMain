@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import api from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { ChevronLeft, ChevronRight, X, Clock, Mail, Sparkles } from 'lucide-react'
-import type { SendingSchedule } from '@/lib/schedule-types'
+import type { SendingSchedule, FollowUpSettings } from '@/lib/schedule-types'
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -34,7 +34,9 @@ interface DayItem {
 // the plain 30-day preview). Clicking any day opens a drill-down panel listing that day's
 // items, where a scheduled (not-yet-sent) item can be canceled or moved to a different date —
 // which then feeds back into the prediction for every later day.
-export function FullScheduleCalendar({ schedule }: { schedule: SendingSchedule }) {
+// `followUpSettings`, if passed, previews an UNSAVED draft (e.g. while the interval/max-per-
+// lead inputs are being edited in the builder) — omit it to preview the account's live settings.
+export function FullScheduleCalendar({ schedule, followUpSettings }: { schedule: SendingSchedule; followUpSettings?: FollowUpSettings }) {
   const [monthOffset, setMonthOffset] = useState(0)
   const [cells, setCells] = useState<DayCell[]>([])
   const [loading, setLoading] = useState(false)
@@ -59,7 +61,13 @@ export function FullScheduleCalendar({ schedule }: { schedule: SendingSchedule }
     try {
       const [historyRes, previewRes] = await Promise.all([
         api.get('/api/email-queue/month-activity', { params: { year, month } }),
-        api.get('/api/email-queue/schedule-preview', { params: { schedule: JSON.stringify(schedule), days: 60 } }).catch(() => null),
+        api.get('/api/email-queue/schedule-preview', {
+          params: {
+            schedule: JSON.stringify(schedule),
+            days: 60,
+            ...(followUpSettings ? { followUpSettings: JSON.stringify(followUpSettings) } : {}),
+          },
+        }).catch(() => null),
       ])
 
       const history: Record<string, { mainSentCount: number; followUpSentCount: number }> = {}
@@ -82,7 +90,7 @@ export function FullScheduleCalendar({ schedule }: { schedule: SendingSchedule }
       setCells(built)
     } catch { /* silent */ }
     setLoading(false)
-  }, [year, month, JSON.stringify(schedule), todayStr])
+  }, [year, month, JSON.stringify(schedule), JSON.stringify(followUpSettings), todayStr])
 
   useEffect(() => { load() }, [load])
 
@@ -151,9 +159,14 @@ export function FullScheduleCalendar({ schedule }: { schedule: SendingSchedule }
       <div className="grid grid-cols-7 gap-1.5">
         {gridCells.map((d, i) => {
           if (!d) return <div key={`blank-${i}`} />
-          const maxCap = Math.max(1, d.mainCap, d.followUpCap, d.mainCount, d.followUpCount)
-          const mainPct = Math.min(100, Math.round((d.mainCount / maxCap) * 100))
-          const followUpPct = Math.min(100, Math.round((d.followUpCount / maxCap) * 100))
+          // Each bar scales against its own max, not a shared one — for history days that
+          // max is the actual count itself (nothing else to compare against); for predicted
+          // days it's the real cap (mainCap = plan's daily limit, followUpCap = mailbox
+          // capacity), which can be a very different size from the other bar's cap.
+          const mainMax = d.isPast ? Math.max(1, d.mainCount) : Math.max(1, d.mainCap)
+          const followUpMax = d.isPast ? Math.max(1, d.followUpCount) : Math.max(1, d.followUpCap)
+          const mainPct = Math.min(100, Math.round((d.mainCount / mainMax) * 100))
+          const followUpPct = Math.min(100, Math.round((d.followUpCount / followUpMax) * 100))
           const dateObj = new Date(d.date + 'T12:00:00Z')
           const dayNum = dateObj.getUTCDate()
           const hasAny = d.mainCount > 0 || d.followUpCount > 0 || d.mainCap > 0 || d.followUpCap > 0

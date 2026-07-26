@@ -313,9 +313,9 @@ export function ScheduleBuilder({ editing, applyOnSave = true, onSaved, onCancel
             </button>
           </div>
           {showFullCalendar ? (
-            <FullScheduleCalendar schedule={draftSchedule} />
+            <FullScheduleCalendar schedule={draftSchedule} followUpSettings={followUp} />
           ) : (
-            <SchedulePreviewCalendar schedule={draftSchedule} days={30} />
+            <SchedulePreviewCalendar schedule={draftSchedule} days={30} followUpSettings={followUp} />
           )}
         </div>
 

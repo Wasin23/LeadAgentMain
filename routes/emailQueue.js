@@ -1452,6 +1452,8 @@ router.get('/daily-cap-status', async (req, res) => {
 // GET /schedule-preview — "what will the next N days actually look like" for the schedule
 // builder and the calendar overview. Pass `schedule` as a query param (JSON-encoded) to
 // preview a draft that hasn't been saved yet; omit it to preview the account's live schedule.
+// Same for `followUpSettings` (JSON-encoded) — lets the schedule builder preview interval/max
+// per-lead edits live, before they're actually saved.
 router.get('/schedule-preview', async (req, res) => {
   try {
     const userId = req.user.userId;
@@ -1477,13 +1479,16 @@ router.get('/schedule-preview', async (req, res) => {
     // Follow-ups are predicted from main volume now, not a separate configured backlog —
     // fetch the global cadence settings and per-mailbox capacity that drive the projection.
     const userSettingsForFollowUp = await awsManager.getUserSettings(userId).catch(() => null);
-    const followUpSettings = {
+    let followUpSettings = {
       enabled: true,
       intervalDays: 7,
       maxRebumps: 1,
       smartRebump: false,
       ...(userSettingsForFollowUp?.followUpSettings || {}),
     };
+    if (req.query.followUpSettings) {
+      try { followUpSettings = { ...followUpSettings, ...JSON.parse(req.query.followUpSettings) }; } catch { /* fall through to saved settings */ }
+    }
     const numSendingAccounts = (userSettingsForFollowUp?.gmailAccounts?.length || 0) + (userSettingsForFollowUp?.outlookAccounts?.length || 0);
     const { PER_ACCOUNT_DAILY_CAP, getPlanDailyCap } = await import('../utils/dailySendCaps.js');
     const followUpCapacityPerDay = Math.max(1, numSendingAccounts) * PER_ACCOUNT_DAILY_CAP;

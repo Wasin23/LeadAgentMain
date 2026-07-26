@@ -12,6 +12,7 @@ import { DAY_LABELS } from '@/lib/schedule-types'
 import type { SavedSchedule, SendingSchedule } from '@/lib/schedule-types'
 import { ScheduleBuilder } from '@/components/schedule/schedule-builder'
 import { SchedulePreviewCalendar } from '@/components/schedule/schedule-preview-calendar'
+import { useBodyScrollLock } from '@/hooks/use-body-scroll-lock'
 
 function summarize(s: SendingSchedule) {
   return `${s.mainPerDay}/day · ${s.activeDays.map(d => DAY_LABELS[d]).join(', ')} · ${(() => {
@@ -34,6 +35,7 @@ export function SchedulesContent() {
   const [editing, setEditing] = useState<SavedSchedule | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<SavedSchedule | null>(null)
   const [applyingId, setApplyingId] = useState<string | null>(null)
+  useBodyScrollLock(showBuilder || !!deleteTarget)
 
   const load = useCallback(() => {
     setLoading(true)

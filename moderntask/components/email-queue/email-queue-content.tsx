@@ -13,7 +13,7 @@ import {
   Clock, RefreshCw, Bot, Building2,
   Inbox, Pencil, ZoomIn, ZoomOut, Wand2,
   CheckSquare, Square, ChevronsLeft, ChevronLeft,
-  ChevronRight, ChevronsRight, X, CalendarClock, Calendar,
+  ChevronRight, ChevronsRight, X, CalendarClock,
   Settings2, Save, Search, FileText, ExternalLink,
   MoreHorizontal, Wrench, Loader2, Sparkles, Trash2, ListChecks,
   ArrowLeftRight, Mail, ChevronDown, Info,
@@ -21,7 +21,6 @@ import {
 import { cn } from '@/lib/utils'
 import { CopyChip } from '@/components/leads/leads-content'
 import { GmailIcon, OutlookIcon } from '@/components/ui/provider-icons'
-import { ScheduleBuilder } from '@/components/schedule/schedule-builder'
 import { DAY_LABELS, TIMEZONES, BROWSER_TZ, DEFAULT_SCHEDULE } from '@/lib/schedule-types'
 import type { SendingSchedule } from '@/lib/schedule-types'
 
@@ -1871,9 +1870,7 @@ export function EmailQueueContent() {
   const [selectedAgent, setSelectedAgent] = useState('all')
   const [queuedCount, setQueuedCount]     = useState(0)
   const [fontSize, setFontSize]           = useState(12)
-  const [showSchedule, setShowSchedule]   = useState(false)
   const [savedSchedule, setSavedSchedule] = useState<SendingSchedule | null>(null)
-  const [activeScheduleName, setActiveScheduleName] = useState<string | null>(null)
   const [showBatchesModal, setShowBatchesModal] = useState(false)
   const [batchCount, setBatchCount]             = useState(0)
   const [capBump, setCapBump]                   = useState(0)
@@ -1885,23 +1882,12 @@ export function EmailQueueContent() {
   const cancelSchedule = async () => {
     await api.put('/api/settings/sending-schedule', { schedule: null }).catch(() => {})
     setSavedSchedule(null)
-    setActiveScheduleName(null)
     toast({ title: 'Sending schedule cancelled', duration: 2000 })
   }
 
   const refreshBatchCount = useCallback(() => {
     api.get('/api/email-queue/scheduled-batches').then(r => {
       setBatchCount((r.data.batches ?? []).length)
-    }).catch(() => {})
-  }, [])
-
-  // Which saved schedule (if any) is currently live — shown on the "Schedule for Send"
-  // button so it's obvious which named config is actually running.
-  const refreshActiveScheduleName = useCallback(() => {
-    api.get('/api/settings/saved-schedules').then(r => {
-      const activeId = r.data?.activeSavedScheduleId
-      const match = (r.data?.schedules ?? []).find((s: { id: string }) => s.id === activeId)
-      setActiveScheduleName(match?.name ?? null)
     }).catch(() => {})
   }, [])
 
@@ -1912,7 +1898,6 @@ export function EmailQueueContent() {
     api.get('/api/settings/sending-schedule').then(r => {
       setSavedSchedule(r.data?.schedule ?? null)
     }).catch(() => {})
-    refreshActiveScheduleName()
     refreshBatchCount()
   }, [])
 
@@ -1972,35 +1957,11 @@ export function EmailQueueContent() {
                 {batchCount} active schedule{batchCount !== 1 ? 's' : ''} planned
               </button>
             )}
-            <button
-              onClick={() => setShowSchedule(s => !s)}
-              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-primary hover:bg-primary/90 text-primary-foreground font-medium transition-colors"
-              title={activeScheduleName ? `Currently applied: ${activeScheduleName}` : undefined}
-            >
-              <Calendar className="w-3.5 h-3.5" />
-              {activeScheduleName ? `Schedule: ${activeScheduleName}` : 'Schedule for Send'}
-            </button>
           </div>
         </div>
 
         <DailyCapWidget bump={capBump} />
 
-        {showSchedule && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-modal-swoop-backdrop" onClick={() => setShowSchedule(false)}>
-            <div className="w-full max-w-5xl max-h-[90vh] overflow-y-auto animate-modal-swoop-up" onClick={e => e.stopPropagation()}>
-              <div className="relative">
-                <button
-                  onClick={() => setShowSchedule(false)}
-                  className="absolute right-3 top-3 z-10 rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                  title="Close"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-                <ScheduleBuilder onSaved={s => { setSavedSchedule(s); refreshActiveScheduleName(); refreshBatchCount(); setShowSchedule(false) }} />
-              </div>
-            </div>
-          </div>
-        )}
         <QueuedList
           agentId={selectedAgent}
           agentMap={agentMap}
