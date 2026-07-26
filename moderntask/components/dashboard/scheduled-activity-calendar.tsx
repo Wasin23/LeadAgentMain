@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { ChevronLeft, ChevronRight, CalendarClock, X, ArrowUpRight } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { ScheduleBuilder } from "@/components/schedule/schedule-builder"
+import { ScheduleModal } from "@/components/schedule/schedule-modal"
 import { useBodyScrollLock } from "@/hooks/use-body-scroll-lock"
 import { cn } from "@/lib/utils"
 import api from "@/lib/api"
@@ -211,7 +211,8 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
         })}
       </div>
 
-      {/* Sending Schedule modal - the same global schedule builder used in Outreach */}
+      {/* Sending Schedule modal - lands on the saved-schedules list first, only dropping
+          into the full builder form when you choose to create or edit one */}
       {showScheduleCard && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-modal-swoop-backdrop" onClick={() => setShowScheduleCard(false)}>
           <div className="w-full max-w-5xl max-h-[90vh] overflow-y-auto animate-modal-swoop-up" onClick={e => e.stopPropagation()}>
@@ -223,9 +224,7 @@ export function ScheduledActivityCalendar({ batches = [], followUps = [], onChan
               >
                 <X className="h-4 w-4" />
               </button>
-              <ScheduleBuilder
-                onSaved={() => { setShowScheduleCard(false); loadPreview(); onChanged?.() }}
-              />
+              <ScheduleModal onChanged={() => { loadPreview(); onChanged?.() }} />
             </div>
           </div>
         </div>
