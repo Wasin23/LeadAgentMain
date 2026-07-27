@@ -94,9 +94,13 @@ function ProspectingPageInner() {
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
-      <main className="@container flex-1 p-4 lg:p-6 lg:ml-64">
+      <main className="flex-1 p-4 lg:p-6 lg:ml-64">
         <Header />
 
+        {/* @container scoped to below the header, not <main> itself — container-type
+            establishes CSS containment, which (like a lingering transform) silently breaks
+            position:sticky for descendants. Header's sticky bar must stay outside it. */}
+        <div className="@container">
         <div className="mb-5 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
           <button
@@ -152,6 +156,7 @@ function ProspectingPageInner() {
               </TabsContent>
             </Tabs>
           )}
+        </div>
         </div>
       </main>
     </div>

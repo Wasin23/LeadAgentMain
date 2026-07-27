@@ -315,7 +315,7 @@ export default function DashboardPage() {
         <Sidebar />
       </div>
 
-      <main className="@container flex-1 p-3 md:p-4 lg:p-5 lg:ml-64">
+      <main className="flex-1 p-3 md:p-4 lg:p-5 lg:ml-64">
         <Header
           notificationCount={notifCount}
           userName={userName}
@@ -323,7 +323,10 @@ export default function DashboardPage() {
           userPicture={userPicture}
         />
 
-        <div className="space-y-3 md:space-y-4">
+        {/* @container scoped to below the header, not <main> itself — container-type
+            establishes CSS containment, which (like a lingering transform) silently breaks
+            position:sticky for descendants. Header's sticky bar must stay outside it. */}
+        <div className="@container space-y-3 md:space-y-4">
           {/* Welcome message + actions, same line */}
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <WelcomeMessage name={userName?.split(" ")[0]} />
