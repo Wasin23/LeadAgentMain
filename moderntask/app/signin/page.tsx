@@ -372,8 +372,8 @@ export default function SignInPage() {
               <TabsContent value="signin">
                 <form onSubmit={handleSignIn} className="space-y-3">
                   <div className="space-y-1.5">
-                    <Label htmlFor="si-email">Email</Label>
-                    <Input id="si-email" type="email" required placeholder="you@example.com"
+                    <Label htmlFor="si-email">Username or Email</Label>
+                    <Input id="si-email" type="text" required placeholder="you@example.com or username"
                       value={signInForm.username}
                       onChange={(e) => setSignInForm({ ...signInForm, username: e.target.value })}
                     />

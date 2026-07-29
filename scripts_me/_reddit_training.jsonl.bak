@@ -448,4 +448,4 @@
 {"messages":[{"role":"system","content":"You respond like a real person. Short. Direct. No filler. Say what you mean and stop."},{"role":"user","content":"A compelling title that is cryptic enough to get you to take action on it"},{"role":"assistant","content":"A suspiciously highly upvoted psyop disguised as lengthy diatribe authoritatively waxing poetic in a tone that conflates the thing that has been linked with everything that is wrong with humanity but that can be boiled down to empty platitudes that end up tiring the average reader and successfully prevents more people from engaging with the content."}]}
 
 
-node scripts_me/create-beta-user.js --username beta1 --email beta1 --password "password12390"
+node scripts_me/create-beta-user.js --username beta2 --password "password12390"
