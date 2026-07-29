@@ -2514,9 +2514,14 @@ Respond in JSON:
    * Uses research data + campaign plan for fast filtering (saves money on email unlock)
    */
   async preQualifyLead(parameters) {
-    // Get data from current cycle state
-    const leadData = this.memory.currentCycle.currentLead;
-    const researchData = this.memory.lastResearch;
+    // The sequential (LLM tool-call) path reads from single-slot cycle memory, as before.
+    // The concurrent pipeline (processLeadPipeline) passes leadData/researchData explicitly
+    // instead — several leads are in flight at once there, and reading from shared
+    // this.memory.currentCycle.currentLead / this.memory.lastResearch would race across
+    // workers (each `await` yields, and another worker's lead could overwrite that shared
+    // slot before this one reads it).
+    const leadData = parameters?.leadData || this.memory.currentCycle.currentLead;
+    const researchData = parameters?.researchData || this.memory.lastResearch;
 
     const personName = leadData?.name || 'Unknown';
     const companyName = leadData?.organization?.name || leadData?.company || 'Unknown Company';
@@ -8458,6 +8463,23 @@ Target Positions:`;
           crmSync: { status: 'failed', action: 'research_failed', message: 'Research returned no usable data' }
         });
         return { success: false, leadName, company: companyName };
+      }
+
+      // 1.2 ─ Pre-qualify (cheap check before the more expensive qualify+email steps below)
+      // — mirrors the sequential pipeline's phase machine, which only runs this when the
+      // campaign has actual criteria to check against. leadData/researchData are passed
+      // explicitly (not read from shared cycle memory) since several leads run this
+      // concurrently and shared single-slot memory would race across workers.
+      if (this.campaignPlan?.qualificationCriteria) {
+        const preQual = await this.preQualifyLead({ leadData: lead, researchData: research });
+        if (preQual?.success && preQual.recommendation === 'SKIP') {
+          this.logOperation('⏭️ Pre-Qualify Rejected', `Skipping ${leadName} at ${companyName} — ${preQual.reason || 'no fit signal'}`, 'info');
+          this._rotateKeywordOnDisq();
+          await this._markAuditorContactComplete(lead, {
+            crmSync: { status: 'skipped', action: 'pre_qualification_rejected', message: preQual.reason || 'Lead did not pass pre-qualification' }
+          });
+          return { success: false, leadName, company: companyName, rejected: true };
+        }
       }
 
       // 1.5 ─ Qualification / AI report

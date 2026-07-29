@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Play, Square, RefreshCw, Settings2, Clock, User, Building2,
   Eye, CheckCircle2, Mail, AlertTriangle, X, Check, Search, Pencil,
-  Pause, MessageSquare, Filter, Send, BarChart2, Zap, ChevronLeft,
+  MessageSquare, Filter, Send, BarChart2, Zap, ChevronLeft,
   ChevronRight, Trash2, Plus, RotateCcw, ExternalLink, ChevronDown
 } from 'lucide-react';
 import api from '@/lib/api';
@@ -485,14 +485,6 @@ export default function AgentDashboardPage({ params }: { params: Promise<{ agent
     setEditedBcc(email.bcc || email.emailData?.bcc || '');
   };
 
-  const toggleAIResponse = async (trackingId: string, enabled: boolean) => {
-    setAiResponseControl(prev => ({ ...prev, [trackingId]: !enabled }));
-    try {
-      await api.post('/api/outreach/control-ai', { trackingId, enabled: !enabled, agentId });
-      await fetchAgentOutreach();
-    } catch { setAiResponseControl(prev => ({ ...prev, [trackingId]: enabled })); showNotification('Failed to toggle AI response', 'error'); }
-  };
-
   const sendManualReply = async () => {
     if (!manualReplyMessage.trim() || !selectedConversation) return;
     setIsSendingManualReply(true);
@@ -782,13 +774,6 @@ export default function AgentDashboardPage({ params }: { params: Promise<{ agent
                   <CardHeader><CardTitle className="text-base">Auto-Response Settings</CardTitle></CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <div><Label>AI Auto-Response</Label><p className="text-xs text-muted-foreground mt-0.5">Automatically reply to leads with AI</p></div>
-                      <Switch checked={outreachSettings.aiResponseEnabled} onCheckedChange={async (v) => {
-                        setOutreachSettings((p: any) => ({ ...p, aiResponseEnabled: v }));
-                        try { const r = await api.get(`/api/lead-agent/settings?agentId=${agentId}`); const s = r.data.settings || {}; await api.post('/api/lead-agent/settings', { ...s, agentId, emailBuilder: { ...(s.emailBuilder || {}), enableAutoResponse: v } }); } catch { showNotification('Failed to save', 'error'); }
-                      }} />
-                    </div>
-                    <div className="flex items-center justify-between">
                       <div><Label>Auto Follow-up (Rebump)</Label><p className="text-xs text-muted-foreground mt-0.5">Send follow-up emails to non-responders</p></div>
                       <Switch checked={outreachSettings.rebumpEnabled} onCheckedChange={async (v) => {
                         setOutreachSettings((p: any) => ({ ...p, rebumpEnabled: v }));
@@ -836,13 +821,6 @@ export default function AgentDashboardPage({ params }: { params: Promise<{ agent
                       </Button>
                       <Button variant="ghost" size="icon" onClick={() => setSelectedConversation(null)}><X className="h-5 w-5" /></Button>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                    <div className={cn('w-2 h-2 rounded-full', aiResponseControl[selectedConversation.trackingId] === false ? 'bg-red-500 animate-pulse' : 'bg-green-500')} />
-                    <span className="text-sm font-medium text-foreground flex-1">AI Auto-Response: {aiResponseControl[selectedConversation.trackingId] === false ? 'Paused' : 'Active'}</span>
-                    <Button size="sm" variant={aiResponseControl[selectedConversation.trackingId] === false ? 'default' : 'destructive'} onClick={() => toggleAIResponse(selectedConversation.trackingId, aiResponseControl[selectedConversation.trackingId] !== false)}>
-                      {aiResponseControl[selectedConversation.trackingId] === false ? <><Play className="h-3.5 w-3.5 mr-1" />Enable AI</> : <><Pause className="h-3.5 w-3.5 mr-1" />Pause AI</>}
-                    </Button>
                   </div>
                 </div>
                 <div className="flex-1 overflow-y-auto p-5 space-y-3 bg-muted/20">

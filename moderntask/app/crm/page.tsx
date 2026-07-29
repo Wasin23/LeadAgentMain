@@ -4,10 +4,10 @@ import { CRMContent } from "@/components/crm/crm-content"
 
 export default function CRMPage() {
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar />
 
-      <main className="flex-1 p-4 lg:p-6 lg:ml-64">
+      <main className="flex-1 p-4 lg:p-6 lg:ml-64 overflow-y-auto">
         <Header
           title="CRM"
           description="Import contacts from your connected CRM and assign them to an agent."

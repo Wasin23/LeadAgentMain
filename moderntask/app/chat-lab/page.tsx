@@ -4,7 +4,7 @@ import { ChatLabContent } from "@/components/chat-lab/chat-lab-content"
 
 export default function ChatLabPage() {
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar />
       <main className="flex-1 lg:ml-64 flex flex-col h-screen overflow-hidden">
         <div className="p-4 lg:p-6 pb-0">

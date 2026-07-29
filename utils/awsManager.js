@@ -187,6 +187,23 @@ class AWSManager {
         maxStarredLeads: 999,
         maxSendingAddresses: 999,
         description: 'Internal developer account — all limits lifted'
+      },
+      // Admin-assigned only — not offered at signup or in the billing upgrade picker (same
+      // pattern as 'developer'). Full Team-tier access so testers actually exercise real
+      // volume, at no charge. Created via scripts_me/create-beta-user.js.
+      'beta': {
+        name: 'Beta Tester',
+        initialCredits: 2100,
+        maxCredits: 30000,
+        canPurchaseMore: false,
+        creditPackages: [],
+        maxAgents: 6,
+        maxConcurrency: 8,
+        maxStarredLeads: 50,
+        leadAllowance: 2000,
+        emailAllowance: 8000,
+        maxSendingAddresses: 6,
+        description: 'Beta tester account — Team-tier access, free for the duration of the beta program'
       }
     };
     
@@ -3958,6 +3975,32 @@ class AWSManager {
       return { success: true, userId, email: user.email, plan: 'developer', credits: plan.initialCredits };
     } catch (err) {
       console.error('[DEVELOPER] Upgrade failed:', err);
+      throw err;
+    }
+  }
+
+  async upgradeUserToBeta(userId) {
+    try {
+      const user = await this.getUserById(userId);
+      if (!user) throw new Error(`User ${userId} not found`);
+
+      const plan = this.plans['beta'];
+      await this.updateUser(userId, {
+        plan: 'beta',
+        creditBalance: plan.initialCredits,
+        trialCreditsLimit: plan.initialCredits,
+        trialCreditsUsed: 0,
+        maxCredits: plan.maxCredits,
+        maxAgents: plan.maxAgents,
+        maxConcurrency: plan.maxConcurrency,
+        trialEligible: true,
+        planUpdatedAt: new Date().toISOString()
+      });
+
+      console.log(`[BETA] Upgraded ${user.email || userId} to Beta plan (${plan.initialCredits} credits)`);
+      return { success: true, userId, email: user.email, plan: 'beta', credits: plan.initialCredits };
+    } catch (err) {
+      console.error('[BETA] Upgrade failed:', err);
       throw err;
     }
   }

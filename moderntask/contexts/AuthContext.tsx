@@ -53,8 +53,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return true
       }
       return false
-    } catch {
-      return false
+    } catch (err: any) {
+      throw new Error(err?.response?.data?.error || 'Network error. Please try again.')
     }
   }
 
@@ -70,8 +70,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return true
       }
       return false
-    } catch {
-      return false
+    } catch (err: any) {
+      throw new Error(err?.response?.data?.error || 'Network error. Please try again.')
     }
   }
 

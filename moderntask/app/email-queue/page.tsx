@@ -4,9 +4,9 @@ import { EmailQueueContent } from "@/components/email-queue/email-queue-content"
 
 export default function EmailQueuePage() {
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar />
-      <main className="flex-1 p-4 lg:p-6 lg:ml-64">
+      <main className="flex-1 p-4 lg:p-6 lg:ml-64 overflow-y-auto">
         <Header
           title="Email Queue"
           description="Review, approve, and track your outreach emails."

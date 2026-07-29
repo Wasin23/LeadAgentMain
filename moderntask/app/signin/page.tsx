@@ -119,8 +119,8 @@ export default function SignInPage() {
       } else {
         setError('Invalid username or password')
       }
-    } catch {
-      setError('Network error. Please try again.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Network error. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -146,8 +146,8 @@ export default function SignInPage() {
       } else {
         setError('Registration failed. Username or email may already exist.')
       }
-    } catch {
-      setError('Network error. Please try again.')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Network error. Please try again.')
     } finally {
       setIsLoading(false)
     }

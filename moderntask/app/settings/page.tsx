@@ -5,10 +5,10 @@ import { SettingsContent } from "@/components/settings/settings-content"
 
 export default function SettingsPage() {
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex h-screen bg-background overflow-hidden">
       <Sidebar />
 
-      <main className="flex-1 p-4 lg:p-6 lg:ml-64">
+      <main className="flex-1 p-4 lg:p-6 lg:ml-64 overflow-y-auto">
         <Header title="Settings" description="Manage your account preferences and integrations." />
 
         <div className="mt-6">
