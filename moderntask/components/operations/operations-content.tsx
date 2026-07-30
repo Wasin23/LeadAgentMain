@@ -79,6 +79,26 @@ interface PlanStatus {
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────
+
+// Namespaced by userId (read from the same 'currentUser' record AuthContext writes on
+// login) so logs never leak across accounts on a shared browser/machine.
+function activityLogsStorageKey(): string | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem('currentUser')
+    const userId = raw ? JSON.parse(raw)?.userId : null
+    return userId ? `meridian_operations_logs_${userId}` : null
+  } catch { return null }
+}
+function loadStoredActivityLogs(): ActivityLog[] {
+  const key = activityLogsStorageKey()
+  if (!key) return []
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? JSON.parse(raw) : []
+  } catch { return [] }
+}
+
 const EMOJI_RE = /[\u{1F000}-\u{1FFFF}\u{2300}-\u{27BF}\u{2B00}-\u{2BFF}\uFE0F]/gu
 function stripEmoji(s: string) { return s.replace(EMOJI_RE, '').replace(/\s{2,}/g, ' ').trim() }
 
@@ -230,7 +250,7 @@ export function OperationsContent() {
 
   const [agents, setAgents] = useState<Agent[]>([])
   const [selectedAgent, setSelectedAgent] = useState<string>('all')
-  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([])
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(loadStoredActivityLogs)
   const [agentActivities, setAgentActivities] = useState<Record<string, { status: string; timestamp: number }>>({})
   const [sseConnected, setSseConnected] = useState(false)
   const [expandedLogs, setExpandedLogs] = useState<Record<string, boolean>>({})
@@ -455,6 +475,14 @@ export function OperationsContent() {
   useEffect(() => {
     if (logsRef.current) logsRef.current.scrollTop = 0
   }, [activityLogs.length])
+
+  // Persist logs so they survive a pause/stop, page refresh, or navigating away and
+  // back — previously this was plain in-memory state, so it reset to empty on any of those.
+  useEffect(() => {
+    const key = activityLogsStorageKey()
+    if (!key) return
+    try { localStorage.setItem(key, JSON.stringify(activityLogs)) } catch { /* storage full/unavailable — non-fatal */ }
+  }, [activityLogs])
 
   // ── toggle agent ─────────────────────────────────────────────────────────
   const toggleAgent = async (agent: Agent) => {
