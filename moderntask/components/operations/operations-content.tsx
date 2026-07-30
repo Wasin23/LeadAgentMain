@@ -55,6 +55,8 @@ interface ActivityLog {
   message: string
   timestamp: number
   type?: string
+  status?: string
+  operation?: string
   data?: {
     score?: number
     tier?: string
@@ -107,6 +109,74 @@ function Countdown({ target }: { target: string }) {
     return () => clearInterval(id)
   }, [target])
   return <span className="text-[10px] text-muted-foreground/60 block truncate">{label}</span>
+}
+
+// ── "still working" indicator — fills the dead air between log events so a
+// running agent never reads as stalled just because nothing's printed in a bit ──
+function TypingIndicator({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-2 px-3 py-2.5 text-xs text-muted-foreground">
+      <span className="flex gap-0.5">
+        {[0, 1, 2].map(i => (
+          <span
+            key={i}
+            className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce"
+            style={{ animationDelay: `${i * 0.15}s` }}
+          />
+        ))}
+      </span>
+      <span className="truncate">{label}</span>
+    </div>
+  )
+}
+
+// ── "Simplify" mode — collapses the feed down to milestone events only:
+// leads found, a lead's final outcome (queued or failed/rejected), and
+// cycle/agent start-stop boundaries. Hides the noisy in-between chatter
+// (research-in-progress pings, rubric-build steps, CRM sync ticks, etc).
+const IMPORTANT_OPERATIONS = new Set([
+  'Lead Search', 'Lead Search Results', 'Parallel Processing',
+  'Lead Qualification', 'Lead Complete',
+  'Research Failed', 'Pre-Qualify Rejected', 'Qualification Failed', 'Lead Rejected',
+  'Email Unlock Failed', 'No Email Settings', 'Email Build Failed', 'Pipeline Error',
+  'Search Exhausted', 'Agent Started', 'Agent Stopped', 'Cycle Stopped', 'Cycle Failed', 'Process Complete',
+])
+
+// ── score badge — counts up from 0 on mount instead of just appearing ──────
+function ScoreBadge({ score, tier }: { score: number; tier?: string }) {
+  const [display, setDisplay] = useState(0)
+  useEffect(() => {
+    let raf: number
+    const duration = 700
+    const start = performance.now()
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / duration)
+      const eased = 1 - Math.pow(1 - t, 3)
+      setDisplay(Math.round(eased * score))
+      if (t < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [score])
+
+  return (
+    <span className={cn(
+      'ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded tabular-nums',
+      score >= 70 ? 'bg-green-500/15 text-green-500' :
+      score >= 40 ? 'bg-amber-500/15 text-amber-500' :
+      'bg-red-500/15 text-red-500'
+    )}>
+      {display}/100{tier ? ` · ${tier}` : ''}
+    </span>
+  )
+}
+
+const STATUS_ACCENT: Record<string, string> = {
+  success: 'border-l-2 border-l-green-500/60',
+  completed: 'border-l-2 border-l-green-500/60',
+  warning: 'border-l-2 border-l-amber-500/60',
+  error: 'border-l-2 border-l-red-500/60',
+  failed: 'border-l-2 border-l-red-500/60',
 }
 
 function logIcon(msg: string): LucideIcon {
@@ -164,6 +234,7 @@ export function OperationsContent() {
   const [agentActivities, setAgentActivities] = useState<Record<string, { status: string; timestamp: number }>>({})
   const [sseConnected, setSseConnected] = useState(false)
   const [expandedLogs, setExpandedLogs] = useState<Record<string, boolean>>({})
+  const [simplifyLogs, setSimplifyLogs] = useState(false)
   const [toggling, setToggling] = useState<Record<string, boolean>>({})
   const [editingLeadLimit, setEditingLeadLimit] = useState<string | null>(null)
   const [editingConcurrency, setEditingConcurrency] = useState<string | null>(null)
@@ -349,6 +420,8 @@ export function OperationsContent() {
             message: logMsg,
             timestamp: Date.now(),
             type: d.type,
+            status: payload.status,
+            operation: payload.operation,
             data: payload.data && typeof payload.data === 'object' && Object.keys(payload.data).length > 0 ? payload.data : undefined,
           }
           setActivityLogs(p => [entry, ...p].slice(0, 120))
@@ -414,6 +487,9 @@ export function OperationsContent() {
   const filteredLogs = selectedAgent === 'all'
     ? activityLogs
     : activityLogs.filter(l => l.agentId === selectedAgent)
+  const displayLogs = simplifyLogs
+    ? filteredLogs.filter(l => l.operation && IMPORTANT_OPERATIONS.has(l.operation))
+    : filteredLogs
   const maxConcurrency = planStatus?.plan?.maxConcurrency ?? 30
 
   const avatarUrl = (agent: Agent) => {
@@ -702,13 +778,24 @@ export function OperationsContent() {
                     {runningAgents.length} running
                   </Badge>
                 )}
-                {filteredLogs.length > 0 && (
+                {displayLogs.length > 0 && (
                   <Badge variant="outline" className="text-[10px] ml-1">
-                    {filteredLogs.length}
+                    {displayLogs.length}
                   </Badge>
                 )}
               </div>
-              <TotalRefundCounter />
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={simplifyLogs ? 'secondary' : 'ghost'}
+                  size="sm"
+                  className="h-6 px-2 text-[11px]"
+                  onClick={() => setSimplifyLogs(v => !v)}
+                  title="Show only milestone events: leads found, email built, and final outcomes"
+                >
+                  Simplify
+                </Button>
+                <TotalRefundCounter />
+              </div>
             </div>
           </CardHeader>
 
@@ -725,7 +812,7 @@ export function OperationsContent() {
             )}
 
             {/* Running but no logs yet */}
-            {runningAgents.length > 0 && filteredLogs.length === 0 && (
+            {runningAgents.length > 0 && displayLogs.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full py-16 text-center">
                 <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground mb-3" />
                 <p className="text-sm text-muted-foreground">Waiting for activity…</p>
@@ -733,14 +820,28 @@ export function OperationsContent() {
             )}
 
             {/* Logs */}
-            {filteredLogs.length > 0 && (
+            {displayLogs.length > 0 && (
               <div className="pt-1 px-3 pb-3 space-y-1">
-                {filteredLogs.map((log) => {
+                {/* Persistent "still working" cue — fills the gap between events so a running
+                    agent never reads as stuck just because nothing's printed in a few seconds */}
+                {runningAgents.length > 0 && (
+                  <TypingIndicator
+                    label={
+                      runningAgents.length === 1
+                        ? `${runningAgents[0].name || 'Agent'} is working…`
+                        : `${runningAgents.length} agents working…`
+                    }
+                  />
+                )}
+                {displayLogs.map((log) => {
                   const agent = agents.find(a => a.agentId === log.agentId)
                   return (
                     <div
                       key={log.id}
-                      className="rounded-lg bg-secondary/40 hover:bg-secondary/70 transition-colors border border-border/50 overflow-hidden"
+                      className={cn(
+                        'rounded-lg bg-secondary/40 hover:bg-secondary/70 transition-colors border border-border/50 overflow-hidden animate-slide-in-up',
+                        log.status && STATUS_ACCENT[log.status]
+                      )}
                     >
                       <div className="flex items-start gap-3 p-3">
                         {/* Avatar */}
@@ -758,15 +859,7 @@ export function OperationsContent() {
                               {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                             </span>
                             {log.data?.score !== undefined && (
-                              <span className={cn(
-                                'ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded',
-                                log.data.score >= 70 ? 'bg-green-500/15 text-green-500' :
-                                log.data.score >= 40 ? 'bg-amber-500/15 text-amber-500' :
-                                'bg-red-500/15 text-red-500'
-                              )}>
-                                {log.data.score}/100
-                                {log.data.tier ? ` · ${log.data.tier}` : ''}
-                              </span>
+                              <ScoreBadge score={log.data.score} tier={log.data.tier} />
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground leading-relaxed flex items-start gap-1.5">
