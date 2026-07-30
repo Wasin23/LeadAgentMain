@@ -819,14 +819,31 @@ research later, so how you phrase it determines whether it can ever be verified)
       'Lead Processing',
       'Email Processing',
       'Lead Complete',
-      'Lead Complete',
       'Lead Qualification',
       'Agent Activity',
       'Process Complete',
       'CRM Sync',
       'Rubric Build',
       'Keyword Discovery',
-      'Search Strategy Adapted'
+      'Search Strategy Adapted',
+      // Concurrent-pipeline (processLeadPipeline) outcomes — previously only the
+      // success path ('Lead Complete') and the score ('Lead Qualification') were
+      // broadcast, so a lead that failed partway through (no email found, email
+      // build failed, etc.) just vanished from the live feed with no explanation.
+      'Research Failed',
+      'Pre-Qualify Rejected',
+      'Qualification Failed',
+      'Lead Rejected',
+      'Email Unlock Failed',
+      'No Email Settings',
+      'Email Build Failed',
+      'Pipeline Error',
+      'Parallel Processing',
+      // Cycle-level terminal states — same gap, at the cycle rather than lead level.
+      'Search Exhausted',
+      'Agent Stopped',
+      'Cycle Stopped',
+      'Cycle Failed'
     ];
 
     if (broadcastableOperations.includes(operation)) {
@@ -8458,7 +8475,7 @@ Target Positions:`;
       });
 
       if (!research?.success) {
-        this.logOperation('⏭️ Research Failed', `Skipping ${leadName} — research returned no data`, 'warning');
+        this.logOperation('Research Failed', `Skipping ${leadName} — research returned no data`, 'warning');
         await this._markAuditorContactComplete(lead, {
           crmSync: { status: 'failed', action: 'research_failed', message: 'Research returned no usable data' }
         });
@@ -8473,7 +8490,7 @@ Target Positions:`;
       if (this.campaignPlan?.qualificationCriteria) {
         const preQual = await this.preQualifyLead({ leadData: lead, researchData: research });
         if (preQual?.success && preQual.recommendation === 'SKIP') {
-          this.logOperation('⏭️ Pre-Qualify Rejected', `Skipping ${leadName} at ${companyName} — ${preQual.reason || 'no fit signal'}`, 'info');
+          this.logOperation('Pre-Qualify Rejected', `Skipping ${leadName} at ${companyName} — ${preQual.reason || 'no fit signal'}`, 'info');
           this._rotateKeywordOnDisq();
           await this._markAuditorContactComplete(lead, {
             crmSync: { status: 'skipped', action: 'pre_qualification_rejected', message: preQual.reason || 'Lead did not pass pre-qualification' }
@@ -8489,7 +8506,7 @@ Target Positions:`;
       });
 
       if (!qualification?.success) {
-        this.logOperation('⏭️ Qualification Failed', `Skipping ${leadName} — qualification returned no decision`, 'warning');
+        this.logOperation('Qualification Failed', `Skipping ${leadName} — qualification returned no decision`, 'warning');
         await this._markAuditorContactComplete(lead, {
           crmSync: { status: 'failed', action: 'qualification_failed', message: 'Qualification returned no decision' }
         });
@@ -8497,7 +8514,7 @@ Target Positions:`;
       }
 
       if (qualification.tier === 'REJECT' || qualification.qualified === false) {
-        this.logOperation('⏭️ Lead Rejected', `Skipping ${leadName} at ${companyName} — qualification tier ${qualification.tier || 'REJECT'}`, 'info');
+        this.logOperation('Lead Rejected', `Skipping ${leadName} at ${companyName} — qualification tier ${qualification.tier || 'REJECT'}`, 'info');
         await this._markAuditorContactComplete(lead, {
           crmSync: { status: 'skipped', action: 'qualification_rejected', message: `Lead did not meet qualification criteria (${qualification.tier || 'REJECT'})` }
         });
@@ -8558,7 +8575,7 @@ Target Positions:`;
       });
 
       if (!personalizedEmail?.success) {
-        this.logOperation('⏭️ Email Build Failed', `Skipping ${leadName} — could not generate email`, 'warning');
+        this.logOperation('Email Build Failed', `Skipping ${leadName} — could not generate email`, 'warning');
         await this._markAuditorContactComplete(lead, {
           crmSync: { status: 'failed', action: 'email_build_failed', message: 'Could not generate a personalized email' }
         });

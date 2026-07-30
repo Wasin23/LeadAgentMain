@@ -42,7 +42,7 @@ class GmailManager {
     return this.oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: scopes,
-      prompt: 'consent' // Force consent screen to get refresh token
+      prompt: 'select_account consent' // Force account chooser + consent screen (otherwise Google silently reuses whatever Google session is already active in the browser)
     });
   }
 

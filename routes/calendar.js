@@ -48,7 +48,7 @@ router.get('/google-oauth-url', authenticateToken, async (req, res) => {
         'https://www.googleapis.com/auth/gmail.modify'
       ],
       state: req.user.userId, // Pass userId in state to identify user after OAuth
-      prompt: 'consent' // Force consent screen to get refresh token
+      prompt: 'select_account consent' // Force account chooser + consent screen (otherwise Google silently reuses whatever Google session is already active in the browser)
     });
 
     console.log('[CALENDAR] Generated auth URL:', authUrl);

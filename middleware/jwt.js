@@ -48,7 +48,15 @@ export function authenticateToken(req, res, next) {
   try {
     // Verify token and extract payload
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
+    // Every authenticated response is per-user — tell any intermediary (CDN, browser
+    // back/forward cache, Cloudflare, etc.) it must never be reused for a different
+    // request. Without this, a proxy that caches by URL alone (ignoring the Authorization
+    // header) can serve one user's authenticated response — Gmail connection status,
+    // account data, anything — to a completely different user who happens to hit the
+    // same route next.
+    res.set('Cache-Control', 'private, no-store');
+
     // Add user info to request object
     req.user = decoded;
 
