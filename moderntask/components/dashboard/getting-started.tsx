@@ -24,7 +24,7 @@ const BASE_STEPS = [
     key: "emailConnected" as const,
     title: "Connect your email",
     desc: "Link Gmail or Outlook so your agent sends from your real inbox.",
-    href: "/prospecting?tab=agents",
+    href: "/settings?tab=email",
     cta: "Connect Email",
   },
   {

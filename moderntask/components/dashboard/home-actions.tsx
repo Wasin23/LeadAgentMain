@@ -17,7 +17,7 @@ const QUICK_ACTIONS = [
 
 const BASE_STEPS = [
   { key: "hasAgent" as const,       title: "Create your first agent",   href: "/prospecting?tab=agents" },
-  { key: "emailConnected" as const,  title: "Connect your email",        href: "/prospecting?tab=agents" },
+  { key: "emailConnected" as const,  title: "Connect your email",        href: "/settings?tab=email" },
   { key: "agentStarted" as const,    title: "Start your agent",          href: "/prospecting" },
 ]
 

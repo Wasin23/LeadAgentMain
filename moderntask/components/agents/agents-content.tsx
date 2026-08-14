@@ -155,7 +155,7 @@ function AgentCard({
 
   return (
     <div className={cn(
-      'relative rounded-2xl p-5 border bg-card transition-colors overflow-hidden',
+      'relative rounded-2xl p-5 border bg-card transition-colors overflow-hidden flex flex-col h-full',
       gradientClass,
       isAuditor && 'opacity-60',
     )}>
@@ -299,8 +299,10 @@ function AgentCard({
         </p>
       )}
 
-      {/* action row */}
-      <div className="flex items-center gap-2 flex-wrap">
+      {/* action row — pinned to the bottom of the card (via mt-auto on this flex-col
+          card) so it lines up across cards even when the content above it varies in
+          height (special instructions, tag count, etc.) */}
+      <div className="flex items-center gap-2 flex-wrap mt-auto pt-4">
         {isAuditor ? (
           <span className="text-[11px] text-yellow-400/80 italic">Agent reserved for Auditor Mode. Stop the auditor to use normally.</span>
         ) : isRunning ? (

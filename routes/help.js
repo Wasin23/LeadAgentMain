@@ -3,7 +3,7 @@ import { ChatOpenAI } from '@langchain/openai';
 import { BufferMemory } from 'langchain/memory';
 import { ConversationChain } from 'langchain/chains';
 import { PromptTemplate } from '@langchain/core/prompts';
-import jwt, { authenticateToken } from '../middleware/jwt.js';
+import { authenticateToken } from '../middleware/jwt.js';
 import AWSEmailQueue from '../utils/awsEmailQueue.js';
 import AWSManager from '../utils/awsManager.js';
 
@@ -336,7 +336,7 @@ Provide a helpful, specific answer based on the Meridian platform knowledge and 
 });
 
 // POST /api/help/contact - Submit help/contact request
-router.post('/contact', jwt, async (req, res) => {
+router.post('/contact', authenticateToken, async (req, res) => {
   try {
     const { name, email, subject, message } = req.body;
     const userId = req.user.id;
