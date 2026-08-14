@@ -748,7 +748,8 @@ function CreateAgentModal({ onClose, onCreated, atLimit = false }: { onClose: ()
               </div>
             ) : !Array.isArray(presets) || presets.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-muted-foreground">No presets available</p>
+                <p className="text-foreground font-medium mb-1">You haven&apos;t saved any presets yet</p>
+                <p className="text-muted-foreground text-sm max-w-xs mx-auto">That&apos;s fine — presets are just reusable targeting templates you save later from an agent&apos;s settings. Hit &quot;Skip &amp; Create&quot; below to configure targeting directly on the agent instead.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[450px] overflow-y-auto mb-6 p-2">

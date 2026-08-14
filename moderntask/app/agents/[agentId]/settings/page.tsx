@@ -975,6 +975,32 @@ export default function AgentSettingsPage({ params }: { params: Promise<{ agentI
   // ── manual save ──
   const saveSettings = async () => {
     if (agentRunning) return;
+
+    // Special instructions get partially used to infer *industries* (an LLM step
+    // reads them each cycle and can extract industry keywords even if the
+    // Industries list below is empty) — but positions/job-titles have no such
+    // fallback anywhere, and an empty Positions list is an unconditional stop:
+    // the agent returns zero leads every cycle, guaranteed, regardless of
+    // industries or anything else being configured correctly.
+    const hasInstructions = settings.specialInstructions.trim().length > 0;
+    const hasIndustries = settings.companyCriteria.companyIndustries.length > 0;
+    const hasPositions = settings.contactCriteria.targetPositions.length > 0;
+    if (!hasPositions) {
+      toast({
+        title: 'This agent will find zero leads',
+        description: 'No target positions/titles are set, and there\'s no fallback for that — add at least one below or every cycle will come back empty, regardless of anything else.',
+        variant: 'destructive',
+        duration: 8000,
+      });
+    } else if (hasInstructions && !hasIndustries) {
+      toast({
+        title: 'Add target industries for reliable results',
+        description: 'Your special instructions may get used to infer industries each cycle, but that\'s not guaranteed — add at least one target industry below so targeting doesn\'t depend on how well the AI reads your text.',
+        variant: 'destructive',
+        duration: 8000,
+      });
+    }
+
     setIsSaving(true);
     setSaveStatus('saving');
     try {

@@ -90,20 +90,23 @@
 }
 
 .dark {
-  --background: oklch(0.18 0.015 155);
+  /* Neutral surfaces — kept at hue 155 for continuity with existing shadow/tint math
+     elsewhere, but chroma cut way down (0.015-0.025 -> 0.004-0.007) so these read as
+     true grey/black instead of a visible green cast across large background areas. */
+  --background: oklch(0.18 0.004 155);
   --foreground: oklch(0.95 0.008 95);
-  --surface: oklch(0.22 0.018 155);
-  --card: oklch(0.22 0.018 155);
+  --surface: oklch(0.22 0.005 155);
+  --card: oklch(0.22 0.005 155);
   --card-foreground: oklch(0.95 0.008 95);
-  --popover: oklch(0.22 0.018 155);
+  --popover: oklch(0.22 0.005 155);
   --popover-foreground: oklch(0.95 0.008 95);
   --primary: oklch(0.92 0.012 95);
   --primary-foreground: oklch(0.22 0.025 155);
-  --secondary: oklch(0.28 0.02 155);
+  --secondary: oklch(0.28 0.006 155);
   --secondary-foreground: oklch(0.95 0.008 95);
-  --muted: oklch(0.28 0.02 155);
+  --muted: oklch(0.28 0.006 155);
   --muted-foreground: oklch(0.7 0.015 95);
-  --accent: oklch(0.3 0.025 155);
+  --accent: oklch(0.3 0.007 155);
   --accent-foreground: oklch(0.95 0.008 95);
   --brass: oklch(0.75 0.1 80);
   --brass-foreground: oklch(0.18 0.015 155);
@@ -117,11 +120,11 @@
   --chart-3: oklch(0.75 0.1 80);
   --chart-4: oklch(0.6 0.08 100);
   --chart-5: oklch(0.45 0.06 155);
-  --sidebar: oklch(0.22 0.018 155);
+  --sidebar: oklch(0.22 0.005 155);
   --sidebar-foreground: oklch(0.95 0.008 95);
   --sidebar-primary: oklch(0.92 0.012 95);
   --sidebar-primary-foreground: oklch(0.22 0.025 155);
-  --sidebar-accent: oklch(0.28 0.02 155);
+  --sidebar-accent: oklch(0.28 0.006 155);
   --sidebar-accent-foreground: oklch(0.95 0.008 95);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.7 0.03 95);
