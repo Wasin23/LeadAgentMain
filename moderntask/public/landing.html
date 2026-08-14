@@ -187,9 +187,10 @@ nav.main-nav a:hover { color: var(--fg); }
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 1080px;
-  margin: 0 auto;
-  padding: 0 clamp(24px, 6vw, 70px);
+  /* matches #splash-header's own padding exactly (32px 70px, 24px 36px at
+     <=900px) so the wordmark's left edge always lines up with the logo,
+     at every viewport width — not centered independently of the header. */
+  padding: 0 70px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -252,10 +253,10 @@ nav.main-nav a:hover { color: var(--fg); }
   margin-bottom: 0;
 }
 
-@media (max-width: 640px) {
-  .hero-wrap { align-items: center; text-align: center; }
-  .hero-rule { margin-left: auto; margin-right: auto; }
-  .hero-cta { justify-content: center; }
+/* Keep the wordmark flush left at every width, mirroring #splash-header's
+   own breakpoint exactly, so the two never drift apart as the window is resized. */
+@media (max-width: 900px) {
+  .hero-wrap { padding: 0 36px; }
 }
 
 /* subtle text-only secondary CTA */
