@@ -1,6 +1,7 @@
 "use client"
 
 import { Home, Settings, HelpCircle, LogOut, Search, Mail, Circle, Users2, GripVertical, Pencil, Check, Users } from "lucide-react"
+import { MeridianWordmark } from "@/components/ui/meridian-wordmark"
 import { cn } from "@/lib/utils"
 import { useState, useEffect, Suspense } from "react"
 import Link from "next/link"
@@ -200,12 +201,7 @@ function SidebarInner() {
         <div className="flex items-center justify-center gap-2 mb-6 group cursor-pointer">
           <Link href="/home" className="flex items-center gap-2">
             <Image src="/MeridianM.png" alt="Meridian" width={34} height={22} className="shrink-0" />
-            <span
-              className="font-serif text-lg tracking-wide bg-clip-text text-transparent select-none"
-              style={{ backgroundImage: 'linear-gradient(160deg, #c4a265 0%, #9e8252 28%, #d4b078 55%, #8a6d3a 78%, #b09050 100%)' }}
-            >
-              Meridian
-            </span>
+            <MeridianWordmark className="h-2.5 w-auto dark:text-white text-black" />
           </Link>
         </div>
 
