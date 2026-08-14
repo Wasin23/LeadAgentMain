@@ -144,8 +144,11 @@ nav.main-nav a:hover { color: var(--fg); }
   position: relative;
   min-height: 100vh;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: flex-start;
+  /* anchor content toward the top (below the transparent splash header)
+     instead of dead-centering it in a full-viewport-height section */
+  padding-top: clamp(140px, 22vh, 220px);
   border-bottom: 1px solid var(--border-lt);
   overflow: hidden;
 }
@@ -162,6 +165,22 @@ nav.main-nav a:hover { color: var(--fg); }
   background-repeat: no-repeat;
   filter: blur(3px);
   transform: scale(1.03);
+}
+
+/* scrim — fades the photo to solid background color under the text column.
+   Without this, wherever the vase/laptop happen to land at a given viewport
+   width, the text can collide directly with them; the scrim guarantees the
+   left ~40% is always clean and readable regardless of the photo's content. */
+.hero-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg,
+    var(--bg-warm) 0%,
+    var(--bg-warm) 24%,
+    rgba(237,232,222,0.78) 40%,
+    rgba(237,232,222,0.2) 58%,
+    transparent 72%);
+  pointer-events: none;
 }
 
 .hero-wrap {
@@ -1118,6 +1137,7 @@ footer { padding: 32px clamp(24px,5vw,70px); border-top: 1px solid var(--border)
 ══════════════════════════════════════════ -->
 <section id="hero">
   <div class="hero-bg"></div>
+  <div class="hero-scrim"></div>
   <div class="hero-wrap">
     <h1 class="hero-title">MERIDIAN</h1>
     <div class="hero-rule"></div>
