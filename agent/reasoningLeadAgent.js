@@ -93,31 +93,35 @@ class ReasoningLeadAgent extends EventEmitter {
     // auth/quota/rate-limit failure means every subsequent call to that provider
     // will fail identically, so stop the agent immediately instead of silently
     // eating that same failure over and over across every remaining lead.
-    const aiProviderFetch = (providerName) => async (url, init) => {
+    const aiProviderFetch = () => async (url, init) => {
       const res = await fetch(url, init);
       if (!res.ok && [401, 402, 403, 429].includes(res.status)) {
-        const reason = res.status === 401 ? `the ${providerName} API key is invalid` :
-          res.status === 429 ? `${providerName} is rate-limiting/quota-limiting requests` :
-          `the ${providerName} account has a billing/access issue`;
+        // Read a clone so the SDK's own body stream is untouched — surface the
+        // provider's own actual error text, not a guessed paraphrase. Vendor name
+        // deliberately not exposed in the user-facing text — just "AI service".
+        const rawBody = await res.clone().text().catch(() => '');
+        const detail = rawBody ? (() => { try { const j = JSON.parse(rawBody); return j.error?.message || j.error || j.message || rawBody; } catch { return rawBody; } })() : null;
+        const errorMsg = `AI service error ${res.status}${detail ? `: ${detail}` : ''}`;
         this.stopAgentWithReason(
-          `${providerName.toLowerCase()}-api-error`,
-          `Agent stopped — ${reason}. Check your ${providerName} account/API key, then restart the agent.`
+          'ai-service-error',
+          "Your agent hit a technical problem and had to stop. We've been notified — try restarting it in a few minutes, or contact support if it keeps happening.",
+          errorMsg
         ).catch(() => {});
       }
       return res;
     };
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
-      fetch: aiProviderFetch('OpenAI')
+      fetch: aiProviderFetch()
     });
     this.anthropic = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY,
-      fetch: aiProviderFetch('Anthropic')
+      fetch: aiProviderFetch()
     });
     this.mistral = new OpenAI({
       apiKey: process.env.MISTRAL_API_KEY,
       baseURL: 'https://api.mistral.ai/v1',
-      fetch: aiProviderFetch('Mistral')
+      fetch: aiProviderFetch()
     });
     this.emailGenerationInFlight = 0;
     this.emailGenerationWaiters = [];
@@ -4498,7 +4502,12 @@ Format as:
     try {
       const apiKey = await this.getApiKey('apollo');
       if (!apiKey) {
-        throw new Error('Apollo API key not configured');
+        await this.stopAgentWithReason(
+          'lead-search-service-not-configured',
+          "Your agent hit a technical problem and had to stop. We've been notified — try restarting it in a few minutes, or contact support if it keeps happening.",
+          'Lead search service API key not configured'
+        );
+        throw new Error('Lead search service API key not configured');
       }
 
       // FAST PATH: if we already have this lead's Apollo ID (from a prior
@@ -4554,19 +4563,28 @@ Format as:
 
       if (!searchResponse.ok) {
         this.updateIntegrationStatus('apollo', { status: 'error' });
-        const errorMsg = searchResponse.status === 401 ? 'Apollo API authentication failed - check API key' :
-                        searchResponse.status === 429 ? 'Apollo API rate limit exceeded' :
-                        `Apollo search failed with status ${searchResponse.status}`;
+        // Surface the provider's own actual error text (not a guessed paraphrase) —
+        // the real cause is whatever the response body actually says, which can be
+        // anything (expired key, expired data-provider subscription, etc.), not just
+        // "bad credentials". Vendor name deliberately not exposed in the user-facing
+        // text — just "the lead search service".
+        const rawBody = await searchResponse.text().catch(() => '');
+        const detail = rawBody ? (() => { try { return JSON.parse(rawBody).error || JSON.parse(rawBody).message || rawBody; } catch { return rawBody; } })() : null;
+        const errorMsg = `Lead search service failed with status ${searchResponse.status}${detail ? `: ${detail}` : ''}`;
         this.logIssue('error', errorMsg, {
           status: searchResponse.status,
           searchPayload,
           timestamp: new Date().toISOString()
         });
-        // Systemic Apollo failures (bad key, rate-limited, out of credits, refused) won't
+        // Systemic failures (bad key, rate-limited, out of credits, refused) won't
         // fix themselves by retrying the next search — stop immediately instead of
         // continuing to burn steps/credits against a broken connection.
         if ([401, 402, 403, 429].includes(searchResponse.status)) {
-          await this.stopAgentWithReason('apollo-api-error', `Agent stopped — ${errorMsg}. Check your Apollo account/API key, then restart the agent.`);
+          await this.stopAgentWithReason(
+            'lead-search-service-error',
+            "Your agent hit a technical problem and had to stop. We've been notified — try restarting it in a few minutes, or contact support if it keeps happening.",
+            errorMsg
+          );
         }
         throw new Error(`Search failed: ${searchResponse.status}`);
       }
@@ -4700,7 +4718,7 @@ Format as:
       if (!rateCheck.allowed) {
         const resetTime = new Date(rateCheck.resetTime).toLocaleString();
         throw new Error(
-          `Apollo ${rateCheck.reason} rate limit exceeded. ` +
+          `Lead search service ${rateCheck.reason} rate limit exceeded. ` +
           `Current usage: ${rateCheck.current}/${rateCheck.limit} credits. ` +
           `Resets at: ${resetTime}`
         );
@@ -4719,21 +4737,31 @@ Format as:
       });
 
       if (!enrichResponse.ok) {
-        const errorMsg = enrichResponse.status === 401 ? 'Apollo API authentication failed during enrichment' :
-                        enrichResponse.status === 429 ? 'Apollo enrichment rate limit exceeded' :
-                        enrichResponse.status === 404 ? 'Apollo person not found for enrichment' :
-                        `Apollo enrichment failed with status ${enrichResponse.status}`;
+        // Surface the provider's own actual error text, not a guessed paraphrase —
+        // 404 is the one exception (that's a normal per-lead miss, not a real error).
+        let errorMsg;
+        if (enrichResponse.status === 404) {
+          errorMsg = 'Contact not found during enrichment';
+        } else {
+          const rawBody = await enrichResponse.text().catch(() => '');
+          const detail = rawBody ? (() => { try { return JSON.parse(rawBody).error || JSON.parse(rawBody).message || rawBody; } catch { return rawBody; } })() : null;
+          errorMsg = `Lead enrichment service failed with status ${enrichResponse.status}${detail ? `: ${detail}` : ''}`;
+        }
         this.logIssue('error', errorMsg, {
           status: enrichResponse.status,
           personId: targetPerson.id,
           personName: targetPerson.name,
           timestamp: new Date().toISOString()
         });
-        // A single lead's enrichment 404 is normal/expected (Apollo just doesn't have
-        // that person's contact data) — not a sign anything systemic is wrong, so it
-        // doesn't stop the agent. Genuinely systemic failures do, immediately.
+        // A single lead's enrichment 404 is normal/expected (that contact's data just
+        // isn't available) — not a sign anything systemic is wrong, so it doesn't stop
+        // the agent. Genuinely systemic failures do, immediately.
         if ([401, 402, 403, 429].includes(enrichResponse.status)) {
-          await this.stopAgentWithReason('apollo-api-error', `Agent stopped — ${errorMsg}. Check your Apollo account/API key, then restart the agent.`);
+          await this.stopAgentWithReason(
+            'lead-enrichment-service-error',
+            "Your agent hit a technical problem and had to stop. We've been notified — try restarting it in a few minutes, or contact support if it keeps happening.",
+            errorMsg
+          );
         }
         throw new Error(`Enrich failed: ${enrichResponse.status}`);
       }
@@ -4850,16 +4878,21 @@ Format as:
       });
 
       if (!response.ok) {
-        const errorMsg = response.status === 401 ? 'ZeroBounce API authentication failed - check API key' :
-                        response.status === 429 ? 'ZeroBounce rate limit exceeded' :
-                        `ZeroBounce API error: ${response.status}`;
+        // Surface the provider's own actual error text, not a guessed paraphrase.
+        const rawBody = await response.text().catch(() => '');
+        const detail = rawBody ? (() => { try { return JSON.parse(rawBody).error || JSON.parse(rawBody).message || rawBody; } catch { return rawBody; } })() : null;
+        const errorMsg = `Email verification service error: ${response.status}${detail ? `: ${detail}` : ''}`;
         this.logIssue('error', errorMsg, {
           status: response.status,
           email: email,
           timestamp: new Date().toISOString()
         });
         if ([401, 402, 403, 429].includes(response.status)) {
-          await this.stopAgentWithReason('zerobounce-api-error', `Agent stopped — ${errorMsg}. Check your ZeroBounce API key/account, then restart the agent.`);
+          await this.stopAgentWithReason(
+            'email-verification-service-error',
+            "Your agent hit a technical problem and had to stop. We've been notified — try restarting it in a few minutes, or contact support if it keeps happening.",
+            errorMsg
+          );
         }
         throw new Error(`ZeroBounce API error: ${response.status}`);
       }
@@ -5739,7 +5772,12 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
     try {
       const apiKey = await this.getApiKey('apollo');
       if (!apiKey) {
-        throw new Error('Apollo API key not configured');
+        await this.stopAgentWithReason(
+          'lead-search-service-not-configured',
+          "Your agent hit a technical problem and had to stop. We've been notified — try restarting it in a few minutes, or contact support if it keeps happening.",
+          'Lead search service API key not configured'
+        );
+        throw new Error('Lead search service API key not configured');
       }
 
       // Use REAL user settings from memory - NO hardcoded fallbacks
@@ -5848,7 +5886,7 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
           // gap that retrying will never fix on its own, so stop immediately rather than
           // repeating this same failed search over and over.
           const missing = [totalKeywords === 0 && 'target industries', basePositions.length === 0 && 'target positions'].filter(Boolean).join(' or ');
-          await this.stopAgentWithReason('no-target-criteria', `Agent stopped — no ${missing} configured, so it has nothing to search Apollo for. Add at least one in the agent's settings, then restart it.`);
+          await this.stopAgentWithReason('no-target-criteria', `Agent stopped — no ${missing} configured, so it has nothing to search for. Add at least one in the agent's settings, then restart it.`);
           return { found: 0, leads: [], error: 'Industry keywords or positions not configured' };
         }
         
@@ -6439,8 +6477,11 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
 
       if (!rateCheck.allowed) {
         const resetTime = new Date(rateCheck.resetTime).toLocaleString();
+        // This is Meridian's own internal per-user throttle, not an external service
+        // failing — it resolves on its own at the reset time, so this doesn't stop
+        // the agent the way a genuine systemic API failure does.
         throw new Error(
-          `Apollo ${rateCheck.reason} rate limit exceeded. ` +
+          `Lead search service ${rateCheck.reason} rate limit exceeded. ` +
           `Current usage: ${rateCheck.current}/${rateCheck.limit} credits. ` +
           `Resets at: ${resetTime}`
         );
@@ -6458,7 +6499,19 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         });
         const json = await res.json();
         if (!res.ok) {
-          throw new Error(`Apollo API error: ${json.error || res.statusText}`);
+          const errorMsg = `Lead search service error ${res.status}: ${json.error || res.statusText}`;
+          this.logIssue('error', errorMsg, { status: res.status, timestamp: new Date().toISOString() });
+          // Systemic failures (bad key, rate-limited, out of credits, refused) won't
+          // fix themselves by retrying the next search — stop immediately instead of
+          // continuing to burn steps/credits against a broken connection.
+          if ([401, 402, 403, 429].includes(res.status)) {
+            await this.stopAgentWithReason(
+              'lead-search-service-error',
+              "Your agent hit a technical problem and had to stop. We've been notified — try restarting it in a few minutes, or contact support if it keeps happening.",
+              errorMsg
+            );
+          }
+          throw new Error(errorMsg);
         }
         return json;
       };
@@ -9428,10 +9481,23 @@ Target Positions:`;
    * naming the exact reason, so the agent never just runs on and on against
    * something it has no chance of recovering from on its own.
    */
-  async stopAgentWithReason(reason, message) {
+  /**
+   * @param {string} reason - internal category tag, never shown to the user
+   * @param {string} message - what the user actually sees, in the Operations log
+   *   and the toast notification. Must be plain language a non-technical consumer
+   *   can act on — no status codes, no vendor names, no "check your API key/account"
+   *   (most users have no account with these services at all; Meridian runs on its
+   *   own platform-wide keys for them). If the cause is something only Meridian can
+   *   fix, say that plainly instead of giving instructions the user can't follow.
+   * @param {string|null} internalDetail - the raw technical error (status code,
+   *   provider response text), logged for support/debugging but never surfaced
+   *   as the user-facing message.
+   */
+  async stopAgentWithReason(reason, message, internalDetail = null) {
     if (!this.isRunning) return; // already stopped/stopping — don't double-fire
-    this.logOperation('Agent Stopped', message, 'error', { reason });
-    await this.logIssue('critical', message, { agentId: this.agentId, reason }).catch(() => {});
+    console.error(`[AGENT STOPPED] ${reason}${internalDetail ? ` — ${internalDetail}` : ''}`);
+    this.logOperation('Agent Stopped', message, 'error', { reason, internalDetail });
+    await this.logIssue('critical', message, { agentId: this.agentId, reason, internalDetail }).catch(() => {});
     await this.stop();
   }
 
@@ -9449,11 +9515,18 @@ Target Positions:`;
       const status = error.response?.status;
       const isMissingKey = /SERPER_API_KEY is not provided/i.test(error.message || '');
       if (isMissingKey || [401, 402, 403, 429].includes(status)) {
-        const reason = isMissingKey ? 'the Serper API key is not configured' :
-          status === 401 ? 'the Serper API key is invalid' :
-          status === 429 ? 'Serper is rate-limiting requests' :
-          'the Serper account has a billing/access issue';
-        await this.stopAgentWithReason('serper-api-error', `Agent stopped — ${reason}. Check your Serper API key/account, then restart the agent.`);
+        // Surface the provider's own actual error text, not a guessed paraphrase —
+        // except the missing-key case, which is our own internal check, not an
+        // external response, so it gets a generic message instead.
+        const detail = error.response?.data?.error || error.response?.data?.message
+          || (typeof error.response?.data === 'string' ? error.response.data : null)
+          || error.message;
+        const errorMsg = isMissingKey ? "Research service's API key is not configured" : `Research service error ${status}: ${detail}`;
+        await this.stopAgentWithReason(
+          'research-service-error',
+          "Your agent hit a technical problem and had to stop. We've been notified — try restarting it in a few minutes, or contact support if it keeps happening.",
+          errorMsg
+        );
       }
       throw error;
     }
