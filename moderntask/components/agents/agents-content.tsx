@@ -70,14 +70,15 @@ const PERSONALITY_COLORS: Record<string, string> = {
   networker:           'border-orange-500/40',
 }
 
-// Gradient (not flat) fill for the personality ribbon — gives the angled banner
-// actual depth instead of reading as a flat, blocky color swatch.
-const PERSONALITY_RIBBON: Record<string, string> = {
-  hunter:              'bg-gradient-to-b from-red-500 to-red-700',
-  'relationship-builder': 'bg-gradient-to-b from-green-500 to-green-700',
-  analyst:             'bg-gradient-to-b from-blue-500 to-blue-700',
-  consultant:          'bg-gradient-to-b from-purple-500 to-purple-700',
-  networker:           'bg-gradient-to-b from-orange-400 to-orange-600',
+// Gradient stop colors for the personality ribbon (SVG needs real color values,
+// not Tailwind classes) — gives the banner's notched ends actual depth instead
+// of a flat, blocky color swatch.
+const PERSONALITY_RIBBON: Record<string, [string, string]> = {
+  hunter:              ['#ef4444', '#b91c1c'],
+  'relationship-builder': ['#22c55e', '#15803d'],
+  analyst:             ['#3b82f6', '#1d4ed8'],
+  consultant:          ['#a855f7', '#7e22ce'],
+  networker:           ['#fb923c', '#ea580c'],
 }
 
 function timeAgo(iso: string | null): string {
@@ -132,7 +133,8 @@ function AgentCard({
   const personalityName = agent.personality?.name ?? personalityType
   const ribbonLabel = personalityName.replace(/^The\s+/i, '')
   const gradientClass = PERSONALITY_COLORS[personalityType] ?? PERSONALITY_COLORS.hunter
-  const ribbonClass = PERSONALITY_RIBBON[personalityType] ?? PERSONALITY_RIBBON.hunter
+  const [ribbonColorTop, ribbonColorBottom] = PERSONALITY_RIBBON[personalityType] ?? PERSONALITY_RIBBON.hunter
+  const ribbonGradientId = `ribbon-grad-${agent.agentId}`
   const isRunning = agent.isRunning || agent.status === 'running'
   const isAuditor = !!agent.isCrmMode
   const replyRate = agent.replyRate ?? (agent.sent && agent.sent > 0 ? parseFloat(((agent.replied ?? 0) / agent.sent * 100).toFixed(1)) : 0)
@@ -160,15 +162,23 @@ function AgentCard({
       gradientClass,
       isAuditor && 'opacity-60',
     )}>
-      {/* personality ribbon — a diagonal banner across the top-right corner. Uses a
-          rotated rectangle rather than a clip-path polygon: clip-path's cut edges
-          render without anti-aliasing in most browsers (the jagged/pixelated look),
-          while a plain CSS rotation is always rendered smooth. The card's own
-          overflow-hidden + rounded corner clips the ribbon's ends automatically. */}
-      <div className="absolute top-[18px] -right-[34px] z-10 w-[140px] rotate-45">
-        <div className={cn('py-1 text-center text-[10px] font-bold uppercase tracking-wide text-white shadow-lg', ribbonClass)}>
+      {/* personality ribbon — horizontal banner with notched ends, drawn as an SVG
+          polygon instead of a CSS clip-path. clip-path's cut edges render without
+          anti-aliasing in most browsers (the jagged/stair-stepped pixel look);
+          SVG shapes always anti-alias their edges smoothly regardless. */}
+      <div className="absolute top-3 right-3 z-10 w-28 h-7 drop-shadow-md">
+        <svg viewBox="0 0 120 28" width="100%" height="100%" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id={ribbonGradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={ribbonColorTop} />
+              <stop offset="100%" stopColor={ribbonColorBottom} />
+            </linearGradient>
+          </defs>
+          <polygon points="0,0 120,0 110,14 120,28 0,28 10,14" fill={`url(#${ribbonGradientId})`} />
+        </svg>
+        <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold uppercase tracking-wide text-white">
           {ribbonLabel}
-        </div>
+        </span>
       </div>
 
       {/* header row */}
