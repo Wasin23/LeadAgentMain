@@ -70,13 +70,14 @@ const PERSONALITY_COLORS: Record<string, string> = {
   networker:           'border-orange-500/40',
 }
 
-// Full, solid, generic colors for the personality ribbon — no translucency.
+// Gradient (not flat) fill for the personality ribbon — gives the angled banner
+// actual depth instead of reading as a flat, blocky color swatch.
 const PERSONALITY_RIBBON: Record<string, string> = {
-  hunter:              'bg-red-600',
-  'relationship-builder': 'bg-green-600',
-  analyst:             'bg-blue-600',
-  consultant:          'bg-purple-600',
-  networker:           'bg-orange-500',
+  hunter:              'bg-gradient-to-b from-red-500 to-red-700',
+  'relationship-builder': 'bg-gradient-to-b from-green-500 to-green-700',
+  analyst:             'bg-gradient-to-b from-blue-500 to-blue-700',
+  consultant:          'bg-gradient-to-b from-purple-500 to-purple-700',
+  networker:           'bg-gradient-to-b from-orange-400 to-orange-600',
 }
 
 function timeAgo(iso: string | null): string {
@@ -159,20 +160,14 @@ function AgentCard({
       gradientClass,
       isAuditor && 'opacity-60',
     )}>
-      {/* personality ribbon - bookmark-style banner hanging from the top-right corner.
-          The clipped shape and the text are separate layers: clip-path forces a
-          rasterized composite layer, which blurs any text drawn inside it, so the
-          label is rendered as an unclipped sibling on top instead. The wrapper has
-          no explicit size — it sizes to the (unclipped, in-flow) text underneath. */}
-      <div className="absolute top-0 right-5 z-10">
-        <div className="relative">
-          <div
-            className={cn('absolute inset-0 shadow-sm', ribbonClass)}
-            style={{ clipPath: 'polygon(0 0, 100% 0, 100% 78%, 50% 100%, 0 78%)' }}
-          />
-          <div className="relative px-3 pt-1.5 pb-2.5 text-[10px] font-bold uppercase tracking-wide text-white">
-            {ribbonLabel}
-          </div>
+      {/* personality ribbon — a diagonal banner across the top-right corner. Uses a
+          rotated rectangle rather than a clip-path polygon: clip-path's cut edges
+          render without anti-aliasing in most browsers (the jagged/pixelated look),
+          while a plain CSS rotation is always rendered smooth. The card's own
+          overflow-hidden + rounded corner clips the ribbon's ends automatically. */}
+      <div className="absolute top-[18px] -right-[34px] z-10 w-[140px] rotate-45">
+        <div className={cn('py-1 text-center text-[10px] font-bold uppercase tracking-wide text-white shadow-lg', ribbonClass)}>
+          {ribbonLabel}
         </div>
       </div>
 
