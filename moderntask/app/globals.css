@@ -20,14 +20,14 @@
   --primary: oklch(0.3 0.04 158);
   --primary-foreground: oklch(0.97 0.01 95);
 
-  --secondary: oklch(0.94 0.01 95);
-  --secondary-foreground: oklch(0.26 0.03 158);
+  --secondary: oklch(0.82 0.045 90);
+  --secondary-foreground: oklch(0.22 0.03 158);
 
-  --muted: oklch(0.955 0.008 95);
-  --muted-foreground: oklch(0.52 0.015 150);
+  --muted: oklch(0.87 0.03 88);
+  --muted-foreground: oklch(0.4 0.03 90);
 
-  --accent: oklch(0.93 0.018 95);
-  --accent-foreground: oklch(0.26 0.03 158);
+  --accent: oklch(0.78 0.07 82);
+  --accent-foreground: oklch(0.2 0.03 158);
 
   /* Muted brass / gold accent */
   --brass: oklch(0.72 0.09 80);
@@ -50,31 +50,33 @@
   --sidebar-foreground: oklch(0.22 0.022 158);
   --sidebar-primary: oklch(0.3 0.04 158);
   --sidebar-primary-foreground: oklch(0.97 0.01 95);
-  --sidebar-accent: oklch(0.94 0.01 95);
-  --sidebar-accent-foreground: oklch(0.26 0.03 158);
+  --sidebar-accent: oklch(0.82 0.045 90);
+  --sidebar-accent-foreground: oklch(0.22 0.03 158);
   --sidebar-border: oklch(0.915 0.008 95);
   --sidebar-ring: oklch(0.52 0.14 158);
 
-  /* Semantic status tones — used for badges, selected rows, tags. Each has a
-     "soft" tinted background + matching foreground, plus a solid/strong variant
-     for filled buttons. Replaces hardcoded oklch literals that didn't adapt to dark mode. */
+  /* Semantic status tones — used for badges, selected rows, tags. Previously a
+     pale tint (L .93-.965) on dark text — read as washed-out pastel rather than
+     actual color. Now genuinely deep, saturated jewel tones (L .52-.62, C .15-.18)
+     with light text, the same filled-badge language "success"/"success-strong"
+     already used below, just extended to every status color instead of only success. */
   --success: oklch(0.52 0.14 158);
   --success-strong: oklch(0.42 0.11 158);
   --success-foreground: oklch(0.98 0.01 158);
-  --success-soft: oklch(0.965 0.035 158);
-  --success-soft-foreground: oklch(0.42 0.11 158);
+  --success-soft: oklch(0.52 0.15 155);
+  --success-soft-foreground: oklch(0.97 0.01 95);
 
-  --warning-soft: oklch(0.95 0.04 80);
-  --warning-soft-foreground: oklch(0.5 0.1 80);
+  --warning-soft: oklch(0.62 0.16 65);
+  --warning-soft-foreground: oklch(0.98 0.01 95);
 
-  --info-soft: oklch(0.93 0.04 245);
-  --info-soft-foreground: oklch(0.5 0.13 245);
+  --info-soft: oklch(0.52 0.15 240);
+  --info-soft-foreground: oklch(0.97 0.01 95);
 
-  --danger-soft: oklch(0.95 0.04 28);
-  --danger-soft-foreground: oklch(0.55 0.15 28);
+  --danger-soft: oklch(0.52 0.18 25);
+  --danger-soft-foreground: oklch(0.98 0.01 95);
 
-  --chip-amber: oklch(0.85 0.04 80);
-  --chip-amber-foreground: oklch(0.35 0.05 80);
+  --chip-amber: oklch(0.35 0.06 82);
+  --chip-amber-foreground: oklch(0.95 0.02 85);
 
   --muted-dot: oklch(0.9 0.012 95);
   --accent-lilac: oklch(0.6 0.07 290);

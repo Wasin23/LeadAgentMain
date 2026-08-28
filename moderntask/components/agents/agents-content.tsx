@@ -162,21 +162,21 @@ function AgentCard({
       gradientClass,
       isAuditor && 'opacity-60',
     )}>
-      {/* personality ribbon — horizontal banner with notched ends, drawn as an SVG
-          polygon instead of a CSS clip-path. clip-path's cut edges render without
-          anti-aliasing in most browsers (the jagged/stair-stepped pixel look);
-          SVG shapes always anti-alias their edges smoothly regardless. */}
-      <div className="absolute top-3 right-3 z-10 w-28 h-7 drop-shadow-md">
-        <svg viewBox="0 0 120 28" width="100%" height="100%" preserveAspectRatio="none">
+      {/* personality ribbon — hangs from the top edge with a pointed bottom (like a
+          bookmark tail), drawn as an SVG polygon instead of a CSS clip-path.
+          clip-path's cut edges render without anti-aliasing in most browsers (the
+          jagged/stair-stepped pixel look); SVG shapes always anti-alias smoothly. */}
+      <div className="absolute top-0 right-5 z-10 w-20 h-11 drop-shadow-md">
+        <svg viewBox="0 0 80 44" width="100%" height="100%" preserveAspectRatio="none">
           <defs>
             <linearGradient id={ribbonGradientId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={ribbonColorTop} />
               <stop offset="100%" stopColor={ribbonColorBottom} />
             </linearGradient>
           </defs>
-          <polygon points="0,0 120,0 110,14 120,28 0,28 10,14" fill={`url(#${ribbonGradientId})`} />
+          <polygon points="0,0 80,0 80,44 40,32 0,44" fill={`url(#${ribbonGradientId})`} />
         </svg>
-        <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold uppercase tracking-wide text-white">
+        <span className="absolute inset-x-1 top-1.5 flex items-center justify-center text-center text-[8px] font-bold uppercase tracking-wide text-white leading-[1.1]">
           {ribbonLabel}
         </span>
       </div>
@@ -230,10 +230,10 @@ function AgentCard({
 
       {/* stats row */}
       <div className="grid grid-cols-4 gap-1.5 mb-4">
-        <StatPill label="Queued"  value={agent.queued  ?? 0} />
-        <StatPill label="Sent"    value={agent.sent    ?? 0} accent="text-purple-400" />
-        <StatPill label="Replied" value={agent.replied ?? 0} accent="text-green-400" />
-        <StatPill label="Reply%" value={`${replyRate}%`} accent="text-blue-400" />
+        <StatPill label="Queued"  value={agent.queued  ?? 0} accent="text-primary" />
+        <StatPill label="Sent"    value={agent.sent    ?? 0} accent="text-primary" />
+        <StatPill label="Replied" value={agent.replied ?? 0} accent="text-primary" />
+        <StatPill label="Reply%" value={`${replyRate}%`} accent="text-primary" />
       </div>
 
       {/* meta row */}
@@ -993,11 +993,11 @@ export function AgentsContent({ highlightAgentId, autoOpenCreate }: { highlightA
 
   const summaryCards = [
     { label: 'Total Agents',   value: loading ? '-' : totalAgents,  icon: Bot,          accent: 'text-primary',    bg: 'bg-primary/10' },
-    { label: 'Running',        value: loading ? '-' : runningCount, icon: Cpu,          accent: 'text-green-400',  bg: 'bg-green-500/10' },
-    { label: 'Total Sent',     value: loading ? '-' : totalSent.toLocaleString(),    icon: Send,   accent: 'text-purple-400', bg: 'bg-purple-500/10' },
-    { label: 'Total Queued',   value: loading ? '-' : totalQueued.toLocaleString(),  icon: Mail,   accent: 'text-blue-400',   bg: 'bg-blue-500/10' },
-    { label: 'Total Replies',  value: loading ? '-' : totalReplied.toLocaleString(), icon: MessageSquare, accent: 'text-teal-400', bg: 'bg-teal-500/10' },
-    { label: 'Reply Rate',     value: loading ? '-' : `${overallReplyRate}%`,        icon: TrendingUp,   accent: 'text-orange-400', bg: 'bg-orange-500/10' },
+    { label: 'Running',        value: loading ? '-' : runningCount, icon: Cpu,          accent: 'text-primary',    bg: 'bg-primary/10' },
+    { label: 'Total Sent',     value: loading ? '-' : totalSent.toLocaleString(),    icon: Send,   accent: 'text-primary', bg: 'bg-primary/10' },
+    { label: 'Total Queued',   value: loading ? '-' : totalQueued.toLocaleString(),  icon: Mail,   accent: 'text-primary', bg: 'bg-primary/10' },
+    { label: 'Total Replies',  value: loading ? '-' : totalReplied.toLocaleString(), icon: MessageSquare, accent: 'text-primary', bg: 'bg-primary/10' },
+    { label: 'Reply Rate',     value: loading ? '-' : `${overallReplyRate}%`,        icon: TrendingUp,   accent: 'text-primary', bg: 'bg-primary/10' },
   ]
 
   // ── loading skeleton ───────────────────────────────────────────────────────
