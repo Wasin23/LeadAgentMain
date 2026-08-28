@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import { MeridianWordmark } from '@/components/ui/meridian-wordmark'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
@@ -34,6 +35,17 @@ function getPasswordStrength(password: string) {
   if (score <= 2) return { strength: 'weak', score: 33 }
   if (score <= 3) return { strength: 'medium', score: 66 }
   return { strength: 'strong', score: 100 }
+}
+
+// Staggered entrance for the sign-in card — logo settles first, then the card
+// itself, each with a slight delay offset rather than everything popping in at once.
+const cardContainerVariants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.12, delayChildren: 0.05 } },
+}
+const cardItemVariants = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as const } },
 }
 
 export default function SignInPage() {
@@ -318,15 +330,21 @@ export default function SignInPage() {
       </Button>
 
       {/* ── Card panel - centered ── */}
-      <div className="relative w-full max-w-md signin-card-anim" style={{ zIndex: 10, padding: '12px', background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(16px)', borderRadius: '28px', border: '1px solid rgba(255,255,255,0.8)' }}>
+      <motion.div
+        className="relative w-full max-w-md"
+        style={{ zIndex: 10, padding: '12px', background: 'rgba(255,255,255,0.55)', backdropFilter: 'blur(16px)', borderRadius: '28px', border: '1px solid rgba(255,255,255,0.8)' }}
+        variants={cardContainerVariants}
+        initial="hidden"
+        animate="show"
+      >
         {/* Logo */}
-        <div className="text-center mb-4">
+        <motion.div variants={cardItemVariants} className="text-center mb-4">
           <div className="flex justify-center mb-2">
             <Image src="/MeridianM.png" alt="Meridian" width={104} height={104} className="drop-shadow-2xl" />
           </div>
           <MeridianWordmark className="h-6 w-auto mx-auto" color="#111111" />
           <p className="text-xs mt-1.5 text-black/40">AI-Powered Lead Research & Automation</p>
-        </div>
+        </motion.div>
 
         {/* Alerts */}
         {error && (
@@ -342,6 +360,7 @@ export default function SignInPage() {
           </Alert>
         )}
 
+        <motion.div variants={cardItemVariants}>
         <Card className="shadow-2xl border-slate-200/70 bg-white/95 backdrop-blur-sm" style={{
           '--background': 'oklch(0.98 0.003 255)',
           '--foreground': 'oklch(0.22 0.02 255)',
@@ -491,7 +510,8 @@ export default function SignInPage() {
             </Tabs>
           </CardContent>
         </Card>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* Privacy / Terms links — normal flow beneath the card, never overlaps it */}
       <div className="mt-4 flex justify-center gap-6 text-xs pb-2" style={{ zIndex: 10 }}>
