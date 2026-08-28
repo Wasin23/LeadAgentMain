@@ -789,7 +789,7 @@ export function CRMContent() {
           )}
           {launched && (
             <div className="flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground">
-              <Badge variant="secondary" className="gap-1 text-[10px] bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400">
+              <Badge variant="secondary" className="gap-1 text-[10px] bg-info-soft text-info-soft-foreground">
                 <Loader2 className="w-2.5 h-2.5 animate-spin" />
                 Auditor Mode
               </Badge>
@@ -949,13 +949,13 @@ export function CRMContent() {
       )}
 
       {launched && contacts.length === 0 && completedCount > 0 && (
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20 dark:border-emerald-800 px-4 py-3 flex items-center gap-3">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+        <div className="rounded-lg border border-success-soft/40 bg-success-soft px-4 py-3 flex items-center gap-3">
+          <CheckCircle2 className="w-4 h-4 text-success-soft-foreground shrink-0" />
           <div>
-            <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">All done - {completedCount} contact{completedCount !== 1 ? "s" : ""} completed</p>
-            <p className="text-xs text-emerald-600 dark:text-emerald-500">Head to <strong>Email Queue</strong> to review and approve before sending.</p>
+            <p className="text-sm font-medium text-success-soft-foreground">All done - {completedCount} contact{completedCount !== 1 ? "s" : ""} completed</p>
+            <p className="text-xs text-success-soft-foreground/80">Head to <strong>Email Queue</strong> to review and approve before sending.</p>
           </div>
-          <Button size="sm" variant="outline" className="ml-auto shrink-0 gap-1.5 h-7 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-900/30" onClick={resetAuditor}>
+          <Button size="sm" variant="outline" className="ml-auto shrink-0 gap-1.5 h-7 text-xs border-success-soft/50 text-success-soft-foreground hover:bg-success-soft/80" onClick={resetAuditor}>
             <RefreshCw className="w-3 h-3" />Start New Batch
           </Button>
         </div>

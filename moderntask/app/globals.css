@@ -20,14 +20,19 @@
   --primary: oklch(0.3 0.04 158);
   --primary-foreground: oklch(0.97 0.01 95);
 
-  --secondary: oklch(0.82 0.045 90);
+  /* Neutral surfaces (not "selection") — pulled back from an earlier overcorrection
+     that went too deep/tan and read as brown. Light, warm, low-chroma neutral. */
+  --secondary: oklch(0.92 0.015 90);
   --secondary-foreground: oklch(0.22 0.03 158);
 
-  --muted: oklch(0.87 0.03 88);
-  --muted-foreground: oklch(0.4 0.03 90);
+  --muted: oklch(0.94 0.012 88);
+  --muted-foreground: oklch(0.4 0.02 90);
 
-  --accent: oklch(0.78 0.07 82);
-  --accent-foreground: oklch(0.2 0.03 158);
+  /* Accent = hover/selected state across the app — green-tinted to match the same
+     brand color as the active tab / Create Agent button / calendar "today", not a
+     tan/brown neutral. */
+  --accent: oklch(0.9 0.03 158);
+  --accent-foreground: oklch(0.22 0.03 158);
 
   /* Muted brass / gold accent */
   --brass: oklch(0.72 0.09 80);
@@ -50,7 +55,7 @@
   --sidebar-foreground: oklch(0.22 0.022 158);
   --sidebar-primary: oklch(0.3 0.04 158);
   --sidebar-primary-foreground: oklch(0.97 0.01 95);
-  --sidebar-accent: oklch(0.82 0.045 90);
+  --sidebar-accent: oklch(0.9 0.03 158);
   --sidebar-accent-foreground: oklch(0.22 0.03 158);
   --sidebar-border: oklch(0.915 0.008 95);
   --sidebar-ring: oklch(0.52 0.14 158);

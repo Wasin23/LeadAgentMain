@@ -37,9 +37,9 @@ interface TeamCollaborationProps {
 function statusBadge(status: string) {
   switch (status) {
     case "running":
-      return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400"
+      return "bg-success-soft text-success-soft-foreground"
     case "idle":
-      return "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400"
+      return "bg-warning-soft text-warning-soft-foreground"
     default:
       return "bg-muted text-muted-foreground"
   }

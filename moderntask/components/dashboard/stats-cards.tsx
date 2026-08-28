@@ -13,19 +13,23 @@ import {
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 
+// One consistent brand color for every stat icon — the same solid primary used
+// for the active sidebar nav item — instead of a different hardcoded pastel per
+// card (amber/emerald/violet), which read as disconnected, muddy tones sitting
+// next to the app's actual theme surfaces.
 type Tone = "amber" | "sage" | "moss" | "lilac"
 
 const toneStyles: Record<Tone, string> = {
-  amber: "bg-amber-100 text-amber-700",
-  sage:  "bg-emerald-100/70 text-emerald-700",
-  moss:  "bg-emerald-100/70 text-emerald-700",
-  lilac: "bg-violet-100 text-violet-600",
+  amber: "bg-primary text-primary-foreground",
+  sage:  "bg-primary text-primary-foreground",
+  moss:  "bg-primary text-primary-foreground",
+  lilac: "bg-primary text-primary-foreground",
 }
 const dotStyles: Record<Tone, string> = {
-  amber: "bg-amber-500",
-  sage:  "bg-emerald-500",
-  moss:  "bg-emerald-500",
-  lilac: "bg-violet-500",
+  amber: "bg-primary",
+  sage:  "bg-primary",
+  moss:  "bg-primary",
+  lilac: "bg-primary",
 }
 
 type StatId = "sent" | "queued" | "agents" | "cycles" | "replies" | "reply-rate" | "total-agents" | "followups" | "scheduled" | "bounced" | "bounce-rate" | "open-rate" | "credits"

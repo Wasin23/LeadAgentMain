@@ -356,9 +356,9 @@ export function LeadsContent() {
   const selected = leads.find(l => l.id === selectedId) || null
 
   const tierColors: Record<string, string> = {
-    HIGHLY_QUALIFIED: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-    QUALIFIED: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-    SHOTGUN: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+    HIGHLY_QUALIFIED: 'bg-success-soft text-success-soft-foreground',
+    QUALIFIED: 'bg-success-soft text-success-soft-foreground',
+    SHOTGUN: 'bg-warning-soft text-warning-soft-foreground',
     REJECTED: 'bg-muted text-muted-foreground',
   }
 
@@ -695,7 +695,7 @@ export function LeadsContent() {
               return (
                 <div>
                   {!isStarred && (
-                    <div className="mb-3 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-400">
+                    <div className="mb-3 flex items-center gap-2 rounded-md border border-warning-soft/40 bg-warning-soft px-3 py-2 text-xs text-warning-soft-foreground">
                       <Star className="w-3.5 h-3.5 shrink-0" />
                       Star this lead to start building a research timeline automatically.
                     </div>
@@ -760,8 +760,8 @@ export function LeadsContent() {
                                   className={cn(
                                     'group relative z-10 shrink-0 w-8 h-8 rounded-full border-2 flex items-center justify-center text-[11px] font-bold tabular-nums transition-opacity hover:opacity-70',
                                     entry.relevanceScore >= 8
-                                      ? 'border-green-500 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
-                                      : 'border-amber-400 bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400',
+                                      ? 'border-success-soft bg-success-soft text-success-soft-foreground'
+                                      : 'border-warning-soft bg-warning-soft text-warning-soft-foreground',
                                   )}
                                 >
                                   <span className="group-hover:hidden">{entry.relevanceScore}</span>

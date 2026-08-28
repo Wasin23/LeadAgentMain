@@ -93,11 +93,15 @@ function timeAgo(iso: string | null): string {
 }
 
 // ── stat mini card ────────────────────────────────────────────────────────────
-function StatPill({ label, value, accent }: { label: string; value: string | number; accent?: string }) {
+function StatPill({ label, value, filled }: { label: string; value: string | number; filled?: boolean }) {
+  // "filled" matches the exact treatment used everywhere else this brand color
+  // shows up (Create Agent button, active tab, today on the calendar) — a solid
+  // bg-primary fill with primary-foreground text, never primary as plain text
+  // color on a light background, which reads as a muddy dark green instead.
   return (
-    <div className="flex flex-col items-center px-3 py-1.5 rounded-lg bg-muted/40">
-      <span className={cn('text-sm font-semibold', accent ?? 'text-foreground')}>{value}</span>
-      <span className="text-[10px] text-muted-foreground leading-tight">{label}</span>
+    <div className={cn('flex flex-col items-center px-3 py-1.5 rounded-lg', filled ? 'bg-primary' : 'bg-muted/40')}>
+      <span className={cn('text-sm font-semibold', filled ? 'text-primary-foreground' : 'text-foreground')}>{value}</span>
+      <span className={cn('text-[10px] leading-tight', filled ? 'text-primary-foreground/75' : 'text-muted-foreground')}>{label}</span>
     </div>
   )
 }
@@ -166,23 +170,23 @@ function AgentCard({
           bookmark tail), drawn as an SVG polygon instead of a CSS clip-path.
           clip-path's cut edges render without anti-aliasing in most browsers (the
           jagged/stair-stepped pixel look); SVG shapes always anti-alias smoothly. */}
-      <div className="absolute top-0 right-5 z-10 w-20 h-11 drop-shadow-md">
-        <svg viewBox="0 0 80 44" width="100%" height="100%" preserveAspectRatio="none">
+      <div className="absolute top-0 right-4 z-10 w-24 h-12 drop-shadow-md">
+        <svg viewBox="0 0 96 48" width="100%" height="100%" preserveAspectRatio="none">
           <defs>
             <linearGradient id={ribbonGradientId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={ribbonColorTop} />
               <stop offset="100%" stopColor={ribbonColorBottom} />
             </linearGradient>
           </defs>
-          <polygon points="0,0 80,0 80,44 40,32 0,44" fill={`url(#${ribbonGradientId})`} />
+          <polygon points="0,0 96,0 96,48 48,35 0,48" fill={`url(#${ribbonGradientId})`} />
         </svg>
-        <span className="absolute inset-x-1 top-1.5 flex items-center justify-center text-center text-[8px] font-bold uppercase tracking-wide text-white leading-[1.1]">
+        <span className="absolute inset-x-0 top-1.5 flex items-center justify-center text-center text-[13px] font-bold uppercase tracking-wide text-white leading-[1.1]">
           {ribbonLabel}
         </span>
       </div>
 
       {/* header row */}
-      <div className="flex items-start gap-3 mb-4 pr-16">
+      <div className="flex items-start gap-3 mb-4 pr-28">
         <div className="relative text-2xl w-10 h-10 flex items-center justify-center rounded-xl bg-background/60 border border-border shrink-0 overflow-hidden">
           {avatar && (avatar.startsWith('/') || avatar.startsWith('http')) ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -230,10 +234,10 @@ function AgentCard({
 
       {/* stats row */}
       <div className="grid grid-cols-4 gap-1.5 mb-4">
-        <StatPill label="Queued"  value={agent.queued  ?? 0} accent="text-primary" />
-        <StatPill label="Sent"    value={agent.sent    ?? 0} accent="text-primary" />
-        <StatPill label="Replied" value={agent.replied ?? 0} accent="text-primary" />
-        <StatPill label="Reply%" value={`${replyRate}%`} accent="text-primary" />
+        <StatPill label="Queued"  value={agent.queued  ?? 0} filled />
+        <StatPill label="Sent"    value={agent.sent    ?? 0} filled />
+        <StatPill label="Replied" value={agent.replied ?? 0} filled />
+        <StatPill label="Reply%" value={`${replyRate}%`} filled />
       </div>
 
       {/* meta row */}

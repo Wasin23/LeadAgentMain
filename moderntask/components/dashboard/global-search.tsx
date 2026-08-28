@@ -314,7 +314,7 @@ export function GlobalSearch({
                         <span className="flex-1">{a.name}</span>
                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
                           a.status === "running"
-                            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                            ? "bg-success-soft text-success-soft-foreground"
                             : "bg-muted text-muted-foreground"
                         }`}>
                           {a.status}

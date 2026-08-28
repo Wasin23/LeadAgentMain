@@ -1302,9 +1302,9 @@ export function ContactedContent() {
             <div className="divide-y divide-border">
               {chatSessions.map((s: any) => {
                 const intentColor = s.intentScore >= 7
-                  ? 'text-green-600 bg-green-50 dark:bg-green-900/20 dark:text-green-400'
+                  ? 'text-success-soft-foreground bg-success-soft'
                   : s.intentScore >= 4
-                  ? 'text-amber-600 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400'
+                  ? 'text-warning-soft-foreground bg-warning-soft'
                   : 'text-muted-foreground bg-muted'
                 return (
                   <div key={s.sessionId} className="py-3 flex items-start justify-between gap-3">
@@ -1316,7 +1316,7 @@ export function ContactedContent() {
                           Intent {s.intentScore ?? 0}/10
                         </span>
                         <span className={cn('text-[10px] font-medium px-1.5 py-0.5 rounded-full',
-                          s.status === 'active' ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' : 'bg-muted text-muted-foreground')}>
+                          s.status === 'active' ? 'bg-info-soft text-info-soft-foreground' : 'bg-muted text-muted-foreground')}>
                           {s.status}
                         </span>
                       </div>
