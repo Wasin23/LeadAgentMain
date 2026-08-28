@@ -86,15 +86,38 @@ class ReasoningLeadAgent extends EventEmitter {
     super(); // Call EventEmitter constructor
     this.userId = userId;
     this.agentId = agentId; // Use provided agentId for agent-specific behavior
+    // Shared HTTP interceptor for every AI provider client. There are ~20 separate
+    // call sites across this file using these clients (qualification, email
+    // building, rubric building, etc.) — rather than duplicate a systemic-error
+    // check at each one, this catches it once at the transport level: a single
+    // auth/quota/rate-limit failure means every subsequent call to that provider
+    // will fail identically, so stop the agent immediately instead of silently
+    // eating that same failure over and over across every remaining lead.
+    const aiProviderFetch = (providerName) => async (url, init) => {
+      const res = await fetch(url, init);
+      if (!res.ok && [401, 402, 403, 429].includes(res.status)) {
+        const reason = res.status === 401 ? `the ${providerName} API key is invalid` :
+          res.status === 429 ? `${providerName} is rate-limiting/quota-limiting requests` :
+          `the ${providerName} account has a billing/access issue`;
+        this.stopAgentWithReason(
+          `${providerName.toLowerCase()}-api-error`,
+          `Agent stopped — ${reason}. Check your ${providerName} account/API key, then restart the agent.`
+        ).catch(() => {});
+      }
+      return res;
+    };
     this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
+      apiKey: process.env.OPENAI_API_KEY,
+      fetch: aiProviderFetch('OpenAI')
     });
     this.anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY
+      apiKey: process.env.ANTHROPIC_API_KEY,
+      fetch: aiProviderFetch('Anthropic')
     });
     this.mistral = new OpenAI({
       apiKey: process.env.MISTRAL_API_KEY,
-      baseURL: 'https://api.mistral.ai/v1'
+      baseURL: 'https://api.mistral.ai/v1',
+      fetch: aiProviderFetch('Mistral')
     });
     this.emailGenerationInFlight = 0;
     this.emailGenerationWaiters = [];
@@ -2380,7 +2403,7 @@ What's the single most useful NEXT search query to fill a real gap in this resea
       console.log(`[RUBRIC BUILD] Round ${round + 1}/${MAX_RESEARCH_ROUNDS}: searching "${query}"`);
       let results;
       try {
-        results = await internetSearch(query);
+        results = await this.internetSearchSafe(query);
       } catch (err) {
         console.warn(`[RUBRIC BUILD] Round ${round + 1} search failed: ${err.message}`);
         continue;
@@ -3629,8 +3652,8 @@ For emailHooks: extract the 2-3 most specific, concrete, verifiable facts from t
           
           
           try {
-            const results = await internetSearch(search.query);
-            
+            const results = await this.internetSearchSafe(search.query);
+
             // Log API usage for search
             try {
               await this.awsManager.logApiUsage({
@@ -3933,7 +3956,7 @@ Format as:
         // Fallback: Single generic search
         const searchQuery = parameters.searchQuery || `${companyName} company information business model products services`;
         
-        const results = await internetSearch(searchQuery);
+        const results = await this.internetSearchSafe(searchQuery);
         
         allResearchData.searches.push({
           purpose: 'general',
@@ -4200,8 +4223,8 @@ Format as:
         
         
         try {
-          const results = await internetSearch(search.query);
-          
+          const results = await this.internetSearchSafe(search.query);
+
           // Log API usage
           await this.awsManager.logApiUsage({
             userId: this.userId,
@@ -4531,19 +4554,25 @@ Format as:
 
       if (!searchResponse.ok) {
         this.updateIntegrationStatus('apollo', { status: 'error' });
-        const errorMsg = searchResponse.status === 401 ? 'Apollo API authentication failed - check API key' : 
+        const errorMsg = searchResponse.status === 401 ? 'Apollo API authentication failed - check API key' :
                         searchResponse.status === 429 ? 'Apollo API rate limit exceeded' :
                         `Apollo search failed with status ${searchResponse.status}`;
-        this.logIssue('error', errorMsg, { 
+        this.logIssue('error', errorMsg, {
           status: searchResponse.status,
           searchPayload,
           timestamp: new Date().toISOString()
         });
+        // Systemic Apollo failures (bad key, rate-limited, out of credits, refused) won't
+        // fix themselves by retrying the next search — stop immediately instead of
+        // continuing to burn steps/credits against a broken connection.
+        if ([401, 402, 403, 429].includes(searchResponse.status)) {
+          await this.stopAgentWithReason('apollo-api-error', `Agent stopped — ${errorMsg}. Check your Apollo account/API key, then restart the agent.`);
+        }
         throw new Error(`Search failed: ${searchResponse.status}`);
       }
 
       let searchData = await searchResponse.json();
-      
+
       // Log Apollo search usage for email unlock
       await this.awsManager.logApiUsage({
         userId: this.userId,
@@ -4700,6 +4729,12 @@ Format as:
           personName: targetPerson.name,
           timestamp: new Date().toISOString()
         });
+        // A single lead's enrichment 404 is normal/expected (Apollo just doesn't have
+        // that person's contact data) — not a sign anything systemic is wrong, so it
+        // doesn't stop the agent. Genuinely systemic failures do, immediately.
+        if ([401, 402, 403, 429].includes(enrichResponse.status)) {
+          await this.stopAgentWithReason('apollo-api-error', `Agent stopped — ${errorMsg}. Check your Apollo account/API key, then restart the agent.`);
+        }
         throw new Error(`Enrich failed: ${enrichResponse.status}`);
       }
 
@@ -4823,6 +4858,9 @@ Format as:
           email: email,
           timestamp: new Date().toISOString()
         });
+        if ([401, 402, 403, 429].includes(response.status)) {
+          await this.stopAgentWithReason('zerobounce-api-error', `Agent stopped — ${errorMsg}. Check your ZeroBounce API key/account, then restart the agent.`);
+        }
         throw new Error(`ZeroBounce API error: ${response.status}`);
       }
 
@@ -5806,6 +5844,11 @@ Be analytical and realistic. Focus on the LEAD'S quality, not the email quality.
         
         if (totalKeywords === 0 || basePositions.length === 0) {
           console.log(`[ERR] No keywords or positions available for search`);
+          // Not a transient "nothing matched this search" — this is a hard configuration
+          // gap that retrying will never fix on its own, so stop immediately rather than
+          // repeating this same failed search over and over.
+          const missing = [totalKeywords === 0 && 'target industries', basePositions.length === 0 && 'target positions'].filter(Boolean).join(' or ');
+          await this.stopAgentWithReason('no-target-criteria', `Agent stopped — no ${missing} configured, so it has nothing to search Apollo for. Add at least one in the agent's settings, then restart it.`);
           return { found: 0, leads: [], error: 'Industry keywords or positions not configured' };
         }
         
@@ -9376,6 +9419,46 @@ Target Positions:`;
     }
   }
 
+  /**
+   * Immediate failsafe stop. Called directly at the specific point where a specific
+   * function fails to return success on a condition that cannot fix itself by
+   * retrying (misconfiguration, a systemic Apollo API error) — not after counting
+   * failures across cycles. Stops the agent right then and raises a real
+   * notification (logIssue, same critical-severity path used for credits-exhausted)
+   * naming the exact reason, so the agent never just runs on and on against
+   * something it has no chance of recovering from on its own.
+   */
+  async stopAgentWithReason(reason, message) {
+    if (!this.isRunning) return; // already stopped/stopping — don't double-fire
+    this.logOperation('Agent Stopped', message, 'error', { reason });
+    await this.logIssue('critical', message, { agentId: this.agentId, reason }).catch(() => {});
+    await this.stop();
+  }
+
+  /**
+   * Wraps internetSearch() (Serper) so a systemic failure — missing/invalid key,
+   * rate-limited, account/billing issue — stops the agent immediately instead of
+   * silently failing identically on every single research call from here on.
+   * Callers keep their existing try/catch (a single search still just fails for
+   * that one step) — this only adds the "is this actually unrecoverable" check.
+   */
+  async internetSearchSafe(query) {
+    try {
+      return await internetSearch(query);
+    } catch (error) {
+      const status = error.response?.status;
+      const isMissingKey = /SERPER_API_KEY is not provided/i.test(error.message || '');
+      if (isMissingKey || [401, 402, 403, 429].includes(status)) {
+        const reason = isMissingKey ? 'the Serper API key is not configured' :
+          status === 401 ? 'the Serper API key is invalid' :
+          status === 429 ? 'Serper is rate-limiting requests' :
+          'the Serper account has a billing/access issue';
+        await this.stopAgentWithReason('serper-api-error', `Agent stopped — ${reason}. Check your Serper API key/account, then restart the agent.`);
+      }
+      throw error;
+    }
+  }
+
   async runCycle() {
     try {
       
@@ -9445,14 +9528,15 @@ Target Positions:`;
           result = await this.getUserSettings();
           this.memory.userSettings = result;
           
-          // Check if settings have an error
+          // Check if settings have an error — this can never resolve on its own (the
+          // user has to actually configure the agent and restart it), so stop the
+          // whole agent now rather than pausing just this cycle and retrying the
+          // exact same failure forever on the next scheduled cycle.
           if (result?.error) {
-            this.logOperation('Settings Required', 'Please configure your lead agent settings in the dashboard', 'warning', {
-              error: result.error,
-              action: 'Configure settings to start finding leads'
-            });
-            
-            // Return a shouldStop so the cycle pauses until settings are configured
+            await this.stopAgentWithReason(
+              'settings-not-configured',
+              `Agent stopped — targeting settings aren't configured yet (${result.error}). Set up your targeting criteria in the agent's settings, then restart it.`
+            );
             return {
               success: false,
               message: 'Agent settings not configured yet. Please set up your targeting criteria.',
@@ -9461,19 +9545,18 @@ Target Positions:`;
             };
           }
           break;
-          
+
         case 'get_email_settings':
           result = await this.getEmailSettings();
           this.memory.emailSettings = result;
-          
-          // Check if email settings have an error
+
+          // Same reasoning as get_user_settings above — missing email settings never
+          // fix themselves, so stop the agent rather than retry-loop forever.
           if (result?.error) {
-            this.logOperation('Email Settings Required', 'Please configure your email builder settings in the dashboard', 'warning', {
-              error: result.error,
-              action: 'Configure email settings to start sending emails'
-            });
-            
-            // Return a shouldStop so the cycle pauses until settings are configured
+            await this.stopAgentWithReason(
+              'email-settings-not-configured',
+              `Agent stopped — email settings aren't configured yet (${result.error}). Set up your email templates in the agent's settings, then restart it.`
+            );
             return {
               success: false,
               message: 'Email settings not configured yet. Please set up your email templates.',
