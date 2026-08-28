@@ -1,6 +1,5 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Fraunces } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/contexts/AuthContext"
@@ -10,7 +9,6 @@ import { NotificationListener } from "@/components/notification-listener"
 import { GoldMetallicDefs } from "@/components/ui/gold-metallic-defs"
 import "./globals.css"
 
-const fraunces = Fraunces({ subsets: ["latin"], variable: "--font-fraunces", display: "swap" })
 const siteUrl = getSiteUrl()
 
 export const metadata: Metadata = {
@@ -60,7 +58,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${fraunces.variable} font-sans antialiased`}>
+      <body className="font-sans antialiased">
         <GoldMetallicDefs />
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem storageKey="tasko-theme">
           <AuthProvider>
