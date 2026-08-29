@@ -374,6 +374,15 @@ export default function SignInPage() {
           '--secondary-foreground': 'oklch(0.22 0.02 255)',
           '--accent': 'oklch(0.56 0.15 255)',
           '--accent-foreground': 'oklch(0.98 0.01 255)',
+          // This card forces itself to always render light (colorScheme below,
+          // --background/--card above) regardless of the system's dark/light mode —
+          // but without also forcing --primary, dark mode's --primary (a light cream
+          // meant for a *dark* background) was leaking in here, rendering the Sign In
+          // button and "Forgot password?" as a near-invisible pale beige instead of
+          // green. Forced to the same light-mode green :root uses, so this card is
+          // fully self-consistent no matter what theme the rest of the app is in.
+          '--primary': 'oklch(0.3 0.04 158)',
+          '--primary-foreground': 'oklch(0.97 0.01 95)',
           colorScheme: 'light',
         } as React.CSSProperties}>
           <CardHeader className="pb-2">
