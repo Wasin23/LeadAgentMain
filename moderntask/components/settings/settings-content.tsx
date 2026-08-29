@@ -416,12 +416,25 @@ export function SettingsContent() {
     catch { toast({ title: "Failed to save", variant: 'destructive', duration: 2500 }) }
   }
 
-  // Gmail OAuth popup
-  const connectGmail = () => {
-    const w = window.open(
-      `${api.defaults.baseURL}/api/auth/gmail/authorize?userId=${user?.userId}`,
-      "Gmail", "width=600,height=700,left=400,top=100"
-    )
+  // Gmail OAuth popup. Was previously opening /api/auth/gmail/authorize?userId=...
+  // directly — that endpoint has no authentication at all, it just trusts whatever
+  // userId sits in the URL, with nothing tying it to who's actually completing the
+  // OAuth flow. Fixed to match connectOutlook's safe pattern below: fetch the auth
+  // URL from the authenticated /oauth-url endpoint (userId comes from the verified
+  // JWT server-side, never from client-suppliable input), then open *that* URL.
+  const connectGmail = async () => {
+    // Open the popup synchronously first so browsers don't treat it as a blocked
+    // pop-under once the URL arrives asynchronously after the fetch below.
+    const w = window.open('', "Gmail", "width=600,height=700,left=400,top=100")
+    try {
+      const r = await api.get("/api/auth/gmail/oauth-url")
+      if (w && r?.data?.authUrl) w.location.href = r.data.authUrl
+      else w?.close()
+    } catch {
+      w?.close()
+      toast({ title: "Failed to connect Gmail", variant: 'destructive', duration: 2500 })
+      return
+    }
     let got = false
     const onMsg = async (e: MessageEvent) => {
       if (e.data?.type !== "GMAIL_CONNECTED") return

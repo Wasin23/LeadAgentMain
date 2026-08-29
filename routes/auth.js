@@ -394,17 +394,35 @@ router.get('/profile', authenticateToken, async (req, res) => {
     const awsManager = new AWSManager();
     
     const user = await awsManager.getUserById(userId);
-    
+
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-    
+
     // Return safe user data (no password hash)
     const { passwordHash, apiKeys, ...safeUser } = user;
-    
-    res.json({ 
-      success: true, 
-      user: safeUser 
+
+    // Most accounts never went through "Sign in with Google" (which is the only
+    // place `user.picture` gets set) — they signed up normally and later connected
+    // Gmail/Outlook just for sending. Those connect flows already fetch and cache a
+    // real profile picture (gmailAccounts[]/outlookAccounts[].profilePicture), it
+    // just never surfaced here. Fall back to it at read time — nothing new to persist.
+    if (!safeUser.picture) {
+      try {
+        const userSettings = await awsManager.getUserSettings(userId);
+        const candidates = [...(userSettings?.gmailAccounts || []), ...(userSettings?.outlookAccounts || [])];
+        const withPicture = candidates.find(a => a.isActive && a.profilePicture) || candidates.find(a => a.profilePicture);
+        if (withPicture?.profilePicture) {
+          safeUser.picture = withPicture.profilePicture;
+        }
+      } catch (e) {
+        console.error('[AUTH] Failed to fall back to connected-account profile picture:', e.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      user: safeUser
     });
   } catch (error) {
     console.error('[AUTH] Get profile error:', error.message);

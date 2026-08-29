@@ -31,14 +31,18 @@ router.get('/oauth-url', authenticateToken, (req, res) => {
 /**
  * Initiate Gmail OAuth flow
  * GET /api/auth/gmail/authorize
+ *
+ * Previously took userId from an unauthenticated query param — the server had no
+ * way to verify the person completing the OAuth flow actually owned that userId,
+ * so anything that ever caused a stale/wrong userId to reach this URL (a caching
+ * bug, a stale page, a shared browser) could connect one person's Gmail onto a
+ * completely different account. Now requires the same authenticateToken JWT check
+ * every other account-mutating route uses; userId comes from the verified token,
+ * never from client-suppliable input.
  */
-router.get('/authorize', (req, res) => {
+router.get('/authorize', authenticateToken, (req, res) => {
   try {
-    const userId = req.query.userId;
-    
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
-    }
+    const userId = req.user.userId;
 
     console.log('🔐 [GMAIL AUTH] Starting OAuth flow for user:', userId);
 
