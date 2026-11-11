@@ -4,3 +4,8 @@ node_modules
 .netlify
 .search_cache/
 docs/
+
+# Secrets
+.env
+.env.*
+!.env.example
